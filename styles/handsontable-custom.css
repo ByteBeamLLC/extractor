@@ -1,0 +1,232 @@
+/* Custom Handsontable styles for better integration with the app theme */
+
+/* Light mode styles */
+.handsontable {
+  font-family: inherit;
+  color: hsl(var(--foreground));
+  background-color: hsl(var(--background));
+}
+
+.handsontable th {
+  background-color: hsl(var(--muted));
+  border-color: hsl(var(--border));
+  font-weight: 500;
+  padding: 8px 12px;
+}
+
+.handsontable td {
+  border-color: hsl(var(--border));
+  padding: 8px 12px;
+}
+
+.handsontable tbody tr:hover td {
+  background-color: hsl(var(--muted) / 0.5);
+}
+
+.handsontable .htDimmed {
+  color: hsl(var(--muted-foreground));
+}
+
+.handsontable .htCommentCell {
+  background-color: hsl(var(--accent));
+}
+
+.handsontable .htNoFrame {
+  border: none;
+}
+
+/* Dark mode styles */
+.dark .handsontable {
+  color: hsl(var(--foreground));
+  background-color: hsl(var(--background));
+}
+
+.dark .handsontable th {
+  background-color: hsl(var(--muted));
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+
+.dark .handsontable td {
+  background-color: hsl(var(--background));
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+
+.dark .handsontable tbody tr:hover td {
+  background-color: hsl(var(--muted) / 0.3);
+}
+
+.dark .handsontable .htDimmed {
+  color: hsl(var(--muted-foreground));
+}
+
+/* Dropdown menu styles */
+.handsontable .htDropdownMenu {
+  background-color: hsl(var(--popover));
+  border-color: hsl(var(--border));
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.dark .handsontable .htDropdownMenu {
+  background-color: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+}
+
+.handsontable .htDropdownMenu .ht_clone_top,
+.handsontable .htDropdownMenu .ht_clone_left {
+  background-color: hsl(var(--muted));
+}
+
+/* Filter styles */
+.handsontable .htFilters {
+  background-color: hsl(var(--muted));
+}
+
+.dark .handsontable .htFilters {
+  background-color: hsl(var(--muted));
+}
+
+/* Context menu styles */
+.htContextMenu {
+  background-color: hsl(var(--popover));
+  border-color: hsl(var(--border));
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.dark .htContextMenu {
+  background-color: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+}
+
+.htContextMenu .htCore td:hover {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+/* Selection styles */
+.handsontable .area {
+  background-color: hsl(var(--primary) / 0.1);
+  border-color: hsl(var(--primary));
+}
+
+.handsontable .wtBorder {
+  background-color: hsl(var(--primary));
+}
+
+/* Custom column header styles */
+.column-header-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.column-header-wrapper:hover {
+  background-color: hsl(var(--muted));
+}
+
+.column-header-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.column-header-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: hsl(var(--muted-foreground));
+}
+
+.column-header-name {
+  font-size: 14px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.column-header-badge {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.column-header-badge.transform {
+  background-color: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+}
+
+.column-header-badge.required {
+  background-color: hsl(var(--destructive) / 0.1);
+  color: hsl(var(--destructive));
+}
+
+.column-delete-btn {
+  opacity: 0;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.column-header-wrapper:hover .column-delete-btn {
+  opacity: 1;
+}
+
+.column-delete-btn:hover {
+  background-color: hsl(var(--destructive) / 0.1);
+}
+
+.column-delete-btn svg {
+  width: 12px;
+  height: 12px;
+  color: hsl(var(--destructive));
+}
+
+/* Scrollbar styles */
+.handsontable .wtHolder::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.handsontable .wtHolder::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+.handsontable .wtHolder::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+}
+
+.handsontable .wtHolder::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Status cell styles */
+.status-completed {
+  color: hsl(var(--success, 142 71% 45%));
+}
+
+.status-processing {
+  color: hsl(var(--warning, 38 92% 50%));
+}
+
+.status-error {
+  color: hsl(var(--destructive));
+}
+
+.status-pending {
+  color: hsl(var(--muted-foreground));
+}
