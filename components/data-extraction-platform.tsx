@@ -83,6 +83,62 @@ const transformationIcons: Record<TransformationType, any> = {
   custom: Settings,
 }
 
+// Downscale large images client-side to avoid Vercel 413 limits
+async function maybeDownscaleImage(
+  file: File,
+  opts?: { maxDim?: number; quality?: number; targetBytes?: number },
+): Promise<{ blob: Blob; type: string; name: string }> {
+  try {
+    const targetBytes = opts?.targetBytes ?? 4_000_000 // ~4 MB
+    if (!file.type?.startsWith('image/')) {
+      return { blob: file, type: file.type || 'application/octet-stream', name: file.name }
+    }
+    if (file.size <= targetBytes) {
+      return { blob: file, type: file.type || 'image/jpeg', name: file.name }
+    }
+
+    const maxDim = opts?.maxDim ?? 2000
+    const quality = opts?.quality ?? 0.8
+
+    const bitmap = await createImageBitmap(file)
+    const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height))
+    const width = Math.max(1, Math.round(bitmap.width * scale))
+    const height = Math.max(1, Math.round(bitmap.height * scale))
+
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return { blob: file, type: file.type || 'image/jpeg', name: file.name }
+    ctx.drawImage(bitmap, 0, 0, width, height)
+
+    const type = 'image/jpeg'
+    const blob: Blob = await new Promise((resolve, reject) => {
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), type, quality)
+    })
+
+    if (blob.size > targetBytes) {
+      const maxDim2 = Math.round(maxDim * 0.8)
+      const quality2 = Math.max(0.5, quality * 0.85)
+      const scale2 = Math.min(1, maxDim2 / Math.max(bitmap.width, bitmap.height))
+      const w2 = Math.max(1, Math.round(bitmap.width * scale2))
+      const h2 = Math.max(1, Math.round(bitmap.height * scale2))
+      canvas.width = w2
+      canvas.height = h2
+      ctx.clearRect(0, 0, w2, h2)
+      ctx.drawImage(bitmap, 0, 0, w2, h2)
+      const blob2: Blob = await new Promise((resolve, reject) => {
+        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), type, quality2)
+      })
+      return { blob: blob2, type, name: file.name.replace(/\.(png|webp|bmp|gif)$/i, '.jpg') }
+    }
+
+    return { blob, type, name: file.name.replace(/\.(png|webp|bmp|gif)$/i, '.jpg') }
+  } catch {
+    return { blob: file, type: file.type || 'application/octet-stream', name: file.name }
+  }
+}
+
 //
 
 /* Handsontable wrapper omitted (using custom grid) */
@@ -1052,13 +1108,14 @@ export function DataExtractionPlatform() {
         // Special F&B Label Compliance flow: extraction then translation using fixed prompts
         if (activeSchema.templateId === 'fnb-label-compliance') {
           try {
-            // Send raw binary to reduce payload size and avoid 413
-            const binary = await file.arrayBuffer()
+            // Compress large images to avoid 413 and send raw binary
+            const { blob, type, name } = await maybeDownscaleImage(file, { targetBytes: 4_000_000, maxDim: 2000, quality: 0.8 })
+            const binary = await blob.arrayBuffer()
             const r1 = await fetch('/api/fnb/extract', {
               method: 'POST',
               headers: {
-                'Content-Type': file.type || 'application/octet-stream',
-                'X-File-Name': file.name,
+                'Content-Type': type || file.type || 'application/octet-stream',
+                'X-File-Name': name || file.name,
               },
               body: binary,
             })
