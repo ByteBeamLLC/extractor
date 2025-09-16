@@ -31,7 +31,7 @@ export default function RootLayout({
           <div className="w-full px-0 py-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <img src="/bytebeam_logo.png" alt="Bytebeam" className="h-8 w-auto ml-0" />
-              <span className="text-sm font-semibold tracking-tight">Bytebeam Extractor</span>
+              {/* <span className="text-sm font-semibold tracking-tight">Bytebeam Extractor</span> */}
             </div>
             <div className="flex items-center gap-2">
               <ContactUsButton source="topbar" />
