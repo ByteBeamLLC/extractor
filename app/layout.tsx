@@ -10,6 +10,13 @@ export const metadata: Metadata = {
   description: 'Bytebeam Extractor — AI-powered document and image data extraction.',
   applicationName: 'Bytebeam Extractor',
   generator: 'Bytebeam',
+  icons: {
+    icon: [
+      { url: '/bytebeam-logo-icon.png', type: 'image/png' },
+    ],
+    shortcut: '/bytebeam-logo-icon.png',
+    apple: '/bytebeam-logo-icon.png',
+  },
 }
 
 export default function RootLayout({
