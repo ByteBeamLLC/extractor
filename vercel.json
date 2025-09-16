@@ -4,5 +4,7 @@
       "maxDuration": 60,
       "memory": 1024
     }
-  }
+  },
+  "installCommand": "pnpm install --no-frozen-lockfile",
+  "buildCommand": "pnpm build"
 }
