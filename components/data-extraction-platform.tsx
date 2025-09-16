@@ -9,10 +9,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+// import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SetupBanner } from "./setup-banner"
@@ -312,6 +312,7 @@ export function DataExtractionPlatform() {
     console.log('Active schema:', activeSchema.name, 'Fields count:', fields.length)
   }
   const [selectedColumn, setSelectedColumn] = useState<SchemaField | null>(null)
+  const [draftColumn, setDraftColumn] = useState<SchemaField | null>(null)
   const [isColumnDialogOpen, setIsColumnDialogOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [addMode, setAddMode] = useState<'column' | 'transform'>('column')
@@ -342,12 +343,12 @@ export function DataExtractionPlatform() {
 
   // Minimal nested templates to seed schemas
   const NESTED_TEMPLATES: { id: string; name: string; description?: string; fields: SchemaField[] }[] = [
-    {
-      id: "fnb-label-compliance",
-      name: "F&B Label Compliance",
-      description: "Primary-language extraction + EN/AR translation in split view.",
-      fields: [],
-    },
+    // {
+    //   id: "fnb-label-compliance",
+    //   name: "F&B Label Compliance",
+    //   description: "Primary-language extraction + EN/AR translation in split view.",
+    //   fields: [],
+    // },
     {
       id: "invoice-nested",
       name: "Invoice (Nested)",
@@ -968,6 +969,7 @@ export function DataExtractionPlatform() {
     // Open dialog after a short delay to ensure state is updated
     setTimeout(() => {
       setSelectedColumn(newColumn)
+      setDraftColumn(JSON.parse(JSON.stringify(newColumn)))
       setIsColumnDialogOpen(true)
     }, 100)
   }
@@ -988,6 +990,7 @@ export function DataExtractionPlatform() {
     // Open dialog after a short delay to ensure state is updated
     setTimeout(() => {
       setSelectedColumn(newColumn)
+      setDraftColumn(JSON.parse(JSON.stringify(newColumn)))
       setIsColumnDialogOpen(true)
     }, 100)
   }
@@ -1523,38 +1526,51 @@ export function DataExtractionPlatform() {
 
   const exportToCSV = () => {
     // Prepare CSV headers
-    const headers = ['File Name', 'Status', ...displayColumns.map(col => col.name)]
-    
-    // Prepare CSV rows
-    const rows = jobs
-      .filter(job => job.status === 'completed')
-      .map(job => {
-        const row = [job.fileName, job.status]
-        displayColumns.forEach(col => {
-          const value = job.results?.[col.id]
-          row.push(value !== undefined && value !== null ? String(value) : '')
-        })
-        return row
+    const headers = ['File Name', 'Status', ...displayColumns.map((col) => col.name)]
+
+    const formatCell = (val: unknown): string => {
+      if (val === undefined || val === null) return ''
+      if (typeof val === 'object') {
+        try {
+          return JSON.stringify(val)
+        } catch {
+          return String(val)
+        }
+      }
+      return String(val)
+    }
+
+    const escapeCSV = (cell: string): string => {
+      // Quote when containing comma, quote, or newline
+      if (cell.includes(',') || cell.includes('"') || cell.includes('\n')) {
+        return '"' + cell.replace(/"/g, '""') + '"'
+      }
+      return cell
+    }
+
+    // Prepare CSV rows for all jobs in current schema
+    const rows = jobs.map((job) => {
+      const row: string[] = [job.fileName, job.status]
+      displayColumns.forEach((col) => {
+        const value = job.results?.[col.id]
+        row.push(formatCell(value))
       })
-    
+      return row
+    })
+
     // Convert to CSV string
     const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => {
-        // Escape cells containing commas or quotes
-        if (typeof cell === 'string' && (cell.includes(',') || cell.includes('"') || cell.includes('\n'))) {
-          return `"${cell.replace(/"/g, '""')}"`
-        }
-        return cell
-      }).join(','))
+      headers.map(escapeCSV).join(','),
+      ...rows.map((row) => row.map(escapeCSV).join(',')),
     ].join('\n')
-    
+
     // Create blob and download
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     const url = URL.createObjectURL(blob)
     link.setAttribute('href', url)
-    link.setAttribute('download', `extraction_results_${new Date().toISOString().split('T')[0]}.csv`)
+    const schemaLabel = (activeSchema.name || 'schema').replace(/[^a-z0-9-_]+/gi, '_')
+    link.setAttribute('download', `${schemaLabel}_results_${new Date().toISOString().split('T')[0]}.csv`)
     link.style.visibility = 'hidden'
     document.body.appendChild(link)
     link.click()
@@ -1918,9 +1934,9 @@ export function DataExtractionPlatform() {
                   )}
                 </div>
               <div className="flex items-center gap-2">
-                {/* Export button - only show when there's data */}
-                {jobs.some(j => j.status === 'completed') && (
-                  activeSchema.templateId === 'fnb-label-compliance' ? (
+                {/* Export / Print: show Export always (non-F&B), Print gated on completion (F&B) */}
+                {activeSchema.templateId === 'fnb-label-compliance' ? (
+                  jobs.some((j) => j.status === 'completed') ? (
                     <Button
                       size="sm"
                       variant="outline"
@@ -1930,17 +1946,17 @@ export function DataExtractionPlatform() {
                       <Download className="h-4 w-4 mr-1" />
                       Print Localized Label
                     </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => exportToCSV()}
-                      title="Export to CSV"
-                    >
-                      <Download className="h-4 w-4 mr-1" />
-                      Export CSV
-                    </Button>
-                  )
+                  ) : null
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => exportToCSV()}
+                    title="Export to CSV"
+                  >
+                    <Download className="h-4 w-4 mr-1" />
+                    Export CSV
+                  </Button>
                 )}
                 {activeSchema.templateId !== 'fnb-label-compliance' && (
                 <div className="inline-flex rounded-md border border-border overflow-hidden">
@@ -2249,6 +2265,7 @@ export function DataExtractionPlatform() {
                         onMouseLeave={() => setHoveredColumnId((prev) => (prev === column.id ? null : prev))}
                         onClick={() => {
                            setSelectedColumn(column)
+                           setDraftColumn(JSON.parse(JSON.stringify(column)))
                            setIsColumnDialogOpen(true)
                          }}
                       >
@@ -2354,181 +2371,210 @@ export function DataExtractionPlatform() {
 
       {/* Column Configuration Dialog (hidden for F&B fixed mode) */}
       {activeSchema.templateId !== 'fnb-label-compliance' && (
-      <Dialog open={isColumnDialogOpen} onOpenChange={setIsColumnDialogOpen}>
+      <Dialog open={isColumnDialogOpen} onOpenChange={(open) => { setIsColumnDialogOpen(open); if (!open) setDraftColumn(null) }}>
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                {selectedColumn?.isTransformation ? "Configure Transformation Column" : "Configure Data Column"}
+                {draftColumn?.isTransformation ? "Configure Transformation Column" : "Configure Data Column"}
               </DialogTitle>
             </DialogHeader>
 
-            {selectedColumn && (
-              <Tabs defaultValue="basic" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="basic">Basic</TabsTrigger>
-                  <TabsTrigger value="extraction">Extraction</TabsTrigger>
-                  <TabsTrigger value="constraints">Constraints</TabsTrigger>
-                </TabsList>
+            {draftColumn && (
+              <div className="w-full space-y-6">
+                {/* Basic */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="column-name">Column Name</Label>
+                    <Input
+                      id="column-name"
+                      value={draftColumn.name}
+                      onChange={(e) => setDraftColumn({ ...draftColumn, name: e.target.value })}
+                      placeholder="e.g., Customer Name, Invoice Date"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="column-type">Data Type</Label>
+                    <Select
+                      value={draftColumn.type}
+                      onValueChange={(value: DataType) => setDraftColumn({ ...draftColumn, type: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="string">Text</SelectItem>
+                        <SelectItem value="number">Number</SelectItem>
+                        <SelectItem value="decimal">Decimal</SelectItem>
+                        <SelectItem value="boolean">Boolean</SelectItem>
+                        <SelectItem value="date">Date</SelectItem>
+                        <SelectItem value="email">Email</SelectItem>
+                        <SelectItem value="url">URL</SelectItem>
+                        <SelectItem value="phone">Phone</SelectItem>
+                        <SelectItem value="address">Address</SelectItem>
+                        <SelectItem value="list">List</SelectItem>
+                        <SelectItem value="object">Object</SelectItem>
+                        <SelectItem value="table">Table</SelectItem>
+                        <SelectItem value="richtext">Rich Text</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
-                <TabsContent value="basic" className="space-y-4">
+                <div>
+                  <Label htmlFor="column-description">Description</Label>
+                  <Textarea
+                    id="column-description"
+                    value={draftColumn.description}
+                    onChange={(e) => setDraftColumn({ ...draftColumn, description: e.target.value })}
+                    placeholder="Describe what this field represents and where to find it"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="column-required"
+                    checked={!!draftColumn.required}
+                    onChange={(e) => setDraftColumn({ ...draftColumn, required: e.target.checked })}
+                    className="rounded border-border"
+                  />
+                  <Label htmlFor="column-required">Required field</Label>
+                </div>
+
+                {/* Extraction or Transform */}
+                {draftColumn.isTransformation ? (
+                  <TransformBuilder
+                    allColumns={displayColumns}
+                    selected={draftColumn}
+                    onUpdate={(updates) => setDraftColumn({ ...draftColumn, ...updates })}
+                  />
+                ) : (
+                  <div>
+                    <Label htmlFor="extraction-instructions">Extraction Instructions</Label>
+                    <Textarea
+                      id="extraction-instructions"
+                      value={draftColumn.extractionInstructions}
+                      onChange={(e) => setDraftColumn({ ...draftColumn, extractionInstructions: e.target.value })}
+                      placeholder="Specific instructions for AI extraction (e.g., 'Look for the total amount at the bottom right', 'Extract the date from the header')"
+                      rows={4}
+                    />
+                  </div>
+                )}
+
+                {/* Constraints */}
+                {draftColumn.type === "string" && (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="column-name">Column Name</Label>
+                      <Label htmlFor="min-length">Min Length</Label>
                       <Input
-                        id="column-name"
-                        value={selectedColumn.name}
-                        onChange={(e) => updateColumn(selectedColumn.id, { name: e.target.value })}
-                        placeholder="e.g., Customer Name, Invoice Date"
+                        id="min-length"
+                        type="number"
+                        value={draftColumn.constraints?.minLength || ""}
+                        onChange={(e) =>
+                          setDraftColumn({
+                            ...draftColumn,
+                            constraints: {
+                              ...(draftColumn.constraints || {}),
+                              minLength: Number.parseInt(e.target.value) || undefined,
+                            },
+                          })
+                        }
                       />
                     </div>
                     <div>
-                      <Label htmlFor="column-type">Data Type</Label>
-                      <Select
-                        value={selectedColumn.type}
-                        onValueChange={(value: DataType) => updateColumn(selectedColumn.id, { type: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="string">Text</SelectItem>
-                          <SelectItem value="number">Number</SelectItem>
-                          <SelectItem value="decimal">Decimal</SelectItem>
-                          <SelectItem value="boolean">Boolean</SelectItem>
-                          <SelectItem value="date">Date</SelectItem>
-                          <SelectItem value="email">Email</SelectItem>
-                          <SelectItem value="url">URL</SelectItem>
-                          <SelectItem value="phone">Phone</SelectItem>
-                          <SelectItem value="address">Address</SelectItem>
-                          <SelectItem value="list">List</SelectItem>
-                          <SelectItem value="object">Object</SelectItem>
-                          <SelectItem value="table">Table</SelectItem>
-                          <SelectItem value="richtext">Rich Text</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="column-description">Description</Label>
-                    <Textarea
-                      id="column-description"
-                      value={selectedColumn.description}
-                      onChange={(e) => updateColumn(selectedColumn.id, { description: e.target.value })}
-                      placeholder="Describe what this field represents and where to find it"
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="column-required"
-                      checked={selectedColumn.required}
-                      onChange={(e) => updateColumn(selectedColumn.id, { required: e.target.checked })}
-                      className="rounded border-border"
-                    />
-                    <Label htmlFor="column-required">Required field</Label>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="extraction" className="space-y-4">
-                  {selectedColumn.isTransformation ? (
-                    <TransformBuilder
-                      allColumns={displayColumns}
-                      selected={selectedColumn}
-                      onUpdate={(updates) => updateColumn(selectedColumn.id, updates)}
-                    />
-                  ) : (
-                    <div>
-                      <Label htmlFor="extraction-instructions">Extraction Instructions</Label>
-                      <Textarea
-                        id="extraction-instructions"
-                        value={selectedColumn.extractionInstructions}
-                        onChange={(e) => updateColumn(selectedColumn.id, { extractionInstructions: e.target.value })}
-                        placeholder="Specific instructions for AI extraction (e.g., 'Look for the total amount at the bottom right', 'Extract the date from the header')"
-                        rows={4}
+                      <Label htmlFor="max-length">Max Length</Label>
+                      <Input
+                        id="max-length"
+                        type="number"
+                        value={draftColumn.constraints?.maxLength || ""}
+                        onChange={(e) =>
+                          setDraftColumn({
+                            ...draftColumn,
+                            constraints: {
+                              ...(draftColumn.constraints || {}),
+                              maxLength: Number.parseInt(e.target.value) || undefined,
+                            },
+                          })
+                        }
                       />
                     </div>
-                  )}
-                </TabsContent>
+                  </div>
+                )}
 
-                <TabsContent value="constraints" className="space-y-4">
-                  {selectedColumn.type === "string" && (
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="min-length">Min Length</Label>
-                        <Input
-                          id="min-length"
-                          type="number"
-                          value={selectedColumn.constraints?.minLength || ""}
-                          onChange={(e) =>
-                            updateColumn(selectedColumn.id, {
-                              constraints: {
-                                ...selectedColumn.constraints,
-                                minLength: Number.parseInt(e.target.value) || undefined,
-                              },
-                            })
-                          }
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="max-length">Max Length</Label>
-                        <Input
-                          id="max-length"
-                          type="number"
-                          value={selectedColumn.constraints?.maxLength || ""}
-                          onChange={(e) =>
-                            updateColumn(selectedColumn.id, {
-                              constraints: {
-                                ...selectedColumn.constraints,
-                                maxLength: Number.parseInt(e.target.value) || undefined,
-                              },
-                            })
-                          }
-                        />
-                      </div>
+                {(draftColumn.type === "number" || draftColumn.type === "decimal") && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="min-value">Min Value</Label>
+                      <Input
+                        id="min-value"
+                        type="number"
+                        value={draftColumn.constraints?.min || ""}
+                        onChange={(e) =>
+                          setDraftColumn({
+                            ...draftColumn,
+                            constraints: {
+                              ...(draftColumn.constraints || {}),
+                              min: Number.parseFloat(e.target.value) || undefined,
+                            },
+                          })
+                        }
+                      />
                     </div>
-                  )}
+                    <div>
+                      <Label htmlFor="max-value">Max Value</Label>
+                      <Input
+                        id="max-value"
+                        type="number"
+                        value={draftColumn.constraints?.max || ""}
+                        onChange={(e) =>
+                          setDraftColumn({
+                            ...draftColumn,
+                            constraints: {
+                              ...(draftColumn.constraints || {}),
+                              max: Number.parseFloat(e.target.value) || undefined,
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                )}
 
-                  {(selectedColumn.type === "number" || selectedColumn.type === "decimal") && (
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="min-value">Min Value</Label>
-                        <Input
-                          id="min-value"
-                          type="number"
-                          value={selectedColumn.constraints?.min || ""}
-                          onChange={(e) =>
-                            updateColumn(selectedColumn.id, {
-                              constraints: {
-                                ...selectedColumn.constraints,
-                                min: Number.parseFloat(e.target.value) || undefined,
-                              },
-                            })
-                          }
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="max-value">Max Value</Label>
-                        <Input
-                          id="max-value"
-                          type="number"
-                          value={selectedColumn.constraints?.max || ""}
-                          onChange={(e) =>
-                            updateColumn(selectedColumn.id, {
-                              constraints: {
-                                ...selectedColumn.constraints,
-                                max: Number.parseFloat(e.target.value) || undefined,
-                              },
-                            })
-                          }
-                        />
-                      </div>
-                    </div>
-                  )}
-                </TabsContent>
-              </Tabs>
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => { setIsColumnDialogOpen(false); setDraftColumn(null) }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      if (!selectedColumn || !draftColumn) return
+                      const updates: Partial<SchemaField> = {
+                        name: draftColumn.name,
+                        type: draftColumn.type,
+                        description: draftColumn.description,
+                        required: !!draftColumn.required,
+                        extractionInstructions: draftColumn.extractionInstructions,
+                        constraints: draftColumn.constraints,
+                        isTransformation: !!draftColumn.isTransformation,
+                        transformationType: draftColumn.transformationType,
+                        transformationConfig: draftColumn.transformationConfig,
+                        transformationSource: draftColumn.transformationSource,
+                        transformationSourceColumnId: draftColumn.transformationSourceColumnId,
+                      }
+                      updateColumn(selectedColumn.id, updates)
+                      setIsColumnDialogOpen(false)
+                      setDraftColumn(null)
+                    }}
+                  >
+                    Save
+                  </Button>
+                </DialogFooter>
+              </div>
             )}
       </DialogContent>
     </Dialog>
