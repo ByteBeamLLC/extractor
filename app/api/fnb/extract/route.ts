@@ -2,6 +2,9 @@ import { type NextRequest, NextResponse } from "next/server"
 import { google } from "@ai-sdk/google"
 import { generateText } from "ai"
 
+export const runtime = 'nodejs'
+export const maxDuration = 60
+
 const EXTRACTION_PROMPT = `You are an expert data extraction AI. Your primary function is to extract information from OCR output from food and beverage packaging with extreme accuracy and provide a structured JSON output. Adherence to the following rules is critical for success.
 
 Multilingual Processing Protocol
@@ -188,14 +191,26 @@ function tryParseJSON(text: string): any | null {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const file = body.file
-    if (!file || !file.data) return NextResponse.json({ success: false, error: "Missing file" }, { status: 400 })
+    const contentType = request.headers.get('content-type') || ''
+    let bytes: Uint8Array
+    let fileName = 'document'
+    let fileType = 'application/octet-stream'
 
-    const binary = Buffer.from(file.data, "base64")
-    const bytes = new Uint8Array(binary)
-    const fileName = file.name || "document"
-    const fileType = file.type || "application/octet-stream"
+    if (contentType.includes('application/json')) {
+      const body = await request.json()
+      const file = body.file
+      if (!file || !file.data) return NextResponse.json({ success: false, error: "Missing file" }, { status: 400 })
+      const binary = Buffer.from(file.data, "base64")
+      bytes = new Uint8Array(binary)
+      fileName = file.name || fileName
+      fileType = file.type || fileType
+    } else {
+      // Accept raw binary uploads to avoid base64 bloat and 413 errors
+      const ab = await request.arrayBuffer()
+      bytes = new Uint8Array(ab)
+      fileName = request.headers.get('x-file-name') || fileName
+      fileType = contentType || fileType
+    }
     const isImage = fileType.startsWith("image/") || /\.(png|jpg|jpeg|gif|bmp|webp)$/i.test(fileName)
 
     let text: string
@@ -228,4 +243,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: e instanceof Error ? e.message : "Unknown error" }, { status: 500 })
   }
 }
-

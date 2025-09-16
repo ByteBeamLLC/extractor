@@ -2,6 +2,9 @@ import { type NextRequest, NextResponse } from "next/server"
 import { google } from "@ai-sdk/google"
 import { generateText } from "ai"
 
+export const runtime = 'nodejs'
+export const maxDuration = 60
+
 const TRANSLATION_PROMPT = `You are an expert multilingual translator specializing in localizing food and retail product information for English and Arabic markets. Your task is to take a JSON object in a source language and accurately translate its values to create two new JSON objects: one for English and one for Arabic.
 
 Your translations must be accurate, natural, and context-aware, as if they were written for a real product package.
@@ -190,4 +193,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: e instanceof Error ? e.message : "Unknown error" }, { status: 500 })
   }
 }
-

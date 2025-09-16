@@ -1052,11 +1052,20 @@ export function DataExtractionPlatform() {
         // Special F&B Label Compliance flow: extraction then translation using fixed prompts
         if (activeSchema.templateId === 'fnb-label-compliance') {
           try {
+            // Send raw binary to reduce payload size and avoid 413
+            const binary = await file.arrayBuffer()
             const r1 = await fetch('/api/fnb/extract', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ file: fileData }),
+              headers: {
+                'Content-Type': file.type || 'application/octet-stream',
+                'X-File-Name': file.name,
+              },
+              body: binary,
             })
+            if (!r1.ok) {
+              const errText = await r1.text().catch(() => `${r1.status} ${r1.statusText}`)
+              throw new Error(`Extraction request failed: ${r1.status} ${r1.statusText} - ${errText}`)
+            }
             const j1 = await r1.json()
             if (!j1?.success) throw new Error(j1?.error || 'Extraction failed')
             const extraction = j1.data
@@ -1067,6 +1076,10 @@ export function DataExtractionPlatform() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ source }),
             })
+            if (!r2.ok) {
+              const errText = await r2.text().catch(() => `${r2.status} ${r2.statusText}`)
+              throw new Error(`Translation request failed: ${r2.status} ${r2.statusText} - ${errText}`)
+            }
             const j2 = await r2.json()
             if (!j2?.success) throw new Error(j2?.error || 'Translation failed')
 
