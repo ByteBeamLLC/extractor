@@ -6,9 +6,10 @@ import './globals.css'
 import { ContactUsButton } from '@/components/ContactUsButton'
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
-  generator: 'v0.app',
+  title: 'Bytebeam Extractor',
+  description: 'Bytebeam Extractor — AI-powered document and image data extraction.',
+  applicationName: 'Bytebeam Extractor',
+  generator: 'Bytebeam',
 }
 
 export default function RootLayout({
@@ -21,7 +22,10 @@ export default function RootLayout({
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <header className="fixed top-0 left-0 right-0 z-40 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="w-full px-0 py-2 flex items-center justify-between">
-            <img src="/bytebeam_logo.png" alt="Bytebeam" className="h-8 w-auto ml-0" />
+            <div className="flex items-center gap-2">
+              <img src="/bytebeam_logo.png" alt="Bytebeam" className="h-8 w-auto ml-0" />
+              <span className="text-sm font-semibold tracking-tight">Bytebeam Extractor</span>
+            </div>
             <div className="flex items-center gap-2">
               <ContactUsButton source="topbar" />
               <noscript>

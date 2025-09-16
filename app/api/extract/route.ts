@@ -5,14 +5,14 @@ import { google } from "@ai-sdk/google"
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("[v0] API route called")
+    console.log("[bytebeam] API route called")
 
     let requestData: any
     try {
       requestData = await request.json()
-      console.log("[v0] JSON payload parsed successfully")
+      console.log("[bytebeam] JSON payload parsed successfully")
     } catch (error) {
-      console.log("[v0] Error parsing JSON:", error)
+      console.log("[bytebeam] Error parsing JSON:", error)
       return NextResponse.json(
         { error: "Failed to parse request data. Please ensure you're sending valid JSON." },
         { status: 400 },
@@ -21,20 +21,20 @@ export async function POST(request: NextRequest) {
 
     const { file: fileData, schema, schemaTree, extractionPromptOverride } = requestData
 
-    console.log("[v0] Received file data:", fileData?.name, fileData?.type, fileData?.size)
+    console.log("[bytebeam] Received file data:", fileData?.name, fileData?.type, fileData?.size)
     if (schemaTree) {
-      console.log("[v0] schemaTree received with", Array.isArray(schemaTree) ? schemaTree.length : 0, "fields")
+      console.log("[bytebeam] schemaTree received with", Array.isArray(schemaTree) ? schemaTree.length : 0, "fields")
     } else {
-      console.log("[v0] Schema keys:", Object.keys(schema || {}))
+      console.log("[bytebeam] Schema keys:", Object.keys(schema || {}))
     }
 
     if (!fileData || !fileData.data) {
-      console.log("[v0] Error: No file data received")
+      console.log("[bytebeam] Error: No file data received")
       return NextResponse.json({ error: "No file was uploaded or file is invalid" }, { status: 400 })
     }
 
     if (!schema && !schemaTree) {
-      console.log("[v0] Error: No schema received")
+      console.log("[bytebeam] Error: No schema received")
       return NextResponse.json({ error: "No schema was provided" }, { status: 400 })
     }
 
@@ -42,10 +42,10 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(String(fileData.data), "base64")
     const bytes = new Uint8Array(buffer)
 
-    console.log("[v0] File converted from base64, size:", bytes.length)
+    console.log("[bytebeam] File converted from base64, size:", bytes.length)
 
     if (bytes.length === 0) {
-      console.log("[v0] Error: Empty file received")
+      console.log("[bytebeam] Error: Empty file received")
       return NextResponse.json({ error: "Uploaded file is empty" }, { status: 400 })
     }
 
@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
       })
       zodSchema = z.object(zodShape).strict()
     }
-    console.log("[v0] Built Zod schema for Gemini")
+    console.log("[bytebeam] Built Zod schema for Gemini")
 
     const schemaSummary = `Schema Fields:\n${schemaLines.join("\n")}`
 
@@ -175,13 +175,13 @@ export async function POST(request: NextRequest) {
     const isImageFile = fileType.startsWith("image/") || fileName.toLowerCase().match(/\.(png|jpg|jpeg|gif|bmp|webp)$/)
 
     if (isImageFile) {
-      console.log("[v0] Processing as image file...")
+      console.log("[bytebeam] Processing as image file...")
 
       // Build base64 without spreading large arrays (prevents stack issues)
       const base64 = Buffer.from(bytes).toString("base64")
       const mimeType = fileType || "image/png"
 
-      console.log("[v0] Image processed, base64 length:", base64.length)
+      console.log("[bytebeam] Image processed, base64 length:", base64.length)
 
       const baseText = extractionPromptOverride
         ? `${extractionPromptOverride}\n\nSchema Fields (for reference):\n${schemaSummary}`
@@ -213,14 +213,14 @@ Follow these steps:
 
       extractionPrompt = "" // Not used for multimodal content
     } else {
-      console.log("[v0] Processing as text file...")
+      console.log("[bytebeam] Processing as text file...")
 
       const documentText = new TextDecoder().decode(bytes)
 
-      console.log("[v0] Document text length:", documentText.length)
+      console.log("[bytebeam] Document text length:", documentText.length)
 
       if (documentText.length === 0) {
-        console.log("[v0] Error: Empty document")
+        console.log("[bytebeam] Error: Empty document")
         return NextResponse.json({ error: "Document appears to be empty" }, { status: 400 })
       }
 
@@ -257,7 +257,7 @@ Follow these steps:
 5. Construct the final JSON object, ensuring it strictly validates against the provided schema and contains no extra text or explanations.`
     }
 
-    console.log("[v0] Processing with Gemini...")
+    console.log("[bytebeam] Processing with Gemini...")
 
     const result = await generateObject({
       model: google("gemini-2.5-pro"),
@@ -274,14 +274,14 @@ Follow these steps:
       schema: zodSchema,
     })
 
-    console.log("[v0] Extraction successful:", result.object)
+    console.log("[bytebeam] Extraction successful:", result.object)
 
     return NextResponse.json({
       success: true,
       results: result.object,
     })
   } catch (error) {
-    console.error("[v0] Extraction error:", error)
+    console.error("[bytebeam] Extraction error:", error)
     return NextResponse.json(
       {
         error: "Failed to extract data",

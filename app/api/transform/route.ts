@@ -64,11 +64,10 @@ export async function POST(request: NextRequest) {
     })
     return NextResponse.json({ success: true, result: text })
   } catch (error) {
-    console.error("[v0] Transform error:", error)
+    console.error("[bytebeam] Transform error:", error)
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 },
     )
   }
 }
-

@@ -1077,9 +1077,9 @@ export function DataExtractionPlatform() {
 
         if (process.env.NODE_ENV !== 'production') {
           // eslint-disable-next-line no-console
-          console.log("[v0] Sending schemaTree:", schemaTree)
+          console.log("[bytebeam] Sending schemaTree:", schemaTree)
           // eslint-disable-next-line no-console
-          console.log("[v0] File:", file.name, file.type)
+          console.log("[bytebeam] File:", file.name, file.type)
         }
 
         // Convert file to base64 without spreading huge arrays (prevents stack overflow)
@@ -1182,7 +1182,7 @@ export function DataExtractionPlatform() {
         const result = await response.json()
         if (process.env.NODE_ENV !== 'production') {
           // eslint-disable-next-line no-console
-          console.log("[v0] API response:", result)
+          console.log("[bytebeam] API response:", result)
         }
 
         if (result.success) {
