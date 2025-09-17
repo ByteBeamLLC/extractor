@@ -60,6 +60,8 @@ import {
   AlertCircle,
   X,
   ChevronDown,
+  Maximize2,
+  Eye,
 
 } from "lucide-react"
  
@@ -367,6 +369,14 @@ export function DataExtractionPlatform() {
   const [expandedCells, setExpandedCells] = useState<Record<string, boolean>>({})
   const scrollRef = useRef<HTMLDivElement>(null)
   const [canScroll, setCanScroll] = useState<{ left: boolean; right: boolean }>({ left: false, right: false })
+  // Table modal state
+  const [tableModalOpen, setTableModalOpen] = useState(false)
+  const [tableModalData, setTableModalData] = useState<{
+    column: SchemaField
+    job: ExtractionJob
+    rows: Record<string, any>[]
+    columnHeaders: { key: string; label: string }[]
+  } | null>(null)
   // ROI modal state
   const [roiOpen, setRoiOpen] = useState(false)
   const [roiStage, setRoiStage] = useState<'calc' | 'result'>('calc')
@@ -416,6 +426,16 @@ export function DataExtractionPlatform() {
   const toggleCellExpansion = (jobId: string, columnId: string) => {
     const key = cellKey(jobId, columnId)
     setExpandedCells((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  const openTableModal = (
+    column: SchemaField,
+    job: ExtractionJob,
+    rows: Record<string, any>[],
+    columnHeaders: { key: string; label: string }[]
+  ) => {
+    setTableModalData({ column, job, rows, columnHeaders })
+    setTableModalOpen(true)
   }
 
   const findChildLabel = (column: SchemaField, key: string): string | undefined => {
@@ -2041,40 +2061,65 @@ export function DataExtractionPlatform() {
       const detail = rows.length === 0
         ? <span className="text-sm text-muted-foreground">No entries</span>
         : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full border-separate border-spacing-y-2 text-sm">
-              <thead>
-                <tr className="text-xs uppercase tracking-wide text-muted-foreground">
-                  {columnHeaders.map((header) => (
-                    <th key={header.key} className="bg-white/70 px-2 py-1 text-left font-medium first:rounded-l-md last:rounded-r-md shadow-sm">{header.label}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row, idx) => (
-                  <tr key={idx} className="">
-                    {columnHeaders.map((header) => {
-                      const cell = row?.[header.key as keyof typeof row]
-                      const formatted =
-                        typeof cell === 'number'
-                          ? formatNumericValue(cell) ?? String(cell)
-                          : typeof cell === 'boolean'
-                            ? cell ? 'True' : 'False'
-                            : typeof cell === 'object'
-                              ? JSON.stringify(cell)
-                              : cell ?? '—'
-                      return (
-                        <td key={header.key} className="bg-white px-2 py-1 text-left text-sm first:rounded-l-md last:rounded-r-md shadow-sm">
-                          <span className="block truncate" title={String(formatted)}>
-                            {String(formatted)}
-                          </span>
-                        </td>
-                      )
-                    })}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">Table Preview</span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => openTableModal(column, job, rows, columnHeaders)}
+                className="h-7 px-2 text-xs"
+              >
+                <Maximize2 className="mr-1 h-3 w-3" />
+                View Full Table
+                {rows.length > 5 && (
+                  <span className="ml-1 px-1 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
+                    {rows.length}
+                  </span>
+                )}
+              </Button>
+            </div>
+            <div className="overflow-x-auto" style={{ maxHeight: rows.length <= 2 ? '200px' : '300px' }}>
+              <table className="min-w-full border-separate border-spacing-y-1 text-sm">
+                <thead>
+                  <tr className="text-xs uppercase tracking-wide text-muted-foreground">
+                    {columnHeaders.map((header) => (
+                      <th key={header.key} className="bg-white/70 px-2 py-1 text-left font-medium first:rounded-l-md last:rounded-r-md shadow-sm">{header.label}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {rows.slice(0, Math.min(rows.length, 5)).map((row, idx) => (
+                    <tr key={idx} className="hover:bg-slate-50/30">
+                      {columnHeaders.map((header) => {
+                        const cell = row?.[header.key as keyof typeof row]
+                        const formatted =
+                          typeof cell === 'number'
+                            ? formatNumericValue(cell) ?? String(cell)
+                            : typeof cell === 'boolean'
+                              ? cell ? 'True' : 'False'
+                              : typeof cell === 'object'
+                                ? JSON.stringify(cell)
+                                : cell ?? '—'
+                        return (
+                          <td key={header.key} className="bg-white px-2 py-1 text-left text-sm first:rounded-l-md last:rounded-r-md shadow-sm">
+                            <span className="block truncate" title={String(formatted)}>
+                              {String(formatted)}
+                            </span>
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {rows.length > 5 && (
+                <div className="text-center py-2 text-xs text-muted-foreground bg-slate-50/50 rounded-b-md">
+                  ... and {rows.length - 5} more rows
+                </div>
+              )}
+            </div>
           </div>
         )
 
@@ -3351,6 +3396,65 @@ export function DataExtractionPlatform() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Table Modal */}
+      <Dialog open={tableModalOpen} onOpenChange={setTableModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              Table: {tableModalData?.column.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="overflow-auto max-h-[60vh]">
+            {tableModalData && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <span>{tableModalData.rows.length} {tableModalData.rows.length === 1 ? 'row' : 'rows'}</span>
+                  <span>{tableModalData.columnHeaders.length} columns</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full border-separate border-spacing-y-2 text-sm">
+                    <thead>
+                      <tr className="text-xs uppercase tracking-wide text-muted-foreground">
+                        {tableModalData.columnHeaders.map((header) => (
+                          <th key={header.key} className="bg-slate-50 px-3 py-2 text-left font-medium first:rounded-l-md last:rounded-r-md border">
+                            {header.label}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tableModalData.rows.map((row, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50/50">
+                          {tableModalData.columnHeaders.map((header) => {
+                            const cell = row?.[header.key as keyof typeof row]
+                            const formatted =
+                              typeof cell === 'number'
+                                ? formatNumericValue(cell) ?? String(cell)
+                                : typeof cell === 'boolean'
+                                  ? cell ? 'True' : 'False'
+                                  : typeof cell === 'object'
+                                    ? JSON.stringify(cell)
+                                    : cell ?? '—'
+                            return (
+                              <td key={header.key} className="px-3 py-2 text-left text-sm first:rounded-l-md last:rounded-r-md border">
+                                <span className="block" title={String(formatted)}>
+                                  {String(formatted)}
+                                </span>
+                              </td>
+                            )
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
       </div>
