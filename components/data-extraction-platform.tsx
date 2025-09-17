@@ -343,12 +343,12 @@ export function DataExtractionPlatform() {
 
   // Minimal nested templates to seed schemas
   const NESTED_TEMPLATES: { id: string; name: string; description?: string; fields: SchemaField[] }[] = [
-    // {
-    //   id: "fnb-label-compliance",
-    //   name: "F&B Label Compliance",
-    //   description: "Primary-language extraction + EN/AR translation in split view.",
-    //   fields: [],
-    // },
+    {
+      id: "fnb-label-compliance",
+      name: "F&B Label Compliance",
+      description: "Primary-language extraction + EN/AR translation in split view.",
+      fields: [],
+    },
     {
       id: "invoice-nested",
       name: "Invoice (Nested)",
