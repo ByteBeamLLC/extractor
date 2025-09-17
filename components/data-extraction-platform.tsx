@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useRef, useEffect, useMemo } from "react"
+import { useState, useRef, useEffect, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,10 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
 // import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { Skeleton } from "@/components/ui/skeleton"
 import { SetupBanner } from "./setup-banner"
 import { TransformBuilder } from "@/components/transform-builder"
  
@@ -24,64 +21,23 @@ import {
   type SchemaField,
   type SchemaDefinition,
   type ExtractionJob,
+  type FlatLeaf,
   flattenFields,
   updateFieldById,
   removeFieldById,
   flattenResultsById,
 } from "@/lib/schema"
+import { AgResultsGrid, type ResultsGridRow } from "@/components/grid/AgResultsGrid"
+import type {
+  GridApi,
+  ProcessCellForExportParams,
+  ProcessHeaderForExportParams,
+} from "ag-grid-community"
  
-import {
-  Upload,
-  Plus,
-  Settings,
-  FileText,
-  Hash,
-  Type,
-  Calendar,
-  Mail,
-  Link,
-  Phone,
-  MapPin,
-  ToggleLeft,
-  List,
-  Globe,
-  Calculator,
-  Zap,
-  Trash2,
-  Download,
-  CheckCircle,
-  Clock,
-  AlertCircle,
-  X,
- 
-} from "lucide-react"
+import { Upload, Plus, Settings, FileText, Hash, Type, Calendar, Mail, Link, Phone, MapPin, ToggleLeft, List, Globe, Calculator, Zap, Download, CheckCircle, Clock, AlertCircle, X } from "lucide-react"
  
 
 // Types moved to lib/schema
-
-const dataTypeIcons: Record<DataType, any> = {
-  string: Type,
-  number: Hash,
-  decimal: Hash,
-  boolean: ToggleLeft,
-  date: Calendar,
-  email: Mail,
-  url: Link,
-  phone: Phone,
-  address: MapPin,
-  richtext: FileText,
-  list: List,
-  object: Globe,
-  table: List,
-}
-
-const transformationIcons: Record<TransformationType, any> = {
-  currency_conversion: Calculator,
-  classification: Zap,
-  calculation: Calculator,
-  gemini_api: Zap,
-  custom: Settings,
-}
 
 // Downscale large images client-side to avoid Vercel 413 limits
 async function maybeDownscaleImage(
@@ -321,12 +277,9 @@ export function DataExtractionPlatform() {
   const [schemaNameInput, setSchemaNameInput] = useState<string>(activeSchema.name)
   
   // UI state for modern grid behaviors
-  const [hoveredColumnId, setHoveredColumnId] = useState<string | null>(null)
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null)
   // F&B translation collapsible state per job
   const [fnbCollapse, setFnbCollapse] = useState<Record<string, { en: boolean; ar: boolean }>>({})
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const [canScroll, setCanScroll] = useState<{ left: boolean; right: boolean }>({ left: false, right: false })
   // ROI modal state
   const [roiOpen, setRoiOpen] = useState(false)
   const [roiStage, setRoiStage] = useState<'calc' | 'result'>('calc')
@@ -461,69 +414,19 @@ export function DataExtractionPlatform() {
   
 
   // Column sizing / resizing
-  const DEFAULT_COL_WIDTH = 192 // px (~w-48)
-  const MIN_COL_WIDTH = 120
-  const MAX_COL_WIDTH = 640
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({})
-  const resizingRef = useRef<{ colId: string | null; startX: number; startWidth: number }>({
-    colId: null,
-    startX: 0,
-    startWidth: 0,
-  })
-  const headerRefs = useRef<Record<string, HTMLDivElement | null>>({})
-
-  const getColWidth = (colId: string) => columnWidths[colId] ?? DEFAULT_COL_WIDTH
-
-  const startResize = (colId: string, e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    resizingRef.current = {
-      colId,
-      startX: e.clientX,
-      startWidth: getColWidth(colId),
-    }
-    // Improve UX while resizing
-    try {
-      document.body.style.userSelect = 'none'
-      document.body.style.cursor = 'col-resize'
-    } catch {}
-  }
-
-  const autoFit = (colId: string) => {
-    const el = headerRefs.current[colId]
-    if (!el) return
-    // measure content width and clamp
-    const contentWidth = el.scrollWidth + 32 // padding
-    const next = Math.min(MAX_COL_WIDTH, Math.max(MIN_COL_WIDTH, contentWidth))
-    setColumnWidths((prev) => ({ ...prev, [colId]: next }))
-  }
-
-  // Global mouse handlers for resize
-  useEffect(() => {
-    const onMove = (e: MouseEvent) => {
-      const ref = resizingRef.current
-      if (!ref.colId) return
-      const dx = e.clientX - ref.startX
-      const raw = ref.startWidth + dx
-      const next = Math.min(MAX_COL_WIDTH, Math.max(MIN_COL_WIDTH, raw))
-      setColumnWidths((prev) => ({ ...prev, [ref.colId as string]: next }))
-    }
-    const onUp = () => {
-      if (resizingRef.current.colId) {
-        resizingRef.current.colId = null
-        try {
-          document.body.style.userSelect = ''
-          document.body.style.cursor = ''
-        } catch {}
-      }
-    }
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup', onUp)
-    return () => {
-      window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('mouseup', onUp)
-    }
+  const gridApiRef = useRef<GridApi<ResultsGridRow> | null>(null)
+  const handleColumnWidthChange = useCallback((columnId: string, width: number) => {
+    setColumnWidths((prev) => ({ ...prev, [columnId]: width }))
   }, [])
+  const handleOpenColumnConfig = useCallback(
+    (column: FlatLeaf) => {
+      setSelectedColumn(column)
+      setDraftColumn(JSON.parse(JSON.stringify(column)))
+      setIsColumnDialogOpen(true)
+    },
+    [],
+  )
 
   // Initialize width for new columns based on header text length
   // updated below after computing displayColumns
@@ -1476,105 +1379,35 @@ export function DataExtractionPlatform() {
     return <span className={`${base} bg-muted text-muted-foreground`}>Pending</span>
   }
 
-  const getCellAlignClasses = (type: DataType) => {
-    if (type === 'number' || type === 'decimal') return 'text-right [font-variant-numeric:tabular-nums]'
-    if (type === 'date') return 'font-mono text-xs'
-    return 'text-left'
-  }
-
-  const renderCellValue = (column: SchemaField, job: ExtractionJob) => {
-    const value = job.results?.[column.id]
-    if (job.status === 'error') return <span className="text-sm text-destructive">—</span>
-    if (job.status !== 'completed') return <Skeleton className="h-4 w-24" />
-    if (value === undefined || value === null || value === '') {
-      return <span className="text-muted-foreground">—</span>
-    }
-    if (column.type === 'boolean') {
-      const truthy = Boolean(value)
-      return (
-        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${truthy ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-muted text-muted-foreground'}`}>
-          {truthy ? 'True' : 'False'}
-        </span>
-      )
-    }
-    if (Array.isArray(value)) {
-      return <span className="truncate block" title={JSON.stringify(value)}>{value.length} items</span>
-    }
-    if (typeof value === 'object') {
-      return <span className="truncate block" title={JSON.stringify(value)}>{JSON.stringify(value)}</span>
-    }
-    return <span className="truncate block" title={String(value)}>{String(value)}</span>
-  }
-
-  // Scroll shadow indicators for horizontal overflow
-  useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
-    const update = () => {
-      const { scrollLeft, scrollWidth, clientWidth } = el
-      setCanScroll({ left: scrollLeft > 0, right: scrollLeft + clientWidth < scrollWidth - 1 })
-    }
-    update()
-    el.addEventListener('scroll', update)
-    const ro = new ResizeObserver(update)
-    ro.observe(el)
-    return () => {
-      el.removeEventListener('scroll', update)
-      ro.disconnect()
-    }
-  }, [displayColumns.length, jobs.length])
-
   const exportToCSV = () => {
-    // Prepare CSV headers
-    const headers = ['File Name', 'Status', ...displayColumns.map((col) => col.name)]
+    const api = gridApiRef.current
+    if (!api) return
 
-    const formatCell = (val: unknown): string => {
-      if (val === undefined || val === null) return ''
-      if (typeof val === 'object') {
-        try {
-          return JSON.stringify(val)
-        } catch {
-          return String(val)
-        }
-      }
-      return String(val)
-    }
-
-    const escapeCSV = (cell: string): string => {
-      // Quote when containing comma, quote, or newline
-      if (cell.includes(',') || cell.includes('"') || cell.includes('\n')) {
-        return '"' + cell.replace(/"/g, '""') + '"'
-      }
-      return cell
-    }
-
-    // Prepare CSV rows for all jobs in current schema
-    const rows = jobs.map((job) => {
-      const row: string[] = [job.fileName, job.status]
-      displayColumns.forEach((col) => {
-        const value = job.results?.[col.id]
-        row.push(formatCell(value))
-      })
-      return row
-    })
-
-    // Convert to CSV string
-    const csvContent = [
-      headers.map(escapeCSV).join(','),
-      ...rows.map((row) => row.map(escapeCSV).join(',')),
-    ].join('\n')
-
-    // Create blob and download
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    const url = URL.createObjectURL(blob)
-    link.setAttribute('href', url)
     const schemaLabel = (activeSchema.name || 'schema').replace(/[^a-z0-9-_]+/gi, '_')
-    link.setAttribute('download', `${schemaLabel}_results_${new Date().toISOString().split('T')[0]}.csv`)
-    link.style.visibility = 'hidden'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    const columnKeys = ['fileName', 'status', ...displayColumns.map((col) => col.id)]
+
+    api.exportDataAsCsv({
+      columnKeys,
+      fileName: `${schemaLabel}_results_${new Date().toISOString().split('T')[0]}.csv`,
+      processCellCallback: (params: ProcessCellForExportParams<ResultsGridRow, unknown>) => {
+        const value = params.value as unknown
+        if (value === undefined || value === null) return ''
+        if (typeof value === 'object') {
+          try {
+            return JSON.stringify(value)
+          } catch {
+            return String(value)
+          }
+        }
+        return String(value)
+      },
+      processHeaderCallback: (params: ProcessHeaderForExportParams<ResultsGridRow>) => {
+        const colId = params.column.getColId()
+        if (colId === 'fileName') return 'File Name'
+        if (colId === 'status') return 'Status'
+        return params.column.getColDef().headerName ?? colId ?? ''
+      },
+    })
   }
 
   // F&B: Build and print localized label PDF (printable HTML)
@@ -2002,7 +1835,7 @@ export function DataExtractionPlatform() {
             )}
           </div>
           {/* Main Body */}
-          <div ref={scrollRef} className="flex-1 overflow-auto min-h-0 min-w-0 relative">
+          <div className="flex-1 overflow-auto min-h-0 min-w-0 relative">
             {activeSchema.templateId === 'fnb-label-compliance' ? (
               <div className="p-4 space-y-4">
                 {/* Simple job selector */}
@@ -2231,140 +2064,21 @@ export function DataExtractionPlatform() {
                 })()}
               </div>
             ) : (
-            <>
-            {/* Sheet-Style Grid (default) */}
-            {/* Horizontal scroll shadows */}
-            {canScroll.left && (
-              <div className="pointer-events-none absolute inset-y-0 left-[17rem] w-6 bg-gradient-to-r from-background to-transparent z-10" />
-            )}
-            {canScroll.right && (
-              <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-background to-transparent z-10" />
-            )}
-            <div className="min-w-full">
-              {/* Table Header */}
-              <div className="sticky top-0 bg-card/95 backdrop-blur border-b border-border z-20 shadow-[0_1px_0_0_var(--color-border)]">
-                <div className="flex relative">
-                  <div className="w-12 p-2 border-r border-border bg-muted sticky left-0 z-30">
-                    <span className="text-xs text-muted-foreground">#</span>
-                  </div>
-                  {/* File name header */}
-                  <div className="w-56 shrink-0 p-2 border-r border-border bg-muted/60 sticky left-12 z-20">
-                    <span className="text-xs text-muted-foreground">File</span>
-                  </div>
-                  {displayColumns.map((column) => {
-                    const Icon = column.isTransformation
-                      ? transformationIcons[column.transformationType!]
-                      : dataTypeIcons[column.type]
-
-                    return (
-                      <div
-                        key={column.id}
-                        className={`shrink-0 p-2 border-r border-border bg-card hover:bg-muted/50 cursor-pointer group overflow-hidden relative ${hoveredColumnId === column.id ? 'bg-accent/40' : ''}`}
-                        style={{ width: getColWidth(column.id) }}
-                        onMouseEnter={() => setHoveredColumnId(column.id)}
-                        onMouseLeave={() => setHoveredColumnId((prev) => (prev === column.id ? null : prev))}
-                        onClick={() => {
-                           setSelectedColumn(column)
-                           setDraftColumn(JSON.parse(JSON.stringify(column)))
-                           setIsColumnDialogOpen(true)
-                         }}
-                      >
-                        <div className="flex items-center justify-between gap-2" ref={(el) => (headerRefs.current[column.id] = el)}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="flex items-center gap-2 min-w-0 w-full overflow-hidden">
-                                <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
-                                <span className="text-sm font-medium truncate min-w-0 flex-1" title={column.name}>{column.name}</span>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent sideOffset={6}>
-                              <div className="max-w-xs space-y-1">
-                                <div className="flex items-center gap-2">
-                                  <Icon className="h-3.5 w-3.5 opacity-80" />
-                                  <span className="text-xs font-medium">{column.name}</span>
-                                </div>
-                                {column.description && (
-                                  <p className="text-[11px] opacity-90">{column.description}</p>
-                                )}
-                                {column.extractionInstructions && (
-                                  <p className="text-[11px] opacity-70">{column.extractionInstructions}</p>
-                                )}
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                          <div className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                deleteColumn(column.id)
-                              }}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-                        {/* Resize handle */}
-                        <div
-                          className="absolute top-0 right-0 h-full w-2 cursor-col-resize select-none"
-                          onMouseDown={(e) => startResize(column.id, e)}
-                          onDoubleClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            autoFit(column.id)
-                          }}
-                          title="Drag to resize • Double‑click to auto‑fit"
-                        />
-                        {/* Keep header compact; show details in tooltip */}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Table Body - Results */}
-              <div className="bg-background">
-                {jobs
-                  .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
-                  .map((job, jobIndex) => (
-                    <div
-                      key={job.id}
-                      className={`flex border-b border-border hover:bg-muted/30 ${selectedRowId === job.id ? 'bg-accent/30' : jobIndex % 2 === 1 ? 'bg-muted/20' : ''}`}
-                      onClick={() => setSelectedRowId(job.id)}
-                    >
-                      <div className="w-12 p-2 border-r border-border bg-background sticky left-0 z-10 text-center">
-                        <span className="text-xs text-muted-foreground">{jobIndex + 1}</span>
-                      </div>
-                      {/* File cell with status icon */}
-                      <div className="w-56 shrink-0 p-2 border-r border-border flex items-center gap-2 bg-background sticky left-12 z-10 overflow-hidden">
-                        {getStatusIcon(job.status)}
-                        {renderStatusPill(job.status)}
-                        <span className="text-sm truncate" title={job.fileName}>{job.fileName}</span>
-                      </div>
-                      {displayColumns.map((column) => (
-                        <div
-                          key={column.id}
-                          className={`shrink-0 p-2 border-r border-border overflow-hidden ${getCellAlignClasses(column.type)} ${hoveredColumnId === column.id ? 'bg-accent/20' : ''}`}
-                          style={{ width: getColWidth(column.id) }}
-                        >
-                          {renderCellValue(column, job)}
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-
-                {/* Empty State */}
-                {jobs.length === 0 && (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No extraction results yet. Upload documents to get started.</p>
-                    {fields.length === 0 && <p className="text-sm mt-2">Define your schema columns first.</p>}
-                  </div>
-                )}
-              </div>
-            </div>
-            </>
+              <AgResultsGrid
+                jobs={jobs}
+                columns={displayColumns}
+                columnWidths={columnWidths}
+                onColumnWidthChange={handleColumnWidthChange}
+                onOpenColumnConfig={handleOpenColumnConfig}
+                onDeleteColumn={deleteColumn}
+                selectedRowId={selectedRowId}
+                onSelectRow={setSelectedRowId}
+                renderStatusPill={renderStatusPill}
+                getStatusIcon={getStatusIcon}
+                onGridReady={(api) => {
+                  gridApiRef.current = api
+                }}
+              />
             )}
           </div>
       </div>
