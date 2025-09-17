@@ -123,3 +123,7 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Hide horizontal scrollbar on schema tabs container while allowing scroll */
+.tab-container::-webkit-scrollbar { display: none; }
+.tab-container { -ms-overflow-style: none; scrollbar-width: none; }

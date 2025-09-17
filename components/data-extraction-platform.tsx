@@ -2430,41 +2430,56 @@ export function DataExtractionPlatform() {
     <div className="flex flex-col h-screen bg-background">
       <SetupBanner />
 
-      {/* Schemas Tabs */}
-      <div className="border-b bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-        <div className="flex items-center gap-1 px-2 py-2 overflow-x-auto">
-          {schemas.map((s) => (
-            <div
-              key={s.id}
-              className={`group inline-flex items-center max-w-xs rounded-t-md border px-2 py-1 text-sm mr-1 ${
-                s.id === activeSchemaId ? 'bg-background border-border' : 'bg-muted text-muted-foreground border-transparent hover:bg-muted/70'
-              }`}
+      {/* Tabs */}
+      <div id="tab-bar" className="flex-shrink-0 bg-gray-100 pl-6 border-b border-gray-200 flex items-center">
+        {/* Tab items container */}
+        <div id="tab-container" className="relative flex-grow overflow-x-auto -mb-px tab-container">
+          <div className="flex items-center whitespace-nowrap pr-2">
+            {schemas.map((s) => {
+              const isActive = s.id === activeSchemaId
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  className={cn(
+                    'group relative inline-flex items-center max-w-xs mr-1 px-3 py-2 text-sm rounded-t-md border-b-2',
+                    isActive
+                      ? 'bg-white text-indigo-600 border-indigo-500'
+                      : 'bg-transparent text-gray-500 border-transparent hover:bg-gray-200',
+                  )}
+                  onClick={() => {
+                    setActiveSchemaId(s.id)
+                    setSelectedColumn(null)
+                    setIsColumnDialogOpen(false)
+                  }}
+                  title={s.name}
+                >
+                  <span className="truncate max-w-[10rem] pr-1">{s.name}</span>
+                  <span
+                    className={cn(
+                      'ml-1 opacity-0 group-hover:opacity-100 transition-opacity',
+                      isActive ? 'text-indigo-600' : 'text-gray-500 hover:text-gray-700',
+                    )}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      closeSchema(s.id)
+                    }}
+                    aria-label="Close schema tab"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </span>
+                </button>
+              )
+            })}
+            {/* Add New Tab Button: sits after last tab; sticks to right on overflow */}
+            <button
+              onClick={() => addSchema()}
+              className="ml-2 p-2 rounded-md hover:bg-gray-200 text-gray-500 hover:text-gray-700 sticky right-0 bg-gray-100"
+              title="New schema"
             >
-              <button
-                type="button"
-                className="truncate max-w-[10rem] pr-1"
-                onClick={() => {
-                  setActiveSchemaId(s.id)
-                  setSelectedColumn(null)
-                  setIsColumnDialogOpen(false)
-                }}
-                title={s.name}
-              >
-                {s.name}
-              </button>
-              <button
-                type="button"
-                className="ml-1 opacity-60 hover:opacity-100"
-                onClick={() => closeSchema(s.id)}
-                aria-label="Close schema tab"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          ))}
-          <Button size="sm" variant="ghost" onClick={addSchema} title="New schema">
-            <Plus className="h-4 w-4" />
-          </Button>
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -2569,7 +2584,7 @@ export function DataExtractionPlatform() {
           {/* Main Content - Excel-style Table */}
           <div className="flex-1 flex flex-col min-h-0 min-w-0">
           {/* Header */}
-          <div className="bg-card border-b border-border p-4">
+          <div className="bg-white border-b border-gray-200 p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {!editingSchemaName ? (
