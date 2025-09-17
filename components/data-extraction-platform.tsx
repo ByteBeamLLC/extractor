@@ -8,20 +8,26 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Checkbox } from "@/components/ui/checkbox"
 // import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SetupBanner } from "./setup-banner"
 import { TransformBuilder } from "@/components/transform-builder"
+import { cn } from "@/lib/utils"
  
 import {
   type DataType,
+  type DataPrimitive,
   type TransformationType,
   type SchemaField,
+  type ObjectField,
+  type ListField,
+  type TableField,
+  type LeafField,
   type SchemaDefinition,
   type ExtractionJob,
   flattenFields,
@@ -53,7 +59,8 @@ import {
   Clock,
   AlertCircle,
   X,
- 
+  ChevronDown,
+
 } from "lucide-react"
  
 
@@ -82,6 +89,37 @@ const transformationIcons: Record<TransformationType, any> = {
   gemini_api: Zap,
   custom: Settings,
 }
+
+const compositeBadgeStyles: Record<'object' | 'table' | 'list', string> = {
+  object: 'bg-[#e6f0ff] text-[#2782ff] dark:bg-[#0b2547] dark:text-[#8fbfff]',
+  table: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200',
+  list: 'bg-[#e6f0ff] text-[#2782ff] dark:bg-[#0b2547] dark:text-[#8fbfff]',
+}
+
+const compositeBadgeLabels: Record<'object' | 'table' | 'list', string> = {
+  object: 'Object',
+  table: 'Table',
+  list: 'List',
+}
+
+const simpleDataTypeOptions: Array<{ value: DataType; label: string }> = [
+  { value: 'string', label: 'Text' },
+  { value: 'number', label: 'Number' },
+  { value: 'decimal', label: 'Decimal' },
+  { value: 'boolean', label: 'Yes / No' },
+  { value: 'date', label: 'Date' },
+  { value: 'email', label: 'Email' },
+  { value: 'phone', label: 'Phone' },
+  { value: 'url', label: 'Link' },
+  { value: 'address', label: 'Address' },
+  { value: 'richtext', label: 'Rich Text' },
+]
+
+const complexDataTypeOptions: Array<{ value: DataType; label: string }> = [
+  { value: 'object', label: 'Object (Group of fields)' },
+  { value: 'table', label: 'Table (Rows and columns)' },
+  { value: 'list', label: 'List (Array of items)' },
+]
 
 // Downscale large images client-side to avoid Vercel 413 limits
 async function maybeDownscaleImage(
@@ -314,17 +352,19 @@ export function DataExtractionPlatform() {
   const [selectedColumn, setSelectedColumn] = useState<SchemaField | null>(null)
   const [draftColumn, setDraftColumn] = useState<SchemaField | null>(null)
   const [isColumnDialogOpen, setIsColumnDialogOpen] = useState(false)
+  const [columnDialogMode, setColumnDialogMode] = useState<'create' | 'edit'>('create')
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [addMode, setAddMode] = useState<'column' | 'transform'>('column')
   // Schema name editing
   const [editingSchemaName, setEditingSchemaName] = useState(false)
   const [schemaNameInput, setSchemaNameInput] = useState<string>(activeSchema.name)
+  const isDraftTransformation = !!draftColumn?.isTransformation
   
   // UI state for modern grid behaviors
   const [hoveredColumnId, setHoveredColumnId] = useState<string | null>(null)
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null)
   // F&B translation collapsible state per job
   const [fnbCollapse, setFnbCollapse] = useState<Record<string, { en: boolean; ar: boolean }>>({})
+  const [expandedCells, setExpandedCells] = useState<Record<string, boolean>>({})
   const scrollRef = useRef<HTMLDivElement>(null)
   const [canScroll, setCanScroll] = useState<{ left: boolean; right: boolean }>({ left: false, right: false })
   // ROI modal state
@@ -340,6 +380,351 @@ export function DataExtractionPlatform() {
   // Avoid referencing process.env in client runtime
   const { BOOKING_URL } = require("@/lib/publicEnv") as { BOOKING_URL: string }
   const isSchemaFresh = (s: SchemaDefinition) => (s.fields?.length ?? 0) === 0 && (s.jobs?.length ?? 0) === 0
+
+  const numberFormatter = useMemo(() => new Intl.NumberFormat('en-US', {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+  }), [])
+
+  const dateFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      }),
+    [],
+  )
+
+  const formatNumericValue = (raw: unknown): string | null => {
+    const candidate = typeof raw === 'number' ? raw : Number(raw)
+    if (!Number.isFinite(candidate)) return null
+    return numberFormatter.format(candidate)
+  }
+
+  const formatDateValue = (raw: unknown): string | null => {
+    if (!raw) return null
+    const date = raw instanceof Date ? raw : new Date(raw as any)
+    if (Number.isNaN(date.getTime())) return null
+    return dateFormatter.format(date)
+  }
+
+  const cellKey = (jobId: string, columnId: string) => `${jobId}-${columnId}`
+
+  const isCellExpanded = (jobId: string, columnId: string) => !!expandedCells[cellKey(jobId, columnId)]
+
+  const toggleCellExpansion = (jobId: string, columnId: string) => {
+    const key = cellKey(jobId, columnId)
+    setExpandedCells((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  const findChildLabel = (column: SchemaField, key: string): string | undefined => {
+    if (column.type === 'object') {
+      const objectColumn = column as Extract<SchemaField, { type: 'object' }>
+      const child = objectColumn.children?.find((childField) => childField.id === key || childField.name === key)
+      return child?.name
+    }
+    if (column.type === 'table') {
+      const tableColumn = column as Extract<SchemaField, { type: 'table' }>
+      const child = tableColumn.columns?.find((childField) => childField.id === key || childField.name === key)
+      return child?.name
+    }
+    if (column.type === 'list') {
+      const listColumn = column as Extract<SchemaField, { type: 'list' }>
+      const item = listColumn.item
+      if (item.type === 'object') {
+        const objectItem = item as Extract<SchemaField, { type: 'object' }>
+        const child = objectItem.children?.find((childField) => childField.id === key || childField.name === key)
+        return child?.name
+      }
+    }
+    return undefined
+  }
+
+  const prettifyKey = (key: string) => key.replace(/[_-]/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
+
+  const getObjectEntries = (column: SchemaField, value: Record<string, any>) => {
+    return Object.entries(value)
+      .filter(([, v]) => v !== null && v !== undefined && v !== '')
+      .map(([key, v]) => ({
+        label: findChildLabel(column, key) ?? prettifyKey(key),
+        value: v,
+      }))
+  }
+
+  const firstNonEmptyText = (value: Record<string, any>) => {
+    for (const v of Object.values(value)) {
+      if (v && typeof v === 'string') {
+        const trimmed = v.trim()
+        if (trimmed) return trimmed
+      }
+    }
+    return null
+  }
+
+  const createLeafField = (name = 'field', type: DataPrimitive = 'string'): LeafField => ({
+    id: `field_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    name,
+    type,
+    description: '',
+    extractionInstructions: '',
+    required: false,
+  })
+
+  const cloneField = <T extends SchemaField>(field: T): T => JSON.parse(JSON.stringify(field)) as T
+
+  const normaliseDraftForType = (prev: SchemaField, nextType: DataType): SchemaField => {
+    if (nextType === 'object') {
+      const existing = (prev as any).children as SchemaField[] | undefined
+      const children = existing?.length ? existing.map((child) => cloneField(child)) : [createLeafField('name'), createLeafField('value')]
+      return {
+        ...prev,
+        type: 'object',
+        children,
+      } as ObjectField
+    }
+    if (nextType === 'table') {
+      const existing = (prev as any).columns as SchemaField[] | undefined
+      const columns = existing?.length ? existing.map((col) => cloneField(col)) : [createLeafField('Column 1'), createLeafField('Column 2')]
+      return {
+        ...prev,
+        type: 'table',
+        columns,
+      } as TableField
+    }
+    if (nextType === 'list') {
+      const existing = (prev as any).item as SchemaField | undefined
+      const item = existing ? cloneField(existing) : createLeafField('item')
+      return {
+        ...prev,
+        type: 'list',
+        item,
+      } as ListField
+    }
+    const leaf: LeafField = {
+      ...(prev as any),
+      type: nextType,
+    }
+    delete (leaf as any).children
+    delete (leaf as any).columns
+    delete (leaf as any).item
+    return leaf
+  }
+
+  const changeDraftType = (nextType: DataType) => {
+    setDraftColumn((prev) => {
+      if (!prev) return prev
+      return normaliseDraftForType(prev, nextType)
+    })
+  }
+
+  const addObjectSubField = () => {
+    setDraftColumn((prev) => {
+      if (!prev || prev.type !== 'object') return prev
+      const objectDraft = prev as ObjectField
+      const children = [...(objectDraft.children || []).map((child) => cloneField(child)), createLeafField(`Field ${objectDraft.children.length + 1}`)]
+      return { ...objectDraft, children }
+    })
+  }
+
+  const updateObjectSubField = (childId: string, updates: Partial<LeafField>) => {
+    setDraftColumn((prev) => {
+      if (!prev || prev.type !== 'object') return prev
+      const objectDraft = prev as ObjectField
+      const children = (objectDraft.children || []).map((child) => (child.id === childId ? { ...child, ...updates } : child))
+      return { ...objectDraft, children }
+    })
+  }
+
+  const removeObjectSubField = (childId: string) => {
+    setDraftColumn((prev) => {
+      if (!prev || prev.type !== 'object') return prev
+      const objectDraft = prev as ObjectField
+      const children = (objectDraft.children || []).filter((child) => child.id !== childId)
+      return { ...objectDraft, children }
+    })
+  }
+
+  const addTableColumn = () => {
+    setDraftColumn((prev) => {
+      if (!prev || prev.type !== 'table') return prev
+      const tableDraft = prev as TableField
+      const columns = [...(tableDraft.columns || []).map((col) => cloneField(col)), createLeafField(`Column ${tableDraft.columns.length + 1}`)]
+      return { ...tableDraft, columns }
+    })
+  }
+
+  const updateTableColumn = (columnId: string, updates: Partial<LeafField>) => {
+    setDraftColumn((prev) => {
+      if (!prev || prev.type !== 'table') return prev
+      const tableDraft = prev as TableField
+      const columns = (tableDraft.columns || []).map((col) => (col.id === columnId ? { ...col, ...updates } : col))
+      return { ...tableDraft, columns }
+    })
+  }
+
+  const removeTableColumn = (columnId: string) => {
+    setDraftColumn((prev) => {
+      if (!prev || prev.type !== 'table') return prev
+      const tableDraft = prev as TableField
+      const columns = (tableDraft.columns || []).filter((col) => col.id !== columnId)
+      return { ...tableDraft, columns }
+    })
+  }
+
+  const updateListItemType = (nextType: DataPrimitive) => {
+    setDraftColumn((prev) => {
+      if (!prev || prev.type !== 'list') return prev
+      const listDraft = prev as ListField
+      return {
+        ...listDraft,
+        item: {
+          ...(listDraft.item ? cloneField(listDraft.item) : createLeafField('item')),
+          type: nextType,
+        },
+      }
+    })
+  }
+
+  const renderStructuredConfig = () => {
+    if (!draftColumn) return null
+    if (draftColumn.type === 'object') {
+      const objectDraft = draftColumn as ObjectField
+      const children = objectDraft.children || []
+      return (
+        <div id="data-type-options" className="space-y-3 rounded-2xl border border-slate-200/70 bg-slate-50/70 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-slate-700">Object Fields</p>
+              <p className="text-xs text-slate-500">Define the sub-fields that make up this object.</p>
+            </div>
+            <Button type="button" size="sm" variant="secondary" onClick={addObjectSubField}>
+              <Plus className="mr-1 h-4 w-4" />
+              Add Sub-Field
+            </Button>
+          </div>
+          <div className="space-y-3">
+            {children.length === 0 ? (
+              <div className="rounded-xl bg-white px-4 py-3 text-sm text-slate-500 shadow-sm">
+                No sub-fields yet. Add at least one field to describe this object.
+              </div>
+            ) : (
+              children.map((child) => (
+                <div key={child.id} className="flex flex-col gap-3 rounded-xl bg-white px-4 py-4 shadow-sm sm:flex-row sm:items-end">
+                  <div className="flex-1 space-y-1">
+                    <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Field Name</Label>
+                    <Input
+                      value={child.name}
+                      onChange={(event) => updateObjectSubField(child.id, { name: event.target.value })}
+                      placeholder="e.g., Name"
+                    />
+                  </div>
+                  <div className="w-full space-y-1 sm:w-48">
+                    <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Type</Label>
+                    <Select
+                      value={child.type}
+                      onValueChange={(value: DataPrimitive) => updateObjectSubField(child.id, { type: value })}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="string">Text</SelectItem>
+                        <SelectItem value="number">Number</SelectItem>
+                        <SelectItem value="decimal">Decimal</SelectItem>
+                        <SelectItem value="date">Date</SelectItem>
+                        <SelectItem value="boolean">Yes / No</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeObjectSubField(child.id)}
+                    className="self-start text-slate-400 hover:text-slate-700"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )
+    }
+
+    if (draftColumn.type === 'table') {
+      const tableDraft = draftColumn as TableField
+      const columns = tableDraft.columns || []
+      return (
+        <div id="data-type-options" className="space-y-3 rounded-2xl border border-slate-200/70 bg-slate-50/70 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-slate-700">Table Columns</p>
+              <p className="text-xs text-slate-500">List the columns that each row in this table should include.</p>
+            </div>
+            <Button type="button" size="sm" variant="secondary" onClick={addTableColumn}>
+              <Plus className="mr-1 h-4 w-4" />
+              Add Column
+            </Button>
+          </div>
+          <div className="space-y-3">
+            {columns.length === 0 ? (
+              <div className="rounded-xl bg-white px-4 py-3 text-sm text-slate-500 shadow-sm">
+                No columns yet. Add the first column to describe your table structure.
+              </div>
+            ) : (
+              columns.map((col, index) => (
+                <div key={col.id} className="flex items-center gap-3 rounded-xl bg-white px-4 py-3 shadow-sm">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">{index + 1}</span>
+                  <Input
+                    value={col.name}
+                    onChange={(event) => updateTableColumn(col.id, { name: event.target.value })}
+                    placeholder="Column name"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeTableColumn(col.id)}
+                    className="text-slate-400 hover:text-slate-700"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )
+    }
+
+    if (draftColumn.type === 'list') {
+      const listDraft = draftColumn as ListField
+      const itemType = listDraft.item?.type ?? 'string'
+      return (
+        <div id="data-type-options" className="space-y-3 rounded-2xl border border-slate-200/70 bg-slate-50/70 p-4">
+          <div>
+            <p className="text-sm font-semibold text-slate-700">List Item Type</p>
+            <p className="text-xs text-slate-500">Choose the type of value each item in this list should store.</p>
+          </div>
+          <Select value={itemType} onValueChange={(value: DataPrimitive) => updateListItemType(value)}>
+            <SelectTrigger className="w-full sm:w-64">
+              <SelectValue placeholder="Select an item type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="string">Text</SelectItem>
+              <SelectItem value="number">Number</SelectItem>
+              <SelectItem value="decimal">Decimal</SelectItem>
+              <SelectItem value="date">Date</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )
+    }
+    return null
+  }
 
   // Minimal nested templates to seed schemas
   const NESTED_TEMPLATES: { id: string; name: string; description?: string; fields: SchemaField[] }[] = [
@@ -966,6 +1351,7 @@ export function DataExtractionPlatform() {
     }
     const updatedFields = [...fields, newColumn]
     setFields(updatedFields)
+    setColumnDialogMode('create')
     // Open dialog after a short delay to ensure state is updated
     setTimeout(() => {
       setSelectedColumn(newColumn)
@@ -974,25 +1360,28 @@ export function DataExtractionPlatform() {
     }, 100)
   }
 
-  const addTransformationColumn = () => {
-    const newColumn: SchemaField = {
-      id: `transform_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      name: `Transform ${displayColumns.filter((c) => c.isTransformation).length + 1}`,
-      type: "string",
-      description: "",
-      extractionInstructions: "",
-      required: false,
-      isTransformation: true,
-      transformationType: "calculation",
-    }
-    const updatedFields = [...fields, newColumn]
-    setFields(updatedFields)
-    // Open dialog after a short delay to ensure state is updated
-    setTimeout(() => {
-      setSelectedColumn(newColumn)
-      setDraftColumn(JSON.parse(JSON.stringify(newColumn)))
-      setIsColumnDialogOpen(true)
-    }, 100)
+  const handleDraftFieldTypeChange = (isTransformation: boolean) => {
+    setDraftColumn((prev) => {
+      if (!prev) return prev
+      if (isTransformation) {
+        return {
+          ...prev,
+          isTransformation: true,
+          transformationType: prev.transformationType || "calculation",
+        }
+      }
+      const {
+        transformationType,
+        transformationConfig,
+        transformationSource,
+        transformationSourceColumnId,
+        ...rest
+      } = prev
+      return {
+        ...rest,
+        isTransformation: false,
+      } as SchemaField
+    })
   }
 
   const updateColumn = (columnId: string, updates: Partial<SchemaField>) => {
@@ -1486,24 +1875,265 @@ export function DataExtractionPlatform() {
     const value = job.results?.[column.id]
     if (job.status === 'error') return <span className="text-sm text-destructive">—</span>
     if (job.status !== 'completed') return <Skeleton className="h-4 w-24" />
-    if (value === undefined || value === null || value === '') {
+
+    const isEmptyValue =
+      value === undefined ||
+      value === null ||
+      (typeof value === 'string' && value.trim().length === 0) ||
+      (Array.isArray(value) && value.length === 0)
+
+    if (isEmptyValue) {
       return <span className="text-muted-foreground">—</span>
     }
+
     if (column.type === 'boolean') {
       const truthy = Boolean(value)
       return (
-        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${truthy ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-muted text-muted-foreground'}`}>
+        <span
+          className={cn(
+            'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide transition-colors',
+            truthy
+              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+              : 'bg-muted text-muted-foreground',
+          )}
+        >
           {truthy ? 'True' : 'False'}
         </span>
       )
     }
+
+    if (column.type === 'number' || column.type === 'decimal') {
+      const formatted = formatNumericValue(value)
+      return (
+        <span className="text-sm font-medium text-foreground tabular-nums">
+          {formatted ?? String(value)}
+        </span>
+      )
+    }
+
+    if (column.type === 'date') {
+      const formatted = formatDateValue(value)
+      return (
+        <span className="font-mono text-xs" title={String(value)}>
+          {formatted ?? String(value)}
+        </span>
+      )
+    }
+
+    const renderCompositeShell = (
+      type: 'object' | 'table' | 'list',
+      summary: string,
+      meta: string | null,
+      detail: React.ReactNode,
+    ) => {
+      const expanded = isCellExpanded(job.id, column.id)
+      return (
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation()
+              toggleCellExpansion(job.id, column.id)
+            }}
+            className="w-full rounded-xl border border-[#2782ff]/20 bg-white/70 px-3 py-2 text-left shadow-sm transition-all hover:-translate-y-[1px] hover:border-[#2782ff]/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2782ff]/40"
+            aria-expanded={expanded}
+          >
+            <div className="flex items-center gap-3">
+              <span
+                className={cn(
+                  'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide',
+                  compositeBadgeStyles[type],
+                )}
+              >
+                {compositeBadgeLabels[type]}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-semibold text-foreground">{summary}</div>
+                {meta && <div className="truncate text-xs text-muted-foreground">{meta}</div>}
+              </div>
+              <ChevronDown
+                className={cn(
+                  'h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200',
+                  expanded ? 'rotate-180' : 'rotate-0',
+                )}
+              />
+            </div>
+          </button>
+          <div
+            className={cn(
+              'grid transition-all duration-300 ease-in-out',
+              expanded ? 'grid-rows-[1fr] opacity-100' : 'pointer-events-none grid-rows-[0fr] opacity-0',
+            )}
+          >
+            <div className="overflow-hidden">
+              <div className="rounded-xl border border-[#2782ff]/20 bg-[#e6f0ff]/60 p-3 text-sm shadow-inner dark:border-[#1a4b8f]/40 dark:bg-[#0b2547]/40">
+                {detail}
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    if (column.type === 'object' && value && typeof value === 'object' && !Array.isArray(value)) {
+      const record = value as Record<string, any>
+      const amountLike = record.amount ?? record.total ?? record.value
+      const currencyLike = record.currency ?? record.ccy ?? record.iso ?? record.code
+
+      // Special-case monetary object values
+      if (amountLike !== undefined && (typeof amountLike === 'number' || typeof amountLike === 'string')) {
+        const formattedAmount = formatNumericValue(amountLike) ?? String(amountLike)
+        return (
+          <div className="flex items-baseline gap-2">
+            <span className="text-base font-semibold tracking-tight text-foreground tabular-nums">{formattedAmount}</span>
+            {currencyLike && (
+              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                {String(currencyLike)}
+              </span>
+            )}
+          </div>
+        )
+      }
+
+      const entries = getObjectEntries(column, record)
+      const summary = firstNonEmptyText(record) ?? `${entries.length} ${entries.length === 1 ? 'field' : 'fields'}`
+      const detail = (
+        <div className="space-y-2">
+          {entries.map(({ label, value: entryValue }) => (
+            <div key={label} className="flex items-start justify-between gap-4">
+              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</span>
+              <span className="max-w-[16rem] text-sm font-medium text-foreground">
+                {typeof entryValue === 'number'
+                  ? formatNumericValue(entryValue) ?? String(entryValue)
+                  : typeof entryValue === 'boolean'
+                    ? entryValue ? 'True' : 'False'
+                    : typeof entryValue === 'object'
+                      ? JSON.stringify(entryValue)
+                      : String(entryValue)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )
+
+      return renderCompositeShell('object', summary, `${entries.length} ${entries.length === 1 ? 'detail' : 'details'}`, detail)
+    }
+
+    if (column.type === 'table' && Array.isArray(value)) {
+      const rows = value as Record<string, any>[]
+      const columnsForTable =
+        column.type === 'table' && 'columns' in column
+          ? (column as Extract<SchemaField, { type: 'table' }>).columns
+          : []
+      const columnHeaders =
+        columnsForTable.length > 0
+          ? columnsForTable.map((col) => ({
+              key: col.id ?? col.name,
+              label: col.name,
+            }))
+          : Array.from(
+              rows.reduce((set, row) => {
+                Object.keys(row || {}).forEach((key) => set.add(key))
+                return set
+              }, new Set<string>()),
+            ).map((key) => ({ key, label: prettifyKey(key) }))
+
+      const detail = rows.length === 0
+        ? <span className="text-sm text-muted-foreground">No entries</span>
+        : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-separate border-spacing-y-2 text-sm">
+              <thead>
+                <tr className="text-xs uppercase tracking-wide text-muted-foreground">
+                  {columnHeaders.map((header) => (
+                    <th key={header.key} className="bg-white/70 px-2 py-1 text-left font-medium first:rounded-l-md last:rounded-r-md shadow-sm">{header.label}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, idx) => (
+                  <tr key={idx} className="">
+                    {columnHeaders.map((header) => {
+                      const cell = row?.[header.key as keyof typeof row]
+                      const formatted =
+                        typeof cell === 'number'
+                          ? formatNumericValue(cell) ?? String(cell)
+                          : typeof cell === 'boolean'
+                            ? cell ? 'True' : 'False'
+                            : typeof cell === 'object'
+                              ? JSON.stringify(cell)
+                              : cell ?? '—'
+                      return (
+                        <td key={header.key} className="bg-white px-2 py-1 text-left text-sm first:rounded-l-md last:rounded-r-md shadow-sm">
+                          <span className="block truncate" title={String(formatted)}>
+                            {String(formatted)}
+                          </span>
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+
+      return renderCompositeShell(
+        'table',
+        `${rows.length} ${rows.length === 1 ? 'entry' : 'entries'}`,
+        columnsForTable.length ? `${columnsForTable.length} columns` : null,
+        detail,
+      )
+    }
+
+    if (column.type === 'list' && Array.isArray(value)) {
+      const items = value as any[]
+      const meta = `${items.length} ${items.length === 1 ? 'item' : 'items'}`
+      const detail = (
+        <div className="space-y-2">
+          {items.map((item, idx) => (
+            <div key={idx} className="rounded-lg bg-white/80 px-3 py-2 shadow-sm">
+              {item && typeof item === 'object' ? (
+                <pre className="whitespace-pre-wrap text-xs text-foreground/80">{JSON.stringify(item, null, 2)}</pre>
+              ) : (
+                <span className="text-sm text-foreground">{String(item)}</span>
+              )}
+            </div>
+          ))}
+        </div>
+      )
+
+      const summary = items[0] && typeof items[0] === 'string' ? String(items[0]) : meta
+
+      return renderCompositeShell('list', summary, meta, detail)
+    }
+
     if (Array.isArray(value)) {
-      return <span className="truncate block" title={JSON.stringify(value)}>{value.length} items</span>
+      const items = value as any[]
+      return renderCompositeShell(
+        'list',
+        `${items.length} ${items.length === 1 ? 'item' : 'items'}`,
+        null,
+        <pre className="whitespace-pre-wrap text-xs text-foreground/80">{JSON.stringify(items, null, 2)}</pre>,
+      )
     }
-    if (typeof value === 'object') {
-      return <span className="truncate block" title={JSON.stringify(value)}>{JSON.stringify(value)}</span>
+
+    if (value && typeof value === 'object') {
+      const record = value as Record<string, any>
+      const entries = Object.keys(record)
+      return renderCompositeShell(
+        'object',
+        firstNonEmptyText(record) ?? `${entries.length} fields`,
+        null,
+        <pre className="whitespace-pre-wrap text-xs text-foreground/80">{JSON.stringify(record, null, 2)}</pre>,
+      )
     }
-    return <span className="truncate block" title={String(value)}>{String(value)}</span>
+
+    return (
+      <span className="truncate text-sm" title={String(value)}>
+        {String(value)}
+      </span>
+    )
   }
 
   // Scroll shadow indicators for horizontal overflow
@@ -1959,35 +2589,13 @@ export function DataExtractionPlatform() {
                   </Button>
                 )}
                 {activeSchema.templateId !== 'fnb-label-compliance' && (
-                <div className="inline-flex rounded-md border border-border overflow-hidden">
-                  <button
-                    type="button"
-                    className={`px-3 py-1.5 text-sm flex items-center gap-1.5 ${addMode === 'column' ? 'bg-accent text-accent-foreground' : 'bg-transparent text-muted-foreground'}`}
-                    onClick={() => setAddMode('column')}
-                    aria-pressed={addMode === 'column'}
-                    title="Add data column"
-                  >
-                    <Type className="h-4 w-4" /> Column
-                  </button>
-                  <button
-                    type="button"
-                    className={`px-3 py-1.5 text-sm flex items-center gap-1.5 border-l border-border ${addMode === 'transform' ? 'bg-accent text-accent-foreground' : 'bg-transparent text-muted-foreground'}`}
-                    onClick={() => setAddMode('transform')}
-                    aria-pressed={addMode === 'transform'}
-                    title="Add transform column"
-                  >
-                    <Zap className="h-4 w-4" /> Transform
-                  </button>
-                </div>
-                )}
-                {activeSchema.templateId !== 'fnb-label-compliance' && (
                 <Button
                   size="sm"
-                  onClick={() => (addMode === 'column' ? addColumn() : addTransformationColumn())}
-                  title={addMode === 'column' ? 'Add Column' : 'Add Transform'}
+                  onClick={() => addColumn()}
+                  title="Add Field"
                 >
                   <Plus className="h-4 w-4 mr-1" />
-                  Add {addMode === 'column' ? 'Column' : 'Transform'}
+                  Add Field
                 </Button>
                 )}
               </div>
@@ -2244,12 +2852,12 @@ export function DataExtractionPlatform() {
               {/* Table Header */}
               <div className="sticky top-0 bg-card/95 backdrop-blur border-b border-border z-20 shadow-[0_1px_0_0_var(--color-border)]">
                 <div className="flex relative">
-                  <div className="w-12 p-2 border-r border-border bg-muted sticky left-0 z-30">
-                    <span className="text-xs text-muted-foreground">#</span>
+                  <div className="sticky left-0 z-30 flex w-12 items-center justify-center border-r border-transparent bg-transparent py-3">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">#</span>
                   </div>
                   {/* File name header */}
-                  <div className="w-56 shrink-0 p-2 border-r border-border bg-muted/60 sticky left-12 z-20">
-                    <span className="text-xs text-muted-foreground">File</span>
+                  <div className="sticky left-12 z-20 w-64 shrink-0 border-r border-transparent bg-white/90 px-4 py-3 shadow-[1px_0_0_rgba(15,23,42,0.05)]">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">File</span>
                   </div>
                   {displayColumns.map((column) => {
                     const Icon = column.isTransformation
@@ -2259,13 +2867,17 @@ export function DataExtractionPlatform() {
                     return (
                       <div
                         key={column.id}
-                        className={`shrink-0 p-2 border-r border-border bg-card hover:bg-muted/50 cursor-pointer group overflow-hidden relative ${hoveredColumnId === column.id ? 'bg-accent/40' : ''}`}
+                        className={cn(
+                          'group relative shrink-0 border-r border-transparent bg-white/90 px-4 py-3 text-foreground shadow-[inset_0_-1px_0_rgba(15,23,42,0.06)] transition-colors hover:bg-[#e6f0ff]/50',
+                          hoveredColumnId === column.id && 'bg-[#e6f0ff]/70 shadow-[inset_0_-1px_0_rgba(39,130,255,0.25)]',
+                        )}
                         style={{ width: getColWidth(column.id) }}
                         onMouseEnter={() => setHoveredColumnId(column.id)}
                         onMouseLeave={() => setHoveredColumnId((prev) => (prev === column.id ? null : prev))}
                         onClick={() => {
                            setSelectedColumn(column)
                            setDraftColumn(JSON.parse(JSON.stringify(column)))
+                           setColumnDialogMode('edit')
                            setIsColumnDialogOpen(true)
                          }}
                       >
@@ -2324,28 +2936,37 @@ export function DataExtractionPlatform() {
               </div>
 
               {/* Table Body - Results */}
-              <div className="bg-background">
+              <div className="space-y-3 bg-transparent py-4">
                 {jobs
                   .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
                   .map((job, jobIndex) => (
                     <div
                       key={job.id}
-                      className={`flex border-b border-border hover:bg-muted/30 ${selectedRowId === job.id ? 'bg-accent/30' : jobIndex % 2 === 1 ? 'bg-muted/20' : ''}`}
+                      className={cn(
+                        'group relative flex overflow-visible rounded-2xl border border-transparent bg-white/90 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg',
+                        selectedRowId === job.id && 'ring-2 ring-[#2782ff]/40',
+                      )}
                       onClick={() => setSelectedRowId(job.id)}
                     >
-                      <div className="w-12 p-2 border-r border-border bg-background sticky left-0 z-10 text-center">
-                        <span className="text-xs text-muted-foreground">{jobIndex + 1}</span>
+                      <div className="sticky left-0 z-20 flex w-12 items-center justify-center rounded-l-2xl border-r border-slate-200/70 bg-white/95 py-3 text-center shadow-[1px_0_0_rgba(15,23,42,0.05)]">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">{jobIndex + 1}</span>
                       </div>
                       {/* File cell with status icon */}
-                      <div className="w-56 shrink-0 p-2 border-r border-border flex items-center gap-2 bg-background sticky left-12 z-10 overflow-hidden">
-                        {getStatusIcon(job.status)}
-                        {renderStatusPill(job.status)}
-                        <span className="text-sm truncate" title={job.fileName}>{job.fileName}</span>
+                      <div className="sticky left-12 z-10 flex w-64 shrink-0 items-center gap-3 border-r border-slate-200/60 bg-white/95 px-4 py-3 shadow-[1px_0_0_rgba(15,23,42,0.05)]">
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon(job.status)}
+                          {renderStatusPill(job.status)}
+                        </div>
+                        <span className="text-sm font-medium text-slate-700 truncate" title={job.fileName}>{job.fileName}</span>
                       </div>
                       {displayColumns.map((column) => (
                         <div
                           key={column.id}
-                          className={`shrink-0 p-2 border-r border-border overflow-hidden ${getCellAlignClasses(column.type)} ${hoveredColumnId === column.id ? 'bg-accent/20' : ''}`}
+                          className={cn(
+                            'shrink-0 border-r border-slate-200/60 bg-white/95 px-4 py-3 transition-colors last:rounded-r-2xl',
+                            getCellAlignClasses(column.type),
+                            hoveredColumnId === column.id && 'bg-[#e6f0ff]/50',
+                          )}
                           style={{ width: getColWidth(column.id) }}
                         >
                           {renderCellValue(column, job)}
@@ -2369,217 +2990,306 @@ export function DataExtractionPlatform() {
           </div>
       </div>
 
-      {/* Column Configuration Dialog (hidden for F&B fixed mode) */}
+      {/* Column Configuration Panel (hidden for F&B fixed mode) */}
       {activeSchema.templateId !== 'fnb-label-compliance' && (
-      <Dialog open={isColumnDialogOpen} onOpenChange={(open) => { setIsColumnDialogOpen(open); if (!open) setDraftColumn(null) }}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {draftColumn?.isTransformation ? "Configure Transformation Column" : "Configure Data Column"}
-              </DialogTitle>
-            </DialogHeader>
+        <Sheet
+          open={isColumnDialogOpen}
+          onOpenChange={(open) => {
+            setIsColumnDialogOpen(open)
+            if (!open) {
+              setDraftColumn(null)
+              setColumnDialogMode('create')
+            }
+          }}
+        >
+          <SheetContent side="right" className="flex w-full max-w-full flex-col bg-[#f8f9fb] shadow-xl sm:max-w-xl">
+            <SheetHeader className="border-b border-slate-200/70 px-6 py-5">
+              <SheetTitle className="text-xl font-semibold">
+                {columnDialogMode === 'edit' ? 'Edit Field' : 'Add New Field'}
+              </SheetTitle>
+              <SheetDescription className="text-sm text-slate-600">
+                Configure how this data point is extracted and structured for your grid.
+              </SheetDescription>
+            </SheetHeader>
 
             {draftColumn && (
-              <div className="w-full space-y-6">
-                {/* Basic */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="column-name">Column Name</Label>
-                    <Input
-                      id="column-name"
-                      value={draftColumn.name}
-                      onChange={(e) => setDraftColumn({ ...draftColumn, name: e.target.value })}
-                      placeholder="e.g., Customer Name, Invoice Date"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="column-type">Data Type</Label>
-                    <Select
-                      value={draftColumn.type}
-                      onValueChange={(value: DataType) => setDraftColumn({ ...draftColumn, type: value })}
+              <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5">
+                <section className="space-y-3">
+                  <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Field Source</Label>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(
+                        'flex h-auto flex-col items-start gap-1 rounded-xl border-2 px-4 py-3 text-left shadow-none transition-all',
+                        !isDraftTransformation
+                          ? 'border-[#2782ff]/70 bg-[#e6f0ff]/70 text-[#2782ff] hover:bg-[#d9e9ff]'
+                          : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100',
+                      )}
+                      aria-pressed={!isDraftTransformation}
+                      onClick={() => handleDraftFieldTypeChange(false)}
                     >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="string">Text</SelectItem>
-                        <SelectItem value="number">Number</SelectItem>
-                        <SelectItem value="decimal">Decimal</SelectItem>
-                        <SelectItem value="boolean">Boolean</SelectItem>
-                        <SelectItem value="date">Date</SelectItem>
-                        <SelectItem value="email">Email</SelectItem>
-                        <SelectItem value="url">URL</SelectItem>
-                        <SelectItem value="phone">Phone</SelectItem>
-                        <SelectItem value="address">Address</SelectItem>
-                        <SelectItem value="list">List</SelectItem>
-                        <SelectItem value="object">Object</SelectItem>
-                        <SelectItem value="table">Table</SelectItem>
-                        <SelectItem value="richtext">Rich Text</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      <span className="flex items-center gap-2 text-sm font-semibold">
+                        <FileText className="h-4 w-4" />
+                        Extraction
+                      </span>
+                      <span className="text-xs text-slate-500">Extract directly from the document</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(
+                        'flex h-auto flex-col items-start gap-1 rounded-xl border-2 px-4 py-3 text-left shadow-none transition-all',
+                        isDraftTransformation
+                          ? 'border-[#2782ff]/70 bg-[#e6f0ff]/70 text-[#2782ff] hover:bg-[#d9e9ff]'
+                          : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100',
+                      )}
+                      aria-pressed={isDraftTransformation}
+                      onClick={() => handleDraftFieldTypeChange(true)}
+                    >
+                      <span className="flex items-center gap-2 text-sm font-semibold">
+                        <Zap className="h-4 w-4" />
+                        Transformation
+                      </span>
+                      <span className="text-xs text-slate-500">Compute value from other fields</span>
+                    </Button>
+                  </div>
+                </section>
+
+                <div className="space-y-4 rounded-2xl border border-slate-200/70 bg-white px-4 py-5 shadow-sm">
+                  <div className="grid gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="column-name">Field Name</Label>
+                      <Input
+                        id="column-name"
+                        value={draftColumn.name}
+                        onChange={(event) => setDraftColumn({ ...draftColumn, name: event.target.value })}
+                        placeholder="e.g., Manufacturer"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="column-description">Description</Label>
+                      <Textarea
+                        id="column-description"
+                        value={draftColumn.description}
+                        onChange={(event) => setDraftColumn({ ...draftColumn, description: event.target.value })}
+                        placeholder="Give teammates context about this data point"
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="column-type">Data Type</Label>
+                      <Select value={draftColumn.type} onValueChange={(value: DataType) => changeDraftType(value)}>
+                        <SelectTrigger id="column-type">
+                          <SelectValue placeholder="Select a data type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            <SelectLabel>Simple Types</SelectLabel>
+                            {simpleDataTypeOptions.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                          <SelectSeparator />
+                          <SelectGroup>
+                            <SelectLabel>Structured Types</SelectLabel>
+                            {complexDataTypeOptions.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {renderStructuredConfig()}
+
+                    <div className="flex items-center gap-3 pt-1">
+                      <Checkbox
+                        id="column-required"
+                        checked={!!draftColumn.required}
+                        onCheckedChange={(checked) => setDraftColumn({ ...draftColumn, required: checked === true })}
+                      />
+                      <Label htmlFor="column-required" className="text-sm font-medium text-slate-600">
+                        Required field
+                      </Label>
+                    </div>
                   </div>
                 </div>
 
-                <div>
-                  <Label htmlFor="column-description">Description</Label>
-                  <Textarea
-                    id="column-description"
-                    value={draftColumn.description}
-                    onChange={(e) => setDraftColumn({ ...draftColumn, description: e.target.value })}
-                    placeholder="Describe what this field represents and where to find it"
-                    rows={3}
-                  />
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="column-required"
-                    checked={!!draftColumn.required}
-                    onChange={(e) => setDraftColumn({ ...draftColumn, required: e.target.checked })}
-                    className="rounded border-border"
-                  />
-                  <Label htmlFor="column-required">Required field</Label>
-                </div>
-
-                {/* Extraction or Transform */}
-                {draftColumn.isTransformation ? (
-                  <TransformBuilder
-                    allColumns={displayColumns}
-                    selected={draftColumn}
-                    onUpdate={(updates) => setDraftColumn({ ...draftColumn, ...updates })}
-                  />
-                ) : (
-                  <div>
-                    <Label htmlFor="extraction-instructions">Extraction Instructions</Label>
-                    <Textarea
-                      id="extraction-instructions"
-                      value={draftColumn.extractionInstructions}
-                      onChange={(e) => setDraftColumn({ ...draftColumn, extractionInstructions: e.target.value })}
-                      placeholder="Specific instructions for AI extraction (e.g., 'Look for the total amount at the bottom right', 'Extract the date from the header')"
-                      rows={4}
+                <div className="space-y-3 rounded-2xl border border-slate-200/70 bg-white px-4 py-5 shadow-sm">
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-semibold text-slate-700">
+                      {isDraftTransformation ? 'Transformation Logic' : 'Extraction Guidance'}
+                    </h3>
+                    {!isDraftTransformation && (
+                      <p className="text-xs text-slate-500">
+                        Tell the AI how to locate this value. Mention labels, nearby anchors, or table positions.
+                      </p>
+                    )}
+                  </div>
+                  {isDraftTransformation ? (
+                    <TransformBuilder
+                      allColumns={displayColumns}
+                      selected={draftColumn}
+                      onUpdate={(updates) => setDraftColumn({ ...draftColumn, ...updates })}
                     />
-                  </div>
-                )}
+                  ) : (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="extraction-instructions">AI Extraction Instructions</Label>
+                      <Textarea
+                        id="extraction-instructions"
+                        value={draftColumn.extractionInstructions}
+                        onChange={(event) => setDraftColumn({ ...draftColumn, extractionInstructions: event.target.value })}
+                        placeholder="e.g., 'Look for the Nutrition Facts panel and capture each nutrient row'"
+                        rows={4}
+                      />
+                    </div>
+                  )}
+                </div>
 
-                {/* Constraints */}
-                {draftColumn.type === "string" && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="min-length">Min Length</Label>
-                      <Input
-                        id="min-length"
-                        type="number"
-                        value={draftColumn.constraints?.minLength || ""}
-                        onChange={(e) =>
-                          setDraftColumn({
-                            ...draftColumn,
-                            constraints: {
-                              ...(draftColumn.constraints || {}),
-                              minLength: Number.parseInt(e.target.value) || undefined,
-                            },
-                          })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="max-length">Max Length</Label>
-                      <Input
-                        id="max-length"
-                        type="number"
-                        value={draftColumn.constraints?.maxLength || ""}
-                        onChange={(e) =>
-                          setDraftColumn({
-                            ...draftColumn,
-                            constraints: {
-                              ...(draftColumn.constraints || {}),
-                              maxLength: Number.parseInt(e.target.value) || undefined,
-                            },
-                          })
-                        }
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {(draftColumn.type === "number" || draftColumn.type === "decimal") && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="min-value">Min Value</Label>
-                      <Input
-                        id="min-value"
-                        type="number"
-                        value={draftColumn.constraints?.min || ""}
-                        onChange={(e) =>
-                          setDraftColumn({
-                            ...draftColumn,
-                            constraints: {
-                              ...(draftColumn.constraints || {}),
-                              min: Number.parseFloat(e.target.value) || undefined,
-                            },
-                          })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="max-value">Max Value</Label>
-                      <Input
-                        id="max-value"
-                        type="number"
-                        value={draftColumn.constraints?.max || ""}
-                        onChange={(e) =>
-                          setDraftColumn({
-                            ...draftColumn,
-                            constraints: {
-                              ...(draftColumn.constraints || {}),
-                              max: Number.parseFloat(e.target.value) || undefined,
-                            },
-                          })
-                        }
-                      />
+                {draftColumn.type === 'string' && (
+                  <div className="space-y-3 rounded-2xl border border-dashed border-slate-300 px-4 py-5">
+                    <h4 className="text-sm font-semibold text-slate-700">Validation Rules</h4>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="min-length">Min Length</Label>
+                        <Input
+                          id="min-length"
+                          type="number"
+                          value={draftColumn.constraints?.minLength || ''}
+                          onChange={(event) =>
+                            setDraftColumn({
+                              ...draftColumn,
+                              constraints: {
+                                ...(draftColumn.constraints || {}),
+                                minLength: Number.parseInt(event.target.value) || undefined,
+                              },
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="max-length">Max Length</Label>
+                        <Input
+                          id="max-length"
+                          type="number"
+                          value={draftColumn.constraints?.maxLength || ''}
+                          onChange={(event) =>
+                            setDraftColumn({
+                              ...draftColumn,
+                              constraints: {
+                                ...(draftColumn.constraints || {}),
+                                maxLength: Number.parseInt(event.target.value) || undefined,
+                              },
+                            })
+                          }
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
 
-                <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => { setIsColumnDialogOpen(false); setDraftColumn(null) }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      if (!selectedColumn || !draftColumn) return
-                      const updates: Partial<SchemaField> = {
-                        name: draftColumn.name,
-                        type: draftColumn.type,
-                        description: draftColumn.description,
-                        required: !!draftColumn.required,
-                        extractionInstructions: draftColumn.extractionInstructions,
-                        constraints: draftColumn.constraints,
-                        isTransformation: !!draftColumn.isTransformation,
-                        transformationType: draftColumn.transformationType,
-                        transformationConfig: draftColumn.transformationConfig,
-                        transformationSource: draftColumn.transformationSource,
-                        transformationSourceColumnId: draftColumn.transformationSourceColumnId,
-                      }
-                      updateColumn(selectedColumn.id, updates)
-                      setIsColumnDialogOpen(false)
-                      setDraftColumn(null)
-                    }}
-                  >
-                    Save
-                  </Button>
-                </DialogFooter>
+                {(draftColumn.type === 'number' || draftColumn.type === 'decimal') && (
+                  <div className="space-y-3 rounded-2xl border border-dashed border-slate-300 px-4 py-5">
+                    <h4 className="text-sm font-semibold text-slate-700">Validation Rules</h4>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="min-value">Min Value</Label>
+                        <Input
+                          id="min-value"
+                          type="number"
+                          value={draftColumn.constraints?.min || ''}
+                          onChange={(event) =>
+                            setDraftColumn({
+                              ...draftColumn,
+                              constraints: {
+                                ...(draftColumn.constraints || {}),
+                                min: Number.parseFloat(event.target.value) || undefined,
+                              },
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="max-value">Max Value</Label>
+                        <Input
+                          id="max-value"
+                          type="number"
+                          value={draftColumn.constraints?.max || ''}
+                          onChange={(event) =>
+                            setDraftColumn({
+                              ...draftColumn,
+                              constraints: {
+                                ...(draftColumn.constraints || {}),
+                                max: Number.parseFloat(event.target.value) || undefined,
+                              },
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
-      </DialogContent>
-    </Dialog>
-    )}
 
+            <SheetFooter className="border-t border-slate-200/70 bg-white/95 px-6 py-4">
+              <div className="flex w-full flex-col gap-3 sm:flex-row sm:justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsColumnDialogOpen(false)
+                    setDraftColumn(null)
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    if (!selectedColumn || !draftColumn) return
+                    const updates: Partial<SchemaField> = {
+                      name: draftColumn.name,
+                      type: draftColumn.type,
+                      description: draftColumn.description,
+                      required: !!draftColumn.required,
+                      extractionInstructions: draftColumn.extractionInstructions,
+                      constraints: draftColumn.constraints,
+                      isTransformation: !!draftColumn.isTransformation,
+                      transformationType: draftColumn.transformationType,
+                      transformationConfig: draftColumn.transformationConfig,
+                      transformationSource: draftColumn.transformationSource,
+                      transformationSourceColumnId: draftColumn.transformationSourceColumnId,
+                    }
+                    if (draftColumn.type === 'object') {
+                      (updates as any).children = (draftColumn as ObjectField).children
+                    }
+                    if (draftColumn.type === 'table') {
+                      (updates as any).columns = (draftColumn as TableField).columns
+                    }
+                    if (draftColumn.type === 'list') {
+                      (updates as any).item = (draftColumn as ListField).item
+                    }
+                    updateColumn(selectedColumn.id, updates)
+                    setIsColumnDialogOpen(false)
+                    setDraftColumn(null)
+                  }}
+                >
+                  Save Field
+                </Button>
+              </div>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
+      )}
       {/* Advanced Automation ROI Modal */}
       <Dialog open={roiOpen} onOpenChange={onCloseRoi}>
         <DialogContent className="max-w-2xl">
