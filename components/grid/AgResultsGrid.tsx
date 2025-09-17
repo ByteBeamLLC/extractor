@@ -22,6 +22,7 @@ import {
   type ICellRendererParams,
   type IHeaderReactComp,
   type IHeaderReactCompParams,
+
 } from "ag-grid-community"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
@@ -191,6 +192,7 @@ const ResultsHeaderComponent = forwardRef<IHeaderReactComp, HeaderComponentParam
 })
 
 ResultsHeaderComponent.displayName = "ResultsHeaderComponent"
+
 
 interface ValueCellRendererParams extends ICellRendererParams<ResultsGridRow> {
   schemaField: FlatLeaf
