@@ -631,6 +631,19 @@ export function DataExtractionPlatform() {
             ) : (
               children.map((child) => (
                 <div key={child.id} className="flex flex-col gap-3 rounded-xl bg-white px-4 py-4 shadow-sm sm:flex-row sm:items-end">
+                  <button
+                    type="button"
+                    onClick={() => updateObjectSubField(child.id, { displayInSummary: !child.displayInSummary })}
+                    className={cn(
+                      'order-last self-start rounded-md px-2 py-2 text-slate-300 hover:text-yellow-500 sm:order-none',
+                      child.displayInSummary ? 'text-yellow-500' : 'text-slate-300',
+                    )}
+                    title="Set as display field for collapsed view"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  </button>
                   <div className="flex-1 space-y-1">
                     <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Field Name</Label>
                     <Input
@@ -2016,7 +2029,23 @@ export function DataExtractionPlatform() {
       }
 
       const entries = getObjectEntries(column, record)
-      const summary = firstNonEmptyText(record) ?? `${entries.length} ${entries.length === 1 ? 'field' : 'fields'}`
+      // Build a collapsed summary using sub-fields marked displayInSummary
+      let summary = firstNonEmptyText(record) ?? ''
+      if (!summary) {
+        const labelsForSummary: string[] = []
+        if (column.type === 'object') {
+          const objectColumn = column as Extract<SchemaField, { type: 'object' }>
+          const displayChildren = (objectColumn.children || []).filter((c) => (c as any).displayInSummary)
+          // Map to values from record in the same order as children
+          for (const child of displayChildren) {
+            const valueForChild = record[child.id] ?? record[child.name]
+            if (valueForChild !== undefined && valueForChild !== null && String(valueForChild).trim() !== '') {
+              labelsForSummary.push(String(valueForChild))
+            }
+          }
+        }
+        summary = labelsForSummary.length > 0 ? labelsForSummary.join(' / ') : `${entries.length} ${entries.length === 1 ? 'field' : 'fields'}`
+      }
       const detail = (
         <div className="space-y-2">
           {entries.map(({ label, value: entryValue }) => (

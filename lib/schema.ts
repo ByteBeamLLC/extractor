@@ -46,6 +46,8 @@ export interface SchemaFieldBase {
   transformationConfig?: any
   transformationSource?: "document" | "column"
   transformationSourceColumnId?: string
+  // If true, include this field in the collapsed summary of its parent object
+  displayInSummary?: boolean
 }
 
 // Object field with nested children
