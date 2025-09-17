@@ -105,12 +105,8 @@ export function flattenFields(fields: SchemaField[] = [], parentPath: string[] =
     if (isLeaf(f)) {
       out.push({ ...(f as LeafField), path: [...parentPath, f.name] })
     } else if (f.type === "object") {
-      const children = (f as ObjectField).children || []
-      // Show transformation objects as single JSON cells in the grid
-      if ((f as any).isTransformation) {
-        out.push({ ...(f as any), path: [...parentPath, f.name] })
-      }
-      out.push(...flattenFields(children, [...parentPath, f.name]))
+      // Keep object fields as unified entities in the grid, don't flatten their children
+      out.push({ ...(f as any), path: [...parentPath, f.name] })
     } else if (f.type === "list" || f.type === "table") {
       // For display, treat collection fields as a single cell (JSON/summary)
       out.push({ ...(f as any), path: [...parentPath, f.name] })
@@ -169,7 +165,8 @@ export function removeFieldById(fields: SchemaField[], id: string): SchemaField[
   return out
 }
 
-// Flatten a nested result object keyed by field ids to a map of leaf field id -> value
+// Flatten a nested result object keyed by field ids to a map of field id -> value
+// For objects, keep the entire object structure intact rather than flattening children
 export function flattenResultsById(fields: SchemaField[], nested: any): Record<string, any> {
   const out: Record<string, any> = {}
   const walk = (fs: SchemaField[], node: any) => {
@@ -179,15 +176,11 @@ export function flattenResultsById(fields: SchemaField[], nested: any): Record<s
       if (isLeaf(f)) {
         out[f.id] = v ?? null
       } else if (f.type === "object") {
+        // Keep the entire object structure intact for unified display
         out[f.id] = v ?? null
-        walk((f as ObjectField).children, v || {})
+        // Don't walk children - keep object as unified entity
       } else if (f.type === "list") {
-        out[f.id] = Array.isArray(v) ? v : v ?? null // keep list value as-is, but also walk item if object
-        const item = (f as ListField).item
-        if (item.type === "object" && Array.isArray(v)) {
-          // Optionally flatten nested object items by creating synthetic keys (not displayed by default)
-          // We keep list-level value on f.id for now.
-        }
+        out[f.id] = Array.isArray(v) ? v : v ?? null // keep list value as-is
       } else if (f.type === "table") {
         out[f.id] = Array.isArray(v) ? v : v ?? null
       }
