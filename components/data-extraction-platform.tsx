@@ -10,12 +10,13 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 // import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SetupBanner } from "./setup-banner"
+import { AgGridSheet } from "./ag-grid-sheet"
 import { TransformBuilder } from "@/components/transform-builder"
 import { cn } from "@/lib/utils"
  
@@ -103,6 +104,7 @@ const compositeBadgeLabels: Record<'object' | 'table' | 'list', string> = {
   table: 'Table',
   list: 'List',
 }
+
 
 const simpleDataTypeOptions: Array<{ value: DataType; label: string }> = [
   { value: 'string', label: 'Text' },
@@ -362,13 +364,10 @@ export function DataExtractionPlatform() {
   const isDraftTransformation = !!draftColumn?.isTransformation
   
   // UI state for modern grid behaviors
-  const [hoveredColumnId, setHoveredColumnId] = useState<string | null>(null)
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null)
   // F&B translation collapsible state per job
   const [fnbCollapse, setFnbCollapse] = useState<Record<string, { en: boolean; ar: boolean }>>({})
   const [expandedCells, setExpandedCells] = useState<Record<string, boolean>>({})
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const [canScroll, setCanScroll] = useState<{ left: boolean; right: boolean }>({ left: false, right: false })
   // Table modal state
   const [tableModalOpen, setTableModalOpen] = useState(false)
   const [tableModalData, setTableModalData] = useState<{
@@ -387,6 +386,10 @@ export function DataExtractionPlatform() {
   const [monthlyDollarSavings, setMonthlyDollarSavings] = useState<number | null>(null)
   const [annualDollarSavings, setAnnualDollarSavings] = useState<number | null>(null)
   const completedJobsCount = jobs.filter((j) => j.status === 'completed').length
+  const sortedJobs = useMemo(
+    () => [...jobs].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()),
+    [jobs],
+  )
   // Avoid referencing process.env in client runtime
   const { BOOKING_URL } = require("@/lib/publicEnv") as { BOOKING_URL: string }
   const isSchemaFresh = (s: SchemaDefinition) => (s.fields?.length ?? 0) === 0 && (s.jobs?.length ?? 0) === 0
@@ -875,79 +878,6 @@ export function DataExtractionPlatform() {
       ],
     },
   ]
-
-  
-
-  // Column sizing / resizing
-  const DEFAULT_COL_WIDTH = 192 // px (~w-48)
-  const MIN_COL_WIDTH = 120
-  const MAX_COL_WIDTH = 640
-  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({})
-  const resizingRef = useRef<{ colId: string | null; startX: number; startWidth: number }>({
-    colId: null,
-    startX: 0,
-    startWidth: 0,
-  })
-  const headerRefs = useRef<Record<string, HTMLDivElement | null>>({})
-
-  const getColWidth = (colId: string) => columnWidths[colId] ?? DEFAULT_COL_WIDTH
-
-  const startResize = (colId: string, e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    resizingRef.current = {
-      colId,
-      startX: e.clientX,
-      startWidth: getColWidth(colId),
-    }
-    // Improve UX while resizing
-    try {
-      document.body.style.userSelect = 'none'
-      document.body.style.cursor = 'col-resize'
-    } catch {}
-  }
-
-  const autoFit = (colId: string) => {
-    const el = headerRefs.current[colId]
-    if (!el) return
-    // measure content width and clamp
-    const contentWidth = el.scrollWidth + 32 // padding
-    const next = Math.min(MAX_COL_WIDTH, Math.max(MIN_COL_WIDTH, contentWidth))
-    setColumnWidths((prev) => ({ ...prev, [colId]: next }))
-  }
-
-  // Global mouse handlers for resize
-  useEffect(() => {
-    const onMove = (e: MouseEvent) => {
-      const ref = resizingRef.current
-      if (!ref.colId) return
-      const dx = e.clientX - ref.startX
-      const raw = ref.startWidth + dx
-      const next = Math.min(MAX_COL_WIDTH, Math.max(MIN_COL_WIDTH, raw))
-      setColumnWidths((prev) => ({ ...prev, [ref.colId as string]: next }))
-    }
-    const onUp = () => {
-      if (resizingRef.current.colId) {
-        resizingRef.current.colId = null
-        try {
-          document.body.style.userSelect = ''
-          document.body.style.cursor = ''
-        } catch {}
-      }
-    }
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup', onUp)
-    return () => {
-      window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('mouseup', onUp)
-    }
-  }, [])
-
-  // Initialize width for new columns based on header text length
-  // updated below after computing displayColumns
-
-  // Export CSV helper available via header button
-
   // Simple built-in templates (placeholder). You will provide real ones later.
   const SCHEMA_TEMPLATES: {
     id: string
@@ -1604,13 +1534,32 @@ export function DataExtractionPlatform() {
           }),
         })
 
-        const result = await response.json()
+        const responseBody = await response.text()
+        if (!response.ok) {
+          throw new Error(
+            `Extraction failed (${response.status} ${response.statusText}): ${responseBody.slice(0, 500)}`,
+          )
+        }
+
+        let result: any
+        try {
+          result = responseBody ? JSON.parse(responseBody) : {}
+        } catch (parseError) {
+          throw new Error(
+            `Failed to parse extraction response: ${
+              parseError instanceof Error ? parseError.message : String(parseError)
+            }. Body snippet: ${responseBody.slice(0, 200)}`,
+          )
+        }
         if (process.env.NODE_ENV !== 'production') {
           // eslint-disable-next-line no-console
           console.log("[bytebeam] API response:", result)
         }
 
         if (result.success) {
+          if (Array.isArray(result.warnings) && result.warnings.length > 0) {
+            console.warn('[bytebeam] Extraction warnings:', result.warnings)
+          }
           // Flatten nested results (by field id) for grid/transform use
           const finalResults = flattenResultsById(fields, result.results)
 
@@ -1878,24 +1827,51 @@ export function DataExtractionPlatform() {
   }
 
   const getStatusIcon = (status: ExtractionJob["status"]) => {
+    const iconSizing = "h-3.5 w-3.5"
     switch (status) {
       case "completed":
-        return <CheckCircle className="h-4 w-4 text-accent" />
+        return <CheckCircle className={`${iconSizing} text-accent`} />
       case "processing":
-        return <Clock className="h-4 w-4 text-primary animate-spin" />
+        return <Clock className={`${iconSizing} text-primary animate-spin`} />
       case "error":
-        return <AlertCircle className="h-4 w-4 text-destructive" />
+        return <AlertCircle className={`${iconSizing} text-destructive`} />
       default:
-        return <Clock className="h-4 w-4 text-muted-foreground" />
+        return <Clock className={`${iconSizing} text-muted-foreground`} />
     }
   }
 
-  const renderStatusPill = (status: ExtractionJob["status"]) => {
-    const base = "px-1.5 py-0.5 rounded text-[10px] font-medium"
-    if (status === 'completed') return <span className={`${base} bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300`}>Completed</span>
-    if (status === 'processing') return <span className={`${base} bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300`}>Processing</span>
-    if (status === 'error') return <span className={`${base} bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300`}>Error</span>
-    return <span className={`${base} bg-muted text-muted-foreground`}>Pending</span>
+  const renderStatusPill = (
+    status: ExtractionJob["status"],
+    opts?: { size?: 'default' | 'compact' },
+  ) => {
+    const size = opts?.size ?? 'default'
+    const base = cn(
+      'inline-flex items-center rounded-full font-semibold uppercase tracking-wide transition-colors',
+      size === 'compact' ? 'px-1.5 py-0.5 text-[10px]' : 'px-2.5 py-0.5 text-[11px]',
+    )
+
+    if (status === 'completed') {
+      return (
+        <span className={cn(base, 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300')}>
+          Completed
+        </span>
+      )
+    }
+    if (status === 'processing') {
+      return (
+        <span className={cn(base, 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300')}>
+          Processing
+        </span>
+      )
+    }
+    if (status === 'error') {
+      return (
+        <span className={cn(base, 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300')}>
+          Error
+        </span>
+      )
+    }
+    return <span className={cn(base, 'bg-muted text-muted-foreground')}>Pending</span>
   }
 
   const getCellAlignClasses = (type: DataType) => {
@@ -1904,10 +1880,18 @@ export function DataExtractionPlatform() {
     return 'text-left'
   }
 
-  const renderCellValue = (column: SchemaField, job: ExtractionJob) => {
+  type GridRenderMode = 'interactive' | 'summary' | 'detail'
+
+  const renderCellValue = (
+    column: SchemaField,
+    job: ExtractionJob,
+    opts?: { refreshRowHeight?: () => void; mode?: GridRenderMode },
+  ) => {
     const value = job.results?.[column.id]
     if (job.status === 'error') return <span className="text-sm text-destructive">—</span>
     if (job.status !== 'completed') return <Skeleton className="h-4 w-24" />
+
+    const mode: GridRenderMode = opts?.mode ?? 'interactive'
 
     const isEmptyValue =
       value === undefined ||
@@ -1959,7 +1943,57 @@ export function DataExtractionPlatform() {
       meta: string | null,
       detail: React.ReactNode,
     ) => {
-      const expanded = isCellExpanded(job.id, column.id)
+      const expanded = mode === 'detail' ? true : isCellExpanded(job.id, column.id)
+      const badge = (
+        <span
+          className={cn(
+            'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide',
+            compositeBadgeStyles[type],
+          )}
+        >
+          {compositeBadgeLabels[type]}
+        </span>
+      )
+
+      const headerContent = (
+        <div className="flex items-center gap-3">
+          {badge}
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-sm font-semibold text-foreground">{summary}</div>
+            {meta && <div className="truncate text-xs text-muted-foreground">{meta}</div>}
+          </div>
+          {mode === 'interactive' && (
+            <ChevronDown
+              className={cn(
+                'h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200',
+                expanded ? 'rotate-180' : 'rotate-0',
+              )}
+            />
+          )}
+        </div>
+      )
+
+      if (mode === 'summary') {
+        return (
+          <div className="rounded-xl border border-[#2782ff]/10 bg-white/75 px-3 py-2 shadow-sm">
+            {headerContent}
+          </div>
+        )
+      }
+
+      if (mode === 'detail') {
+        return (
+          <div className="space-y-2">
+            <div className="rounded-xl border border-[#2782ff]/15 bg-white/85 px-3 py-2 shadow-sm">
+              {headerContent}
+            </div>
+            <div className="rounded-xl border border-[#2782ff]/20 bg-[#e6f0ff]/60 p-3 text-sm shadow-inner dark:border-[#1a4b8f]/40 dark:bg-[#0b2547]/40">
+              {detail}
+            </div>
+          </div>
+        )
+      }
+
       return (
         <div className="space-y-2">
           <button
@@ -1967,30 +2001,12 @@ export function DataExtractionPlatform() {
             onClick={(event) => {
               event.stopPropagation()
               toggleCellExpansion(job.id, column.id)
+              queueMicrotask(() => opts?.refreshRowHeight?.())
             }}
             className="w-full rounded-xl border border-[#2782ff]/20 bg-white/70 px-3 py-2 text-left shadow-sm transition-all hover:-translate-y-[1px] hover:border-[#2782ff]/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2782ff]/40"
             aria-expanded={expanded}
           >
-            <div className="flex items-center gap-3">
-              <span
-                className={cn(
-                  'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide',
-                  compositeBadgeStyles[type],
-                )}
-              >
-                {compositeBadgeLabels[type]}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-semibold text-foreground">{summary}</div>
-                {meta && <div className="truncate text-xs text-muted-foreground">{meta}</div>}
-              </div>
-              <ChevronDown
-                className={cn(
-                  'h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200',
-                  expanded ? 'rotate-180' : 'rotate-0',
-                )}
-              />
-            </div>
+            {headerContent}
           </button>
           <div
             className={cn(
@@ -2210,24 +2226,6 @@ export function DataExtractionPlatform() {
     )
   }
 
-  // Scroll shadow indicators for horizontal overflow
-  useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
-    const update = () => {
-      const { scrollLeft, scrollWidth, clientWidth } = el
-      setCanScroll({ left: scrollLeft > 0, right: scrollLeft + clientWidth < scrollWidth - 1 })
-    }
-    update()
-    el.addEventListener('scroll', update)
-    const ro = new ResizeObserver(update)
-    ro.observe(el)
-    return () => {
-      el.removeEventListener('scroll', update)
-      ro.disconnect()
-    }
-  }, [displayColumns.length, jobs.length])
-
   const exportToCSV = () => {
     // Prepare CSV headers
     const headers = ['File Name', 'Status', ...displayColumns.map((col) => col.name)]
@@ -2284,7 +2282,10 @@ export function DataExtractionPlatform() {
   // F&B: Build and print localized label PDF (printable HTML)
   const printLocalizedLabel = () => {
     try {
-      const job = jobs.find((j) => j.id === selectedRowId) || jobs.find((j) => j.status === 'completed') || jobs[jobs.length - 1]
+      const job =
+        sortedJobs.find((j) => j.id === selectedRowId) ||
+        sortedJobs.find((j) => j.status === 'completed') ||
+        sortedJobs[sortedJobs.length - 1]
       if (!job || job.status !== 'completed') {
         alert('No completed job to print')
         return
@@ -2567,47 +2568,7 @@ export function DataExtractionPlatform() {
           )}
 
           {/* Sales Lead Pipeline CTA – appears after user has at least 2 completed extractions */}
-          {completedJobsCount >= 2 && (
-            <Card>
-              <CardContent className="p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-sidebar-foreground">Automate your complex document workflows</p>
-                    {/* <p className="text-xs text-muted-foreground">You've validated extraction. Next: deploy at scale.</p> */}
-                  </div>
-                  <CheckCircle className="h-5 w-5 text-accent" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2"><CheckCircle className="h-3.5 w-3.5 text-accent" /><span>Eliminate manual document work</span></div>
-                    <div className="flex items-center gap-2"><CheckCircle className="h-3.5 w-3.5 text-accent" /><span>Compliance‑ready logs</span></div>
-                    <div className="flex items-center gap-2"><CheckCircle className="h-3.5 w-3.5 text-accent" /><span>Optional private deployment</span></div>
-                    <div className="flex items-center gap-2"><CheckCircle className="h-3.5 w-3.5 text-accent" /><span>Process over 1,000 documents at once</span></div>
-                    <div className="flex items-center gap-2"><CheckCircle className="h-3.5 w-3.5 text-accent" /><span>Connect your systems: triggers in, outputs to docs, sheets, or databases</span></div>
-                  </div>
-                  <div className="space-y-1 col-span-1">
-                    <p className="text-[11px] text-muted-foreground mt-1">
-                      Automate any document process—from invoice processing to due diligence and compliance localization.
-                    </p>
-                    <p className="text-[11px] text-muted-foreground">This platform mirrors your team’s manual process end‑to‑end—without the manual work.</p>
-                  </div>
-                </div>
-
-                <Button asChild className="w-full">
-                  <a href={BOOKING_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    Book a working session
-                    <Link className="h-3.5 w-3.5" />
-                  </a>
-                </Button>
-
-                <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                  <span>Processed over 10,000 documents</span>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+     
         </div>
 
           {/* Main Content - Excel-style Table */}
@@ -2678,14 +2639,14 @@ export function DataExtractionPlatform() {
                   </Button>
                 )}
                 {activeSchema.templateId !== 'fnb-label-compliance' && (
-                <Button
-                  size="sm"
-                  onClick={() => addColumn()}
-                  title="Add Field"
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Field
-                </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => addColumn()}
+                    title="Add Field"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Field
+                  </Button>
                 )}
               </div>
               </div>
@@ -2699,30 +2660,28 @@ export function DataExtractionPlatform() {
             )}
           </div>
           {/* Main Body */}
-          <div ref={scrollRef} className="flex-1 overflow-auto min-h-0 min-w-0 relative">
+          <div className="flex-1 overflow-auto min-h-0 min-w-0 relative">
             {activeSchema.templateId === 'fnb-label-compliance' ? (
               <div className="p-4 space-y-4">
                 {/* Simple job selector */}
-                {jobs.length > 0 && (
+                {sortedJobs.length > 0 && (
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm text-muted-foreground">Jobs:</span>
-                    {jobs
-                      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
-                      .map((job, idx) => (
-                        <button
-                          key={job.id}
-                          onClick={() => setSelectedRowId(job.id)}
-                          className={`px-2 py-1 rounded border text-xs ${selectedRowId === job.id ? 'bg-accent text-accent-foreground' : 'bg-muted text-foreground'}`}
-                        >
-                          {idx + 1}. {job.fileName}
-                        </button>
-                      ))}
+                    {sortedJobs.map((job, idx) => (
+                      <button
+                        key={job.id}
+                        onClick={() => setSelectedRowId(job.id)}
+                        className={`px-2 py-1 rounded border text-xs ${selectedRowId === job.id ? 'bg-accent text-accent-foreground' : 'bg-muted text-foreground'}`}
+                      >
+                        {idx + 1}. {job.fileName}
+                      </button>
+                    ))}
                   </div>
                 )}
 
                 {/* Selected job panels */}
                 {(() => {
-                  const job = jobs.find((j) => j.id === selectedRowId) || jobs[jobs.length - 1]
+                  const job = sortedJobs.find((j) => j.id === selectedRowId) || sortedJobs[sortedJobs.length - 1]
                   if (!job) return (
                     <div className="text-center py-12 text-muted-foreground">
                       <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -2928,153 +2887,24 @@ export function DataExtractionPlatform() {
                 })()}
               </div>
             ) : (
-            <>
-            {/* Sheet-Style Grid (default) */}
-            {/* Horizontal scroll shadows */}
-            {canScroll.left && (
-              <div className="pointer-events-none absolute inset-y-0 left-[17rem] w-6 bg-gradient-to-r from-background to-transparent z-10" />
-            )}
-            {canScroll.right && (
-              <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-background to-transparent z-10" />
-            )}
-            <div className="min-w-full">
-              {/* Table Header */}
-              <div className="sticky top-0 bg-card/95 backdrop-blur border-b border-border z-20 shadow-[0_1px_0_0_var(--color-border)]">
-                <div className="flex relative">
-                  <div className="sticky left-0 z-30 flex w-12 items-center justify-center border-r border-transparent bg-transparent py-3">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">#</span>
-                  </div>
-                  {/* File name header */}
-                  <div className="sticky left-12 z-20 w-64 shrink-0 border-r border-transparent bg-white/90 px-4 py-3 shadow-[1px_0_0_rgba(15,23,42,0.05)]">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">File</span>
-                  </div>
-                  {displayColumns.map((column) => {
-                    const Icon = column.isTransformation
-                      ? transformationIcons[column.transformationType!]
-                      : dataTypeIcons[column.type]
-
-                    return (
-                      <div
-                        key={column.id}
-                        className={cn(
-                          'group relative shrink-0 border-r border-transparent bg-white/90 px-4 py-3 text-foreground shadow-[inset_0_-1px_0_rgba(15,23,42,0.06)] transition-colors hover:bg-[#e6f0ff]/50',
-                          hoveredColumnId === column.id && 'bg-[#e6f0ff]/70 shadow-[inset_0_-1px_0_rgba(39,130,255,0.25)]',
-                        )}
-                        style={{ width: getColWidth(column.id) }}
-                        onMouseEnter={() => setHoveredColumnId(column.id)}
-                        onMouseLeave={() => setHoveredColumnId((prev) => (prev === column.id ? null : prev))}
-                        onClick={() => {
-                           setSelectedColumn(column)
-                           setDraftColumn(JSON.parse(JSON.stringify(column)))
-                           setColumnDialogMode('edit')
-                           setIsColumnDialogOpen(true)
-                         }}
-                      >
-                        <div className="flex items-center justify-between gap-2" ref={(el) => (headerRefs.current[column.id] = el)}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="flex items-center gap-2 min-w-0 w-full overflow-hidden">
-                                <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
-                                <span className="text-sm font-medium truncate min-w-0 flex-1" title={column.name}>{column.name}</span>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent sideOffset={6}>
-                              <div className="max-w-xs space-y-1">
-                                <div className="flex items-center gap-2">
-                                  <Icon className="h-3.5 w-3.5 opacity-80" />
-                                  <span className="text-xs font-medium">{column.name}</span>
-                                </div>
-                                {column.description && (
-                                  <p className="text-[11px] opacity-90">{column.description}</p>
-                                )}
-                                {column.extractionInstructions && (
-                                  <p className="text-[11px] opacity-70">{column.extractionInstructions}</p>
-                                )}
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                          <div className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                deleteColumn(column.id)
-                              }}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-                        {/* Resize handle */}
-                        <div
-                          className="absolute top-0 right-0 h-full w-2 cursor-col-resize select-none"
-                          onMouseDown={(e) => startResize(column.id, e)}
-                          onDoubleClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            autoFit(column.id)
-                          }}
-                          title="Drag to resize • Double‑click to auto‑fit"
-                        />
-                        {/* Keep header compact; show details in tooltip */}
-                      </div>
-                    )
-                  })}
-                </div>
+              <div className="p-4 h-full">
+                <AgGridSheet
+                  columns={displayColumns}
+                  jobs={sortedJobs}
+                  selectedRowId={selectedRowId}
+                  onSelectRow={(jobId) => setSelectedRowId(jobId)}
+                  renderCellValue={renderCellValue}
+                  getStatusIcon={getStatusIcon}
+                  renderStatusPill={renderStatusPill}
+                  onEditColumn={(column) => {
+                    setSelectedColumn(column)
+                    setDraftColumn(JSON.parse(JSON.stringify(column)))
+                    setColumnDialogMode('edit')
+                    setIsColumnDialogOpen(true)
+                  }}
+                  onDeleteColumn={deleteColumn}
+                />
               </div>
-
-              {/* Table Body - Results */}
-              <div className="space-y-3 bg-transparent py-4">
-                {jobs
-                  .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
-                  .map((job, jobIndex) => (
-                    <div
-                      key={job.id}
-                      className={cn(
-                        'group relative flex overflow-visible rounded-2xl border border-transparent bg-white/90 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg',
-                        selectedRowId === job.id && 'ring-2 ring-[#2782ff]/40',
-                      )}
-                      onClick={() => setSelectedRowId(job.id)}
-                    >
-                      <div className="sticky left-0 z-20 flex w-12 items-center justify-center rounded-l-2xl border-r border-slate-200/70 bg-white/95 py-3 text-center shadow-[1px_0_0_rgba(15,23,42,0.05)]">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">{jobIndex + 1}</span>
-                      </div>
-                      {/* File cell with status icon */}
-                      <div className="sticky left-12 z-10 flex w-64 shrink-0 items-center gap-3 border-r border-slate-200/60 bg-white/95 px-4 py-3 shadow-[1px_0_0_rgba(15,23,42,0.05)]">
-                        <div className="flex items-center gap-2">
-                          {getStatusIcon(job.status)}
-                          {renderStatusPill(job.status)}
-                        </div>
-                        <span className="text-sm font-medium text-slate-700 truncate" title={job.fileName}>{job.fileName}</span>
-                      </div>
-                      {displayColumns.map((column) => (
-                        <div
-                          key={column.id}
-                          className={cn(
-                            'shrink-0 border-r border-slate-200/60 bg-white/95 px-4 py-3 transition-colors last:rounded-r-2xl',
-                            getCellAlignClasses(column.type),
-                            hoveredColumnId === column.id && 'bg-[#e6f0ff]/50',
-                          )}
-                          style={{ width: getColWidth(column.id) }}
-                        >
-                          {renderCellValue(column, job)}
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-
-                {/* Empty State */}
-                {jobs.length === 0 && (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No extraction results yet. Upload documents to get started.</p>
-                    {fields.length === 0 && <p className="text-sm mt-2">Define your schema columns first.</p>}
-                  </div>
-                )}
-              </div>
-            </div>
-            </>
             )}
           </div>
       </div>
@@ -3388,6 +3218,11 @@ export function DataExtractionPlatform() {
                 ? 'You just processed 1 document. What if you could automate the next 5 steps?'
                 : 'Your estimated savings'}
             </DialogTitle>
+            <DialogDescription>
+              {roiStage === 'calc'
+                ? 'Estimate how much time and money full workflow automation could save each month.'
+                : 'These savings are based on the numbers you entered in the calculator.'}
+            </DialogDescription>
           </DialogHeader>
 
           {roiStage === 'calc' ? (
@@ -3451,6 +3286,9 @@ export function DataExtractionPlatform() {
               <Eye className="h-5 w-5" />
               Table: {tableModalData?.column.name}
             </DialogTitle>
+            <DialogDescription>
+              Inspect the parsed rows for this table field. Scroll to review every value.
+            </DialogDescription>
           </DialogHeader>
           <div className="overflow-auto max-h-[60vh]">
             {tableModalData && (
