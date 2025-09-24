@@ -120,48 +120,58 @@
 .ag-theme-bytebeam .ag-cell.cell-type-list,
 .ag-theme-bytebeam .ag-cell.cell-type-table {
   /* Keep default centering for collapsed state */
+  align-items: center;
+  justify-content: center;
 }
 
-/* Handle expanded structured data content - detected by .space-y-2 container */
-.ag-theme-bytebeam .ag-cell.cell-type-object:has(.space-y-2),
-.ag-theme-bytebeam .ag-cell.cell-type-list:has(.space-y-2),
-.ag-theme-bytebeam .ag-cell.cell-type-table:has(.space-y-2) {
+.ag-theme-bytebeam .ag-cell.cell-type-object .ag-cell-wrapper,
+.ag-theme-bytebeam .ag-cell.cell-type-list .ag-cell-wrapper,
+.ag-theme-bytebeam .ag-cell.cell-type-table .ag-cell-wrapper {
+  align-items: center;
+  justify-content: center;
+}
+
+/* Detect expanded state by looking for visible expanded content */
+.ag-theme-bytebeam .ag-cell.cell-type-object:has(.grid-rows-\[1fr\]),
+.ag-theme-bytebeam .ag-cell.cell-type-list:has(.grid-rows-\[1fr\]),
+.ag-theme-bytebeam .ag-cell.cell-type-table:has(.grid-rows-\[1fr\]) {
   align-items: flex-start !important;
   justify-content: flex-start !important;
   padding: 12px !important;
 }
 
-.ag-theme-bytebeam .ag-cell.cell-type-object:has(.space-y-2) .ag-cell-wrapper,
-.ag-theme-bytebeam .ag-cell.cell-type-list:has(.space-y-2) .ag-cell-wrapper,
-.ag-theme-bytebeam .ag-cell.cell-type-table:has(.space-y-2) .ag-cell-wrapper {
+.ag-theme-bytebeam .ag-cell.cell-type-object:has(.grid-rows-\[1fr\]) .ag-cell-wrapper,
+.ag-theme-bytebeam .ag-cell.cell-type-list:has(.grid-rows-\[1fr\]) .ag-cell-wrapper,
+.ag-theme-bytebeam .ag-cell.cell-type-table:has(.grid-rows-\[1fr\]) .ag-cell-wrapper {
   align-items: flex-start !important;
   justify-content: flex-start !important;
 }
 
-.ag-theme-bytebeam .ag-cell.cell-type-object:has(.space-y-2) .ag-cell-value,
-.ag-theme-bytebeam .ag-cell.cell-type-list:has(.space-y-2) .ag-cell-value,
-.ag-theme-bytebeam .ag-cell.cell-type-table:has(.space-y-2) .ag-cell-value {
+.ag-theme-bytebeam .ag-cell.cell-type-object:has(.grid-rows-\[1fr\]) .ag-cell-value,
+.ag-theme-bytebeam .ag-cell.cell-type-list:has(.grid-rows-\[1fr\]) .ag-cell-value,
+.ag-theme-bytebeam .ag-cell.cell-type-table:has(.grid-rows-\[1fr\]) .ag-cell-value {
   text-align: left !important;
   width: 100%;
 }
 
-/* Alternative approach for browsers that don't support :has() */
+/* Fallback for browsers that don't support complex :has() selectors */
 .ag-theme-bytebeam .ag-cell .space-y-2 {
   width: 100%;
 }
 
-.ag-theme-bytebeam .ag-cell:has(.space-y-2) {
+/* Alternative approach: detect expanded content by opacity-100 class */
+.ag-theme-bytebeam .ag-cell:has(.opacity-100) {
   align-items: flex-start !important;
   justify-content: flex-start !important;
   padding: 12px !important;
 }
 
-.ag-theme-bytebeam .ag-cell:has(.space-y-2) .ag-cell-wrapper {
+.ag-theme-bytebeam .ag-cell:has(.opacity-100) .ag-cell-wrapper {
   align-items: flex-start !important;
   justify-content: flex-start !important;
 }
 
-.ag-theme-bytebeam .ag-cell:has(.space-y-2) .ag-cell-value {
+.ag-theme-bytebeam .ag-cell:has(.opacity-100) .ag-cell-value {
   text-align: left !important;
   width: 100%;
 }
@@ -171,7 +181,6 @@
 .ag-theme-bytebeam .ag-cell .space-y-2,
 .ag-theme-bytebeam .ag-cell .space-y-3 {
   width: 100%;
-  text-align: left;
 }
 
 .ag-theme-bytebeam .ag-cell-wrap-text .ag-cell-value {
