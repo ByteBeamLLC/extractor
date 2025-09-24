@@ -122,11 +122,18 @@ export function ContactUsModal({
         }
       }}
     >
-      <DialogContent className="sm:max-w-3xl p-0" showCloseButton={true}>
+      <DialogContent
+        className="sm:max-w-3xl p-0"
+        showCloseButton={true}
+        aria-labelledby="contact-title"
+        aria-describedby="contact-description"
+      >
         <div className="flex items-start justify-between gap-3 border-b p-5">
           <div>
             <DialogTitle id="contact-title" className="text-base md:text-lg">How can we help?</DialogTitle>
-            <DialogDescription className="text-xs md:text-sm">Send feedback, ask a question, or say hello. No sales pitch—promise.</DialogDescription>
+            <DialogDescription id="contact-description" className="text-xs md:text-sm">
+              Send feedback, ask a question, or say hello. No sales pitch—promise.
+            </DialogDescription>
           </div>
         </div>
         {!sent ? (

@@ -131,7 +131,7 @@ async function maybeDownscaleImage(
   opts?: { maxDim?: number; quality?: number; targetBytes?: number },
 ): Promise<{ blob: Blob; type: string; name: string }> {
   try {
-    const targetBytes = opts?.targetBytes ?? 4_000_000 // ~4 MB
+    const targetBytes = opts?.targetBytes ?? 3_000_000 // ~3 MB for extra headroom
     if (!file.type?.startsWith('image/')) {
       return { blob: file, type: file.type || 'application/octet-stream', name: file.name }
     }
@@ -140,42 +140,57 @@ async function maybeDownscaleImage(
     }
 
     const maxDim = opts?.maxDim ?? 2000
-    const quality = opts?.quality ?? 0.8
+    const initialQuality = opts?.quality ?? 0.8
 
     const bitmap = await createImageBitmap(file)
-    const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height))
-    const width = Math.max(1, Math.round(bitmap.width * scale))
-    const height = Math.max(1, Math.round(bitmap.height * scale))
-
     const canvas = document.createElement('canvas')
-    canvas.width = width
-    canvas.height = height
     const ctx = canvas.getContext('2d')
-    if (!ctx) return { blob: file, type: file.type || 'image/jpeg', name: file.name }
-    ctx.drawImage(bitmap, 0, 0, width, height)
-
-    const type = 'image/jpeg'
-    const blob: Blob = await new Promise((resolve, reject) => {
-      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), type, quality)
-    })
-
-    if (blob.size > targetBytes) {
-      const maxDim2 = Math.round(maxDim * 0.8)
-      const quality2 = Math.max(0.5, quality * 0.85)
-      const scale2 = Math.min(1, maxDim2 / Math.max(bitmap.width, bitmap.height))
-      const w2 = Math.max(1, Math.round(bitmap.width * scale2))
-      const h2 = Math.max(1, Math.round(bitmap.height * scale2))
-      canvas.width = w2
-      canvas.height = h2
-      ctx.clearRect(0, 0, w2, h2)
-      ctx.drawImage(bitmap, 0, 0, w2, h2)
-      const blob2: Blob = await new Promise((resolve, reject) => {
-        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), type, quality2)
-      })
-      return { blob: blob2, type, name: file.name.replace(/\.(png|webp|bmp|gif)$/i, '.jpg') }
+    if (!ctx) {
+      bitmap.close?.()
+      return { blob: file, type: file.type || 'image/jpeg', name: file.name }
     }
 
-    return { blob, type, name: file.name.replace(/\.(png|webp|bmp|gif)$/i, '.jpg') }
+    const type = 'image/jpeg'
+    let attempt = 0
+    let currentQuality = initialQuality
+    let dimensionScale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height))
+    let blob: Blob | null = null
+
+    while (attempt < 6) {
+      const width = Math.max(1, Math.round(bitmap.width * dimensionScale))
+      const height = Math.max(1, Math.round(bitmap.height * dimensionScale))
+      canvas.width = width
+      canvas.height = height
+      ctx.clearRect(0, 0, width, height)
+      ctx.drawImage(bitmap, 0, 0, width, height)
+
+      blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob((b) => resolve(b), type, currentQuality)
+      })
+      if (!blob) {
+        break
+      }
+      if (blob.size <= targetBytes) {
+        break
+      }
+
+      // Reduce both quality and dimensions for the next iteration
+      currentQuality = Math.max(0.4, currentQuality * 0.82)
+      dimensionScale = Math.max(0.4, dimensionScale * 0.85)
+      attempt += 1
+    }
+
+    bitmap.close?.()
+
+    if (!blob) {
+      return { blob: file, type: file.type || 'image/jpeg', name: file.name }
+    }
+
+    return {
+      blob,
+      type,
+      name: file.name.replace(/\.(png|jpe?g|webp|bmp|gif|heic)$/i, '.jpg'),
+    }
   } catch {
     return { blob: file, type: file.type || 'application/octet-stream', name: file.name }
   }
@@ -764,15 +779,15 @@ export function DataExtractionPlatform() {
 
   // Minimal nested templates to seed schemas
   const NESTED_TEMPLATES: { id: string; name: string; description?: string; fields: SchemaField[] }[] = [
-    {
-      id: "fnb-label-compliance",
-      name: "F&B Label Compliance",
-      description: "Primary-language extraction + EN/AR translation in split view.",
-      fields: [],
-    },
+    // {
+    //   id: "fnb-label-compliance",
+    //   name: "F&B Label Compliance",
+    //   description: "Primary-language extraction + EN/AR translation in split view.",
+    //   fields: [],
+    // },
     {
       id: "invoice-nested",
-      name: "Invoice (Nested)",
+      name: "Invoice",
       description: "Nested vendor/customer and totals.",
       fields: [
         { id: "invoice_number", name: "invoice_number", type: "string", description: "Unique invoice ID", extractionInstructions: "Look for 'Invoice #', 'Invoice No.'", required: true },
@@ -1437,7 +1452,23 @@ export function DataExtractionPlatform() {
           console.log("[bytebeam] File:", file.name, file.type)
         }
 
-        // Convert file to base64 without spreading huge arrays (prevents stack overflow)
+        const compressionOptions = {
+          targetBytes: 3_000_000,
+          maxDim: 1800,
+          quality: 0.75,
+        }
+        const compressed = await maybeDownscaleImage(file, compressionOptions)
+        const uploadBlob = compressed.blob
+        const uploadType = compressed.type || file.type || 'application/octet-stream'
+        const uploadName = compressed.name || file.name
+        const imageSizeExceededMessage = 'File is still larger than 3 MB after compression. Please resize or crop the image and try again.'
+        const maxImageBytes = compressionOptions.targetBytes ?? 3_000_000
+
+        if (uploadType.startsWith('image/') && uploadBlob.size > maxImageBytes) {
+          throw new Error(imageSizeExceededMessage)
+        }
+
+        // Convert (potentially compressed) blob to base64 for downstream APIs
         const base64Data = await new Promise<string>((resolve, reject) => {
           try {
             const reader = new FileReader()
@@ -1447,33 +1478,32 @@ export function DataExtractionPlatform() {
               resolve(commaIndex >= 0 ? result.slice(commaIndex + 1) : result)
             }
             reader.onerror = () => reject(reader.error)
-            reader.readAsDataURL(file)
+            reader.readAsDataURL(uploadBlob)
           } catch (e) {
             reject(e)
           }
         })
 
         const fileData = {
-          name: file.name,
-          type: file.type,
-          size: file.size,
+          name: uploadName,
+          type: uploadType,
+          size: uploadBlob.size,
           data: base64Data,
         }
 
         // Special F&B Label Compliance flow: extraction then translation using fixed prompts
         if (activeSchema.templateId === 'fnb-label-compliance') {
           try {
-            // Compress large images to avoid 413 and send raw binary
-            const { blob, type, name } = await maybeDownscaleImage(file, { targetBytes: 4_000_000, maxDim: 2000, quality: 0.8 })
-            const binary = await blob.arrayBuffer()
             const r1 = await fetch('/api/fnb/extract', {
               method: 'POST',
               headers: {
-                'Content-Type': type || file.type || 'application/octet-stream',
-                'X-File-Name': name || file.name,
+                'Content-Type': 'application/json',
               },
-              body: binary,
+              body: JSON.stringify({ file: fileData }),
             })
+            if (r1.status === 413) {
+              throw new Error('The uploaded file exceeds the 3 MB limit for F&B extraction. Please compress or resize the image and retry.')
+            }
             if (!r1.ok) {
               const errText = await r1.text().catch(() => `${r1.status} ${r1.statusText}`)
               throw new Error(`Extraction request failed: ${r1.status} ${r1.statusText} - ${errText}`)
