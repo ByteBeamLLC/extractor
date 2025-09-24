@@ -115,26 +115,53 @@
   text-align: center;
 }
 
-/* Handle structured data content with CSS classes - Higher specificity */
+/* Handle structured data content - Default collapsed state stays centered */
 .ag-theme-bytebeam .ag-cell.cell-type-object,
 .ag-theme-bytebeam .ag-cell.cell-type-list,
 .ag-theme-bytebeam .ag-cell.cell-type-table {
+  /* Keep default centering for collapsed state */
+}
+
+/* Handle expanded structured data content - detected by .space-y-2 container */
+.ag-theme-bytebeam .ag-cell.cell-type-object:has(.space-y-2),
+.ag-theme-bytebeam .ag-cell.cell-type-list:has(.space-y-2),
+.ag-theme-bytebeam .ag-cell.cell-type-table:has(.space-y-2) {
   align-items: flex-start !important;
   justify-content: flex-start !important;
   padding: 12px !important;
-  min-height: 60px;
 }
 
-.ag-theme-bytebeam .ag-cell.cell-type-object .ag-cell-wrapper,
-.ag-theme-bytebeam .ag-cell.cell-type-list .ag-cell-wrapper,
-.ag-theme-bytebeam .ag-cell.cell-type-table .ag-cell-wrapper {
+.ag-theme-bytebeam .ag-cell.cell-type-object:has(.space-y-2) .ag-cell-wrapper,
+.ag-theme-bytebeam .ag-cell.cell-type-list:has(.space-y-2) .ag-cell-wrapper,
+.ag-theme-bytebeam .ag-cell.cell-type-table:has(.space-y-2) .ag-cell-wrapper {
   align-items: flex-start !important;
   justify-content: flex-start !important;
 }
 
-.ag-theme-bytebeam .ag-cell.cell-type-object .ag-cell-value,
-.ag-theme-bytebeam .ag-cell.cell-type-list .ag-cell-value,
-.ag-theme-bytebeam .ag-cell.cell-type-table .ag-cell-value {
+.ag-theme-bytebeam .ag-cell.cell-type-object:has(.space-y-2) .ag-cell-value,
+.ag-theme-bytebeam .ag-cell.cell-type-list:has(.space-y-2) .ag-cell-value,
+.ag-theme-bytebeam .ag-cell.cell-type-table:has(.space-y-2) .ag-cell-value {
+  text-align: left !important;
+  width: 100%;
+}
+
+/* Alternative approach for browsers that don't support :has() */
+.ag-theme-bytebeam .ag-cell .space-y-2 {
+  width: 100%;
+}
+
+.ag-theme-bytebeam .ag-cell:has(.space-y-2) {
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  padding: 12px !important;
+}
+
+.ag-theme-bytebeam .ag-cell:has(.space-y-2) .ag-cell-wrapper {
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+}
+
+.ag-theme-bytebeam .ag-cell:has(.space-y-2) .ag-cell-value {
   text-align: left !important;
   width: 100%;
 }
