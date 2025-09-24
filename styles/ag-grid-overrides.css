@@ -74,27 +74,16 @@
 }
 
 .ag-theme-bytebeam .ag-cell {
-  padding: 8px 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding-block: 0.5rem;
 }
 
 .ag-theme-bytebeam .ag-header-cell {
-  padding-block: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding-block: 0.5rem;
 }
 
 .ag-theme-bytebeam .bb-ag-header-clickable {
   cursor: pointer;
   transition: color 120ms ease, background-color 120ms ease;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .ag-theme-bytebeam .bb-ag-header-clickable:hover {
@@ -103,84 +92,11 @@
 
 .ag-theme-bytebeam .ag-cell .ag-cell-wrapper {
   align-items: center;
-  justify-content: center;
   gap: 0.5rem;
-  width: 100%;
-  height: 100%;
-  display: flex;
 }
 
 .ag-theme-bytebeam .ag-cell .ag-cell-value {
   line-height: 1.4;
-  text-align: center;
-}
-
-/* Handle structured data content - Default collapsed state stays centered */
-.ag-theme-bytebeam .ag-cell.cell-type-object,
-.ag-theme-bytebeam .ag-cell.cell-type-list,
-.ag-theme-bytebeam .ag-cell.cell-type-table {
-  /* Keep default centering for collapsed state */
-  align-items: center;
-  justify-content: center;
-}
-
-.ag-theme-bytebeam .ag-cell.cell-type-object .ag-cell-wrapper,
-.ag-theme-bytebeam .ag-cell.cell-type-list .ag-cell-wrapper,
-.ag-theme-bytebeam .ag-cell.cell-type-table .ag-cell-wrapper {
-  align-items: center;
-  justify-content: center;
-}
-
-/* Detect expanded state by looking for visible expanded content */
-.ag-theme-bytebeam .ag-cell.cell-type-object:has(.grid-rows-\[1fr\]),
-.ag-theme-bytebeam .ag-cell.cell-type-list:has(.grid-rows-\[1fr\]),
-.ag-theme-bytebeam .ag-cell.cell-type-table:has(.grid-rows-\[1fr\]) {
-  align-items: flex-start !important;
-  justify-content: flex-start !important;
-  padding: 12px !important;
-}
-
-.ag-theme-bytebeam .ag-cell.cell-type-object:has(.grid-rows-\[1fr\]) .ag-cell-wrapper,
-.ag-theme-bytebeam .ag-cell.cell-type-list:has(.grid-rows-\[1fr\]) .ag-cell-wrapper,
-.ag-theme-bytebeam .ag-cell.cell-type-table:has(.grid-rows-\[1fr\]) .ag-cell-wrapper {
-  align-items: flex-start !important;
-  justify-content: flex-start !important;
-}
-
-.ag-theme-bytebeam .ag-cell.cell-type-object:has(.grid-rows-\[1fr\]) .ag-cell-value,
-.ag-theme-bytebeam .ag-cell.cell-type-list:has(.grid-rows-\[1fr\]) .ag-cell-value,
-.ag-theme-bytebeam .ag-cell.cell-type-table:has(.grid-rows-\[1fr\]) .ag-cell-value {
-  text-align: left !important;
-  width: 100%;
-}
-
-/* Fallback for browsers that don't support complex :has() selectors */
-.ag-theme-bytebeam .ag-cell .space-y-2 {
-  width: 100%;
-}
-
-/* Alternative approach: detect expanded content by opacity-100 class */
-.ag-theme-bytebeam .ag-cell:has(.opacity-100) {
-  align-items: flex-start !important;
-  justify-content: flex-start !important;
-  padding: 12px !important;
-}
-
-.ag-theme-bytebeam .ag-cell:has(.opacity-100) .ag-cell-wrapper {
-  align-items: flex-start !important;
-  justify-content: flex-start !important;
-}
-
-.ag-theme-bytebeam .ag-cell:has(.opacity-100) .ag-cell-value {
-  text-align: left !important;
-  width: 100%;
-}
-
-/* Handle multi-line content by detecting common structured content classes */
-.ag-theme-bytebeam .ag-cell .space-y-1,
-.ag-theme-bytebeam .ag-cell .space-y-2,
-.ag-theme-bytebeam .ag-cell .space-y-3 {
-  width: 100%;
 }
 
 .ag-theme-bytebeam .ag-cell-wrap-text .ag-cell-value {

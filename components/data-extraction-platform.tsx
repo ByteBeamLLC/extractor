@@ -382,8 +382,7 @@ export function DataExtractionPlatform() {
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null)
   // F&B translation collapsible state per job
   const [fnbCollapse, setFnbCollapse] = useState<Record<string, { en: boolean; ar: boolean }>>({})
-  // Row expansion state for structured data types (replaces old cell-level expansion)
-  const [expandedRowIds, setExpandedRowIds] = useState<string[]>([])
+  const [expandedCells, setExpandedCells] = useState<Record<string, boolean>>({})
   // Table modal state
   const [tableModalOpen, setTableModalOpen] = useState(false)
   const [tableModalData, setTableModalData] = useState<{
@@ -440,15 +439,13 @@ export function DataExtractionPlatform() {
     return dateFormatter.format(date)
   }
 
-  // Row expansion functionality
-  const isRowExpanded = (jobId: string) => expandedRowIds.includes(jobId)
+  const cellKey = (jobId: string, columnId: string) => `${jobId}-${columnId}`
 
-  const toggleRowExpansion = (jobId: string) => {
-    setExpandedRowIds((prev) => 
-      prev.includes(jobId) 
-        ? prev.filter(id => id !== jobId)
-        : [...prev, jobId]
-    )
+  const isCellExpanded = (jobId: string, columnId: string) => !!expandedCells[cellKey(jobId, columnId)]
+
+  const toggleCellExpansion = (jobId: string, columnId: string) => {
+    const key = cellKey(jobId, columnId)
+    setExpandedCells((prev) => ({ ...prev, [key]: !prev[key] }))
   }
 
   const openTableModal = (
@@ -1978,7 +1975,7 @@ export function DataExtractionPlatform() {
       meta: string | null,
       detail: React.ReactNode,
     ) => {
-      const expanded = mode === 'detail' ? true : opts?.isRowExpanded || false
+      const expanded = mode === 'detail' ? true : isCellExpanded(job.id, column.id)
       const badge = (
         <span
           className={cn(
@@ -2031,9 +2028,18 @@ export function DataExtractionPlatform() {
 
       return (
         <div className="space-y-2">
-          <div className="w-full rounded-xl border border-[#2782ff]/20 bg-white/70 px-3 py-2 shadow-sm">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation()
+              toggleCellExpansion(job.id, column.id)
+              queueMicrotask(() => opts?.refreshRowHeight?.())
+            }}
+            className="w-full rounded-xl border border-[#2782ff]/20 bg-white/70 px-3 py-2 text-left shadow-sm transition-all hover:-translate-y-[1px] hover:border-[#2782ff]/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2782ff]/40"
+            aria-expanded={expanded}
+          >
             {headerContent}
-          </div>
+          </button>
           <div
             className={cn(
               'grid transition-all duration-300 ease-in-out',
@@ -2910,8 +2916,6 @@ export function DataExtractionPlatform() {
                     setIsColumnDialogOpen(true)
                   }}
                   onDeleteColumn={deleteColumn}
-                  expandedRowIds={expandedRowIds}
-                  onToggleRowExpansion={toggleRowExpansion}
                 />
               </div>
             )}

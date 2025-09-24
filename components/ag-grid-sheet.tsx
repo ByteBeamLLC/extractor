@@ -13,7 +13,6 @@ import { Trash2 } from "lucide-react"
 import "ag-grid-community/styles/ag-grid.css"
 import "ag-grid-community/styles/ag-theme-quartz.css"
 import "@/styles/ag-grid-overrides.css"
-import "@/styles/structured-data.css"
 
 if (!(ModuleRegistry as any).__bbAllCommunityRegistered) {
   ModuleRegistry.registerModules([AllCommunityModule])
@@ -36,7 +35,7 @@ interface AgGridSheetProps {
   renderCellValue: (
     column: FlatLeaf,
     job: ExtractionJob,
-    opts?: { refreshRowHeight?: () => void; mode?: 'interactive' | 'summary' | 'detail'; isRowExpanded?: boolean },
+    opts?: { refreshRowHeight?: () => void },
   ) => ReactNode
   getStatusIcon: (status: ExtractionJob["status"]) => ReactNode
   renderStatusPill: (
@@ -46,8 +45,6 @@ interface AgGridSheetProps {
   onEditColumn: (column: FlatLeaf) => void
   onDeleteColumn: (columnId: string) => void
   onUpdateCell: (jobId: string, columnId: string, value: unknown) => void
-  expandedRowIds?: string[]
-  onToggleRowExpansion?: (jobId: string) => void
 }
 
 const DEFAULT_DATA_COL_WIDTH = 220
@@ -58,10 +55,6 @@ interface FileCellRendererParams extends ICellRendererParams<GridRow> {
     status: ExtractionJob["status"],
     opts?: { size?: 'default' | 'compact' },
   ) => ReactNode
-  isRowExpanded?: boolean
-  onToggleRowExpansion?: (jobId: string) => void
-  hasStructuredData?: boolean
-  refreshRowHeights?: () => void
 }
 
 interface ValueCellRendererParams extends ICellRendererParams<GridRow> {
@@ -69,126 +62,9 @@ interface ValueCellRendererParams extends ICellRendererParams<GridRow> {
   renderCellValue: (
     column: FlatLeaf,
     job: ExtractionJob,
-    opts?: { refreshRowHeight?: () => void; mode?: 'interactive' | 'summary' | 'detail'; isRowExpanded?: boolean },
+    opts?: { refreshRowHeight?: () => void; mode?: 'interactive' | 'summary' | 'detail' },
   ) => ReactNode
   onUpdateCell: (jobId: string, columnId: string, value: unknown) => void
-  isRowExpanded?: boolean
-}
-
-// Integrated cell renderer for structured data types - appears as part of the table cell
-function StructuredDataRenderer({ 
-  data, 
-  type, 
-  field,
-  isExpanded = false
-}: { 
-  data: any
-  type: 'object' | 'list' | 'table'
-  field: FlatLeaf
-  isExpanded?: boolean
-}) {
-  if (!isExpanded) {
-    // Show summary view inline
-    if (!data) return <span className="text-slate-400 italic text-xs">No data</span>
-    
-    if (type === 'object') {
-      const summaryFields = (field as any).children?.filter((child: any) => child.displayInSummary) || []
-      const summaryText = summaryFields.map((f: any) => `${f.name}: ${data[f.id] || '—'}`).join(', ')
-      return <span className="text-xs text-slate-600">{summaryText || 'Object data'}</span>
-    }
-    
-    if (type === 'list') {
-      const count = Array.isArray(data) ? data.length : 0
-      return <span className="text-xs text-slate-600">{count} items</span>
-    }
-    
-    if (type === 'table') {
-      const count = Array.isArray(data) ? data.length : 0
-      const columns = (field as any).columns?.length || 0
-      return <span className="text-xs text-slate-600">{count} rows, {columns} cols</span>
-    }
-  }
-
-  // Show detailed view integrated within the cell
-  return (
-    <div className="w-full">
-      {/* Summary line for context */}
-      <div className="mb-2 pb-1 border-b border-slate-200">
-        {type === 'object' && (
-          <span className="text-xs font-medium text-slate-700">Object Fields:</span>
-        )}
-        {type === 'list' && (
-          <span className="text-xs font-medium text-slate-700">List ({Array.isArray(data) ? data.length : 0} items):</span>
-        )}
-        {type === 'table' && (
-          <span className="text-xs font-medium text-slate-700">
-            Table ({Array.isArray(data) ? data.length : 0} rows × {(field as any).columns?.length || 0} cols):
-          </span>
-        )}
-      </div>
-
-      {/* Detailed content integrated in cell */}
-      {type === 'object' && data && (
-        <div className="space-y-1">
-          {((field as any).children || []).map((child: any) => (
-            <div key={child.id} className="flex items-start text-xs border-l-2 border-slate-200 pl-2">
-              <span className="font-medium text-slate-600 w-20 flex-shrink-0 truncate">{child.name}:</span>
-              <span className="text-slate-800 flex-1 break-words">
-                {data[child.id] !== undefined ? String(data[child.id]) : '—'}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {type === 'list' && Array.isArray(data) && (
-        <div className="space-y-1 max-h-32 overflow-y-auto">
-          {data.map((item, index) => (
-            <div key={index} className="flex items-start text-xs border-l-2 border-slate-200 pl-2">
-              <span className="font-medium text-slate-600 w-12 flex-shrink-0">[{index + 1}]:</span>
-              <span className="text-slate-800 flex-1 break-words">
-                {typeof item === 'object' ? JSON.stringify(item, null, 2) : String(item)}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {type === 'table' && Array.isArray(data) && (
-        <div className="w-full overflow-x-auto">
-          <table className="w-full text-xs border border-slate-200">
-            <thead className="bg-slate-50">
-              <tr>
-                {((field as any).columns || []).map((col: any) => (
-                  <th key={col.id} className="text-left p-1 font-medium text-slate-700 border-b border-r border-slate-200 truncate min-w-16">
-                    {col.name}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {data.slice(0, 8).map((row, rowIndex) => (
-                <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-slate-25'}>
-                  {((field as any).columns || []).map((col: any) => (
-                    <td key={col.id} className="p-1 text-slate-800 border-b border-r border-slate-200 truncate">
-                      {row[col.id] !== undefined ? String(row[col.id]) : '—'}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-              {data.length > 8 && (
-                <tr className="bg-slate-50">
-                  <td colSpan={(field as any).columns?.length || 1} className="p-1 text-center text-slate-500 italic text-xs">
-                    +{data.length - 8} more rows
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  )
 }
 
 interface ColumnHeaderRendererParams extends IHeaderParams<GridRow> {
@@ -204,30 +80,6 @@ function FileCellRenderer(params: FileCellRendererParams) {
   return (
     <div className="flex items-center gap-2.5">
       <div className="flex items-center gap-2">
-        {params.hasStructuredData && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              params.onToggleRowExpansion?.(job.id)
-              // Trigger AG Grid to recalculate row heights after expansion
-              queueMicrotask(() => params.refreshRowHeights?.())
-            }}
-            className="flex items-center justify-center w-5 h-5 rounded text-slate-400 hover:text-slate-600 transition-colors"
-            aria-label={params.isRowExpanded ? "Collapse row" : "Expand row"}
-          >
-            <svg
-              className={`w-4 h-4 transition-transform duration-200 ${
-                params.isRowExpanded ? 'rotate-90' : ''
-              }`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        )}
         {params.getStatusIcon(job.status)}
         {params.renderStatusPill(job.status, { size: 'compact' })}
       </div>
@@ -243,8 +95,9 @@ function ValueCellRenderer(params: ValueCellRendererParams) {
   if (!job) return <span className="text-muted-foreground">—</span>
 
   const refreshRowHeight = () => {
-    // Since we use autoHeight: true, AG Grid will automatically adjust row heights
-    // when content changes, so no manual intervention is needed
+    queueMicrotask(() => {
+      params.api.resetRowHeights({ rowNodes: [params.node] })
+    })
   }
 
   const [isEditing, setIsEditing] = useState(false)
@@ -265,9 +118,6 @@ function ValueCellRenderer(params: ValueCellRendererParams) {
     setIsEditing(false)
     setDraft(job.results?.[params.columnMeta.id] ?? '')
   }
-
-  // Determine render mode based on row expansion state
-  const renderMode = params.isRowExpanded ? 'detail' : 'summary'
 
   if (isEditing) {
     const type = params.columnMeta.type
@@ -322,41 +172,9 @@ function ValueCellRenderer(params: ValueCellRendererParams) {
     )
   }
 
-  // Check if this is a structured data type that should use the custom renderer
-  const isStructuredType = params.columnMeta.type === 'object' || 
-                           params.columnMeta.type === 'list' || 
-                           params.columnMeta.type === 'table'
-
-  if (isStructuredType) {
-    const data = job.results?.[params.columnMeta.id]
-    return (
-      <div 
-        className="w-full" 
-        data-column-id={params.column?.getColId()} 
-        data-cell-type={params.columnMeta.type}
-      >
-        <StructuredDataRenderer 
-          data={data}
-          type={params.columnMeta.type as 'object' | 'list' | 'table'}
-          field={params.columnMeta}
-          isExpanded={params.isRowExpanded}
-        />
-      </div>
-    )
-  }
-
   return (
-    <div 
-      className="w-full" 
-      data-column-id={params.column?.getColId()} 
-      data-cell-type={params.columnMeta.type}
-      onDoubleClick={startEdit}
-    >
-      {params.renderCellValue(params.columnMeta, job, { 
-        refreshRowHeight, 
-        mode: renderMode, 
-        isRowExpanded: params.isRowExpanded 
-      })}
+    <div className="w-full" data-column-id={params.column?.getColId()} onDoubleClick={startEdit}>
+      {params.renderCellValue(params.columnMeta, job, { refreshRowHeight, mode: 'interactive' })}
     </div>
   )
 }
@@ -412,20 +230,9 @@ export function AgGridSheet({
   onEditColumn,
   onDeleteColumn,
   onUpdateCell,
-  expandedRowIds = [],
-  onToggleRowExpansion,
 }: AgGridSheetProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const gridRef = useRef<AgGridReact<GridRow>>(null)
   const [pinPlusRight, setPinPlusRight] = useState(false)
-  
-  // Helper function to check if a job has structured data
-  const hasStructuredData = useCallback((job: ExtractionJob) => {
-    return columns.some(col => {
-      const value = job.results?.[col.id]
-      return (col.type === 'object' || col.type === 'list' || col.type === 'table') && value
-    })
-  }, [columns])
   const rowData = useMemo<GridRow[]>(() => {
     return jobs.map((job) => {
       const valueMap: Record<string, unknown> = {}
@@ -470,17 +277,10 @@ export function AgGridSheet({
         suppressHeaderMenuButton: true,
         sortable: false,
         cellRenderer: FileCellRenderer,
-        cellRendererParams: (params: any) => ({
+        cellRendererParams: {
           getStatusIcon,
           renderStatusPill,
-          isRowExpanded: expandedRowIds.includes(params.data?.__job?.id || ''),
-          onToggleRowExpansion,
-          hasStructuredData: params.data?.__job ? hasStructuredData(params.data.__job) : false,
-          refreshRowHeights: () => {
-            // Since we use autoHeight: true, we don't need to manually reset heights
-            // AG Grid will automatically adjust row heights when content changes
-          },
-        }),
+        },
         cellClass: "ag-cell-wrap-text",
         autoHeight: true,
         wrapText: true,
@@ -508,19 +308,10 @@ export function AgGridSheet({
           onDeleteColumn,
         },
         cellRenderer: ValueCellRenderer,
-        cellRendererParams: (params: any) => ({
+        cellRendererParams: {
           columnMeta: column,
           renderCellValue,
           onUpdateCell,
-          isRowExpanded: expandedRowIds.includes(params.data?.__job?.id || ''),
-        }),
-        cellClass: (params) => {
-          const classes = ["ag-cell-wrap-text"]
-          // Add data attribute via CSS class for structured data types
-          if (column.type === 'object' || column.type === 'list' || column.type === 'table') {
-            classes.push(`cell-type-${column.type}`)
-          }
-          return classes.join(' ')
         },
       })
     }
@@ -554,7 +345,7 @@ export function AgGridSheet({
     })
 
     return defs
-  }, [columns, getStatusIcon, renderStatusPill, renderCellValue, onEditColumn, onDeleteColumn, onAddColumn, pinPlusRight, expandedRowIds, onToggleRowExpansion, hasStructuredData])
+  }, [columns, getStatusIcon, renderStatusPill, renderCellValue, onEditColumn, onDeleteColumn, onAddColumn, pinPlusRight])
 
   const defaultColDef = useMemo<ColDef<GridRow>>(
     () => ({
@@ -562,8 +353,6 @@ export function AgGridSheet({
       sortable: false,
       suppressHeaderMenuButton: true,
       cellClass: "ag-cell-wrap-text",
-      autoHeight: true,
-      wrapText: true,
     }),
     [],
   )
@@ -604,9 +393,8 @@ export function AgGridSheet({
   }, [columns.length])
 
   return (
-    <div ref={containerRef} className={cn("ag-theme-quartz ag-theme-bytebeam h-full w-full")}>
+    <div ref={containerRef} className={cn("ag-theme-quartz ag-theme-bytebeam h-full w-full")}> 
       <AgGridReact<GridRow>
-        ref={gridRef}
         rowData={rowData}
         columnDefs={columnDefs}
         defaultColDef={defaultColDef}
@@ -616,7 +404,7 @@ export function AgGridSheet({
         rowSelection={{ mode: 'singleRow', enableClickSelection: true }}
         theme="legacy"
         headerHeight={48}
-        domLayout='normal'
+        rowHeight={60}
         onRowClicked={onRowClicked}
         animateRows
         overlayNoRowsTemplate="<div class='py-12 text-muted-foreground text-sm'>No extraction results yet. Upload documents to get started.</div>"
