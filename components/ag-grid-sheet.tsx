@@ -173,7 +173,12 @@ function ValueCellRenderer(params: ValueCellRendererParams) {
   }
 
   return (
-    <div className="w-full" data-column-id={params.column?.getColId()} onDoubleClick={startEdit}>
+    <div 
+      className="w-full" 
+      data-column-id={params.column?.getColId()} 
+      data-cell-type={params.columnMeta.type}
+      onDoubleClick={startEdit}
+    >
       {params.renderCellValue(params.columnMeta, job, { refreshRowHeight, mode: 'interactive' })}
     </div>
   )
@@ -312,6 +317,14 @@ export function AgGridSheet({
           columnMeta: column,
           renderCellValue,
           onUpdateCell,
+        },
+        cellClass: (params) => {
+          const classes = ["ag-cell-wrap-text"]
+          // Add data attribute via CSS class for structured data types
+          if (column.type === 'object' || column.type === 'list' || column.type === 'table') {
+            classes.push(`cell-type-${column.type}`)
+          }
+          return classes.join(' ')
         },
       })
     }

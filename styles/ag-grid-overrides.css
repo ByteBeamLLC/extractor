@@ -74,7 +74,7 @@
 }
 
 .ag-theme-bytebeam .ag-cell {
-  padding-block: 0;
+  padding: 8px 12px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -113,6 +113,38 @@
 .ag-theme-bytebeam .ag-cell .ag-cell-value {
   line-height: 1.4;
   text-align: center;
+}
+
+/* Handle structured data content with CSS classes */
+.ag-theme-bytebeam .ag-cell.cell-type-object,
+.ag-theme-bytebeam .ag-cell.cell-type-list,
+.ag-theme-bytebeam .ag-cell.cell-type-table {
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 12px;
+  min-height: 60px;
+}
+
+.ag-theme-bytebeam .ag-cell.cell-type-object .ag-cell-wrapper,
+.ag-theme-bytebeam .ag-cell.cell-type-list .ag-cell-wrapper,
+.ag-theme-bytebeam .ag-cell.cell-type-table .ag-cell-wrapper {
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.ag-theme-bytebeam .ag-cell.cell-type-object .ag-cell-value,
+.ag-theme-bytebeam .ag-cell.cell-type-list .ag-cell-value,
+.ag-theme-bytebeam .ag-cell.cell-type-table .ag-cell-value {
+  text-align: left;
+  width: 100%;
+}
+
+/* Handle multi-line content by detecting common structured content classes */
+.ag-theme-bytebeam .ag-cell .space-y-1,
+.ag-theme-bytebeam .ag-cell .space-y-2,
+.ag-theme-bytebeam .ag-cell .space-y-3 {
+  width: 100%;
+  text-align: left;
 }
 
 .ag-theme-bytebeam .ag-cell-wrap-text .ag-cell-value {
