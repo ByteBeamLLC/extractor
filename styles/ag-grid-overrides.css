@@ -115,27 +115,27 @@
   text-align: center;
 }
 
-/* Handle structured data content with CSS classes */
+/* Handle structured data content with CSS classes - Higher specificity */
 .ag-theme-bytebeam .ag-cell.cell-type-object,
 .ag-theme-bytebeam .ag-cell.cell-type-list,
 .ag-theme-bytebeam .ag-cell.cell-type-table {
-  align-items: flex-start;
-  justify-content: flex-start;
-  padding: 12px;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  padding: 12px !important;
   min-height: 60px;
 }
 
 .ag-theme-bytebeam .ag-cell.cell-type-object .ag-cell-wrapper,
 .ag-theme-bytebeam .ag-cell.cell-type-list .ag-cell-wrapper,
 .ag-theme-bytebeam .ag-cell.cell-type-table .ag-cell-wrapper {
-  align-items: flex-start;
-  justify-content: flex-start;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
 }
 
 .ag-theme-bytebeam .ag-cell.cell-type-object .ag-cell-value,
 .ag-theme-bytebeam .ag-cell.cell-type-list .ag-cell-value,
 .ag-theme-bytebeam .ag-cell.cell-type-table .ag-cell-value {
-  text-align: left;
+  text-align: left !important;
   width: 100%;
 }
 
