@@ -1,59 +1,76 @@
 .ag-theme-bytebeam {
-  --ag-background-color: transparent;
+  --ag-background-color: #ffffff;
   --ag-foreground-color: var(--color-foreground);
   --ag-secondary-foreground-color: rgba(100, 116, 139, 1);
-  --ag-border-color: rgba(15, 23, 42, 0.08);
-  --ag-row-hover-color: rgba(39, 130, 255, 0.1);
+  --ag-border-color: rgba(15, 23, 42, 0.12);
+  --ag-row-hover-color: rgba(39, 130, 255, 0.05);
   --ag-selected-row-background-color: rgba(39, 130, 255, 0.08);
   --ag-font-size: 13px;
   --ag-font-family: var(--font-sans);
-  --ag-header-height: 48px;
-  --ag-row-height: 58px;
-  --ag-cell-horizontal-padding: 14px;
+  --ag-header-height: 40px;
+  --ag-row-height: 40px;
+  --ag-cell-horizontal-padding: 12px;
   --ag-wrapper-border-radius: 0;
   --ag-header-foreground-color: var(--color-foreground);
-  --ag-header-background-color: rgba(255, 255, 255, 0.92);
-  --ag-odd-row-background-color: transparent;
-  --ag-even-row-background-color: transparent;
+  --ag-header-background-color: #f8fafc;
+  --ag-odd-row-background-color: #ffffff;
+  --ag-even-row-background-color: #f9fafb;
 }
 
 .ag-theme-bytebeam .ag-root-wrapper {
-  border: none;
-  background-color: transparent;
+  border: 1px solid var(--ag-border-color);
+  background-color: var(--ag-background-color);
+  border-radius: 6px;
+  overflow: hidden;
 }
 
 .ag-theme-bytebeam .ag-header {
-  border-bottom: 1px solid var(--color-border);
-  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--ag-border-color);
+  background-color: var(--ag-header-background-color);
 }
 
-.ag-theme-bytebeam .ag-header-cell,
+.ag-theme-bytebeam .ag-header-cell {
+  border-right: 1px solid var(--ag-border-color);
+  background-color: var(--ag-header-background-color);
+}
+
+.ag-theme-bytebeam .ag-header-cell:last-child {
+  border-right: none;
+}
+
 .ag-theme-bytebeam .ag-cell {
-  border: none;
+  border-right: 1px solid var(--ag-border-color);
+  border-bottom: 1px solid var(--ag-border-color);
+}
+
+.ag-theme-bytebeam .ag-cell:last-child {
+  border-right: none;
 }
 
 .ag-theme-bytebeam .ag-row {
-  margin-bottom: 8px;
-  border-radius: 14px;
-  background-color: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 1px 6px rgba(15, 23, 42, 0.08);
-  overflow: hidden;
-  transition: transform 120ms ease, box-shadow 180ms ease;
+  margin-bottom: 0;
+  border-radius: 0;
+  background-color: inherit;
+  box-shadow: none;
+  overflow: visible;
+  transition: background-color 120ms ease;
 }
 
 .ag-theme-bytebeam .ag-row.ag-row-hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
+  transform: none;
+  box-shadow: none;
+  background-color: var(--ag-row-hover-color);
 }
 
 .ag-theme-bytebeam .ag-row.ag-row-selected {
-  box-shadow: 0 0 0 2px rgba(39, 130, 255, 0.28), 0 4px 16px rgba(39, 130, 255, 0.16);
+  box-shadow: none;
+  background-color: var(--ag-selected-row-background-color);
 }
 
 .ag-theme-bytebeam .ag-pinned-left-header,
 .ag-theme-bytebeam .ag-pinned-left-cols-container {
-  background-color: rgba(255, 255, 255, 0.96);
-  box-shadow: 1px 0 0 rgba(15, 23, 42, 0.08);
+  background-color: var(--ag-header-background-color);
+  border-right: 1px solid var(--ag-border-color);
 }
 
 .ag-theme-bytebeam .ag-cell {
@@ -87,19 +104,17 @@
 }
 
 .dark .ag-theme-bytebeam {
-  --ag-header-background-color: rgba(15, 23, 42, 0.92);
-  --ag-border-color: rgba(148, 163, 184, 0.18);
-  --ag-row-hover-color: rgba(39, 130, 255, 0.18);
-  --ag-selected-row-background-color: rgba(39, 130, 255, 0.22);
-}
-
-.dark .ag-theme-bytebeam .ag-row {
-  background-color: rgba(15, 23, 42, 0.72);
-  box-shadow: 0 3px 18px rgba(0, 0, 0, 0.45);
+  --ag-background-color: #1e293b;
+  --ag-header-background-color: #334155;
+  --ag-border-color: rgba(148, 163, 184, 0.2);
+  --ag-row-hover-color: rgba(39, 130, 255, 0.1);
+  --ag-selected-row-background-color: rgba(39, 130, 255, 0.15);
+  --ag-odd-row-background-color: #1e293b;
+  --ag-even-row-background-color: #293548;
 }
 
 .dark .ag-theme-bytebeam .ag-pinned-left-header,
 .dark .ag-theme-bytebeam .ag-pinned-left-cols-container {
-  background-color: rgba(15, 23, 42, 0.82);
-  box-shadow: 1px 0 0 rgba(15, 23, 42, 0.6);
+  background-color: var(--ag-header-background-color);
+  border-right: 1px solid var(--ag-border-color);
 }
