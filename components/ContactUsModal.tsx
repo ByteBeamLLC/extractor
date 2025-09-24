@@ -204,6 +204,16 @@ export function ContactUsModal({
                 <Button type="submit" disabled={!formValid}>
                   {loading ? "Sending…" : "Send message"}
                 </Button>
+                <Button asChild>
+                  <a
+                    href="https://www.linkedin.com/in/talalbazerbachi/"
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={() => track("founder_chat_clicked_from_contact")}
+                  >
+                    Chat with founder
+                  </a>
+                </Button>
                 <a
                   href={BOOKING_URL}
                   target="_blank"
@@ -250,6 +260,16 @@ export function ContactUsModal({
             </p>
             <div className="flex justify-center gap-3">
               <Button variant="outline" onClick={handleRequestClose}>Close</Button>
+              <Button asChild>
+                <a 
+                  href="https://www.linkedin.com/in/talalbazerbachi/"
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() => track("founder_chat_clicked_from_success")}
+                >
+                  Chat with founder
+                </a>
+              </Button>
               <a href={BOOKING_URL} target="_blank" rel="noreferrer" className="inline-flex items-center rounded-md bg-foreground text-background px-4 py-2">
                 Open scheduler
               </a>
