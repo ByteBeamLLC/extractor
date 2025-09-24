@@ -366,6 +366,8 @@ export function AgGridSheet({
       sortable: false,
       suppressHeaderMenuButton: true,
       cellClass: "ag-cell-wrap-text",
+      autoHeight: true,
+      wrapText: true,
     }),
     [],
   )
@@ -417,7 +419,7 @@ export function AgGridSheet({
         rowSelection={{ mode: 'singleRow', enableClickSelection: true }}
         theme="legacy"
         headerHeight={48}
-        rowHeight={60}
+        domLayout='normal'
         onRowClicked={onRowClicked}
         animateRows
         overlayNoRowsTemplate="<div class='py-12 text-muted-foreground text-sm'>No extraction results yet. Upload documents to get started.</div>"
