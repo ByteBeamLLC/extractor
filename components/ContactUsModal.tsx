@@ -135,6 +135,18 @@ export function ContactUsModal({
               Send feedback, ask a question, or say hello. No sales pitch—promise.
             </DialogDescription>
           </div>
+          <div className="flex flex-col items-end gap-2">
+            <Button asChild size="sm">
+              <a
+                href="https://www.linkedin.com/in/talalbazerbachi/"
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => track("founder_chat_clicked_from_header")}
+              >
+                Chat with founder
+              </a>
+            </Button>
+          </div>
         </div>
         {!sent ? (
           <form onSubmit={handleSubmit} className="grid md:grid-cols-2 gap-6 p-5" aria-labelledby="contact-title">
@@ -204,16 +216,6 @@ export function ContactUsModal({
                 <Button type="submit" disabled={!formValid}>
                   {loading ? "Sending…" : "Send message"}
                 </Button>
-                <Button asChild>
-                  <a
-                    href="https://www.linkedin.com/in/talalbazerbachi/"
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={() => track("founder_chat_clicked_from_contact")}
-                  >
-                    Chat with founder
-                  </a>
-                </Button>
                 <a
                   href={BOOKING_URL}
                   target="_blank"
@@ -260,16 +262,6 @@ export function ContactUsModal({
             </p>
             <div className="flex justify-center gap-3">
               <Button variant="outline" onClick={handleRequestClose}>Close</Button>
-              <Button asChild>
-                <a 
-                  href="https://www.linkedin.com/in/talalbazerbachi/"
-                  target="_blank"
-                  rel="noreferrer"
-                  onClick={() => track("founder_chat_clicked_from_success")}
-                >
-                  Chat with founder
-                </a>
-              </Button>
               <a href={BOOKING_URL} target="_blank" rel="noreferrer" className="inline-flex items-center rounded-md bg-foreground text-background px-4 py-2">
                 Open scheduler
               </a>
