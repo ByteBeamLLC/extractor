@@ -42,6 +42,8 @@ The application requires the following environment variables:
 - Added cache control headers to prevent caching issues
 - Configured development workflow on port 5000
 - Set up deployment configuration for production
+- Fixed field popup overflow issue in transformation builder modal
+- Updated AG Grid API calls for compatibility
 
 ## Project Status
 ✅ Project successfully imported and configured for Replit
