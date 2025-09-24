@@ -409,6 +409,8 @@ export function DataExtractionPlatform() {
   const { BOOKING_URL } = require("@/lib/publicEnv") as { BOOKING_URL: string }
   const isSchemaFresh = (s: SchemaDefinition) => (s.fields?.length ?? 0) === 0 && (s.jobs?.length ?? 0) === 0
 
+  // Sidebar disabled
+
   const numberFormatter = useMemo(() => new Intl.NumberFormat('en-US', {
     maximumFractionDigits: 2,
     minimumFractionDigits: 0,
@@ -2544,62 +2546,8 @@ export function DataExtractionPlatform() {
       </div>
 
       <div className="flex flex-1 min-h-0 min-w-0">
-        {/* Left Sidebar - File Upload & Jobs */}
-        <div className="w-80 bg-sidebar border-r border-sidebar-border p-4 space-y-4">
-          <div>
-            <h2 className="text-lg font-semibold text-sidebar-foreground mb-4">Document Processing</h2>
 
-            {/* Upload Area */}
-            <Card className="border-dashed border-2 border-border hover:border-primary/50 transition-colors">
-              <CardContent className="p-6 text-center">
-                <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground mb-3">Drag & drop files here or click to browse</p>
-                <p className="text-xs text-muted-foreground mb-3">Supports: TXT, PDF, DOC, DOCX, images</p>
-                <Button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full"
-                  disabled={fields.length === 0 && activeSchema.templateId !== 'fnb-label-compliance'}
-                >
-                  Upload Documents
-                </Button>
-                {fields.length === 0 && activeSchema.templateId !== 'fnb-label-compliance' && (
-                  <p className="text-xs text-orange-600 mt-2">Define columns first</p>
-                )}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Schema Template chooser – only when the active schema is fresh */}
-          {isSchemaFresh(activeSchema) && (
-            <div className="space-y-2">
-              <Label className="text-sidebar-foreground">Choose a schema template</Label>
-              <Select onValueChange={(val) => applySchemaTemplate(val)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a template" />
-                </SelectTrigger>
-                <SelectContent>
-                  {NESTED_TEMPLATES.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">Populates data points and transformations for this tab.</p>
-            </div>
-          )}
-
-          {/* Sales Lead Pipeline CTA – appears after user has at least 2 completed extractions */}
-     
-        </div>
+        {/* Sidebar disabled on all screen sizes */}
 
           {/* Main Content - Excel-style Table */}
           <div className="flex-1 flex flex-col min-h-0 min-w-0">
@@ -2607,6 +2555,7 @@ export function DataExtractionPlatform() {
           <div className="bg-white border-b border-gray-200 p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
+                  {/* Sidebar toggle removed (sidebar disabled) */}
                   {!editingSchemaName ? (
                     <button
                       type="button"
@@ -2644,6 +2593,21 @@ export function DataExtractionPlatform() {
                   )}
                 </div>
               <div className="flex items-center gap-2">
+                {/* Schema template selector in header when schema fresh */}
+                {isSchemaFresh(activeSchema) && (
+                  <Select onValueChange={(val) => applySchemaTemplate(val)}>
+                    <SelectTrigger className="w-56">
+                      <SelectValue placeholder="Select a template" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {NESTED_TEMPLATES.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
                 {/* Export / Print: show Export always (non-F&B), Print gated on completion (F&B) */}
                 {activeSchema.templateId === 'fnb-label-compliance' ? (
                   jobs.some((j) => j.status === 'completed') ? (
@@ -2668,16 +2632,25 @@ export function DataExtractionPlatform() {
                     Export CSV
                   </Button>
                 )}
-                {activeSchema.templateId !== 'fnb-label-compliance' && (
-                  <Button
-                    size="sm"
-                    onClick={() => addColumn()}
-                    title="Add Field"
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add Field
-                  </Button>
-                )}
+                {/* Add Field button moved to grid area as a floating + */}
+                {/* Upload button moved to header */}
+                <Button
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={fields.length === 0 && activeSchema.templateId !== 'fnb-label-compliance'}
+                  title="Upload Documents"
+                >
+                  <Upload className="h-4 w-4 mr-1" />
+                  Upload
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
               </div>
               </div>
             {fields.length === 0 && (
@@ -2923,9 +2896,19 @@ export function DataExtractionPlatform() {
                   jobs={sortedJobs}
                   selectedRowId={selectedRowId}
                   onSelectRow={(jobId) => setSelectedRowId(jobId)}
+                  onAddColumn={() => addColumn()}
                   renderCellValue={renderCellValue}
                   getStatusIcon={getStatusIcon}
                   renderStatusPill={renderStatusPill}
+                  onUpdateCell={(jobId, columnId, value) => {
+                    setJobs((prev) =>
+                      prev.map((job) =>
+                        job.id === jobId
+                          ? { ...job, results: { ...(job.results || {}), [columnId]: value } }
+                          : job,
+                      ),
+                    )
+                  }}
                   onEditColumn={(column) => {
                     setSelectedColumn(column)
                     setDraftColumn(JSON.parse(JSON.stringify(column)))
@@ -2939,9 +2922,9 @@ export function DataExtractionPlatform() {
           </div>
       </div>
 
-      {/* Column Configuration Panel (hidden for F&B fixed mode) */}
+      {/* Column Configuration Modal (hidden for F&B fixed mode) */}
       {activeSchema.templateId !== 'fnb-label-compliance' && (
-        <Sheet
+        <Dialog
           open={isColumnDialogOpen}
           onOpenChange={(open) => {
             setIsColumnDialogOpen(open)
@@ -2951,15 +2934,15 @@ export function DataExtractionPlatform() {
             }
           }}
         >
-          <SheetContent side="right" className="flex w-full max-w-full flex-col bg-[#f8f9fb] shadow-xl sm:max-w-xl">
-            <SheetHeader className="border-b border-slate-200/70 px-6 py-5">
-              <SheetTitle className="text-xl font-semibold">
+          <DialogContent className="max-w-xl w-full p-0 overflow-hidden">
+            <DialogHeader className="border-b border-slate-200/70 px-6 py-5">
+              <DialogTitle className="text-xl font-semibold">
                 {columnDialogMode === 'edit' ? 'Edit Field' : 'Add New Field'}
-              </SheetTitle>
-              <SheetDescription className="text-sm text-slate-600">
+              </DialogTitle>
+              <DialogDescription className="text-sm text-slate-600">
                 Configure how this data point is extracted and structured for your grid.
-              </SheetDescription>
-            </SheetHeader>
+              </DialogDescription>
+            </DialogHeader>
 
             {draftColumn && (
               <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5">
@@ -3016,16 +2999,7 @@ export function DataExtractionPlatform() {
                         placeholder="e.g., Manufacturer"
                       />
                     </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="column-description">Description</Label>
-                      <Textarea
-                        id="column-description"
-                        value={draftColumn.description}
-                        onChange={(event) => setDraftColumn({ ...draftColumn, description: event.target.value })}
-                        placeholder="Give teammates context about this data point"
-                        rows={3}
-                      />
-                    </div>
+                    {/* Description has been merged with Extraction Guidance below */}
                   </div>
 
                   <div className="space-y-3">
@@ -3074,14 +3048,8 @@ export function DataExtractionPlatform() {
 
                 <div className="space-y-3 rounded-2xl border border-slate-200/70 bg-white px-4 py-5 shadow-sm">
                   <div className="space-y-1">
-                    <h3 className="text-sm font-semibold text-slate-700">
-                      {isDraftTransformation ? 'Transformation Logic' : 'Extraction Guidance'}
-                    </h3>
-                    {!isDraftTransformation && (
-                      <p className="text-xs text-slate-500">
-                        Tell the AI how to locate this value. Mention labels, nearby anchors, or table positions.
-                      </p>
-                    )}
+                    <h3 className="text-sm font-semibold text-slate-700">Field Guidance</h3>
+                    <p className="text-xs text-slate-500">Describe this field and how to extract it. This text helps teammates and the AI.</p>
                   </div>
                   {isDraftTransformation ? (
                     <TransformBuilder
@@ -3091,105 +3059,21 @@ export function DataExtractionPlatform() {
                     />
                   ) : (
                     <div className="space-y-1.5">
-                      <Label htmlFor="extraction-instructions">AI Extraction Instructions</Label>
+                      <Label htmlFor="field-guidance">Field Guidance</Label>
                       <Textarea
-                        id="extraction-instructions"
-                        value={draftColumn.extractionInstructions}
-                        onChange={(event) => setDraftColumn({ ...draftColumn, extractionInstructions: event.target.value })}
-                        placeholder="e.g., 'Look for the Nutrition Facts panel and capture each nutrient row'"
-                        rows={4}
+                        id="field-guidance"
+                        value={draftColumn.extractionInstructions || draftColumn.description || ''}
+                        onChange={(event) => setDraftColumn({ ...draftColumn, description: event.target.value, extractionInstructions: event.target.value })}
+                        placeholder="Explain what this field is and how to extract it from the document."
+                        rows={5}
                       />
                     </div>
                   )}
                 </div>
-
-                {draftColumn.type === 'string' && (
-                  <div className="space-y-3 rounded-2xl border border-dashed border-slate-300 px-4 py-5">
-                    <h4 className="text-sm font-semibold text-slate-700">Validation Rules</h4>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="min-length">Min Length</Label>
-                        <Input
-                          id="min-length"
-                          type="number"
-                          value={draftColumn.constraints?.minLength || ''}
-                          onChange={(event) =>
-                            setDraftColumn({
-                              ...draftColumn,
-                              constraints: {
-                                ...(draftColumn.constraints || {}),
-                                minLength: Number.parseInt(event.target.value) || undefined,
-                              },
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="max-length">Max Length</Label>
-                        <Input
-                          id="max-length"
-                          type="number"
-                          value={draftColumn.constraints?.maxLength || ''}
-                          onChange={(event) =>
-                            setDraftColumn({
-                              ...draftColumn,
-                              constraints: {
-                                ...(draftColumn.constraints || {}),
-                                maxLength: Number.parseInt(event.target.value) || undefined,
-                              },
-                            })
-                          }
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {(draftColumn.type === 'number' || draftColumn.type === 'decimal') && (
-                  <div className="space-y-3 rounded-2xl border border-dashed border-slate-300 px-4 py-5">
-                    <h4 className="text-sm font-semibold text-slate-700">Validation Rules</h4>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="min-value">Min Value</Label>
-                        <Input
-                          id="min-value"
-                          type="number"
-                          value={draftColumn.constraints?.min || ''}
-                          onChange={(event) =>
-                            setDraftColumn({
-                              ...draftColumn,
-                              constraints: {
-                                ...(draftColumn.constraints || {}),
-                                min: Number.parseFloat(event.target.value) || undefined,
-                              },
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="max-value">Max Value</Label>
-                        <Input
-                          id="max-value"
-                          type="number"
-                          value={draftColumn.constraints?.max || ''}
-                          onChange={(event) =>
-                            setDraftColumn({
-                              ...draftColumn,
-                              constraints: {
-                                ...(draftColumn.constraints || {}),
-                                max: Number.parseFloat(event.target.value) || undefined,
-                              },
-                            })
-                          }
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
-            <SheetFooter className="border-t border-slate-200/70 bg-white/95 px-6 py-4">
+            <div className="border-t border-slate-200/70 bg-white/95 px-6 py-4">
               <div className="flex w-full flex-col gap-3 sm:flex-row sm:justify-end">
                 <Button
                   type="button"
@@ -3211,7 +3095,7 @@ export function DataExtractionPlatform() {
                       description: draftColumn.description,
                       required: !!draftColumn.required,
                       extractionInstructions: draftColumn.extractionInstructions,
-                      constraints: draftColumn.constraints,
+                      // constraints removed from tool logic
                       isTransformation: !!draftColumn.isTransformation,
                       transformationType: draftColumn.transformationType,
                       transformationConfig: draftColumn.transformationConfig,
@@ -3235,9 +3119,9 @@ export function DataExtractionPlatform() {
                   Save Field
                 </Button>
               </div>
-            </SheetFooter>
-          </SheetContent>
-        </Sheet>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
       {/* Advanced Automation ROI Modal */}
       <Dialog open={roiOpen} onOpenChange={onCloseRoi}>

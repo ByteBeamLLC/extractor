@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useMemo } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { ComponentProps, ReactNode } from "react"
 import { ModuleRegistry, AllCommunityModule } from "ag-grid-community"
 import type { ColDef, GetRowIdParams, ICellRendererParams, IHeaderParams, RowClassRules } from "ag-grid-community"
@@ -31,6 +31,7 @@ interface AgGridSheetProps {
   jobs: ExtractionJob[]
   selectedRowId: string | null
   onSelectRow: (jobId: string) => void
+  onAddColumn: () => void
   renderCellValue: (
     column: FlatLeaf,
     job: ExtractionJob,
@@ -43,7 +44,10 @@ interface AgGridSheetProps {
   ) => ReactNode
   onEditColumn: (column: FlatLeaf) => void
   onDeleteColumn: (columnId: string) => void
+  onUpdateCell: (jobId: string, columnId: string, value: unknown) => void
 }
+
+const DEFAULT_DATA_COL_WIDTH = 220
 
 interface FileCellRendererParams extends ICellRendererParams<GridRow> {
   getStatusIcon: (status: ExtractionJob["status"]) => ReactNode
@@ -60,6 +64,7 @@ interface ValueCellRendererParams extends ICellRendererParams<GridRow> {
     job: ExtractionJob,
     opts?: { refreshRowHeight?: () => void; mode?: 'interactive' | 'summary' | 'detail' },
   ) => ReactNode
+  onUpdateCell: (jobId: string, columnId: string, value: unknown) => void
 }
 
 interface ColumnHeaderRendererParams extends IHeaderParams<GridRow> {
@@ -95,8 +100,80 @@ function ValueCellRenderer(params: ValueCellRendererParams) {
     })
   }
 
+  const [isEditing, setIsEditing] = useState(false)
+  const [draft, setDraft] = useState<any>(job.results?.[params.columnMeta.id] ?? '')
+
+  const startEdit = () => {
+    if (params.columnMeta.type === 'object' || params.columnMeta.type === 'table' || params.columnMeta.type === 'list') return
+    setDraft(job.results?.[params.columnMeta.id] ?? '')
+    setIsEditing(true)
+  }
+
+  const commitEdit = () => {
+    setIsEditing(false)
+    params.onUpdateCell(job.id, params.columnMeta.id, draft)
+  }
+
+  const cancelEdit = () => {
+    setIsEditing(false)
+    setDraft(job.results?.[params.columnMeta.id] ?? '')
+  }
+
+  if (isEditing) {
+    const type = params.columnMeta.type
+    if (type === 'number' || type === 'decimal') {
+      return (
+        <input
+          className="w-full border rounded-md px-2 py-1 text-right"
+          autoFocus
+          inputMode="decimal"
+          value={draft as any}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commitEdit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') commitEdit()
+            if (e.key === 'Escape') cancelEdit()
+          }}
+        />
+      )
+    }
+    if (type === 'boolean') {
+      return (
+        <div className="flex items-center gap-2">
+          <input type="checkbox" checked={Boolean(draft)} onChange={(e) => { setDraft(e.target.checked); params.onUpdateCell(job.id, params.columnMeta.id, e.target.checked); setIsEditing(false) }} />
+        </div>
+      )
+    }
+    if (type === 'date') {
+      return (
+        <input
+          className="w-full border rounded-md px-2 py-1 font-mono text-xs"
+          autoFocus
+          type="text"
+          placeholder="YYYY-MM-DD"
+          value={draft as any}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commitEdit}
+          onKeyDown={(e) => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') cancelEdit() }}
+        />
+      )
+    }
+    // default text
+    return (
+      <textarea
+        className="w-full border rounded-md px-2 py-1 text-sm"
+        rows={2}
+        autoFocus
+        value={draft as any}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commitEdit}
+        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commitEdit() } if (e.key === 'Escape') cancelEdit() }}
+      />
+    )
+  }
+
   return (
-    <div className="w-full" data-column-id={params.column?.getColId()}>
+    <div className="w-full" data-column-id={params.column?.getColId()} onDoubleClick={startEdit}>
       {params.renderCellValue(params.columnMeta, job, { refreshRowHeight, mode: 'interactive' })}
     </div>
   )
@@ -112,7 +189,7 @@ function RowIndexRenderer(params: ICellRendererParams<GridRow>) {
 
 function ColumnHeaderRenderer({ columnMeta, onEditColumn, onDeleteColumn }: ColumnHeaderRendererParams) {
   return (
-    <div className="bb-ag-header-clickable flex w-full items-center justify-between gap-2">
+    <div className="bb-ag-header-clickable group flex w-full items-center justify-between gap-2">
       <button
         type="button"
         onClick={(event) => {
@@ -132,7 +209,7 @@ function ColumnHeaderRenderer({ columnMeta, onEditColumn, onDeleteColumn }: Colu
           event.stopPropagation()
           onDeleteColumn(columnMeta.id)
         }}
-        className="shrink-0 rounded-full p-1.5 text-slate-400 transition-colors hover:bg-red-100 hover:text-red-600 focus:outline-none focus:ring-1 focus:ring-red-300"
+        className="shrink-0 rounded-full p-1.5 text-slate-400 opacity-0 pointer-events-none transition-all hover:bg-red-100 hover:text-red-600 focus:outline-none focus:ring-1 focus:ring-red-300 group-hover:opacity-100 group-hover:pointer-events-auto focus:opacity-100"
         aria-label={`Delete column ${columnMeta.name}`}
       >
         <Trash2 className="h-3.5 w-3.5" />
@@ -146,12 +223,16 @@ export function AgGridSheet({
   jobs,
   selectedRowId,
   onSelectRow,
+  onAddColumn,
   renderCellValue,
   getStatusIcon,
   renderStatusPill,
   onEditColumn,
   onDeleteColumn,
+  onUpdateCell,
 }: AgGridSheetProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [pinPlusRight, setPinPlusRight] = useState(false)
   const rowData = useMemo<GridRow[]>(() => {
     return jobs.map((job) => {
       const valueMap: Record<string, unknown> = {}
@@ -211,8 +292,8 @@ export function AgGridSheet({
         headerName: column.name,
         colId: column.id,
         field: column.id,
-        minWidth: 180,
-        flex: 1,
+        width: DEFAULT_DATA_COL_WIDTH,
+        minWidth: 140,
         resizable: true,
         sortable: false,
         autoHeight: true,
@@ -230,12 +311,41 @@ export function AgGridSheet({
         cellRendererParams: {
           columnMeta: column,
           renderCellValue,
+          onUpdateCell,
         },
       })
     }
 
+    defs.push({
+      headerName: "",
+      colId: "bb-add-field",
+      width: 56,
+      minWidth: 48,
+      maxWidth: 64,
+      pinned: pinPlusRight ? "right" : undefined,
+      resizable: false,
+      suppressMovable: true,
+      sortable: false,
+      headerComponent: () => {
+        return (
+          <div className="flex w-full items-center justify-center">
+            <button
+              type="button"
+              title="Add Field"
+              onClick={(e) => { e.preventDefault(); onAddColumn() }}
+              className="p-2 rounded-md hover:bg-gray-200 text-gray-500 hover:text-gray-700 bg-gray-100"
+              aria-label="Add Field"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </button>
+          </div>
+        )
+      },
+      cellRenderer: () => null,
+    })
+
     return defs
-  }, [columns, getStatusIcon, renderStatusPill, renderCellValue, onEditColumn, onDeleteColumn])
+  }, [columns, getStatusIcon, renderStatusPill, renderCellValue, onEditColumn, onDeleteColumn, onAddColumn, pinPlusRight])
 
   const defaultColDef = useMemo<ColDef<GridRow>>(
     () => ({
@@ -266,8 +376,24 @@ export function AgGridSheet({
     [onSelectRow],
   )
 
+  // When grid width is smaller than total columns width, pin plus to right
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => {
+      const containerWidth = el.clientWidth
+      const pinnedLeftWidth = 60 + 220
+      const dataColsWidth = Math.max(columns.length, 1) * DEFAULT_DATA_COL_WIDTH
+      const plusColWidth = 56
+      const totalNeeded = pinnedLeftWidth + dataColsWidth + plusColWidth
+      setPinPlusRight(totalNeeded > containerWidth)
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [columns.length])
+
   return (
-    <div className={cn("ag-theme-quartz ag-theme-bytebeam h-full w-full")}> 
+    <div ref={containerRef} className={cn("ag-theme-quartz ag-theme-bytebeam h-full w-full")}> 
       <AgGridReact<GridRow>
         rowData={rowData}
         columnDefs={columnDefs}
