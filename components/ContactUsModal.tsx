@@ -134,18 +134,18 @@ export function ContactUsModal({
             <DialogDescription id="contact-description" className="text-xs md:text-sm">
               Send feedback, ask a question, or say hello. No sales pitch—promise.
             </DialogDescription>
-          </div>
-          <div className="flex flex-col items-end gap-2">
-            <Button asChild size="sm">
-              <a
-                href="https://www.linkedin.com/in/talalbazerbachi/"
-                target="_blank"
-                rel="noreferrer"
-                onClick={() => track("founder_chat_clicked_from_header")}
-              >
-                Chat with founder
-              </a>
-            </Button>
+            <div className="mt-3">
+              <Button asChild size="sm">
+                <a
+                  href="https://www.linkedin.com/in/talalbazerbachi/"
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() => track("founder_chat_clicked_from_header")}
+                >
+                  Chat with founder
+                </a>
+              </Button>
+            </div>
           </div>
         </div>
         {!sent ? (
