@@ -35,7 +35,7 @@ interface AgGridSheetProps {
   renderCellValue: (
     column: FlatLeaf,
     job: ExtractionJob,
-    opts?: { refreshRowHeight?: () => void },
+    opts?: { refreshRowHeight?: () => void; mode?: 'interactive' | 'summary' | 'detail'; isRowExpanded?: boolean },
   ) => ReactNode
   getStatusIcon: (status: ExtractionJob["status"]) => ReactNode
   renderStatusPill: (
@@ -45,6 +45,8 @@ interface AgGridSheetProps {
   onEditColumn: (column: FlatLeaf) => void
   onDeleteColumn: (columnId: string) => void
   onUpdateCell: (jobId: string, columnId: string, value: unknown) => void
+  expandedRowIds?: string[]
+  onToggleRowExpansion?: (jobId: string) => void
 }
 
 const DEFAULT_DATA_COL_WIDTH = 220
@@ -55,6 +57,10 @@ interface FileCellRendererParams extends ICellRendererParams<GridRow> {
     status: ExtractionJob["status"],
     opts?: { size?: 'default' | 'compact' },
   ) => ReactNode
+  isRowExpanded?: boolean
+  onToggleRowExpansion?: (jobId: string) => void
+  hasStructuredData?: boolean
+  refreshRowHeights?: () => void
 }
 
 interface ValueCellRendererParams extends ICellRendererParams<GridRow> {
@@ -62,9 +68,10 @@ interface ValueCellRendererParams extends ICellRendererParams<GridRow> {
   renderCellValue: (
     column: FlatLeaf,
     job: ExtractionJob,
-    opts?: { refreshRowHeight?: () => void; mode?: 'interactive' | 'summary' | 'detail' },
+    opts?: { refreshRowHeight?: () => void; mode?: 'interactive' | 'summary' | 'detail'; isRowExpanded?: boolean },
   ) => ReactNode
   onUpdateCell: (jobId: string, columnId: string, value: unknown) => void
+  isRowExpanded?: boolean
 }
 
 interface ColumnHeaderRendererParams extends IHeaderParams<GridRow> {
@@ -80,6 +87,30 @@ function FileCellRenderer(params: FileCellRendererParams) {
   return (
     <div className="flex items-center gap-2.5">
       <div className="flex items-center gap-2">
+        {params.hasStructuredData && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              params.onToggleRowExpansion?.(job.id)
+              // Trigger AG Grid to recalculate row heights after expansion
+              queueMicrotask(() => params.refreshRowHeights?.())
+            }}
+            className="flex items-center justify-center w-5 h-5 rounded text-slate-400 hover:text-slate-600 transition-colors"
+            aria-label={params.isRowExpanded ? "Collapse row" : "Expand row"}
+          >
+            <svg
+              className={`w-4 h-4 transition-transform duration-200 ${
+                params.isRowExpanded ? 'rotate-90' : ''
+              }`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        )}
         {params.getStatusIcon(job.status)}
         {params.renderStatusPill(job.status, { size: 'compact' })}
       </div>
@@ -118,6 +149,9 @@ function ValueCellRenderer(params: ValueCellRendererParams) {
     setIsEditing(false)
     setDraft(job.results?.[params.columnMeta.id] ?? '')
   }
+
+  // Determine render mode based on row expansion state
+  const renderMode = params.isRowExpanded ? 'detail' : 'summary'
 
   if (isEditing) {
     const type = params.columnMeta.type
@@ -179,7 +213,11 @@ function ValueCellRenderer(params: ValueCellRendererParams) {
       data-cell-type={params.columnMeta.type}
       onDoubleClick={startEdit}
     >
-      {params.renderCellValue(params.columnMeta, job, { refreshRowHeight, mode: 'interactive' })}
+      {params.renderCellValue(params.columnMeta, job, { 
+        refreshRowHeight, 
+        mode: renderMode, 
+        isRowExpanded: params.isRowExpanded 
+      })}
     </div>
   )
 }
@@ -235,9 +273,20 @@ export function AgGridSheet({
   onEditColumn,
   onDeleteColumn,
   onUpdateCell,
+  expandedRowIds = [],
+  onToggleRowExpansion,
 }: AgGridSheetProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const gridRef = useRef<AgGridReact<GridRow>>(null)
   const [pinPlusRight, setPinPlusRight] = useState(false)
+  
+  // Helper function to check if a job has structured data
+  const hasStructuredData = useCallback((job: ExtractionJob) => {
+    return columns.some(col => {
+      const value = job.results?.[col.id]
+      return (col.type === 'object' || col.type === 'list' || col.type === 'table') && value
+    })
+  }, [columns])
   const rowData = useMemo<GridRow[]>(() => {
     return jobs.map((job) => {
       const valueMap: Record<string, unknown> = {}
@@ -282,10 +331,14 @@ export function AgGridSheet({
         suppressHeaderMenuButton: true,
         sortable: false,
         cellRenderer: FileCellRenderer,
-        cellRendererParams: {
+        cellRendererParams: (params: any) => ({
           getStatusIcon,
           renderStatusPill,
-        },
+          isRowExpanded: expandedRowIds.includes(params.data?.__job?.id || ''),
+          onToggleRowExpansion,
+          hasStructuredData: params.data?.__job ? hasStructuredData(params.data.__job) : false,
+          refreshRowHeights: () => gridRef.current?.api?.resetRowHeights(),
+        }),
         cellClass: "ag-cell-wrap-text",
         autoHeight: true,
         wrapText: true,
@@ -313,11 +366,12 @@ export function AgGridSheet({
           onDeleteColumn,
         },
         cellRenderer: ValueCellRenderer,
-        cellRendererParams: {
+        cellRendererParams: (params: any) => ({
           columnMeta: column,
           renderCellValue,
           onUpdateCell,
-        },
+          isRowExpanded: expandedRowIds.includes(params.data?.__job?.id || ''),
+        }),
         cellClass: (params) => {
           const classes = ["ag-cell-wrap-text"]
           // Add data attribute via CSS class for structured data types
@@ -358,7 +412,7 @@ export function AgGridSheet({
     })
 
     return defs
-  }, [columns, getStatusIcon, renderStatusPill, renderCellValue, onEditColumn, onDeleteColumn, onAddColumn, pinPlusRight])
+  }, [columns, getStatusIcon, renderStatusPill, renderCellValue, onEditColumn, onDeleteColumn, onAddColumn, pinPlusRight, expandedRowIds, onToggleRowExpansion, hasStructuredData])
 
   const defaultColDef = useMemo<ColDef<GridRow>>(
     () => ({
@@ -408,8 +462,9 @@ export function AgGridSheet({
   }, [columns.length])
 
   return (
-    <div ref={containerRef} className={cn("ag-theme-quartz ag-theme-bytebeam h-full w-full")}> 
+    <div ref={containerRef} className={cn("ag-theme-quartz ag-theme-bytebeam h-full w-full")}>
       <AgGridReact<GridRow>
+        ref={gridRef}
         rowData={rowData}
         columnDefs={columnDefs}
         defaultColDef={defaultColDef}
