@@ -1,0 +1,62 @@
+/* Structured Data Component Styles */
+.structured-data-container {
+  /* Ensure proper spacing and visual hierarchy */
+  font-family: inherit;
+}
+
+.structured-data-container .grid {
+  display: grid;
+}
+
+.structured-data-container table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.structured-data-container table th,
+.structured-data-container table td {
+  border: 1px solid #e2e8f0;
+  padding: 0.25rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.structured-data-container table th {
+  background-color: #f8fafc;
+  font-weight: 600;
+}
+
+.structured-data-container table tbody tr:nth-child(even) {
+  background-color: #f9fafb;
+}
+
+/* Resizable structured data containers */
+.structured-data-container {
+  resize: both;
+  overflow: auto;
+  min-width: 200px;
+  min-height: 100px;
+}
+
+.structured-data-container .overflow-auto {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.structured-data-container .overflow-auto::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.structured-data-container .overflow-auto::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.structured-data-container .overflow-auto::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.structured-data-container .overflow-auto::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

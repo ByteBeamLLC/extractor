@@ -13,6 +13,7 @@ import { Trash2 } from "lucide-react"
 import "ag-grid-community/styles/ag-grid.css"
 import "ag-grid-community/styles/ag-theme-quartz.css"
 import "@/styles/ag-grid-overrides.css"
+import "@/styles/structured-data.css"
 
 if (!(ModuleRegistry as any).__bbAllCommunityRegistered) {
   ModuleRegistry.registerModules([AllCommunityModule])
@@ -74,6 +75,125 @@ interface ValueCellRendererParams extends ICellRendererParams<GridRow> {
   isRowExpanded?: boolean
 }
 
+// Sub-grid component for rendering structured data types
+function StructuredDataRenderer({ 
+  data, 
+  type, 
+  field,
+  isExpanded = false
+}: { 
+  data: any
+  type: 'object' | 'list' | 'table'
+  field: FlatLeaf
+  isExpanded?: boolean
+}) {
+  if (!isExpanded) {
+    // Show summary view
+    if (!data) return <span className="text-muted-foreground italic">No data</span>
+    
+    if (type === 'object') {
+      // Show only fields marked with displayInSummary
+      const summaryFields = (field as any).children?.filter((child: any) => child.displayInSummary) || []
+      const summaryText = summaryFields.map((f: any) => `${f.name}: ${data[f.id] || '—'}`).join(', ')
+      return <span className="text-sm text-slate-600">{summaryText || 'Object'}</span>
+    }
+    
+    if (type === 'list') {
+      const count = Array.isArray(data) ? data.length : 0
+      return <span className="text-sm text-slate-600">{count} items</span>
+    }
+    
+    if (type === 'table') {
+      const count = Array.isArray(data) ? data.length : 0
+      const columns = (field as any).columns?.length || 0
+      return <span className="text-sm text-slate-600">{count} rows, {columns} columns</span>
+    }
+  }
+
+  // Show detailed view with sub-grids
+  if (type === 'object' && data) {
+    const children = (field as any).children || []
+    return (
+      <div className="structured-data-container bg-slate-50 rounded-md p-3 mt-2">
+        <div className="text-xs font-semibold text-slate-500 mb-2">Object Details</div>
+        <div className="grid gap-1">
+          {children.map((child: any) => (
+            <div key={child.id} className="grid grid-cols-3 gap-2 py-1 border-b border-slate-200 last:border-b-0">
+              <div className="text-xs font-medium text-slate-600 truncate">{child.name}</div>
+              <div className="text-xs text-slate-500 truncate">{child.type}</div>
+              <div className="text-xs text-slate-800 truncate">
+                {data[child.id] !== undefined ? String(data[child.id]) : '—'}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (type === 'list' && Array.isArray(data)) {
+    return (
+      <div className="structured-data-container bg-slate-50 rounded-md p-3 mt-2">
+        <div className="text-xs font-semibold text-slate-500 mb-2">List Entries ({data.length})</div>
+        <div className="grid gap-1 max-h-40 overflow-y-auto">
+          {data.map((item, index) => (
+            <div key={index} className="grid grid-cols-2 gap-2 py-1 border-b border-slate-200 last:border-b-0">
+              <div className="text-xs font-medium text-slate-600">Item {index + 1}</div>
+              <div className="text-xs text-slate-800 truncate">
+                {typeof item === 'object' ? JSON.stringify(item) : String(item)}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (type === 'table' && Array.isArray(data)) {
+    const columns = (field as any).columns || []
+    return (
+      <div className="structured-data-container bg-slate-50 rounded-md p-3 mt-2">
+        <div className="text-xs font-semibold text-slate-500 mb-2">
+          Table Data ({data.length} rows × {columns.length} columns)
+        </div>
+        <div className="overflow-auto max-h-48">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-slate-300">
+                {columns.map((col: any) => (
+                  <th key={col.id} className="text-left p-1 font-medium text-slate-600 truncate">
+                    {col.name}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {data.slice(0, 10).map((row, rowIndex) => (
+                <tr key={rowIndex} className="border-b border-slate-200">
+                  {columns.map((col: any) => (
+                    <td key={col.id} className="p-1 text-slate-800 truncate">
+                      {row[col.id] !== undefined ? String(row[col.id]) : '—'}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+              {data.length > 10 && (
+                <tr>
+                  <td colSpan={columns.length} className="p-1 text-center text-slate-500 italic">
+                    ... and {data.length - 10} more rows
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+  }
+
+  return <span className="text-muted-foreground italic">No data</span>
+}
+
 interface ColumnHeaderRendererParams extends IHeaderParams<GridRow> {
   columnMeta: FlatLeaf
   onEditColumn: (column: FlatLeaf) => void
@@ -126,9 +246,8 @@ function ValueCellRenderer(params: ValueCellRendererParams) {
   if (!job) return <span className="text-muted-foreground">—</span>
 
   const refreshRowHeight = () => {
-    queueMicrotask(() => {
-      params.api.resetRowHeights()
-    })
+    // Since we use autoHeight: true, AG Grid will automatically adjust row heights
+    // when content changes, so no manual intervention is needed
   }
 
   const [isEditing, setIsEditing] = useState(false)
@@ -203,6 +322,29 @@ function ValueCellRenderer(params: ValueCellRendererParams) {
         onBlur={commitEdit}
         onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commitEdit() } if (e.key === 'Escape') cancelEdit() }}
       />
+    )
+  }
+
+  // Check if this is a structured data type that should use the custom renderer
+  const isStructuredType = params.columnMeta.type === 'object' || 
+                           params.columnMeta.type === 'list' || 
+                           params.columnMeta.type === 'table'
+
+  if (isStructuredType) {
+    const data = job.results?.[params.columnMeta.id]
+    return (
+      <div 
+        className="w-full" 
+        data-column-id={params.column?.getColId()} 
+        data-cell-type={params.columnMeta.type}
+      >
+        <StructuredDataRenderer 
+          data={data}
+          type={params.columnMeta.type as 'object' | 'list' | 'table'}
+          field={params.columnMeta}
+          isExpanded={params.isRowExpanded}
+        />
+      </div>
     )
   }
 
@@ -337,7 +479,10 @@ export function AgGridSheet({
           isRowExpanded: expandedRowIds.includes(params.data?.__job?.id || ''),
           onToggleRowExpansion,
           hasStructuredData: params.data?.__job ? hasStructuredData(params.data.__job) : false,
-          refreshRowHeights: () => gridRef.current?.api?.resetRowHeights(),
+          refreshRowHeights: () => {
+            // Since we use autoHeight: true, we don't need to manually reset heights
+            // AG Grid will automatically adjust row heights when content changes
+          },
         }),
         cellClass: "ag-cell-wrap-text",
         autoHeight: true,
