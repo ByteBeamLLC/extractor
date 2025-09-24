@@ -2934,7 +2934,7 @@ export function DataExtractionPlatform() {
             }
           }}
         >
-          <DialogContent className="max-w-xl w-full p-0 overflow-hidden">
+          <DialogContent className="max-w-xl w-full max-h-[90vh] p-0 overflow-hidden flex flex-col">
             <DialogHeader className="border-b border-slate-200/70 px-6 py-5">
               <DialogTitle className="text-xl font-semibold">
                 {columnDialogMode === 'edit' ? 'Edit Field' : 'Add New Field'}
@@ -2945,7 +2945,7 @@ export function DataExtractionPlatform() {
             </DialogHeader>
 
             {draftColumn && (
-              <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5">
+              <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5 min-h-0">
                 <section className="space-y-3">
                   <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Field Source</Label>
                   <div className="grid gap-3 sm:grid-cols-2">

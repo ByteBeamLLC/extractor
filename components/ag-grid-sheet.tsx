@@ -96,7 +96,7 @@ function ValueCellRenderer(params: ValueCellRendererParams) {
 
   const refreshRowHeight = () => {
     queueMicrotask(() => {
-      params.api.resetRowHeights({ rowNodes: [params.node] })
+      params.api.resetRowHeights()
     })
   }
 
