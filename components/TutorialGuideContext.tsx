@@ -144,8 +144,8 @@ function TutorialGuideModal({
             <div className="space-y-1">
               <p className="font-medium leading-none">3. Review & export</p>
               <p className="text-sm text-muted-foreground">
-                Tweak values or switch to <span className="font-medium">Transform</span> for calculations,
-                classifications, or AI prompts. Export as CSV.
+                Tweak values or switch to <span className="font-medium">Transform</span> for Gemini prompts with
+                built-in calculator support or simple classifications. Export as CSV.
               </p>
             </div>
           </div>

@@ -1,3 +1,7 @@
+import { ensureServerOnly } from "../ensureServerOnly"
+
+ensureServerOnly("lib/server/email/sendEmail")
+
 type Attachment = {
   filename: string
   content: string // base64
@@ -59,4 +63,3 @@ export function escapeHtml(input: string) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
 }
-

@@ -6,7 +6,7 @@ import { ModuleRegistry, AllCommunityModule } from "ag-grid-community"
 import type { ColDef, GetRowIdParams, ICellRendererParams, IHeaderParams, RowClassRules } from "ag-grid-community"
 import { AgGridReact } from "ag-grid-react"
 
-import type { ExtractionJob, FlatLeaf } from "@/lib/schema"
+import type { ExtractionJob, FlatLeaf } from "@/lib/schema/types"
 import { cn } from "@/lib/utils"
 import { Trash2 } from "lucide-react"
 
@@ -26,7 +26,7 @@ type GridRow = {
   [key: string]: unknown
 }
 
-interface AgGridSheetProps {
+interface JobsGridProps {
   columns: FlatLeaf[]
   jobs: ExtractionJob[]
   selectedRowId: string | null
@@ -218,7 +218,7 @@ function ColumnHeaderRenderer({ columnMeta, onEditColumn, onDeleteColumn }: Colu
   )
 }
 
-export function AgGridSheet({
+export function JobsGrid({
   columns,
   jobs,
   selectedRowId,
@@ -230,7 +230,7 @@ export function AgGridSheet({
   onEditColumn,
   onDeleteColumn,
   onUpdateCell,
-}: AgGridSheetProps) {
+}: JobsGridProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [pinPlusRight, setPinPlusRight] = useState(false)
   const rowData = useMemo<GridRow[]>(() => {

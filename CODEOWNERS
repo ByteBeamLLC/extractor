@@ -1,0 +1,13 @@
+# Default owners
+* @talalbazerbachi
+
+# Feature domains
+/features/platform/ @talalbazerbachi
+/features/agents/fnb/ @talalbazerbachi
+/features/agents/pharma/ @talalbazerbachi
+
+# Shared libraries
+/lib/client/ @talalbazerbachi
+/lib/server/ @talalbazerbachi
+/lib/schema/ @talalbazerbachi
+

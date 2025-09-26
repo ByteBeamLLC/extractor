@@ -8,8 +8,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AutomationNudge } from "./AutomationNudge"
-import { sendContact, type ContactPayload } from "@/lib/contact/sendContact"
-import { track } from "@/lib/analytics"
+import { sendContact, type ContactPayload } from "@/lib/client/contact/sendContact"
+import { track } from "@/lib/client/analytics"
 
 type Reason = "question" | "issue" | "feedback" | "feature"
 
@@ -40,7 +40,7 @@ export function ContactUsModal({
   // initial focus handled via autoFocus on Reason select
 
   // Use build-inlined public env
-  const { BOOKING_URL } = require("@/lib/publicEnv") as { BOOKING_URL: string }
+  const { BOOKING_URL } = require("@/lib/client/publicEnv") as { BOOKING_URL: string }
 
   useEffect(() => {
     if (open) track("contact_opened", { source })

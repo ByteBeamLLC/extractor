@@ -1,6 +1,52 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { google } from "@ai-sdk/google"
-import { generateText } from "ai"
+import { generateText, tool } from "ai"
+import { z } from "zod"
+
+const BASE_SYSTEM_PROMPT = [
+  "You are Bytebeam's transformation assistant.",
+  "Follow the user's task precisely and base your response only on the provided inputs.",
+  "When arithmetic is required, call the calculator tool with a concise expression using the numeric values you know.",
+  "Return only the transformed value without extra commentary unless the user explicitly asks for a format like JSON.",
+].join(" ")
+
+const calculatorTool = tool({
+  description: "Evaluate arithmetic expressions with +, -, *, /, and parentheses to produce an accurate numeric result.",
+  parameters: z.object({
+    expression: z
+      .string()
+      .max(200, "Expression too long")
+      .describe("Math expression to evaluate. Example: '(subtotal + tax) * 1.15'"),
+  }),
+  execute: async ({ expression }) => {
+    const result = evaluateMathExpression(expression)
+    return result.toString()
+  },
+})
+
+function evaluateMathExpression(rawExpression: string): number {
+  if (typeof rawExpression !== "string") {
+    throw new Error("Expression must be a string")
+  }
+  const normalized = rawExpression.replace(/,/g, "")
+  const sanitized = normalized.replace(/[^0-9+\-*/(). ]/g, "")
+  if (!sanitized.trim()) {
+    throw new Error("Expression is empty")
+  }
+
+  try {
+    const fn = new Function(`"use strict"; return (${sanitized})`)
+    const value = fn()
+    if (typeof value !== "number" || Number.isNaN(value) || !Number.isFinite(value)) {
+      throw new Error("Expression did not produce a finite number")
+    }
+    return value
+  } catch (error) {
+    throw new Error(
+      error instanceof Error ? `Failed to evaluate expression: ${error.message}` : "Failed to evaluate expression",
+    )
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,7 +64,11 @@ export async function POST(request: NextRequest) {
       const { text } = await generateText({
         model: google("gemini-2.5-pro"),
         temperature: 0.2,
-        prompt: `You are a transformation assistant. Task: ${prompt}\n\nInput:\n${inputText}\n\nReturn only the transformed value with no extra commentary.`,
+        system: BASE_SYSTEM_PROMPT,
+        prompt: `Task: ${prompt}\n\nInput:\n${inputText}\n\nReturn only the transformed value.`,
+        tools: {
+          calculator: calculatorTool,
+        },
       })
       return NextResponse.json({ success: true, result: text })
     }
@@ -42,15 +92,19 @@ export async function POST(request: NextRequest) {
       const { text } = await generateText({
         model: google("gemini-2.5-pro"),
         temperature: 0.2,
+        system: BASE_SYSTEM_PROMPT,
         messages: [
           {
             role: "user",
             content: [
-              { type: "text", text: `You are a transformation assistant. Task: ${prompt}.\nReturn only the transformed value.` },
+              { type: "text", text: `Task: ${prompt}.\nReturn only the transformed value.` },
               { type: "image", image: `data:${mimeType};base64,${base64}` },
             ],
           },
         ],
+        tools: {
+          calculator: calculatorTool,
+        },
       })
       return NextResponse.json({ success: true, result: text })
     }
@@ -60,7 +114,11 @@ export async function POST(request: NextRequest) {
     const { text } = await generateText({
       model: google("gemini-2.5-pro"),
       temperature: 0.2,
-      prompt: `You are a transformation assistant. Task: ${prompt}\n\nDocument:\n${docText}\n\nReturn only the transformed value with no extra commentary.`,
+      system: BASE_SYSTEM_PROMPT,
+      prompt: `Task: ${prompt}\n\nDocument:\n${docText}\n\nReturn only the transformed value.`,
+      tools: {
+        calculator: calculatorTool,
+      },
     })
     return NextResponse.json({ success: true, result: text })
   } catch (error) {
