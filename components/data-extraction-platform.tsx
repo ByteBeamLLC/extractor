@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Checkbox } from "@/components/ui/checkbox"
 // import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SetupBanner } from "./setup-banner"
 import { AgGridSheet } from "./ag-grid-sheet"
@@ -68,6 +69,8 @@ import {
   Maximize2,
   Eye,
   Layers,
+  Edit,
+  Save,
 } from "lucide-react"
  
 
@@ -2915,6 +2918,10 @@ export function DataExtractionPlatform() {
                   const matchedDrugUrl = pharmaData?.matchedDrugUrl
                   const searchUrl = pharmaData?.searchUrl
                   
+                  // State for editing detailed info sections
+                  const [editingSection, setEditingSection] = useState<string | null>(null)
+                  const [editedValues, setEditedValues] = useState<Record<string, string>>({})
+                  
                   const KV = (label: string, value: any) => (
                     value != null && value !== '' && value !== undefined ? (
                       <div className="flex justify-between gap-3 text-sm">
@@ -3006,16 +3013,99 @@ export function DataExtractionPlatform() {
                         <Card>
                           <CardContent className="p-4 space-y-4">
                             <h3 className="font-semibold text-lg">Detailed Drug Information</h3>
-                            <div className="space-y-4">
-                              {Section('Description', detailedInfo?.description)}
-                              {Section('Composition', detailedInfo?.composition)}
-                              {Section('How To Use', detailedInfo?.howToUse)}
-                              {Section('Indication', detailedInfo?.indication)}
-                              {Section('Possible Side Effects', detailedInfo?.possibleSideEffects)}
-                              {Section('Properties', detailedInfo?.properties)}
-                              {Section('Storage', detailedInfo?.storage)}
-                              {Section('Review', detailedInfo?.review)}
-                            </div>
+                            <Accordion type="multiple" className="w-full">
+                              {[
+                                { key: 'description', label: 'Description', value: detailedInfo?.description },
+                                { key: 'composition', label: 'Composition', value: detailedInfo?.composition },
+                                { key: 'howToUse', label: 'How To Use', value: detailedInfo?.howToUse },
+                                { key: 'indication', label: 'Indication', value: detailedInfo?.indication },
+                                { key: 'possibleSideEffects', label: 'Possible Side Effects', value: detailedInfo?.possibleSideEffects },
+                                { key: 'properties', label: 'Properties', value: detailedInfo?.properties },
+                                { key: 'storage', label: 'Storage', value: detailedInfo?.storage },
+                                { key: 'review', label: 'Review', value: detailedInfo?.review },
+                              ].map(section => {
+                                if (!section.value || section.value === null) return null
+                                
+                                const isEditing = editingSection === section.key
+                                const currentValue = editedValues[section.key] ?? section.value
+                                
+                                const handleSave = () => {
+                                  // Update the job results with the edited value
+                                  const updatedJobs = jobs.map(j => {
+                                    if (j.id === job.id && j.results) {
+                                      return {
+                                        ...j,
+                                        results: {
+                                          ...j.results,
+                                          pharma_data: {
+                                            ...j.results.pharma_data,
+                                            detailedInfo: {
+                                              ...j.results.pharma_data?.detailedInfo,
+                                              [section.key]: currentValue
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                    return j
+                                  })
+                                  setJobs(updatedJobs)
+                                  setEditingSection(null)
+                                }
+                                
+                                const handleEdit = () => {
+                                  setEditedValues({ ...editedValues, [section.key]: section.value })
+                                  setEditingSection(section.key)
+                                }
+                                
+                                const handleCancel = () => {
+                                  setEditingSection(null)
+                                  const newValues = { ...editedValues }
+                                  delete newValues[section.key]
+                                  setEditedValues(newValues)
+                                }
+                                
+                                return (
+                                  <AccordionItem key={section.key} value={section.key}>
+                                    <AccordionTrigger className="text-left hover:no-underline">
+                                      <div className="flex items-center justify-between w-full pr-4">
+                                        <span className="font-semibold">{section.label}</span>
+                                      </div>
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                      <div className="space-y-2 pt-2">
+                                        {isEditing ? (
+                                          <div className="space-y-2">
+                                            <Textarea
+                                              value={currentValue}
+                                              onChange={(e) => setEditedValues({ ...editedValues, [section.key]: e.target.value })}
+                                              className="min-h-[200px] font-normal"
+                                            />
+                                            <div className="flex gap-2">
+                                              <Button size="sm" onClick={handleSave}>
+                                                <Save className="h-3 w-3 mr-1" />
+                                                Save
+                                              </Button>
+                                              <Button size="sm" variant="outline" onClick={handleCancel}>
+                                                Cancel
+                                              </Button>
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <div className="space-y-2">
+                                            <div className="text-sm whitespace-pre-wrap">{currentValue}</div>
+                                            <Button size="sm" variant="outline" onClick={handleEdit}>
+                                              <Edit className="h-3 w-3 mr-1" />
+                                              Edit
+                                            </Button>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </AccordionContent>
+                                  </AccordionItem>
+                                )
+                              })}
+                            </Accordion>
                           </CardContent>
                         </Card>
                       )}
