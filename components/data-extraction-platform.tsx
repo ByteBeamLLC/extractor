@@ -384,6 +384,8 @@ export function DataExtractionPlatform() {
   const [selectedColumnIds, setSelectedColumnIds] = useState<Set<string>>(new Set())
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false)
   const [groupName, setGroupName] = useState<string>('')
+  const [contextMenuColumn, setContextMenuColumn] = useState<string | null>(null)
+  const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number; y: number } | null>(null)
   // F&B translation collapsible state per job
   const [fnbCollapse, setFnbCollapse] = useState<Record<string, { en: boolean; ar: boolean }>>({})
   const [expandedCells, setExpandedCells] = useState<Record<string, boolean>>({})
@@ -647,6 +649,28 @@ export function DataExtractionPlatform() {
     if (selectedColumnIds.size < 2) return
     setGroupName('')
     setIsGroupDialogOpen(true)
+  }
+
+  const handleColumnRightClick = (columnId: string, event: React.MouseEvent) => {
+    event.preventDefault()
+    setContextMenuColumn(columnId)
+    setContextMenuPosition({ x: event.clientX, y: event.clientY })
+  }
+
+  const startGroupingFromContext = () => {
+    if (!contextMenuColumn) return
+    // Auto-select the right-clicked column
+    setSelectedColumnIds(new Set([contextMenuColumn]))
+    setGroupName('')
+    setIsGroupDialogOpen(true)
+    // Close context menu
+    setContextMenuColumn(null)
+    setContextMenuPosition(null)
+  }
+
+  const closeContextMenu = () => {
+    setContextMenuColumn(null)
+    setContextMenuPosition(null)
   }
 
   const createGroupedObject = () => {
@@ -3005,6 +3029,7 @@ export function DataExtractionPlatform() {
                     setIsColumnDialogOpen(true)
                   }}
                   onDeleteColumn={deleteColumn}
+                  onColumnRightClick={handleColumnRightClick}
                 />
               </div>
             )}
@@ -3343,50 +3368,109 @@ export function DataExtractionPlatform() {
         </DialogContent>
       </Dialog>
 
+      {/* Column Right-Click Context Menu */}
+      {contextMenuPosition && (
+        <>
+          <div 
+            className="fixed inset-0 z-40" 
+            onClick={closeContextMenu}
+          />
+          <div
+            className="fixed z-50 bg-white border border-gray-200 rounded-md shadow-lg py-1 min-w-[160px]"
+            style={{
+              left: `${contextMenuPosition.x}px`,
+              top: `${contextMenuPosition.y}px`,
+            }}
+          >
+            <button
+              onClick={startGroupingFromContext}
+              className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+            >
+              <Layers className="h-4 w-4" />
+              Create Object
+            </button>
+          </div>
+        </>
+      )}
+
       {/* Group Fields Dialog */}
-      <Dialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={isGroupDialogOpen} onOpenChange={(open) => {
+        setIsGroupDialogOpen(open)
+        if (!open) {
+          setSelectedColumnIds(new Set())
+          setGroupName('')
+        }
+      }}>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Group Fields into Object</DialogTitle>
             <DialogDescription>
-              Create a nested object from {selectedColumnIds.size} selected fields. Give it a descriptive name.
+              Select the fields to group together, then provide a name for the object.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="group-name">Object Name</Label>
-              <Input
-                id="group-name"
-                value={groupName}
-                onChange={(e) => setGroupName(e.target.value)}
-                placeholder="e.g., Invoice Details, Customer Info"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && groupName.trim()) {
-                    createGroupedObject()
-                  }
-                }}
-              />
+            <div className="rounded-md border p-3 max-h-60 overflow-y-auto">
+              <p className="text-sm font-medium mb-3">Select fields to group:</p>
+              <div className="space-y-2">
+                {fields.map((field) => (
+                  <label key={field.id} className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 p-2 rounded">
+                    <Checkbox
+                      checked={selectedColumnIds.has(field.id)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSelectedColumnIds(prev => new Set([...prev, field.id]))
+                        } else {
+                          setSelectedColumnIds(prev => {
+                            const newSet = new Set(prev)
+                            newSet.delete(field.id)
+                            return newSet
+                          })
+                        }
+                      }}
+                    />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium">{field.name}</div>
+                      {field.type !== 'string' && (
+                        <div className="text-xs text-muted-foreground capitalize">{field.type}</div>
+                      )}
+                    </div>
+                  </label>
+                ))}
+              </div>
             </div>
-            <div className="rounded-md bg-muted p-3">
-              <p className="text-sm font-medium mb-2">Selected fields:</p>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                {Array.from(selectedColumnIds).map((id) => {
-                  const field = fields.find(f => f.id === id)
-                  return field ? (
-                    <li key={id} className="flex items-center gap-2">
-                      <CheckCircle className="h-3 w-3 text-green-600" />
-                      {field.name}
-                    </li>
-                  ) : null
-                })}
-              </ul>
-            </div>
+            
+            {selectedColumnIds.size >= 2 && (
+              <div>
+                <Label htmlFor="group-name">Object Name *</Label>
+                <Input
+                  id="group-name"
+                  value={groupName}
+                  onChange={(e) => setGroupName(e.target.value)}
+                  placeholder="e.g., Invoice Details, Customer Info"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && groupName.trim() && selectedColumnIds.size >= 2) {
+                      createGroupedObject()
+                    }
+                  }}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {selectedColumnIds.size} fields selected
+                </p>
+              </div>
+            )}
+            
+            {selectedColumnIds.size < 2 && (
+              <p className="text-sm text-muted-foreground">
+                Select at least 2 fields to create a group.
+              </p>
+            )}
           </div>
           <div className="flex justify-end gap-2 mt-4">
             <Button
               variant="outline"
               onClick={() => {
                 setIsGroupDialogOpen(false)
+                setSelectedColumnIds(new Set())
                 setGroupName('')
               }}
             >
@@ -3394,9 +3478,9 @@ export function DataExtractionPlatform() {
             </Button>
             <Button
               onClick={createGroupedObject}
-              disabled={!groupName.trim()}
+              disabled={!groupName.trim() || selectedColumnIds.size < 2}
             >
-              Create Group
+              Create Object
             </Button>
           </div>
         </DialogContent>

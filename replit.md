@@ -16,7 +16,8 @@ Bytebeam Extractor is an AI-powered document and image data extraction platform 
 - AI-powered data extraction with customizable schemas
 - Interactive data grid for viewing extracted results
 - Contact form integration with Google Sheets
-- Transform builder for data manipulation
+- Transform builder for data manipulation with Gemini AI and calculator tool
+- Field grouping with right-click context menu for creating nested objects
 - Modern responsive UI with dark/light theme support
 
 ## Environment Setup
@@ -36,7 +37,14 @@ The application requires the following environment variables:
 - **Build**: `npm run build`
 - **Run**: `npm start`
 
-## Recent Changes (2025-09-24)
+## Recent Changes
+### 2025-09-30
+- Implemented right-click context menu on column headers for field grouping
+- Enhanced grouping dialog with checkbox-based field selection
+- Auto-selection of right-clicked column when initiating grouping workflow
+- Improved UX flow: right-click → "Create Object" → select fields → name object
+
+### 2025-09-24
 - Imported from GitHub and configured for Replit environment
 - Updated Next.js configuration for Replit proxy compatibility
 - Added cache control headers to prevent caching issues
@@ -44,6 +52,8 @@ The application requires the following environment variables:
 - Set up deployment configuration for production
 - Fixed field popup overflow issue in transformation builder modal
 - Updated AG Grid API calls for compatibility
+- Implemented Gemini AI transformation with automatic calculator tool integration
+- Fixed structured data handling for proper JSON context passing
 
 ## Project Status
 ✅ Project successfully imported and configured for Replit

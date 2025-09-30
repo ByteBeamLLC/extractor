@@ -45,6 +45,7 @@ interface AgGridSheetProps {
   onEditColumn: (column: FlatLeaf) => void
   onDeleteColumn: (columnId: string) => void
   onUpdateCell: (jobId: string, columnId: string, value: unknown) => void
+  onColumnRightClick?: (columnId: string, event: React.MouseEvent) => void
 }
 
 const DEFAULT_DATA_COL_WIDTH = 220
@@ -71,6 +72,7 @@ interface ColumnHeaderRendererParams extends IHeaderParams<GridRow> {
   columnMeta: FlatLeaf
   onEditColumn: (column: FlatLeaf) => void
   onDeleteColumn: (columnId: string) => void
+  onColumnRightClick?: (columnId: string, event: React.MouseEvent) => void
 }
 
 function FileCellRenderer(params: FileCellRendererParams) {
@@ -187,9 +189,17 @@ function RowIndexRenderer(params: ICellRendererParams<GridRow>) {
   )
 }
 
-function ColumnHeaderRenderer({ columnMeta, onEditColumn, onDeleteColumn }: ColumnHeaderRendererParams) {
+function ColumnHeaderRenderer({ columnMeta, onEditColumn, onDeleteColumn, onColumnRightClick }: ColumnHeaderRendererParams) {
   return (
-    <div className="bb-ag-header-clickable group flex w-full items-center justify-between gap-2">
+    <div 
+      className="bb-ag-header-clickable group flex w-full items-center justify-between gap-2"
+      onContextMenu={(e) => {
+        if (onColumnRightClick) {
+          e.preventDefault()
+          onColumnRightClick(columnMeta.id, e as any)
+        }
+      }}
+    >
       <button
         type="button"
         onClick={(event) => {
@@ -230,6 +240,7 @@ export function AgGridSheet({
   onEditColumn,
   onDeleteColumn,
   onUpdateCell,
+  onColumnRightClick,
 }: AgGridSheetProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [pinPlusRight, setPinPlusRight] = useState(false)
@@ -306,6 +317,7 @@ export function AgGridSheet({
           columnMeta: column,
           onEditColumn,
           onDeleteColumn,
+          onColumnRightClick,
         },
         cellRenderer: ValueCellRenderer,
         cellRendererParams: {
@@ -345,7 +357,7 @@ export function AgGridSheet({
     })
 
     return defs
-  }, [columns, getStatusIcon, renderStatusPill, renderCellValue, onEditColumn, onDeleteColumn, onAddColumn, pinPlusRight])
+  }, [columns, getStatusIcon, renderStatusPill, renderCellValue, onEditColumn, onDeleteColumn, onAddColumn, onUpdateCell, onColumnRightClick, pinPlusRight])
 
   const defaultColDef = useMemo<ColDef<GridRow>>(
     () => ({
