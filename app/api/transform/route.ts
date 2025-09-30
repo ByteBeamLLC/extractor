@@ -50,6 +50,8 @@ function evaluateExpression(expr: string): number {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
+    
+    console.log("[bytebeam] Transform API - Full request body:", JSON.stringify(body, null, 2))
 
     const inputSource: "document" | "column" = body.inputSource || "column"
     const prompt: string = String(body.prompt || "")
