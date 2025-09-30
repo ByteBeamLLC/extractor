@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { ComponentProps, ReactNode } from "react"
 import { ModuleRegistry, AllCommunityModule } from "ag-grid-community"
-import type { ColDef, GetRowIdParams, ICellRendererParams, IHeaderParams, RowClassRules } from "ag-grid-community"
+import type { ColDef, ColGroupDef, GetRowIdParams, ICellRendererParams, IHeaderParams, RowClassRules } from "ag-grid-community"
 import { AgGridReact } from "ag-grid-react"
 
-import type { ExtractionJob, FlatLeaf } from "@/lib/schema"
+import type { ExtractionJob, FlatLeaf, VisualGroup } from "@/lib/schema"
 import { cn } from "@/lib/utils"
 import { Trash2 } from "lucide-react"
 
@@ -46,6 +46,7 @@ interface AgGridSheetProps {
   onDeleteColumn: (columnId: string) => void
   onUpdateCell: (jobId: string, columnId: string, value: unknown) => void
   onColumnRightClick?: (columnId: string, event: React.MouseEvent) => void
+  visualGroups?: VisualGroup[]
 }
 
 const DEFAULT_DATA_COL_WIDTH = 220
@@ -241,6 +242,7 @@ export function AgGridSheet({
   onDeleteColumn,
   onUpdateCell,
   onColumnRightClick,
+  visualGroups = [],
 }: AgGridSheetProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [pinPlusRight, setPinPlusRight] = useState(false)
@@ -259,8 +261,8 @@ export function AgGridSheet({
     })
   }, [columns, jobs])
 
-  const columnDefs = useMemo<ColDef<GridRow>[]>(() => {
-    const defs: ColDef<GridRow>[] = [
+  const columnDefs = useMemo<(ColDef<GridRow> | ColGroupDef<GridRow>)[]>(() => {
+    const defs: (ColDef<GridRow> | ColGroupDef<GridRow>)[] = [
       {
         headerName: "#",
         colId: "row-index",
@@ -298,7 +300,62 @@ export function AgGridSheet({
       },
     ]
 
+    // Organize columns by visual groups
+    const groupedFieldIds = new Set<string>()
+    const fieldIdToGroup = new Map<string, VisualGroup>()
+    
+    for (const group of visualGroups) {
+      for (const fieldId of group.fieldIds) {
+        groupedFieldIds.add(fieldId)
+        fieldIdToGroup.set(fieldId, group)
+      }
+    }
+
+    // Add visual group columns with spanning headers
+    for (const group of visualGroups) {
+      const groupColumns = columns.filter(col => group.fieldIds.includes(col.id))
+      if (groupColumns.length === 0) continue
+
+      const children: ColDef<GridRow>[] = groupColumns.map(column => ({
+        headerName: column.name,
+        colId: column.id,
+        field: column.id,
+        width: DEFAULT_DATA_COL_WIDTH,
+        minWidth: 140,
+        resizable: true,
+        sortable: false,
+        autoHeight: true,
+        wrapText: true,
+        tooltipValueGetter: () =>
+          [column.description, column.extractionInstructions].filter(Boolean).join(" • "),
+        headerTooltip: [column.description, column.extractionInstructions].filter(Boolean).join(" • ") || undefined,
+        headerComponent: ColumnHeaderRenderer,
+        headerComponentParams: {
+          columnMeta: column,
+          onEditColumn,
+          onDeleteColumn,
+          onColumnRightClick,
+        },
+        cellRenderer: ValueCellRenderer,
+        cellRendererParams: {
+          columnMeta: column,
+          renderCellValue,
+          onUpdateCell,
+        },
+      }))
+
+      // Add group definition with spanning header
+      defs.push({
+        headerName: group.name,
+        headerClass: "ag-header-group-cell-with-group font-semibold text-slate-900 bg-slate-50",
+        children,
+      } as ColGroupDef<GridRow>)
+    }
+
+    // Add ungrouped columns
     for (const column of columns) {
+      if (groupedFieldIds.has(column.id)) continue
+
       defs.push({
         headerName: column.name,
         colId: column.id,
@@ -357,7 +414,7 @@ export function AgGridSheet({
     })
 
     return defs
-  }, [columns, getStatusIcon, renderStatusPill, renderCellValue, onEditColumn, onDeleteColumn, onAddColumn, onUpdateCell, onColumnRightClick, pinPlusRight])
+  }, [columns, visualGroups, getStatusIcon, renderStatusPill, renderCellValue, onEditColumn, onDeleteColumn, onAddColumn, onUpdateCell, onColumnRightClick, pinPlusRight])
 
   const defaultColDef = useMemo<ColDef<GridRow>>(
     () => ({
