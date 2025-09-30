@@ -106,9 +106,9 @@ export function TransformBuilder(props: {
               key={g.id}
               type="button"
               size="sm"
-              variant="secondary"
+              variant="outline"
               onClick={() => insertToken(`{${g.name}}`)}
-              className="border-purple-200 bg-purple-50 hover:bg-purple-100"
+              className="border-purple-300 bg-purple-100 text-purple-700 hover:bg-purple-200 hover:border-purple-400"
             >
               @{g.name}
             </Button>
