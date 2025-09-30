@@ -71,18 +71,32 @@ Return a JSON object with:
   "bestMatchId": "the drug ID of the best match, or null if no good match"
 }`
 
-const DRUG_DETAIL_EXTRACTION_PROMPT = `You are extracting pharmaceutical information from a drug detail page. Extract the following sections if present:
+const DRUG_DETAIL_EXTRACTION_PROMPT = `You are extracting pharmaceutical information from multiple tabs of a Saudi FDA drug detail page. The content includes:
+- Drug Data tab: Basic drug information
+- Patient Information Leaflet (PIL) in English: Detailed patient-facing information
+- Patient Information Leaflet (PIL) in Arabic: Arabic version of patient information
+- Summary of Product Characteristics (SPC): Technical product information
 
-- Description: Product description
-- Composition: Detailed composition/ingredients
-- How To Use: Usage instructions
-- Indication: Medical indications/uses
-- Possible Side Effects: Side effects and adverse reactions
-- Properties: Pharmaceutical properties
-- Storage: Storage instructions
-- Review: Any review or additional information
+Extract and consolidate the following information from ALL available tabs:
 
-Return a valid JSON object with these keys (use null if section not found):
+1. **Description**: A comprehensive product description (from any tab)
+2. **Composition**: Detailed composition, active ingredients, and excipients (look in SPC, PIL, or Drug Data)
+3. **How To Use**: Complete usage instructions, dosage, and administration (from PIL or SPC)
+4. **Indication**: Medical indications, therapeutic uses, what the drug is used for (from PIL or SPC)
+5. **Possible Side Effects**: All side effects, adverse reactions, contraindications (from PIL or SPC)
+6. **Properties**: Pharmaceutical properties, pharmacodynamics, pharmacokinetics (from SPC)
+7. **Storage**: Storage conditions and handling instructions (from PIL or SPC)
+8. **Review**: Any additional important information, warnings, precautions (from any tab)
+
+CRITICAL INSTRUCTIONS:
+- Extract comprehensive information by reading ALL tabs
+- If the same information appears in multiple languages, prefer the English version
+- Combine related information from different tabs into coherent sections
+- Be thorough - extract all relevant details for each section
+- If a section has no information across all tabs, use null
+- Format the text clearly and professionally
+
+Return a valid JSON object with these keys:
 {
   "description": "string or null",
   "composition": "string or null",
@@ -183,21 +197,66 @@ async function fetchDrugDetails(drugId: string) {
   const detailUrl = `https://sdi.sfda.gov.sa/home/Result?drugId=${drugId}`
   
   try {
-    const response = await fetch(detailUrl, {
+    // Fetch the main detail page (Drug Data tab)
+    const mainResponse = await fetch(detailUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
       },
     })
     
-    if (!response.ok) {
-      throw new Error(`Failed to fetch drug details: ${response.status}`)
+    if (!mainResponse.ok) {
+      throw new Error(`Failed to fetch drug details: ${mainResponse.status}`)
     }
     
-    const html = await response.text()
+    const mainHtml = await mainResponse.text()
+    
+    // Fetch Patient Information Leaflet (PIL) in English
+    const pilEnUrl = `https://sdi.sfda.gov.sa/home/ResultPilEn?drugId=${drugId}`
+    const pilEnResponse = await fetch(pilEnUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      },
+    }).catch(() => null)
+    const pilEnHtml = pilEnResponse?.ok ? await pilEnResponse.text() : ''
+    
+    // Fetch Patient Information Leaflet (PIL) in Arabic
+    const pilArUrl = `https://sdi.sfda.gov.sa/home/ResultPilAr?drugId=${drugId}`
+    const pilArResponse = await fetch(pilArUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      },
+    }).catch(() => null)
+    const pilArHtml = pilArResponse?.ok ? await pilArResponse.text() : ''
+    
+    // Fetch Summary of Product Characteristics (SPC)
+    const spcUrl = `https://sdi.sfda.gov.sa/home/ResultSpc?drugId=${drugId}`
+    const spcResponse = await fetch(spcUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      },
+    }).catch(() => null)
+    const spcHtml = spcResponse?.ok ? await spcResponse.text() : ''
+    
+    // Combine all tab content
+    const combinedContent = `
+=== DRUG DATA TAB ===
+${mainHtml}
+
+=== PATIENT INFORMATION LEAFLET (ENGLISH) ===
+${pilEnHtml}
+
+=== PATIENT INFORMATION LEAFLET (ARABIC) ===
+${pilArHtml}
+
+=== SUMMARY OF PRODUCT CHARACTERISTICS (SPC) ===
+${spcHtml}
+    `.trim()
+    
+    console.log(`[pharma] Fetched content from ${drugId}: Main=${mainHtml.length}b, PIL-EN=${pilEnHtml.length}b, PIL-AR=${pilArHtml.length}b, SPC=${spcHtml.length}b`)
     
     return {
       detailUrl,
-      html,
+      html: combinedContent,
     }
   } catch (error) {
     console.error('[pharma] Detail fetch error:', error)
@@ -206,12 +265,15 @@ async function fetchDrugDetails(drugId: string) {
 }
 
 async function extractDrugDetails(html: string) {
+  // Use more content since we have multiple tabs - Gemini 2.0 can handle large context
+  const contentToAnalyze = html.substring(0, 50000)
+  
   const { text } = await generateText({
     model: google("gemini-2.0-flash-exp"),
     messages: [
       {
         role: "user",
-        content: `${DRUG_DETAIL_EXTRACTION_PROMPT}\n\nHTML Content:\n${html.substring(0, 15000)}`,
+        content: `${DRUG_DETAIL_EXTRACTION_PROMPT}\n\nCombined HTML Content from All Tabs:\n${contentToAnalyze}`,
       },
     ],
     temperature: 0.1,
