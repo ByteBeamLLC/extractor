@@ -17,7 +17,7 @@ Bytebeam Extractor is an AI-powered document and image data extraction platform 
 - Interactive data grid for viewing extracted results
 - Contact form integration with Google Sheets
 - Transform builder for data manipulation with Gemini AI and calculator tool
-- Field grouping with right-click context menu for creating nested objects
+- Visual column grouping with spanning headers for organizing related fields
 - Modern responsive UI with dark/light theme support
 
 ## Environment Setup
@@ -38,11 +38,15 @@ The application requires the following environment variables:
 - **Run**: `npm start`
 
 ## Recent Changes
-### 2025-09-30
-- Implemented right-click context menu on column headers for field grouping
-- Enhanced grouping dialog with checkbox-based field selection
-- Auto-selection of right-clicked column when initiating grouping workflow
-- Improved UX flow: right-click → "Create Object" → select fields → name object
+### 2025-09-30 (Visual Column Grouping)
+- Completely redesigned field grouping as visual-only feature with spanning headers
+- Implemented AG Grid column groups to display related fields under shared headers
+- Added VisualGroup type to SchemaDefinition for tracking visual grouping metadata
+- Modified grouping workflow to keep fields as separate columns (not merged objects)
+- Right-click context menu on column headers opens grouping dialog
+- Checkbox-based field selection in grouping dialog with auto-selection
+- Automatic cleanup of visual groups when fields are deleted
+- Fields remain independent while showing visual organization through spanning headers
 
 ### 2025-09-24
 - Imported from GitHub and configured for Replit environment

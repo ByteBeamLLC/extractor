@@ -1478,7 +1478,28 @@ export function DataExtractionPlatform() {
   }
 
   const deleteColumn = (columnId: string) => {
-    setFields((prev) => removeFieldById(prev, columnId))
+    setSchemas((prev) => 
+      prev.map((schema) => {
+        if (schema.id !== activeSchemaId) return schema
+        
+        // Remove field from fields
+        const newFields = removeFieldById(schema.fields, columnId)
+        
+        // Clean up visual groups: remove field from groups and delete empty groups
+        const updatedGroups = (schema.visualGroups || [])
+          .map(group => ({
+            ...group,
+            fieldIds: group.fieldIds.filter(id => id !== columnId)
+          }))
+          .filter(group => group.fieldIds.length > 0)
+        
+        return {
+          ...schema,
+          fields: newFields,
+          visualGroups: updatedGroups
+        }
+      })
+    )
     
     if (selectedColumn?.id === columnId) {
       setSelectedColumn(null)
