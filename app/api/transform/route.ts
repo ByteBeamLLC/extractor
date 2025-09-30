@@ -60,10 +60,13 @@ export async function POST(request: NextRequest) {
 
     if (inputSource === "column") {
       const inputText: string = body.inputText ?? ""
+      
+      const substitutedPrompt = prompt.replace(/\{[^}]+\}/g, () => inputText)
+      
       const { text } = await generateText({
         model: google("gemini-2.5-pro"),
         temperature: 0.2,
-        prompt: `You are a transformation assistant. Task: ${prompt}\n\nInput:\n${inputText}\n\nReturn only the transformed value with no extra commentary.`,
+        prompt: `You are a transformation assistant. Task: ${substitutedPrompt}\n\nInput value: ${inputText}\n\nReturn only the transformed value with no extra commentary.`,
         tools: {
           calculator: calculatorTool,
         },
