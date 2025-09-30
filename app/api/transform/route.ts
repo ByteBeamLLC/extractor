@@ -89,8 +89,8 @@ export async function POST(request: NextRequest) {
         const lastToolResult = result.toolResults[result.toolResults.length - 1]
         console.log("[bytebeam] Transform - Last tool result:", lastToolResult)
         
-        if (lastToolResult && lastToolResult.result) {
-          const toolOutput = lastToolResult.result as any
+        if (lastToolResult && lastToolResult.output) {
+          const toolOutput = lastToolResult.output as any
           console.log("[bytebeam] Transform - Tool output:", toolOutput)
           
           if (toolOutput && typeof toolOutput.result === 'number') {
