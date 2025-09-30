@@ -63,19 +63,42 @@ export async function POST(request: NextRequest) {
     if (inputSource === "column") {
       const columnValues: Record<string, any> = body.columnValues || {}
       
+      // Build a structured representation for the AI
+      const columnContext: string[] = []
       const substitutedPrompt = prompt.replace(/\{([^}]+)\}/g, (match, columnName) => {
         const value = columnValues[columnName.trim()]
-        return value !== undefined ? String(value) : match
+        if (value === undefined) return match
+        
+        // If value is an object/structured type, provide it as JSON context
+        if (typeof value === 'object' && value !== null) {
+          const jsonValue = JSON.stringify(value, null, 2)
+          columnContext.push(`${columnName.trim()}: ${jsonValue}`)
+          return `{${columnName.trim()}}`
+        }
+        
+        // For primitive values, substitute directly
+        return String(value)
       })
       
       console.log("[bytebeam] Transform - Original prompt:", prompt)
       console.log("[bytebeam] Transform - Column values:", columnValues)
       console.log("[bytebeam] Transform - Substituted prompt:", substitutedPrompt)
+      console.log("[bytebeam] Transform - Column context:", columnContext)
+      
+      // Build the AI prompt with context
+      let aiPrompt = `You are a transformation assistant. Task: ${substitutedPrompt}\n\n`
+      
+      if (columnContext.length > 0) {
+        aiPrompt += `Available column data (as JSON):\n${columnContext.join('\n')}\n\n`
+        aiPrompt += `When you see structured data (objects, tables, lists), analyze the fields and use the appropriate numeric values for calculations.\n\n`
+      }
+      
+      aiPrompt += `Return only the transformed value with no extra commentary.`
       
       const result = await generateText({
         model: google("gemini-2.5-pro"),
         temperature: 0.2,
-        prompt: `You are a transformation assistant. Task: ${substitutedPrompt}\n\nReturn only the transformed value with no extra commentary.`,
+        prompt: aiPrompt,
         tools: {
           calculator: calculatorTool,
         },
