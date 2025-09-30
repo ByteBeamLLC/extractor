@@ -2962,19 +2962,47 @@ export function DataExtractionPlatform() {
 
                       {searchUrl && (
                         <Card>
-                          <CardContent className="p-4 space-y-2">
+                          <CardContent className="p-4 space-y-3">
                             <h3 className="font-semibold text-lg">Saudi FDA Database Search</h3>
-                            <div className="text-sm">
-                              <span className="text-muted-foreground">Search Query: </span>
-                              <span className="font-medium">{pharmaData?.searchQuery || 'N/A'}</span>
-                            </div>
+                            
+                            {pharmaData?.searchHistory && pharmaData.searchHistory.length > 0 && (
+                              <div className="space-y-2">
+                                <div className="text-sm font-medium">Search Attempts ({pharmaData.attemptsTaken || pharmaData.searchHistory.length}):</div>
+                                {pharmaData.searchHistory.map((attempt: any, idx: number) => (
+                                  <div key={idx} className="text-sm border-l-2 border-muted pl-3 py-1">
+                                    <div>
+                                      <span className="text-muted-foreground">Query {idx + 1}: </span>
+                                      <span className="font-medium">"{attempt.query}"</span>
+                                      {attempt.resultsCount > 0 ? (
+                                        <span className="ml-2 text-green-600">✓ Found {attempt.resultsCount} results</span>
+                                      ) : (
+                                        <span className="ml-2 text-amber-600">✗ No results</span>
+                                      )}
+                                    </div>
+                                    {attempt.reasoning && (
+                                      <div className="text-xs text-muted-foreground mt-1 italic">
+                                        {attempt.reasoning}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            
+                            {!pharmaData?.searchHistory && (
+                              <div className="text-sm">
+                                <span className="text-muted-foreground">Search Query: </span>
+                                <span className="font-medium">{pharmaData?.searchQuery || 'N/A'}</span>
+                              </div>
+                            )}
+                            
                             <a 
                               href={searchUrl} 
                               target="_blank" 
                               rel="noopener noreferrer"
                               className="text-sm text-blue-600 hover:underline inline-flex items-center gap-1"
                             >
-                              View Search Results
+                              View Final Search Results
                               <Globe className="h-3 w-3" />
                             </a>
                           </CardContent>
