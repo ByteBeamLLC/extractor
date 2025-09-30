@@ -1,6 +1,51 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { google } from "@ai-sdk/google"
-import { generateText } from "ai"
+import { generateText, tool } from "ai"
+import { z } from "zod"
+
+const calculatorTool = tool({
+  description: "A comprehensive calculator tool for performing arithmetic operations. Use this whenever you need to calculate mathematical expressions, including basic arithmetic, exponentiation, square roots, and more. The calculator supports: addition (+), subtraction (-), multiplication (*), division (/), exponentiation (^), square root (sqrt), parentheses for grouping, and follows proper order of operations.",
+  inputSchema: z.object({
+    expression: z.string().describe("The mathematical expression to evaluate. Examples: '2 + 2', '(10 * 5) - 3', '2 ^ 3', 'sqrt(16)', '(5 + 3) * 2 / 4'"),
+  }),
+  execute: async ({ expression }) => {
+    try {
+      const result = evaluateExpression(expression)
+      return { result, expression }
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : "Invalid expression", expression }
+    }
+  },
+})
+
+function evaluateExpression(expr: string): number {
+  expr = expr.trim().toLowerCase()
+  
+  expr = expr.replace(/\s+/g, '')
+  
+  expr = expr.replace(/sqrt\(([^)]+)\)/g, (_, inner) => {
+    const val = evaluateExpression(inner)
+    if (val < 0) throw new Error("Cannot take square root of negative number")
+    return String(Math.sqrt(val))
+  })
+  
+  expr = expr.replace(/\^/g, '**')
+  
+  const isValidExpression = /^[0-9+\-*/(). **]+$/.test(expr)
+  if (!isValidExpression) {
+    throw new Error("Invalid characters in expression")
+  }
+  
+  try {
+    const result = Function('"use strict"; return (' + expr + ')')()
+    if (typeof result !== 'number' || !isFinite(result)) {
+      throw new Error("Expression did not evaluate to a valid number")
+    }
+    return result
+  } catch (error) {
+    throw new Error("Invalid mathematical expression")
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,6 +64,9 @@ export async function POST(request: NextRequest) {
         model: google("gemini-2.5-pro"),
         temperature: 0.2,
         prompt: `You are a transformation assistant. Task: ${prompt}\n\nInput:\n${inputText}\n\nReturn only the transformed value with no extra commentary.`,
+        tools: {
+          calculator: calculatorTool,
+        },
       })
       return NextResponse.json({ success: true, result: text })
     }
@@ -51,6 +99,9 @@ export async function POST(request: NextRequest) {
             ],
           },
         ],
+        tools: {
+          calculator: calculatorTool,
+        },
       })
       return NextResponse.json({ success: true, result: text })
     }
@@ -61,6 +112,9 @@ export async function POST(request: NextRequest) {
       model: google("gemini-2.5-pro"),
       temperature: 0.2,
       prompt: `You are a transformation assistant. Task: ${prompt}\n\nDocument:\n${docText}\n\nReturn only the transformed value with no extra commentary.`,
+      tools: {
+        calculator: calculatorTool,
+      },
     })
     return NextResponse.json({ success: true, result: text })
   } catch (error) {
