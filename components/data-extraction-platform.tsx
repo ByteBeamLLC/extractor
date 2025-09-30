@@ -390,6 +390,9 @@ export function DataExtractionPlatform() {
   
   // UI state for modern grid behaviors
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null)
+  // Pharma agent editing state
+  const [pharmaEditingSection, setPharmaEditingSection] = useState<string | null>(null)
+  const [pharmaEditedValues, setPharmaEditedValues] = useState<Record<string, string>>({})
   // Column grouping state
   const [selectedColumnIds, setSelectedColumnIds] = useState<Set<string>>(new Set())
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false)
@@ -2918,10 +2921,6 @@ export function DataExtractionPlatform() {
                   const matchedDrugUrl = pharmaData?.matchedDrugUrl
                   const searchUrl = pharmaData?.searchUrl
                   
-                  // State for editing detailed info sections
-                  const [editingSection, setEditingSection] = useState<string | null>(null)
-                  const [editedValues, setEditedValues] = useState<Record<string, string>>({})
-                  
                   const KV = (label: string, value: any) => (
                     value != null && value !== '' && value !== undefined ? (
                       <div className="flex justify-between gap-3 text-sm">
@@ -3026,8 +3025,8 @@ export function DataExtractionPlatform() {
                               ].map(section => {
                                 if (!section.value || section.value === null) return null
                                 
-                                const isEditing = editingSection === section.key
-                                const currentValue = editedValues[section.key] ?? section.value
+                                const isEditing = pharmaEditingSection === section.key
+                                const currentValue = pharmaEditedValues[section.key] ?? section.value
                                 
                                 const handleSave = () => {
                                   // Update the job results with the edited value
@@ -3050,19 +3049,19 @@ export function DataExtractionPlatform() {
                                     return j
                                   })
                                   setJobs(updatedJobs)
-                                  setEditingSection(null)
+                                  setPharmaEditingSection(null)
                                 }
                                 
                                 const handleEdit = () => {
-                                  setEditedValues({ ...editedValues, [section.key]: section.value })
-                                  setEditingSection(section.key)
+                                  setPharmaEditedValues({ ...pharmaEditedValues, [section.key]: section.value })
+                                  setPharmaEditingSection(section.key)
                                 }
                                 
                                 const handleCancel = () => {
-                                  setEditingSection(null)
-                                  const newValues = { ...editedValues }
+                                  setPharmaEditingSection(null)
+                                  const newValues = { ...pharmaEditedValues }
                                   delete newValues[section.key]
-                                  setEditedValues(newValues)
+                                  setPharmaEditedValues(newValues)
                                 }
                                 
                                 return (
@@ -3078,7 +3077,7 @@ export function DataExtractionPlatform() {
                                           <div className="space-y-2">
                                             <Textarea
                                               value={currentValue}
-                                              onChange={(e) => setEditedValues({ ...editedValues, [section.key]: e.target.value })}
+                                              onChange={(e) => setPharmaEditedValues({ ...pharmaEditedValues, [section.key]: e.target.value })}
                                               className="min-h-[200px] font-normal"
                                             />
                                             <div className="flex gap-2">
