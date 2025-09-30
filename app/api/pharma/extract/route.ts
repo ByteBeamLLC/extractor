@@ -330,6 +330,7 @@ export async function POST(request: NextRequest) {
     // Step 6: Extract detailed information from best match
     console.log("[pharma] Step 6: Extracting details from best match...")
     const detailedInfo = await extractDrugDetails(bestMatch.html)
+    console.log("[pharma] Extracted detailed info:", JSON.stringify(detailedInfo, null, 2))
 
     return NextResponse.json({
       success: true,
