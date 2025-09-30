@@ -2452,9 +2452,6 @@ export function DataExtractionPlatform() {
   }
 
   const exportToCSV = () => {
-    // Prepare CSV headers
-    const headers = ['File Name', 'Status', ...displayColumns.map((col) => col.name)]
-
     const formatCell = (val: unknown): string => {
       if (val === undefined || val === null) return ''
       if (typeof val === 'object') {
@@ -2475,15 +2472,68 @@ export function DataExtractionPlatform() {
       return cell
     }
 
-    // Prepare CSV rows for all jobs in current schema
-    const rows = jobs.map((job) => {
-      const row: string[] = [job.fileName, job.status]
-      displayColumns.forEach((col) => {
-        const value = job.results?.[col.id]
-        row.push(formatCell(value))
+    let headers: string[]
+    let rows: string[][]
+
+    // Check if this is pharma agent
+    if (selectedAgent === 'pharma') {
+      // Pharma-specific CSV export
+      headers = [
+        'File Name',
+        'Status',
+        'Trade Name',
+        'Generic Name',
+        'Manufacturer',
+        'Drug Type',
+        'Registration Number',
+        'Description',
+        'Composition',
+        'How To Use',
+        'Indication',
+        'Possible Side Effects',
+        'Properties',
+        'Storage',
+        'Matched Drug URL',
+        'Search URL'
+      ]
+
+      rows = jobs.map((job) => {
+        const pharmaData = job.results?.pharma_data
+        const drugInfo = pharmaData?.drugInfo
+        const detailedInfo = pharmaData?.detailedInfo
+        
+        return [
+          job.fileName,
+          job.status,
+          formatCell(drugInfo?.tradeName),
+          formatCell(drugInfo?.genericName),
+          formatCell(drugInfo?.manufacturer),
+          formatCell(drugInfo?.drugType),
+          formatCell(drugInfo?.registrationNumber),
+          formatCell(detailedInfo?.description),
+          formatCell(detailedInfo?.composition),
+          formatCell(detailedInfo?.howToUse),
+          formatCell(detailedInfo?.indication),
+          formatCell(detailedInfo?.possibleSideEffects),
+          formatCell(detailedInfo?.properties),
+          formatCell(detailedInfo?.storage),
+          formatCell(pharmaData?.matchedDrugUrl),
+          formatCell(pharmaData?.searchUrl)
+        ]
       })
-      return row
-    })
+    } else {
+      // Standard extraction CSV export
+      headers = ['File Name', 'Status', ...displayColumns.map((col) => col.name)]
+
+      rows = jobs.map((job) => {
+        const row: string[] = [job.fileName, job.status]
+        displayColumns.forEach((col) => {
+          const value = job.results?.[col.id]
+          row.push(formatCell(value))
+        })
+        return row
+      })
+    }
 
     // Convert to CSV string
     const csvContent = [
@@ -2496,7 +2546,7 @@ export function DataExtractionPlatform() {
     const link = document.createElement('a')
     const url = URL.createObjectURL(blob)
     link.setAttribute('href', url)
-    const schemaLabel = (activeSchema.name || 'schema').replace(/[^a-z0-9-_]+/gi, '_')
+    const schemaLabel = selectedAgent === 'pharma' ? 'pharma_extraction' : (activeSchema.name || 'schema').replace(/[^a-z0-9-_]+/gi, '_')
     link.setAttribute('download', `${schemaLabel}_results_${new Date().toISOString().split('T')[0]}.csv`)
     link.style.visibility = 'hidden'
     document.body.appendChild(link)
