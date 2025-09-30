@@ -365,6 +365,9 @@ export function DataExtractionPlatform() {
   const [schemas, setSchemas] = useState<SchemaDefinition[]>([initialSchema])
   const [activeSchemaId, setActiveSchemaId] = useState<string>(initialSchema.id)
   const activeSchema = schemas.find((s) => s.id === activeSchemaId) || initialSchema
+  // Agent type selection
+  type AgentType = "standard" | "pharma"
+  const [selectedAgent, setSelectedAgent] = useState<AgentType>("standard")
   const fields = activeSchema.fields
   const jobs = activeSchema.jobs
   const displayColumns = useMemo(() => flattenFields(fields), [fields])
@@ -2706,8 +2709,20 @@ export function DataExtractionPlatform() {
                   )}
                 </div>
               <div className="flex items-center gap-2">
-                {/* Schema template selector in header when schema fresh */}
+                {/* Agent type selector */}
                 {isSchemaFresh(activeSchema) && (
+                  <Select value={selectedAgent} onValueChange={(val) => setSelectedAgent(val as AgentType)}>
+                    <SelectTrigger className="w-64">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="standard">Standard Extraction</SelectItem>
+                      <SelectItem value="pharma">Pharma E-Commerce Content Generation</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+                {/* Schema template selector in header when schema fresh and standard agent */}
+                {isSchemaFresh(activeSchema) && selectedAgent === "standard" && (
                   <Select onValueChange={(val) => applySchemaTemplate(val)}>
                     <SelectTrigger className="w-56">
                       <SelectValue placeholder="Select a template" />
@@ -2762,7 +2777,7 @@ export function DataExtractionPlatform() {
                 <Button
                   size="sm"
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={fields.length === 0 && activeSchema.templateId !== 'fnb-label-compliance'}
+                  disabled={fields.length === 0 && activeSchema.templateId !== 'fnb-label-compliance' && selectedAgent !== 'pharma'}
                   title="Upload Documents"
                 >
                   <Upload className="h-4 w-4 mr-1" />
