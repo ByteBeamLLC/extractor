@@ -85,14 +85,22 @@ export async function POST(request: NextRequest) {
       
       let finalResult = result.text
       
-      if (!finalResult && result.toolResults && result.toolResults.length > 0) {
+      if ((!finalResult || finalResult.trim() === '') && result.toolResults && result.toolResults.length > 0) {
         const lastToolResult = result.toolResults[result.toolResults.length - 1]
+        console.log("[bytebeam] Transform - Last tool result:", lastToolResult)
+        
         if (lastToolResult && lastToolResult.result) {
           const toolOutput = lastToolResult.result as any
-          if (typeof toolOutput.result === 'number') {
+          console.log("[bytebeam] Transform - Tool output:", toolOutput)
+          
+          if (toolOutput && typeof toolOutput.result === 'number') {
             finalResult = String(toolOutput.result)
+            console.log("[bytebeam] Transform - Extracted number from toolOutput.result:", finalResult)
           } else if (typeof toolOutput === 'number') {
             finalResult = String(toolOutput)
+            console.log("[bytebeam] Transform - Extracted number from toolOutput:", finalResult)
+          } else {
+            console.log("[bytebeam] Transform - Could not extract number, toolOutput type:", typeof toolOutput)
           }
         }
       }
