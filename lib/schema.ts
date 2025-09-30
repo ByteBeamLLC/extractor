@@ -84,12 +84,19 @@ export interface ExtractionJob {
   completedAt?: Date
 }
 
+export interface VisualGroup {
+  id: string
+  name: string
+  fieldIds: string[] // IDs of fields that belong to this visual group
+}
+
 export interface SchemaDefinition {
   id: string
   name: string
   fields: SchemaField[]
   jobs: ExtractionJob[]
   templateId?: string
+  visualGroups?: VisualGroup[] // Visual grouping for display only, doesn't affect data structure
 }
 
 // Helpers
@@ -99,7 +106,7 @@ export function isLeaf(field: SchemaField): field is LeafField {
 }
 
 // Flatten fields to leaf fields, keeping a path for display
-export type FlatLeaf = SchemaField & { path: string[] }
+export type FlatLeaf = SchemaField & { path: string[]; visualGroupId?: string }
 
 export function flattenFields(fields: SchemaField[] = [], parentPath: string[] = []): FlatLeaf[] {
   const out: FlatLeaf[] = []
@@ -190,4 +197,38 @@ export function flattenResultsById(fields: SchemaField[], nested: any): Record<s
   }
   walk(fields, nested || {})
   return out
+}
+
+// Visual group helper functions
+export function createVisualGroup(groupName: string, fieldIds: string[]): VisualGroup {
+  return {
+    id: `group-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    name: groupName,
+    fieldIds,
+  }
+}
+
+export function addVisualGroup(schema: SchemaDefinition, group: VisualGroup): SchemaDefinition {
+  return {
+    ...schema,
+    visualGroups: [...(schema.visualGroups || []), group],
+  }
+}
+
+export function updateVisualGroup(schema: SchemaDefinition, groupId: string, updater: (g: VisualGroup) => VisualGroup): SchemaDefinition {
+  return {
+    ...schema,
+    visualGroups: (schema.visualGroups || []).map((g) => (g.id === groupId ? updater(g) : g)),
+  }
+}
+
+export function removeVisualGroup(schema: SchemaDefinition, groupId: string): SchemaDefinition {
+  return {
+    ...schema,
+    visualGroups: (schema.visualGroups || []).filter((g) => g.id !== groupId),
+  }
+}
+
+export function getFieldVisualGroup(schema: SchemaDefinition, fieldId: string): VisualGroup | undefined {
+  return (schema.visualGroups || []).find((g) => g.fieldIds.includes(fieldId))
 }
