@@ -63,7 +63,7 @@ import {
   ChevronDown,
   Maximize2,
   Eye,
-
+  Layers,
 } from "lucide-react"
  
 
@@ -380,6 +380,10 @@ export function DataExtractionPlatform() {
   
   // UI state for modern grid behaviors
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null)
+  // Column grouping state
+  const [selectedColumnIds, setSelectedColumnIds] = useState<Set<string>>(new Set())
+  const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false)
+  const [groupName, setGroupName] = useState<string>('')
   // F&B translation collapsible state per job
   const [fnbCollapse, setFnbCollapse] = useState<Record<string, { en: boolean; ar: boolean }>>({})
   const [expandedCells, setExpandedCells] = useState<Record<string, boolean>>({})
@@ -624,6 +628,77 @@ export function DataExtractionPlatform() {
         },
       }
     })
+  }
+
+  // Column grouping functions
+  const toggleColumnSelection = (columnId: string) => {
+    setSelectedColumnIds((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(columnId)) {
+        newSet.delete(columnId)
+      } else {
+        newSet.add(columnId)
+      }
+      return newSet
+    })
+  }
+
+  const openGroupDialog = () => {
+    if (selectedColumnIds.size < 2) return
+    setGroupName('')
+    setIsGroupDialogOpen(true)
+  }
+
+  const createGroupedObject = () => {
+    if (!groupName.trim() || selectedColumnIds.size < 2) return
+
+    // Capture the selected IDs and group name before state updates
+    const selectedIds = Array.from(selectedColumnIds)
+    const newGroupName = groupName.trim()
+
+    setSchemas((prev) => {
+      return prev.map((schema) => {
+        if (schema.id !== activeSchemaId) return schema
+
+        // Get the selected fields using the captured IDs
+        const selectedFields: SchemaField[] = []
+        const remainingFields: SchemaField[] = []
+        
+        schema.fields.forEach((field) => {
+          if (selectedIds.includes(field.id)) {
+            selectedFields.push(cloneField(field))
+          } else {
+            remainingFields.push(field)
+          }
+        })
+
+        if (selectedFields.length < 2) return schema
+
+        // Create the grouped object
+        const groupedObject: ObjectField = {
+          id: `field_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          name: newGroupName,
+          type: 'object',
+          children: selectedFields,
+          description: `Grouped fields: ${selectedFields.map(f => f.name).join(', ')}`,
+        }
+
+        // Add the new grouped object at the position of the first selected field
+        const firstSelectedIndex = schema.fields.findIndex(f => selectedIds.includes(f.id))
+        const newFields = [...remainingFields]
+        newFields.splice(firstSelectedIndex, 0, groupedObject)
+
+        return {
+          ...schema,
+          fields: newFields,
+        }
+      })
+    })
+
+    // Reset selection and close dialog
+    setSelectedColumnIds(new Set())
+    setGroupName('')
+    setIsGroupDialogOpen(false)
   }
 
   const renderStructuredConfig = () => {
@@ -2634,6 +2709,18 @@ export function DataExtractionPlatform() {
                     Export CSV
                   </Button>
                 )}
+                {/* Group Fields button */}
+                {selectedColumnIds.size >= 2 && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={openGroupDialog}
+                    title="Group selected fields into an object"
+                  >
+                    <Layers className="h-4 w-4 mr-1" />
+                    Group Fields ({selectedColumnIds.size})
+                  </Button>
+                )}
                 {/* Add Field button moved to grid area as a floating + */}
                 {/* Upload button moved to header */}
                 <Button
@@ -3252,6 +3339,65 @@ export function DataExtractionPlatform() {
                 </div>
               </div>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Group Fields Dialog */}
+      <Dialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Group Fields into Object</DialogTitle>
+            <DialogDescription>
+              Create a nested object from {selectedColumnIds.size} selected fields. Give it a descriptive name.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="group-name">Object Name</Label>
+              <Input
+                id="group-name"
+                value={groupName}
+                onChange={(e) => setGroupName(e.target.value)}
+                placeholder="e.g., Invoice Details, Customer Info"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && groupName.trim()) {
+                    createGroupedObject()
+                  }
+                }}
+              />
+            </div>
+            <div className="rounded-md bg-muted p-3">
+              <p className="text-sm font-medium mb-2">Selected fields:</p>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                {Array.from(selectedColumnIds).map((id) => {
+                  const field = fields.find(f => f.id === id)
+                  return field ? (
+                    <li key={id} className="flex items-center gap-2">
+                      <CheckCircle className="h-3 w-3 text-green-600" />
+                      {field.name}
+                    </li>
+                  ) : null
+                })}
+              </ul>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsGroupDialogOpen(false)
+                setGroupName('')
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={createGroupedObject}
+              disabled={!groupName.trim()}
+            >
+              Create Group
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
