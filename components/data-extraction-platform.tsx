@@ -3021,7 +3021,6 @@ export function DataExtractionPlatform() {
                                 { key: 'possibleSideEffects', label: 'Possible Side Effects', value: detailedInfo?.possibleSideEffects },
                                 { key: 'properties', label: 'Properties', value: detailedInfo?.properties },
                                 { key: 'storage', label: 'Storage', value: detailedInfo?.storage },
-                                { key: 'review', label: 'Review', value: detailedInfo?.review },
                               ].map(section => {
                                 if (!section.value || section.value === null) return null
                                 

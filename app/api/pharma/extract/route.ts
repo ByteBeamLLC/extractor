@@ -90,7 +90,6 @@ Extract and consolidate the following information from ALL available tabs:
 5. **Possible Side Effects**: All side effects, adverse reactions, contraindications (from PIL or SPC)
 6. **Properties**: Pharmaceutical properties, pharmacodynamics, pharmacokinetics (from SPC)
 7. **Storage**: Storage conditions and handling instructions (from PIL or SPC)
-8. **Review**: Any additional important information, warnings, precautions (from any tab)
 
 CRITICAL INSTRUCTIONS:
 - Extract comprehensive information by reading ALL tabs
@@ -108,8 +107,7 @@ Return a valid JSON object with these keys:
   "indication": "string or null",
   "possibleSideEffects": "string or null",
   "properties": "string or null",
-  "storage": "string or null",
-  "review": "string or null"
+  "storage": "string or null"
 }`
 
 function tryParseJSON(text: string): any {
