@@ -2864,7 +2864,7 @@ export function DataExtractionPlatform() {
                 />
               </div>
               </div>
-            {fields.length === 0 && (
+            {fields.length === 0 && selectedAgent !== 'pharma' && (
               <div className="mt-4 p-3 bg-muted rounded-lg">
                 <p className="text-sm text-muted-foreground">
                   Start by defining your data extraction schema. Add columns for each piece of information you want to
@@ -2872,10 +2872,187 @@ export function DataExtractionPlatform() {
                 </p>
               </div>
             )}
+            {fields.length === 0 && selectedAgent === 'pharma' && (
+              <div className="mt-4 p-3 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground">
+                  Upload a pharmaceutical product image or document to extract drug information and match it with the Saudi FDA database.
+                </p>
+              </div>
+            )}
           </div>
           {/* Main Body */}
           <div className="flex-1 overflow-auto min-h-0 min-w-0 relative">
-            {activeSchema.templateId === 'fnb-label-compliance' ? (
+            {selectedAgent === 'pharma' ? (
+              <div className="p-4 space-y-4">
+                {/* Simple job selector */}
+                {sortedJobs.length > 0 && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm text-muted-foreground">Jobs:</span>
+                    {sortedJobs.map((job, idx) => (
+                      <button
+                        key={job.id}
+                        onClick={() => setSelectedRowId(job.id)}
+                        className={`px-2 py-1 rounded border text-xs ${selectedRowId === job.id ? 'bg-accent text-accent-foreground' : 'bg-muted text-foreground'}`}
+                      >
+                        {idx + 1}. {job.fileName}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Selected job panels */}
+                {(() => {
+                  const job = sortedJobs.find((j) => j.id === selectedRowId) || sortedJobs[sortedJobs.length - 1]
+                  if (!job) return (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No results yet. Upload a drug label image or document to get started.</p>
+                    </div>
+                  )
+                  const pharmaData = job.results?.pharma_data
+                  const drugInfo = pharmaData?.drugInfo
+                  const detailedInfo = pharmaData?.detailedInfo
+                  const matchedDrugUrl = pharmaData?.matchedDrugUrl
+                  const searchUrl = pharmaData?.searchUrl
+                  
+                  const KV = (label: string, value: any) => (
+                    value != null && value !== '' && value !== undefined ? (
+                      <div className="flex justify-between gap-3 text-sm">
+                        <span className="text-muted-foreground font-medium">{label}:</span>
+                        <span className="text-right break-words">{String(value)}</span>
+                      </div>
+                    ) : null
+                  )
+                  
+                  const Section = (title: string, content: any) => (
+                    content != null && content !== '' && content !== undefined ? (
+                      <div className="space-y-2">
+                        <div className="text-sm font-semibold text-foreground">{title}</div>
+                        <div className="text-sm whitespace-pre-wrap">{String(content)}</div>
+                      </div>
+                    ) : null
+                  )
+                  
+                  return (
+                    <div className="space-y-4">
+                      <Card>
+                        <CardContent className="p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h3 className="font-semibold text-lg">Drug Information Extracted from File</h3>
+                            {getStatusIcon(job.status)}
+                          </div>
+                          {!drugInfo ? (
+                            <div className="text-sm text-muted-foreground">No drug information extracted</div>
+                          ) : (
+                            <div className="space-y-2">
+                              {KV('Drug Name', drugInfo?.drugName)}
+                              {KV('Generic Name', drugInfo?.genericName)}
+                              {KV('Manufacturer', drugInfo?.manufacturer)}
+                              {KV('Active Ingredients', drugInfo?.activeIngredients)}
+                              {KV('Dosage', drugInfo?.dosage)}
+                              {KV('Dosage Form', drugInfo?.dosageForm)}
+                              {KV('Pack Size', drugInfo?.packSize)}
+                              {KV('Batch Number', drugInfo?.batchNumber)}
+                              {KV('Expiry Date', drugInfo?.expiryDate)}
+                              {KV('Other Identifiers', drugInfo?.otherIdentifiers)}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+
+                      {searchUrl && (
+                        <Card>
+                          <CardContent className="p-4 space-y-2">
+                            <h3 className="font-semibold text-lg">Saudi FDA Database Search</h3>
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Search Query: </span>
+                              <span className="font-medium">{pharmaData?.searchQuery || 'N/A'}</span>
+                            </div>
+                            <a 
+                              href={searchUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 hover:underline inline-flex items-center gap-1"
+                            >
+                              View Search Results
+                              <Globe className="h-3 w-3" />
+                            </a>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {matchedDrugUrl && (
+                        <Card>
+                          <CardContent className="p-4 space-y-2">
+                            <h3 className="font-semibold text-lg">Matched Drug</h3>
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Drug ID: </span>
+                              <span className="font-medium">{pharmaData?.matchedDrugId || 'N/A'}</span>
+                            </div>
+                            <a 
+                              href={matchedDrugUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 hover:underline inline-flex items-center gap-1"
+                            >
+                              View Drug Details on Saudi FDA
+                              <Globe className="h-3 w-3" />
+                            </a>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {detailedInfo && (
+                        <Card>
+                          <CardContent className="p-4 space-y-4">
+                            <h3 className="font-semibold text-lg">Detailed Drug Information</h3>
+                            <div className="space-y-4">
+                              {Section('Description', detailedInfo?.description)}
+                              {Section('Composition', detailedInfo?.composition)}
+                              {Section('How To Use', detailedInfo?.howToUse)}
+                              {Section('Indication', detailedInfo?.indication)}
+                              {Section('Possible Side Effects', detailedInfo?.possibleSideEffects)}
+                              {Section('Properties', detailedInfo?.properties)}
+                              {Section('Storage', detailedInfo?.storage)}
+                              {Section('Review', detailedInfo?.review)}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {pharmaData?.message && (
+                        <Card>
+                          <CardContent className="p-4">
+                            <div className="text-sm text-muted-foreground">{pharmaData.message}</div>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {job.status === 'error' && (
+                        <Card className="border-destructive">
+                          <CardContent className="p-4 space-y-2">
+                            <div className="font-semibold text-destructive">Error</div>
+                            <div className="text-sm text-destructive">
+                              {pharmaData?.error || 'An error occurred during drug information extraction. Please try again with a clearer image or document.'}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+                      
+                      {job.status === 'processing' && !pharmaData && (
+                        <Card>
+                          <CardContent className="p-4">
+                            <div className="text-sm text-muted-foreground animate-pulse">
+                              Processing drug information extraction and Saudi FDA database search...
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+                  )
+                })()}
+              </div>
+            ) : activeSchema.templateId === 'fnb-label-compliance' ? (
               <div className="p-4 space-y-4">
                 {/* Simple job selector */}
                 {sortedJobs.length > 0 && (
