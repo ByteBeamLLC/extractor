@@ -42,11 +42,15 @@ Return your response as a valid JSON object with these keys:
 const DRUG_SEARCH_QUERY_PROMPT = `Based on the extracted drug information, generate the most effective search query to find this drug in the Saudi FDA database.
 
 Rules:
-1. Prioritize the drug name (brand or generic) as the primary search term
-2. Keep the query concise - use only the most distinctive identifiers
-3. Do not include dosage or form in the initial search (we'll filter those later)
-4. If you have a brand name, use that; otherwise use the generic name
-5. Return ONLY the search query text, nothing else`
+1. **CRITICAL**: The search query MUST be in ENGLISH only - translate any Arabic or other language drug names to English
+2. Prioritize the drug name (brand or generic) as the primary search term
+3. Keep the query concise - use only the most distinctive identifiers
+4. Do not include dosage or form in the initial search (we'll filter those later)
+5. If you have a brand name, use that; otherwise use the generic name
+6. Return ONLY the search query text in English, nothing else
+
+Example: If drug name is "باراسيتامول", return "Paracetamol"
+Example: If drug name is "Aspirin", return "Aspirin"`
 
 const DRUG_MATCHING_PROMPT = `You are an expert at identifying pharmaceutical products. Given:
 1. The original extracted drug information from the uploaded file
