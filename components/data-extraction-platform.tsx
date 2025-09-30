@@ -1888,10 +1888,26 @@ export function DataExtractionPlatform() {
                 const refs = promptText.match(/\{([^}]+)\}/g) || []
                 
                 for (const ref of refs) {
-                  const columnName = ref.slice(1, -1).trim()
-                  const refCol = displayColumns.find((c) => c.name === columnName)
-                  if (refCol && finalResults[refCol.id] !== undefined) {
-                    columnValues[columnName] = finalResults[refCol.id]
+                  const refName = ref.slice(1, -1).trim()
+                  
+                  // Check if this is a visual group reference
+                  const visualGroup = activeSchema.visualGroups?.find((g) => g.name === refName)
+                  if (visualGroup) {
+                    // Build an object with all fields from this group
+                    const groupData: Record<string, any> = {}
+                    for (const fieldId of visualGroup.fieldIds) {
+                      const field = displayColumns.find((c) => c.id === fieldId)
+                      if (field && finalResults[fieldId] !== undefined) {
+                        groupData[field.name] = finalResults[fieldId]
+                      }
+                    }
+                    columnValues[refName] = groupData
+                  } else {
+                    // Regular column reference
+                    const refCol = displayColumns.find((c) => c.name === refName)
+                    if (refCol && finalResults[refCol.id] !== undefined) {
+                      columnValues[refName] = finalResults[refCol.id]
+                    }
                   }
                 }
                 
@@ -3167,6 +3183,7 @@ export function DataExtractionPlatform() {
                       allColumns={displayColumns}
                       selected={draftColumn}
                       onUpdate={(updates) => setDraftColumn({ ...draftColumn, ...updates })}
+                      visualGroups={activeSchema.visualGroups}
                     />
                   ) : (
                     <div className="space-y-1.5">

@@ -7,19 +7,25 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-import type { SchemaField, TransformationType } from "@/lib/schema"
+import type { SchemaField, TransformationType, VisualGroup } from "@/lib/schema"
 
 export function TransformBuilder(props: {
   allColumns: SchemaField[]
   selected: SchemaField
   onUpdate: (updates: Partial<SchemaField>) => void
+  visualGroups?: VisualGroup[]
 }) {
-  const { allColumns, selected, onUpdate } = props
+  const { allColumns, selected, onUpdate, visualGroups = [] } = props
   const dataColumns = useMemo(() => allColumns.filter((c) => !c.isTransformation), [allColumns])
 
   const [insertFn, setInsertFn] = useState<null | ((token: string) => void)>(null)
 
-  const options = dataColumns.map((c) => ({ id: c.id, label: c.name }))
+  // Create field guidance options: visual groups + individual fields
+  const options = useMemo(() => {
+    const groupOptions = visualGroups.map((g) => ({ id: g.id, label: g.name }))
+    const fieldOptions = dataColumns.map((c) => ({ id: c.id, label: c.name }))
+    return [...groupOptions, ...fieldOptions]
+  }, [visualGroups, dataColumns])
 
   const insertToken = (t: string) => {
     if (insertFn) insertFn(t)
@@ -95,6 +101,18 @@ export function TransformBuilder(props: {
         />
         <ExpressionPreview text={String(selected.transformationConfig || "")} />
         <div className="mt-2 flex flex-wrap gap-2">
+          {visualGroups.map((g) => (
+            <Button
+              key={g.id}
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={() => insertToken(`{${g.name}}`)}
+              className="border-purple-200 bg-purple-50 hover:bg-purple-100"
+            >
+              @{g.name}
+            </Button>
+          ))}
           {dataColumns.map((c) => (
             <Button
               key={c.id}
