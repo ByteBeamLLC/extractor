@@ -14,6 +14,10 @@ Bytebeam Extractor is an AI-powered document and image data extraction platform 
 ## Key Features
 - Document upload and processing (PDF, DOCX, images)
 - AI-powered data extraction with customizable schemas
+- **Pharma E-Commerce Content Generation Agent**: Specialized agent for pharmaceutical product data extraction
+  - OCR-based drug information extraction from product labels and documents
+  - Saudi FDA database integration for drug matching and enrichment
+  - Automated extraction of drug details (description, composition, usage, side effects, etc.)
 - Interactive data grid for viewing extracted results
 - Contact form integration with Google Sheets
 - Transform builder for data manipulation with Gemini AI and calculator tool
@@ -38,6 +42,17 @@ The application requires the following environment variables:
 - **Run**: `npm start`
 
 ## Recent Changes
+### 2025-09-30 (Pharma E-Commerce Content Generation Agent)
+- Added agent type selector to switch between "Standard Extraction" and "Pharma E-Commerce Content Generation"
+- Implemented pharma API endpoint (/api/pharma/extract) with:
+  - Google Gemini OCR for drug information extraction from images and documents
+  - Saudi FDA database search integration (https://sdi.sfda.gov.sa/home/DrugSearch)
+  - Intelligent drug matching based on extracted identifiers (name, generic name, manufacturer)
+  - Detailed drug information extraction (description, composition, how to use, indication, side effects, properties, storage, review)
+- Created specialized pharma results display component with structured sections
+- Modified upload flow to allow pharma uploads without requiring schema definition
+- Added processing states and error handling specific to pharma workflow
+
 ### 2025-09-30 (Visual Column Grouping)
 - Completely redesigned field grouping as visual-only feature with spanning headers
 - Implemented AG Grid column groups to display related fields under shared headers
