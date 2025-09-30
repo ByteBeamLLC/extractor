@@ -1778,7 +1778,7 @@ export function DataExtractionPlatform() {
           )
           for (const tcol of geminiTransformColumns) {
             try {
-              const source = tcol.transformationSource || "document"
+              const source = tcol.transformationSource || "column"
               let payload: any = {
                 type: "gemini",
                 prompt: String(tcol.transformationConfig || ""),
@@ -1787,18 +1787,20 @@ export function DataExtractionPlatform() {
               if (source === "document") {
                 payload.file = fileData
               } else {
-                let value: any = undefined
-                if (tcol.transformationSourceColumnId) {
-                  value = finalResults[tcol.transformationSourceColumnId]
-                } else if (typeof tcol.transformationConfig === "string") {
-                  const refs = tcol.transformationConfig.match(/\{([^}]+)\}/)
-                  if (refs) {
-                    const name = refs[1].trim()
-                    const refCol = displayColumns.find((c) => c.name === name)
-                    if (refCol) value = finalResults[refCol.id]
+                // Extract all column references from the prompt
+                const columnValues: Record<string, any> = {}
+                const promptText = String(tcol.transformationConfig || "")
+                const refs = promptText.match(/\{([^}]+)\}/g) || []
+                
+                for (const ref of refs) {
+                  const columnName = ref.slice(1, -1).trim()
+                  const refCol = displayColumns.find((c) => c.name === columnName)
+                  if (refCol && finalResults[refCol.id] !== undefined) {
+                    columnValues[columnName] = finalResults[refCol.id]
                   }
                 }
-                payload.inputText = typeof value === "string" ? value : JSON.stringify(value)
+                
+                payload.columnValues = columnValues
               }
 
               const resp = await fetch("/api/transform", {

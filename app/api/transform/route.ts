@@ -61,22 +61,24 @@ export async function POST(request: NextRequest) {
     }
 
     if (inputSource === "column") {
-      const inputText: string = body.inputText ?? ""
+      const columnValues: Record<string, any> = body.columnValues || {}
       
-      const substitutedPrompt = prompt.replace(/\{[^}]+\}/g, () => inputText)
+      const substitutedPrompt = prompt.replace(/\{([^}]+)\}/g, (match, columnName) => {
+        const value = columnValues[columnName.trim()]
+        return value !== undefined ? String(value) : match
+      })
       
       console.log("[bytebeam] Transform - Original prompt:", prompt)
-      console.log("[bytebeam] Transform - Input text:", inputText)
+      console.log("[bytebeam] Transform - Column values:", columnValues)
       console.log("[bytebeam] Transform - Substituted prompt:", substitutedPrompt)
       
       const result = await generateText({
         model: google("gemini-2.5-pro"),
         temperature: 0.2,
-        prompt: `You are a transformation assistant. Task: ${substitutedPrompt}\n\nInput value: ${inputText}\n\nReturn only the transformed value with no extra commentary.`,
+        prompt: `You are a transformation assistant. Task: ${substitutedPrompt}\n\nReturn only the transformed value with no extra commentary.`,
         tools: {
           calculator: calculatorTool,
         },
-        maxSteps: 5,
       })
       
       console.log("[bytebeam] Transform - Tool calls:", result.toolCalls)
