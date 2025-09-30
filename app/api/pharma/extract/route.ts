@@ -52,31 +52,6 @@ Rules:
 Example: If drug name is "باراسيتامول", return "Paracetamol"
 Example: If drug name is "Aspirin", return "Aspirin"`
 
-const REACT_REASONING_PROMPT = `You are an expert pharmaceutical search agent using the REACT (Reasoning and Acting) framework. Analyze the previous search attempt and determine the next action.
-
-Previous search query: {previousQuery}
-Search results found: {resultsCount} drugs
-Drug information from file: {drugInfo}
-
-REASONING TASK:
-1. Analyze why the previous search may have failed or returned no results
-2. Consider alternative search strategies:
-   - Try generic name instead of brand name (or vice versa)
-   - Try active ingredient name
-   - Try manufacturer name
-   - Try partial name match
-   - Try alternative spellings or transliterations
-3. Decide on the best next search query
-
-Return a JSON object:
-{
-  "reasoning": "Brief explanation of why previous search failed and your strategy for the next query",
-  "nextQuery": "The new search query in English (or null if you think no better query is possible)",
-  "confidence": "high|medium|low - your confidence this query will succeed"
-}
-
-If you believe no better query is possible, set nextQuery to null.`
-
 const DRUG_MATCHING_PROMPT = `You are an expert at identifying pharmaceutical products. Given:
 1. The original extracted drug information from the uploaded file
 2. A list of drugs from the Saudi FDA database search results
@@ -187,26 +162,6 @@ async function generateSearchQuery(drugInfo: any) {
   return text.trim()
 }
 
-async function reasonAndGenerateNextQuery(previousQuery: string, resultsCount: number, drugInfo: any) {
-  const prompt = REACT_REASONING_PROMPT
-    .replace('{previousQuery}', previousQuery)
-    .replace('{resultsCount}', resultsCount.toString())
-    .replace('{drugInfo}', JSON.stringify(drugInfo, null, 2))
-  
-  const { text } = await generateText({
-    model: google("gemini-2.0-flash-exp"),
-    messages: [
-      {
-        role: "user",
-        content: prompt,
-      },
-    ],
-    temperature: 0.2,
-  })
-  
-  return tryParseJSON(text)
-}
-
 async function searchSaudiFDA(query: string) {
   const searchUrl = `https://sdi.sfda.gov.sa/Home/DrugSearch?textFilter=${encodeURIComponent(query)}`
   
@@ -239,79 +194,6 @@ async function searchSaudiFDA(query: string) {
   } catch (error) {
     console.error('[pharma] Search error:', error)
     throw error
-  }
-}
-
-async function reactSearchLoop(drugInfo: any, maxAttempts: number = 3) {
-  const searchHistory: Array<{ query: string; resultsCount: number; reasoning?: string }> = []
-  let currentQuery = await generateSearchQuery(drugInfo)
-  
-  console.log(`[pharma REACT] Starting REACT search loop with max ${maxAttempts} attempts`)
-  
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    console.log(`[pharma REACT] Attempt ${attempt}/${maxAttempts}: Searching for "${currentQuery}"`)
-    
-    const searchResults = await searchSaudiFDA(currentQuery)
-    const resultsCount = searchResults.drugIds.length
-    
-    searchHistory.push({ query: currentQuery, resultsCount })
-    console.log(`[pharma REACT] Attempt ${attempt}: Found ${resultsCount} results`)
-    
-    // If we found results, return them
-    if (resultsCount > 0) {
-      console.log(`[pharma REACT] Success! Found results on attempt ${attempt}`)
-      return {
-        success: true,
-        searchResults,
-        finalQuery: currentQuery,
-        attemptsTaken: attempt,
-        searchHistory,
-      }
-    }
-    
-    // If this was the last attempt and no results, return failure
-    if (attempt === maxAttempts) {
-      console.log(`[pharma REACT] Failed to find results after ${maxAttempts} attempts`)
-      return {
-        success: false,
-        searchResults: null,
-        finalQuery: currentQuery,
-        attemptsTaken: attempt,
-        searchHistory,
-        message: `No results found after ${maxAttempts} search attempts`,
-      }
-    }
-    
-    // Otherwise, reason about the failure and generate a new query
-    console.log(`[pharma REACT] No results found. Reasoning about next query...`)
-    const reasoning = await reasonAndGenerateNextQuery(currentQuery, resultsCount, drugInfo)
-    
-    if (!reasoning || !reasoning.nextQuery) {
-      console.log(`[pharma REACT] Agent decided no better query possible`)
-      return {
-        success: false,
-        searchResults: null,
-        finalQuery: currentQuery,
-        attemptsTaken: attempt,
-        searchHistory,
-        message: `Agent determined no better search query possible after ${attempt} attempts`,
-      }
-    }
-    
-    console.log(`[pharma REACT] Reasoning: ${reasoning.reasoning}`)
-    console.log(`[pharma REACT] Next query: "${reasoning.nextQuery}" (confidence: ${reasoning.confidence})`)
-    
-    searchHistory[searchHistory.length - 1].reasoning = reasoning.reasoning
-    currentQuery = reasoning.nextQuery
-  }
-  
-  // Shouldn't reach here, but just in case
-  return {
-    success: false,
-    searchResults: null,
-    finalQuery: currentQuery,
-    attemptsTaken: maxAttempts,
-    searchHistory,
   }
 }
 
@@ -447,23 +329,25 @@ export async function POST(request: NextRequest) {
     
     console.log("[pharma] Extracted drug info:", drugInfo)
 
-    // Step 2 & 3: REACT search loop - iteratively search with reasoning
-    console.log("[pharma] Step 2: Starting REACT search loop...")
-    const reactResult = await reactSearchLoop(drugInfo, 3)
-    
-    if (!reactResult.success || !reactResult.searchResults) {
+    // Step 2: Generate search query
+    console.log("[pharma] Step 2: Generating search query...")
+    const searchQuery = await generateSearchQuery(drugInfo)
+    console.log("[pharma] Search query:", searchQuery)
+
+    // Step 3: Search Saudi FDA database
+    console.log("[pharma] Step 3: Searching Saudi FDA database...")
+    const searchResults = await searchSaudiFDA(searchQuery)
+    console.log("[pharma] Found drug IDs:", searchResults.drugIds)
+
+    if (searchResults.drugIds.length === 0) {
       return NextResponse.json({
         success: true,
         drugInfo,
-        searchQuery: reactResult.finalQuery,
-        searchHistory: reactResult.searchHistory,
-        attemptsTaken: reactResult.attemptsTaken,
-        message: reactResult.message || "No drugs found in Saudi FDA database after multiple search attempts",
+        searchQuery,
+        searchUrl: searchResults.searchUrl,
+        message: "No drugs found in Saudi FDA database matching the search criteria",
       })
     }
-
-    const searchResults = reactResult.searchResults
-    console.log("[pharma] REACT search succeeded: Found drug IDs:", searchResults.drugIds)
 
     // Step 4: For each drug ID, fetch details and try to match
     console.log("[pharma] Step 4: Fetching drug details and matching...")
@@ -481,10 +365,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         drugInfo,
-        searchQuery: reactResult.finalQuery,
+        searchQuery,
         searchUrl: searchResults.searchUrl,
-        searchHistory: reactResult.searchHistory,
-        attemptsTaken: reactResult.attemptsTaken,
         message: "Found drugs but failed to fetch details",
       })
     }
@@ -504,10 +386,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         drugInfo,
-        searchQuery: reactResult.finalQuery,
+        searchQuery,
         searchUrl: searchResults.searchUrl,
-        searchHistory: reactResult.searchHistory,
-        attemptsTaken: reactResult.attemptsTaken,
         matches: matchResult?.matches || [],
         message: "Could not determine best match",
       })
@@ -521,10 +401,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       drugInfo,
-      searchQuery: reactResult.finalQuery,
+      searchQuery,
       searchUrl: searchResults.searchUrl,
-      searchHistory: reactResult.searchHistory,
-      attemptsTaken: reactResult.attemptsTaken,
       matchedDrugId: bestMatchId,
       matchedDrugUrl: bestMatch.detailUrl,
       matches: matchResult?.matches || [],
