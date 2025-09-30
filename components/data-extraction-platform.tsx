@@ -1514,7 +1514,7 @@ export function DataExtractionPlatform() {
     const files = event.target.files
     if (!files) return
 
-    if (fields.length === 0 && activeSchema.templateId !== 'fnb-label-compliance') {
+    if (fields.length === 0 && activeSchema.templateId !== 'fnb-label-compliance' && selectedAgent !== 'pharma') {
       alert("Please define at least one column before uploading files.")
       return
     }
@@ -1589,6 +1589,77 @@ export function DataExtractionPlatform() {
           type: uploadType,
           size: uploadBlob.size,
           data: base64Data,
+        }
+
+        // Special Pharma E-Commerce Content Generation flow
+        if (selectedAgent === 'pharma') {
+          try {
+            // Prepare data for pharma API
+            const pharmaPayload: any = {
+              imageBase64: uploadType.startsWith('image/') ? base64Data : undefined,
+              fileName: uploadName,
+            }
+
+            // For non-image files, try to extract text
+            if (!uploadType.startsWith('image/')) {
+              // For text files, decode base64 to text
+              if (uploadType.includes('text') || uploadType.includes('csv')) {
+                const textBytes = atob(base64Data)
+                pharmaPayload.extractedText = textBytes
+              } else {
+                // For PDFs and other documents, send the file data
+                // The API will handle text extraction
+                pharmaPayload.fileData = fileData
+              }
+            }
+
+            const pharmaResponse = await fetch('/api/pharma/extract', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(pharmaPayload),
+            })
+
+            if (pharmaResponse.status === 413) {
+              throw new Error('The uploaded file exceeds the 3 MB limit. Please compress or resize the file and retry.')
+            }
+
+            if (!pharmaResponse.ok) {
+              const errText = await pharmaResponse.text().catch(() => `${pharmaResponse.status} ${pharmaResponse.statusText}`)
+              throw new Error(`Pharma extraction failed: ${pharmaResponse.status} ${pharmaResponse.statusText} - ${errText}`)
+            }
+
+            const pharmaResult = await pharmaResponse.json()
+
+            if (!pharmaResult?.success) {
+              throw new Error(pharmaResult?.error || 'Pharma extraction failed')
+            }
+
+            // Store pharma results
+            const finalResults: Record<string, any> = {
+              pharma_data: pharmaResult,
+            }
+
+            setJobs((prev) =>
+              prev.map((job) =>
+                job.id === newJob.id
+                  ? { ...job, status: 'completed', results: finalResults, completedAt: new Date() }
+                  : job,
+              ),
+            )
+            recordSuccessAndMaybeOpenRoi()
+          } catch (e) {
+            console.error('Pharma flow error:', e)
+            setJobs((prev) =>
+              prev.map((job) =>
+                job.id === newJob.id
+                  ? { ...job, status: 'error', completedAt: new Date() }
+                  : job,
+              ),
+            )
+          }
+          continue
         }
 
         // Special F&B Label Compliance flow: extraction then translation using fixed prompts
