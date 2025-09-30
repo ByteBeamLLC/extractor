@@ -63,7 +63,11 @@ export async function POST(request: NextRequest) {
       
       const substitutedPrompt = prompt.replace(/\{[^}]+\}/g, () => inputText)
       
-      const { text } = await generateText({
+      console.log("[bytebeam] Transform - Original prompt:", prompt)
+      console.log("[bytebeam] Transform - Input text:", inputText)
+      console.log("[bytebeam] Transform - Substituted prompt:", substitutedPrompt)
+      
+      const { text, toolCalls } = await generateText({
         model: google("gemini-2.5-pro"),
         temperature: 0.2,
         prompt: `You are a transformation assistant. Task: ${substitutedPrompt}\n\nInput value: ${inputText}\n\nReturn only the transformed value with no extra commentary.`,
@@ -71,6 +75,10 @@ export async function POST(request: NextRequest) {
           calculator: calculatorTool,
         },
       })
+      
+      console.log("[bytebeam] Transform - Tool calls:", toolCalls)
+      console.log("[bytebeam] Transform - Result:", text)
+      
       return NextResponse.json({ success: true, result: text })
     }
 
