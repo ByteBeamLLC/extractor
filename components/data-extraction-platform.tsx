@@ -31,10 +31,14 @@ import {
   type LeafField,
   type SchemaDefinition,
   type ExtractionJob,
+  type VisualGroup,
   flattenFields,
   updateFieldById,
   removeFieldById,
   flattenResultsById,
+  createVisualGroup,
+  addVisualGroup,
+  removeVisualGroup,
 } from "@/lib/schema"
  
 import {
@@ -684,38 +688,9 @@ export function DataExtractionPlatform() {
       return prev.map((schema) => {
         if (schema.id !== activeSchemaId) return schema
 
-        // Get the selected fields using the captured IDs
-        const selectedFields: SchemaField[] = []
-        const remainingFields: SchemaField[] = []
-        
-        schema.fields.forEach((field) => {
-          if (selectedIds.includes(field.id)) {
-            selectedFields.push(cloneField(field))
-          } else {
-            remainingFields.push(field)
-          }
-        })
-
-        if (selectedFields.length < 2) return schema
-
-        // Create the grouped object
-        const groupedObject: ObjectField = {
-          id: `field_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-          name: newGroupName,
-          type: 'object',
-          children: selectedFields,
-          description: `Grouped fields: ${selectedFields.map(f => f.name).join(', ')}`,
-        }
-
-        // Add the new grouped object at the position of the first selected field
-        const firstSelectedIndex = schema.fields.findIndex(f => selectedIds.includes(f.id))
-        const newFields = [...remainingFields]
-        newFields.splice(firstSelectedIndex, 0, groupedObject)
-
-        return {
-          ...schema,
-          fields: newFields,
-        }
+        // Create visual group (keeps fields intact, just adds visual grouping)
+        const newGroup = createVisualGroup(newGroupName, selectedIds)
+        return addVisualGroup(schema, newGroup)
       })
     })
 
@@ -3030,6 +3005,7 @@ export function DataExtractionPlatform() {
                   }}
                   onDeleteColumn={deleteColumn}
                   onColumnRightClick={handleColumnRightClick}
+                  visualGroups={activeSchema.visualGroups || []}
                 />
               </div>
             )}
