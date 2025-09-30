@@ -15,6 +15,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+build.log
+build*.log
 
 # env files
 .env*
@@ -25,3 +27,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Replit-specific files (do not push to production)
+.replit
+replit.nix
+replit.md
+
+# OS-specific files
+.DS_Store
+
+# Temporary/attached files
+attached_assets/
