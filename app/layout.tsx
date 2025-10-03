@@ -35,8 +35,16 @@ export default function RootLayout({
           <header className="fixed top-0 left-0 right-0 z-40 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="w-full px-4 py-2 sm:px-6 lg:px-8 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <img src="/bytebeam_logo.png" alt="Bytebeam" className="h-8 w-auto ml-0" />
-                {/* <span className="text-sm font-semibold tracking-tight">Bytebeam Extractor</span> */}
+
+<a href="https://bytebeam.co">
+  <img 
+    src="/bytebeam_logo.png" 
+    alt="Bytebeam" 
+    className="h-8 w-auto ml-0" 
+  />
+</a>                {/* <span className="text-sm font-semibold tracking-tight">Bytebeam Extractor</span> */}
+    
+            
               </div>
               <div className="flex items-center gap-2">
                 <GuideButton />
