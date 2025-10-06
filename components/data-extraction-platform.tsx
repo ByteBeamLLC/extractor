@@ -3671,7 +3671,7 @@ export function DataExtractionPlatform() {
           {roiStage === 'calc' ? (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Simple data extraction is just the start. The real power of ByteBeam is in automating the entire, multi‑step process that follows—turning raw documents into decisions, actions, and results.
+                Simple data extraction is just the start. The real power of Bytebeam is in automating the entire, multi‑step process that follows—turning raw documents into decisions, actions, and results.
               </p>
               <p className="text-sm">Imagine a workflow that can:</p>
               <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">

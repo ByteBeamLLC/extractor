@@ -10,9 +10,9 @@ import { GuideButton } from '@/components/GuideButton'
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
 export const metadata: Metadata = {
-  title: 'Bytebeam Extractor',
-  description: 'Bytebeam Extractor — AI-powered document and image data extraction.',
-  applicationName: 'Bytebeam Extractor',
+  title: 'SheetIT — by Bytebeam',
+  description: 'SheetIt is a free tool by Bytebeam that transforms documents and images into structured sheets.',
+  applicationName: 'SheetIt',
   generator: 'Bytebeam',
   icons: {
     icon: [
@@ -36,13 +36,19 @@ export default function RootLayout({
             <div className="w-full px-4 py-2 sm:px-6 lg:px-8 flex items-center justify-between">
               <div className="flex items-center gap-2">
 
-<a href="https://bytebeam.co">
-  <img 
-    src="/bytebeam_logo.png" 
-    alt="Bytebeam" 
-    className="h-8 w-auto ml-0" 
+<a
+  href="https://bytebeam.co"
+  className="flex items-center gap-3 rounded-full bg-white/90 px-3 py-2 shadow-sm ring-1 ring-slate-900/10 transition hover:bg-white"
+>
+  <img
+    src="/bytebeam-logo-icon.png"
+    alt="Bytebeam"
+    className="h-9 w-9"
   />
-</a>                {/* <span className="text-sm font-semibold tracking-tight">Bytebeam Extractor</span> */}
+  <span className="text-lg font-semibold tracking-tight text-slate-900">
+    SheetIT <span className="font-medium text-slate-500">by Bytebeam</span>
+  </span>
+</a>                
     
             
               </div>
@@ -51,7 +57,7 @@ export default function RootLayout({
                 <ContactUsButton source="topbar" />
                 <noscript>
                   <a
-                    href="mailto:support@bytebeam.ai?subject=ByteBeam%20Support"
+                    href="mailto:support@bytebeam.ai?subject=SheetIt%20Support"
                     className="inline-flex items-center rounded-md border border-border px-3 py-1.5 text-sm text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
                   >
                     Contact Us
