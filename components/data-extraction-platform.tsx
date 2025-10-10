@@ -43,6 +43,13 @@ import {
 } from "@/lib/schema"
  
 import {
+  buildDependencyGraph,
+  topologicalSort,
+  validateDependencies,
+  getFieldDependents,
+} from "@/lib/dependency-resolver"
+ 
+import {
   Upload,
   Plus,
   Settings,
@@ -1771,10 +1778,49 @@ export function DataExtractionPlatform() {
           // Flatten nested results (by field id) for grid/transform use
           const finalResults = flattenResultsById(fields, result.results)
 
-          // Apply transformations safely
-          displayColumns
-            .filter((col) => col.isTransformation)
-            .forEach((col) => {
+          // Validate dependencies before execution
+          const dependencyErrors = validateDependencies(displayColumns)
+          if (dependencyErrors.length > 0) {
+            console.warn('[bytebeam] Dependency validation errors:', dependencyErrors)
+          }
+
+          // Build dependency graph and execution waves
+          const graph = buildDependencyGraph(displayColumns)
+          const waves = topologicalSort(graph)
+          
+          // Track field status for error propagation
+          const fieldStatus = new Map<string, { status: 'success' | 'error' | 'blocked', error?: string }>()
+
+          // Execute transformations wave by wave (synchronous types first)
+          const synchronousTypes = ['calculation', 'currency_conversion', 'classification']
+          
+          for (const wave of waves) {
+            const syncFields = wave.fields.filter(col => 
+              col.isTransformation && synchronousTypes.includes(col.transformationType || '')
+            )
+            
+            syncFields.forEach((col) => {
+              // Check if any dependencies failed or are blocked
+              const dependencies = graph.edges.get(col.id) || new Set()
+              const blockedBy: string[] = []
+              
+              dependencies.forEach(depId => {
+                const depStatus = fieldStatus.get(depId)
+                if (depStatus && (depStatus.status === 'error' || depStatus.status === 'blocked')) {
+                  const depField = displayColumns.find(f => f.id === depId)
+                  blockedBy.push(depField?.name || depId)
+                }
+              })
+              
+              if (blockedBy.length > 0) {
+                fieldStatus.set(col.id, { 
+                  status: 'blocked', 
+                  error: `Blocked by failed dependencies: ${blockedBy.join(', ')}` 
+                })
+                finalResults[col.id] = `Error: Blocked by ${blockedBy.join(', ')}`
+                return
+              }
+              
               if (col.transformationType === "calculation" && col.transformationConfig) {
                 try {
                   let expression = col.transformationConfig
@@ -1844,9 +1890,12 @@ export function DataExtractionPlatform() {
                       finalResults[col.id] = 0
                     }
                   }
+                  fieldStatus.set(col.id, { status: 'success' })
                 } catch (e) {
                   console.error("Calculation error:", e)
-                  finalResults[col.id] = `Error: ${e instanceof Error ? e.message : "Invalid calculation"}`
+                  const errorMsg = `Error: ${e instanceof Error ? e.message : "Invalid calculation"}`
+                  finalResults[col.id] = errorMsg
+                  fieldStatus.set(col.id, { status: 'error', error: errorMsg })
                 }
               } else if (col.transformationType === "currency_conversion") {
                 try {
@@ -1908,6 +1957,7 @@ export function DataExtractionPlatform() {
                       const out = fn()
                       const num = typeof out === "number" && isFinite(out) ? out : 0
                       finalResults[col.id] = num
+                      fieldStatus.set(col.id, { status: 'success' })
                       return
                     }
                   }
@@ -1918,9 +1968,11 @@ export function DataExtractionPlatform() {
                     out = Math.round(out * p) / p
                   }
                   finalResults[col.id] = out
+                  fieldStatus.set(col.id, { status: 'success' })
                 } catch (e) {
                   console.error("Currency conversion error:", e)
                   finalResults[col.id] = 0
+                  fieldStatus.set(col.id, { status: 'error', error: String(e) })
                 }
               } else if (col.transformationType === "gemini_api") {
                 // Defer to server for LLM transformation
@@ -1929,10 +1981,13 @@ export function DataExtractionPlatform() {
               } else if (col.transformationType === "classification") {
                 // Simple classification based on rules
                 finalResults[col.id] = "Classified result"
+                fieldStatus.set(col.id, { status: 'success' })
               } else {
                 finalResults[col.id] = "Transformation result"
+                fieldStatus.set(col.id, { status: 'success' })
               }
             })
+          }
 
           // Update with initial transformation results (calc/currency/classification)
           setJobs((prev) =>
@@ -1948,12 +2003,35 @@ export function DataExtractionPlatform() {
             ),
           )
 
-          // Now perform any async Gemini transformations per column, then patch results into job
-          const geminiTransformColumns = displayColumns.filter(
-            (c) => c.isTransformation && c.transformationType === "gemini_api",
-          )
-          for (const tcol of geminiTransformColumns) {
-            try {
+          // Now perform any async Gemini transformations wave by wave
+          for (const wave of waves) {
+            const geminiFields = wave.fields.filter(col => 
+              col.isTransformation && col.transformationType === 'gemini_api'
+            )
+            
+            for (const tcol of geminiFields) {
+              // Check if any dependencies failed or are blocked
+              const dependencies = graph.edges.get(tcol.id) || new Set()
+              const blockedBy: string[] = []
+              
+              dependencies.forEach(depId => {
+                const depStatus = fieldStatus.get(depId)
+                if (depStatus && (depStatus.status === 'error' || depStatus.status === 'blocked')) {
+                  const depField = displayColumns.find(f => f.id === depId)
+                  blockedBy.push(depField?.name || depId)
+                }
+              })
+              
+              if (blockedBy.length > 0) {
+                fieldStatus.set(tcol.id, { 
+                  status: 'blocked', 
+                  error: `Blocked by failed dependencies: ${blockedBy.join(', ')}` 
+                })
+                finalResults[tcol.id] = `Error: Blocked by ${blockedBy.join(', ')}`
+                continue
+              }
+              
+              try {
               const source = tcol.transformationSource || "column"
               let payload: any = {
                 type: "gemini",
@@ -2005,12 +2083,18 @@ export function DataExtractionPlatform() {
                 let val: any = data.result
                 try { val = JSON.parse(data.result) } catch {}
                 finalResults[tcol.id] = val
+                fieldStatus.set(tcol.id, { status: 'success' })
               } else {
-                finalResults[tcol.id] = data?.error || "Transformation failed"
+                const errorMsg = data?.error || "Transformation failed"
+                finalResults[tcol.id] = errorMsg
+                fieldStatus.set(tcol.id, { status: 'error', error: errorMsg })
               }
-            } catch (e) {
-              console.error("Gemini transform error:", e)
-              finalResults[tcol.id] = "Error"
+              } catch (e) {
+                console.error("Gemini transform error:", e)
+                const errorMsg = "Error: " + String(e)
+                finalResults[tcol.id] = errorMsg
+                fieldStatus.set(tcol.id, { status: 'error', error: errorMsg })
+              }
             }
           }
 
