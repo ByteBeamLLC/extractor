@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { google } from "@ai-sdk/google"
 import { generateText, tool } from "ai"
 import { z } from "zod"
+import { tavily } from "@tavily/core"
 
 const calculatorTool = tool({
   description: "A comprehensive calculator tool for performing arithmetic operations. Use this whenever you need to calculate mathematical expressions, including basic arithmetic, exponentiation, square roots, and more. The calculator supports: addition (+), subtraction (-), multiplication (*), division (/), exponentiation (^), square root (sqrt), parentheses for grouping, and follows proper order of operations.",
@@ -14,6 +15,41 @@ const calculatorTool = tool({
       return { result, expression }
     } catch (error) {
       return { error: error instanceof Error ? error.message : "Invalid expression", expression }
+    }
+  },
+})
+
+const webSearchTool = tool({
+  description: "Search the web for current information, facts, news, or any information that requires up-to-date knowledge. Use this tool when you need to find information that may not be in your training data or when you need current/recent information. The search returns relevant web results with titles, URLs, and content snippets.",
+  inputSchema: z.object({
+    query: z.string().describe("The search query to look up on the web. Be specific and clear about what information you're looking for."),
+  }),
+  execute: async ({ query }) => {
+    try {
+      const apiKey = process.env.TAVILY_API_KEY
+      if (!apiKey) {
+        return { error: "TAVILY_API_KEY not configured" }
+      }
+
+      const tvly = tavily({ apiKey })
+      const response = await tvly.search(query, {
+        searchDepth: "basic",
+        maxResults: 5,
+      })
+
+      const results = response.results.map((result: any) => ({
+        title: result.title,
+        url: result.url,
+        content: result.content,
+      }))
+
+      return {
+        query,
+        results,
+        answer: response.answer || "No direct answer available",
+      }
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : "Web search failed", query }
     }
   },
 })
@@ -101,6 +137,7 @@ export async function POST(request: NextRequest) {
         prompt: aiPrompt,
         tools: {
           calculator: calculatorTool,
+          webSearch: webSearchTool,
         },
       })
       
@@ -165,6 +202,7 @@ export async function POST(request: NextRequest) {
         ],
         tools: {
           calculator: calculatorTool,
+          webSearch: webSearchTool,
         },
       })
       return NextResponse.json({ success: true, result: text })
@@ -178,6 +216,7 @@ export async function POST(request: NextRequest) {
       prompt: `You are a transformation assistant. Task: ${prompt}\n\nDocument:\n${docText}\n\nReturn only the transformed value with no extra commentary.`,
       tools: {
         calculator: calculatorTool,
+        webSearch: webSearchTool,
       },
     })
     return NextResponse.json({ success: true, result: text })

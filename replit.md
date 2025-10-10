@@ -20,13 +20,16 @@ Bytebeam Extractor is an AI-powered document and image data extraction platform 
   - Automated extraction of drug details (description, composition, usage, side effects, etc.)
 - Interactive data grid for viewing extracted results
 - Contact form integration with Google Sheets
-- Transform builder for data manipulation with Gemini AI and calculator tool
+- Transform builder for data manipulation with Gemini AI tools:
+  - **Calculator Tool**: Performs mathematical calculations and expressions
+  - **Web Search Tool**: Searches the web for current information using Tavily API
 - Visual column grouping with spanning headers for organizing related fields
 - Modern responsive UI with dark/light theme support
 
 ## Environment Setup
 The application requires the following environment variables:
 - `GOOGLE_GENERATIVE_AI_API_KEY`: Required for AI-powered extraction
+- `TAVILY_API_KEY`: Required for web search functionality in transform tool
 - `GOOGLE_SHEETS_WEBAPP_URL`: For contact form submissions
 - `GOOGLE_SHEETS_SECRET`: Optional secret for Apps Script
 - `NEXT_PUBLIC_BOOKING_URL`: Public scheduler URL for contact dialog
@@ -42,6 +45,13 @@ The application requires the following environment variables:
 - **Run**: `npm start`
 
 ## Recent Changes
+### 2025-10-10 (Web Search Tool Integration)
+- Added Tavily web search API integration to the transform tool
+- LLM can now browse the web for current information, facts, and real-time data
+- Web search tool works alongside calculator tool for enhanced AI capabilities
+- Configured TAVILY_API_KEY environment variable for secure API access
+- Search results include titles, URLs, and content snippets with up to 5 results per query
+
 ### 2025-09-30 (Pharma E-Commerce Content Generation Agent)
 - Added agent type selector to switch between "Standard Extraction" and "Pharma E-Commerce Content Generation"
 - Implemented pharma API endpoint (/api/pharma/extract) with:
