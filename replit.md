@@ -45,6 +45,18 @@ The application requires the following environment variables:
 - **Run**: `npm start`
 
 ## Recent Changes
+### 2025-10-10 (Type-Aware Transformations)
+- Implemented type-aware result formatting for transformation fields
+- Transformations now respect field type definitions (string, number, list, object, table, etc.)
+- Tool results (web search, calculator) are automatically formatted according to field schema
+- Added `generateObject` with Zod schema validation for structured types
+- Comprehensive edge case handling:
+  - Empty results return appropriate empty values ([] for lists, {} for objects)
+  - Partial data handled gracefully with schema.partial() for objects
+  - Validation errors fall back to text representation
+- Backward compatible: Fields without type info use legacy text formatting
+- Example: Web search for stores now returns structured array of {name, url, price} instead of text
+
 ### 2025-10-10 (Transformation Field Dependencies)
 - Implemented comprehensive transformation dependency system with cycle detection and topological sort
 - Transformations can now reference other transformation fields as inputs using `{Field Name}` syntax

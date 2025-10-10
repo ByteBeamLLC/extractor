@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { google } from "@ai-sdk/google"
-import { generateText, tool } from "ai"
+import { generateText, generateObject, tool } from "ai"
 import { z } from "zod"
 import { tavily } from "@tavily/core"
 
@@ -83,6 +83,106 @@ function evaluateExpression(expr: string): number {
   }
 }
 
+// Schema builder utilities for type-aware transformations
+function makePrimitive(fieldSchema: any): z.ZodTypeAny {
+  const type = fieldSchema.type === "decimal" ? "number" : fieldSchema.type
+  let prop: z.ZodTypeAny
+  
+  switch (type) {
+    case "number":
+      prop = z.number()
+      if (fieldSchema.constraints?.min !== undefined) prop = prop.min(fieldSchema.constraints.min)
+      if (fieldSchema.constraints?.max !== undefined) prop = prop.max(fieldSchema.constraints.max)
+      break
+    case "boolean":
+      prop = z.boolean()
+      break
+    case "date":
+      prop = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+      if (fieldSchema.constraints?.minLength !== undefined) prop = prop.min(fieldSchema.constraints.minLength)
+      if (fieldSchema.constraints?.maxLength !== undefined) prop = prop.max(fieldSchema.constraints.maxLength)
+      break
+    case "email":
+      prop = z.string().email()
+      if (fieldSchema.constraints?.minLength !== undefined) prop = prop.min(fieldSchema.constraints.minLength)
+      if (fieldSchema.constraints?.maxLength !== undefined) prop = prop.max(fieldSchema.constraints.maxLength)
+      break
+    case "url":
+      prop = z.string().url()
+      if (fieldSchema.constraints?.minLength !== undefined) prop = prop.min(fieldSchema.constraints.minLength)
+      if (fieldSchema.constraints?.maxLength !== undefined) prop = prop.max(fieldSchema.constraints.maxLength)
+      break
+    case "richtext":
+    case "address":
+    case "phone":
+    case "string":
+    default:
+      prop = z.string()
+      if (fieldSchema.constraints?.minLength !== undefined) prop = prop.min(fieldSchema.constraints.minLength)
+      if (fieldSchema.constraints?.maxLength !== undefined) prop = prop.max(fieldSchema.constraints.maxLength)
+      break
+  }
+  
+  return prop
+}
+
+function buildFieldSchema(fieldSchema: any): z.ZodTypeAny {
+  if (!fieldSchema || !fieldSchema.type) {
+    return z.string()
+  }
+  
+  const desc = `${fieldSchema.description || ""} ${fieldSchema.extractionInstructions || ""}`.trim()
+  
+  if (fieldSchema.type === "object") {
+    const shape: Record<string, z.ZodTypeAny> = {}
+    const children = fieldSchema.children || []
+    
+    for (const child of children) {
+      const childSchema = buildFieldSchema(child)
+      // Use id, name, or generate a key
+      const key = child.id || child.name || `field_${Object.keys(shape).length}`
+      shape[key] = childSchema
+    }
+    
+    let prop: z.ZodTypeAny = z.object(shape)
+    if (desc) prop = prop.describe(desc)
+    return prop
+  } else if (fieldSchema.type === "list") {
+    const item = fieldSchema.item
+    let zItem: z.ZodTypeAny
+    
+    if (item?.type === "object") {
+      zItem = buildFieldSchema(item)
+    } else if (item) {
+      zItem = makePrimitive(item)
+    } else {
+      zItem = z.string()
+    }
+    
+    let prop: z.ZodTypeAny = z.array(zItem)
+    if (desc) prop = prop.describe(desc)
+    return prop
+  } else if (fieldSchema.type === "table") {
+    const shape: Record<string, z.ZodTypeAny> = {}
+    const columns = fieldSchema.columns || []
+    
+    for (const col of columns) {
+      const colSchema = buildFieldSchema(col)
+      // Use id, name, or generate a key
+      const key = col.id || col.name || `col_${Object.keys(shape).length}`
+      shape[key] = colSchema
+    }
+    
+    let prop: z.ZodTypeAny = z.array(z.object(shape))
+    if (desc) prop = prop.describe(desc)
+    return prop
+  } else {
+    let prop = makePrimitive(fieldSchema)
+    if (desc) prop = prop.describe(desc)
+    return prop
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -98,6 +198,8 @@ export async function POST(request: NextRequest) {
 
     if (inputSource === "column") {
       const columnValues: Record<string, any> = body.columnValues || {}
+      const fieldType = body.fieldType
+      const fieldSchema = body.fieldSchema
       
       // Build a structured representation for the AI
       const columnContext: string[] = []
@@ -120,6 +222,8 @@ export async function POST(request: NextRequest) {
       console.log("[bytebeam] Transform - Column values:", columnValues)
       console.log("[bytebeam] Transform - Substituted prompt:", substitutedPrompt)
       console.log("[bytebeam] Transform - Column context:", columnContext)
+      console.log("[bytebeam] Transform - Field type:", fieldType)
+      console.log("[bytebeam] Transform - Field schema:", fieldSchema)
       
       // Build the AI prompt with context
       let aiPrompt = `You are a transformation assistant. Task: ${substitutedPrompt}\n\n`
@@ -145,40 +249,151 @@ export async function POST(request: NextRequest) {
       console.log("[bytebeam] Transform - Result text:", result.text)
       console.log("[bytebeam] Transform - Tool results:", result.toolResults)
       
-      let finalResult = result.text
+      let finalResult: any = result.text
       
-      if ((!finalResult || finalResult.trim() === '') && result.toolResults && result.toolResults.length > 0) {
-        const lastToolResult = result.toolResults[result.toolResults.length - 1]
-        console.log("[bytebeam] Transform - Last tool result:", lastToolResult)
+      // Check if we have tool results
+      const hasToolResults = result.toolResults && result.toolResults.length > 0
+      const lastToolResult = hasToolResults ? result.toolResults[result.toolResults.length - 1] : null
+      const toolOutput = lastToolResult?.output as any
+      
+      // If we have field type information, use type-aware formatting (for both tool results AND direct responses)
+      if (fieldType && fieldSchema) {
+        console.log("[bytebeam] Transform - Using type-aware formatting for type:", fieldType)
         
-        if (lastToolResult && lastToolResult.output) {
-          const toolOutput = lastToolResult.output as any
-          console.log("[bytebeam] Transform - Tool output:", toolOutput)
+        try {
+          // Build Zod schema for the field type
+          let zodSchema = buildFieldSchema(fieldSchema)
           
-          if (toolOutput && typeof toolOutput.result === 'number') {
-            finalResult = String(toolOutput.result)
-            console.log("[bytebeam] Transform - Extracted number from toolOutput.result:", finalResult)
-          } else if (typeof toolOutput === 'number') {
-            finalResult = String(toolOutput)
-            console.log("[bytebeam] Transform - Extracted number from toolOutput:", finalResult)
-          } else if (toolOutput && toolOutput.results && Array.isArray(toolOutput.results)) {
+          // For complex types (object, list, table), make schema more flexible with partial
+          if (fieldType === 'object' || fieldType === 'list' || fieldType === 'table') {
+            // Use partial() for objects to handle missing fields gracefully
+            if (fieldType === 'object') {
+              zodSchema = (zodSchema as z.ZodObject<any>).partial()
+            }
+          }
+          
+          // Build context from tool output OR direct LLM response
+          let sourceContext = ""
+          let isEmpty = false
+          
+          // Prefer tool output if available
+          if (hasToolResults && toolOutput) {
+            if (toolOutput.results && Array.isArray(toolOutput.results)) {
+              if (toolOutput.results.length === 0) {
+                isEmpty = true
+                sourceContext = "No results found"
+              } else {
+                sourceContext = JSON.stringify(toolOutput.results, null, 2)
+              }
+            } else if (toolOutput.result !== undefined) {
+              sourceContext = String(toolOutput.result)
+            } else if (toolOutput.answer && toolOutput.answer !== "No direct answer available") {
+              sourceContext = toolOutput.answer
+            } else if (toolOutput.error) {
+              isEmpty = true
+              sourceContext = `Error: ${toolOutput.error}`
+            } else {
+              sourceContext = JSON.stringify(toolOutput, null, 2)
+            }
+          } else if (result.text && result.text.trim()) {
+            // Use direct LLM response
+            sourceContext = result.text.trim()
+          } else {
+            isEmpty = true
+            sourceContext = "No content generated"
+          }
+          
+          // Handle empty results
+          if (isEmpty) {
+            console.log("[bytebeam] Transform - Empty or error result")
+            if (fieldType === 'list' || fieldType === 'table') {
+              finalResult = []
+            } else if (fieldType === 'object') {
+              finalResult = {}
+            } else {
+              // For primitives, maintain backward compatibility with empty string
+              finalResult = sourceContext
+            }
+          } else {
+            // Use generateObject for structured formatting
+            const formatPrompt = `Extract and format the following data according to the required schema.
+
+Source Data:
+${sourceContext}
+
+Original Task: ${substitutedPrompt}
+
+Instructions:
+- For list/table types: Extract all items as an array of objects. If no data, return empty array.
+- For object types: Extract fields matching the schema. Set missing fields to null.
+- For primitive types: Extract the single most relevant value.
+- Preserve all important information from the source data
+- For web search results, extract store names, URLs, and prices if available
+- Ensure data types match the schema (numbers as numbers, not strings)
+- If information is not available, use null for that field rather than omitting it`
+
+            const structuredResult = await generateObject({
+              model: google("gemini-2.5-pro"),
+              temperature: 0.1,
+              schema: zodSchema,
+              prompt: formatPrompt,
+            })
+            
+            finalResult = structuredResult.object
+            console.log("[bytebeam] Transform - Structured result:", JSON.stringify(finalResult, null, 2))
+          }
+          
+        } catch (error) {
+          console.error("[bytebeam] Transform - Type-aware formatting error:", error)
+          // Fall back to text representation on error
+          if (toolOutput?.results && Array.isArray(toolOutput.results)) {
+            // Format web search results as text
             const formattedResults = toolOutput.results.map((r: any, idx: number) => 
               `${idx + 1}. ${r.title}\n   ${r.url}\n   ${r.content}`
             ).join('\n\n')
             finalResult = formattedResults
-            console.log("[bytebeam] Transform - Extracted web search results, count:", toolOutput.results.length)
-          } else if (toolOutput && toolOutput.answer && toolOutput.answer !== "No direct answer available") {
-            finalResult = toolOutput.answer
-            console.log("[bytebeam] Transform - Extracted answer from web search:", finalResult)
+          } else if (toolOutput?.result !== undefined) {
+            // Return calculator result
+            finalResult = String(toolOutput.result)
+          } else if (result.text && result.text.trim()) {
+            // Fall back to direct LLM response text
+            finalResult = result.text.trim()
           } else {
-            console.log("[bytebeam] Transform - Could not extract result, toolOutput type:", typeof toolOutput)
+            // Last resort: error message
+            finalResult = "Error formatting result: " + (error instanceof Error ? error.message : String(error))
           }
+        }
+      } else if ((!finalResult || finalResult.trim() === '') && hasToolResults && toolOutput) {
+        // Fallback to legacy formatting for backward compatibility
+        console.log("[bytebeam] Transform - Using legacy formatting (no type info)")
+        
+        if (toolOutput && typeof toolOutput.result === 'number') {
+          finalResult = String(toolOutput.result)
+          console.log("[bytebeam] Transform - Extracted number from toolOutput.result:", finalResult)
+        } else if (typeof toolOutput === 'number') {
+          finalResult = String(toolOutput)
+          console.log("[bytebeam] Transform - Extracted number from toolOutput:", finalResult)
+        } else if (toolOutput && toolOutput.results && Array.isArray(toolOutput.results)) {
+          const formattedResults = toolOutput.results.map((r: any, idx: number) => 
+            `${idx + 1}. ${r.title}\n   ${r.url}\n   ${r.content}`
+          ).join('\n\n')
+          finalResult = formattedResults
+          console.log("[bytebeam] Transform - Extracted web search results, count:", toolOutput.results.length)
+        } else if (toolOutput && toolOutput.answer && toolOutput.answer !== "No direct answer available") {
+          finalResult = toolOutput.answer
+          console.log("[bytebeam] Transform - Extracted answer from web search:", finalResult)
+        } else {
+          console.log("[bytebeam] Transform - Could not extract result, toolOutput type:", typeof toolOutput)
         }
       }
       
       console.log("[bytebeam] Transform - Final result:", finalResult)
       
-      return NextResponse.json({ success: true, result: finalResult || "Error: No result" })
+      // Return the result (can be string, object, or array)
+      return NextResponse.json({ 
+        success: true, 
+        result: typeof finalResult === 'object' ? JSON.stringify(finalResult) : (finalResult || "Error: No result")
+      })
     }
 
     // inputSource === 'document'

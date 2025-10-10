@@ -2033,10 +2033,30 @@ export function DataExtractionPlatform() {
               
               try {
               const source = tcol.transformationSource || "column"
+              
+              // Build field schema for type-aware formatting
+              const fieldSchema: any = {
+                type: tcol.type,
+                name: tcol.name,
+                description: tcol.description,
+                constraints: tcol.constraints,
+              }
+              
+              // Add type-specific schema information
+              if (tcol.type === 'object' && 'children' in tcol) {
+                fieldSchema.children = tcol.children
+              } else if (tcol.type === 'list' && 'item' in tcol) {
+                fieldSchema.item = tcol.item
+              } else if (tcol.type === 'table' && 'columns' in tcol) {
+                fieldSchema.columns = tcol.columns
+              }
+              
               let payload: any = {
                 type: "gemini",
                 prompt: String(tcol.transformationConfig || ""),
                 inputSource: source,
+                fieldType: tcol.type,
+                fieldSchema: fieldSchema,
               }
               if (source === "document") {
                 payload.file = fileData
