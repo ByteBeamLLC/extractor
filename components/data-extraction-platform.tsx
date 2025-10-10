@@ -2941,39 +2941,37 @@ export function DataExtractionPlatform() {
           <div className="flex-1 overflow-auto min-h-0 min-w-0 relative">
             {(() => {
               // Determine display mode based on job agent types or selected agent
-              const hasJobs = sortedJobs.length > 0
               const selectedJob = sortedJobs.find((j) => j.id === selectedRowId) || sortedJobs[sortedJobs.length - 1]
-              const displayMode = hasJobs && selectedJob?.agentType ? selectedJob.agentType : selectedAgent
-              
-              if (displayMode === 'pharma') {
-                return (
-                  <div className="p-4 space-y-4">
-                    {/* Simple job selector */}
-                    {sortedJobs.length > 0 && (
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm text-muted-foreground">Jobs:</span>
-                        {sortedJobs.map((job, idx) => (
-                          <button
-                            key={job.id}
-                            onClick={() => setSelectedRowId(job.id)}
-                            className={`px-2 py-1 rounded border text-xs ${selectedRowId === job.id ? 'bg-accent text-accent-foreground' : 'bg-muted text-foreground'}`}
-                          >
-                            {idx + 1}. {job.fileName}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+              const displayMode = selectedJob?.agentType || selectedAgent
+              return displayMode
+            })() === 'pharma' ? (
+              <div className="p-4 space-y-4">
+                {/* Simple job selector */}
+                {sortedJobs.length > 0 && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm text-muted-foreground">Jobs:</span>
+                    {sortedJobs.map((job, idx) => (
+                      <button
+                        key={job.id}
+                        onClick={() => setSelectedRowId(job.id)}
+                        className={`px-2 py-1 rounded border text-xs ${selectedRowId === job.id ? 'bg-accent text-accent-foreground' : 'bg-muted text-foreground'}`}
+                      >
+                        {idx + 1}. {job.fileName}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
-                    {/* Selected job panels */}
-                    {(() => {
-                      const job = sortedJobs.find((j) => j.id === selectedRowId) || sortedJobs[sortedJobs.length - 1]
-                      if (!job) return (
-                        <div className="text-center py-12 text-muted-foreground">
-                          <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                          <p>No results yet. Upload a drug label image or document to get started.</p>
-                        </div>
-                      )
-                      const pharmaData = job.results?.pharma_data
+                {/* Selected job panels */}
+                {(() => {
+                  const job = sortedJobs.find((j) => j.id === selectedRowId) || sortedJobs[sortedJobs.length - 1]
+                  if (!job) return (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No results yet. Upload a drug label image or document to get started.</p>
+                    </div>
+                  )
+                  const pharmaData = job.results?.pharma_data
                   const drugInfo = pharmaData?.drugInfo
                   const detailedInfo = pharmaData?.detailedInfo
                   const matchedDrugUrl = pharmaData?.matchedDrugUrl
@@ -3194,13 +3192,11 @@ export function DataExtractionPlatform() {
                           </CardContent>
                         </Card>
                       )}
-                      </div>
-                    )
-                  })()}
-                </div>
-              )
-              } else if (activeSchema.templateId === 'fnb-label-compliance') {
-                return (
+                    </div>
+                  )
+                })()}
+              </div>
+            ) : activeSchema.templateId === 'fnb-label-compliance' ? (
               <div className="p-4 space-y-4">
                 {/* Simple job selector */}
                 {sortedJobs.length > 0 && (
@@ -3422,45 +3418,41 @@ export function DataExtractionPlatform() {
                         </CardContent>
                       </Card>
                     </div>
+                  )
+                })()}
+              </div>
+            ) : (
+              <div className="p-4 h-full">
+                <AgGridSheet
+                  columns={displayColumns}
+                  jobs={sortedJobs}
+                  selectedRowId={selectedRowId}
+                  onSelectRow={(jobId) => setSelectedRowId(jobId)}
+                  onAddColumn={() => addColumn()}
+                  renderCellValue={renderCellValue}
+                  getStatusIcon={getStatusIcon}
+                  renderStatusPill={renderStatusPill}
+                  onUpdateCell={(jobId, columnId, value) => {
+                    setJobs((prev) =>
+                      prev.map((job) =>
+                        job.id === jobId
+                          ? { ...job, results: { ...(job.results || {}), [columnId]: value } }
+                          : job,
+                      ),
                     )
-                  })()}
-                </div>
-              )
-              } else {
-                return (
-                  <div className="p-4 h-full">
-                    <AgGridSheet
-                      columns={displayColumns}
-                      jobs={sortedJobs}
-                      selectedRowId={selectedRowId}
-                      onSelectRow={(jobId) => setSelectedRowId(jobId)}
-                      onAddColumn={() => addColumn()}
-                      renderCellValue={renderCellValue}
-                      getStatusIcon={getStatusIcon}
-                      renderStatusPill={renderStatusPill}
-                      onUpdateCell={(jobId, columnId, value) => {
-                        setJobs((prev) =>
-                          prev.map((job) =>
-                            job.id === jobId
-                              ? { ...job, results: { ...(job.results || {}), [columnId]: value } }
-                              : job,
-                          ),
-                        )
-                      }}
-                      onEditColumn={(column) => {
-                        setSelectedColumn(column)
-                        setDraftColumn(JSON.parse(JSON.stringify(column)))
-                        setColumnDialogMode('edit')
-                        setIsColumnDialogOpen(true)
-                      }}
-                      onDeleteColumn={deleteColumn}
-                      onColumnRightClick={handleColumnRightClick}
-                      visualGroups={activeSchema.visualGroups || []}
-                    />
-                  </div>
-                )
-              }
-            })()}
+                  }}
+                  onEditColumn={(column) => {
+                    setSelectedColumn(column)
+                    setDraftColumn(JSON.parse(JSON.stringify(column)))
+                    setColumnDialogMode('edit')
+                    setIsColumnDialogOpen(true)
+                  }}
+                  onDeleteColumn={deleteColumn}
+                  onColumnRightClick={handleColumnRightClick}
+                  visualGroups={activeSchema.visualGroups || []}
+                />
+              </div>
+            )}
           </div>
       </div>
 
