@@ -38,16 +38,13 @@ export default function RootLayout({
 
 <a
   href="https://bytebeam.co"
-  className="flex items-center gap-3 rounded-full bg-white/90 px-3 py-2 shadow-sm ring-1 ring-slate-900/10 transition hover:bg-white"
+  className="flex items-center transition hover:opacity-80"
 >
   <img
-    src="/bytebeam-logo-icon.png"
-    alt="Bytebeam"
-    className="h-9 w-9"
+    src="/sheetit-logo.jpg"
+    alt="SheetIT by ByteBeam"
+    className="h-12"
   />
-  <span className="text-lg font-semibold tracking-tight text-slate-900">
-    SheetIT <span className="font-medium text-slate-500">by Bytebeam</span>
-  </span>
 </a>                
     
             
