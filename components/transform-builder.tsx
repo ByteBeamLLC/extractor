@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 import type { SchemaField, TransformationType, VisualGroup } from "@/lib/schema"
+import { getFieldDependents } from "@/lib/dependency-resolver"
 
 export function TransformBuilder(props: {
   allColumns: SchemaField[]
@@ -16,16 +17,29 @@ export function TransformBuilder(props: {
   visualGroups?: VisualGroup[]
 }) {
   const { allColumns, selected, onUpdate, visualGroups = [] } = props
-  const dataColumns = useMemo(() => allColumns.filter((c) => !c.isTransformation), [allColumns])
+  
+  const availableFields = useMemo(() => {
+    // Get fields that depend on the current field (to prevent circular deps)
+    const dependents = getFieldDependents(selected, allColumns)
+    const dependentIds = new Set(dependents.map(f => f.id))
+    
+    // Filter out: self, and any field that depends on this field
+    return allColumns.filter(c => 
+      c.id !== selected.id && !dependentIds.has(c.id)
+    )
+  }, [allColumns, selected])
 
   const [insertFn, setInsertFn] = useState<null | ((token: string) => void)>(null)
 
   // Create field guidance options: visual groups + individual fields
   const options = useMemo(() => {
     const groupOptions = visualGroups.map((g) => ({ id: g.id, label: g.name }))
-    const fieldOptions = dataColumns.map((c) => ({ id: c.id, label: c.name }))
+    const fieldOptions = availableFields.map((c) => ({ 
+      id: c.id, 
+      label: c.isTransformation ? `${c.name} (transform)` : c.name 
+    }))
     return [...groupOptions, ...fieldOptions]
-  }, [visualGroups, dataColumns])
+  }, [visualGroups, availableFields])
 
   const insertToken = (t: string) => {
     if (insertFn) insertFn(t)
@@ -113,13 +127,15 @@ export function TransformBuilder(props: {
               @{g.name}
             </Button>
           ))}
-          {dataColumns.map((c) => (
+          {availableFields.map((c) => (
             <Button
               key={c.id}
               type="button"
               size="sm"
               variant="secondary"
               onClick={() => insertToken(`{${c.name}}`)}
+              className={c.isTransformation ? "border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100" : ""}
+              title={c.isTransformation ? "Transformation field" : "Extraction field"}
             >
               @{c.name}
             </Button>
