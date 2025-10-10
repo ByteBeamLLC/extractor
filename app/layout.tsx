@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   generator: 'Bytebeam',
   icons: {
     icon: [
-      { url: '/bytebeam-logo-icon.png', type: 'image/png' },
+      { url: '/shetit_logo_v2.png', type: 'image/png' },
     ],
     shortcut: '/bytebeam-logo-icon.png',
     apple: '/bytebeam-logo-icon.png',
@@ -41,7 +41,7 @@ export default function RootLayout({
   className="flex items-center transition hover:opacity-80"
 >
   <img
-    src="/sheetit-logo.png"
+    src="/shetit_logo_v2.jpg"
     alt="SheetIT by ByteBeam"
     className="h-12"
   />
