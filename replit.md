@@ -45,6 +45,17 @@ The application requires the following environment variables:
 - **Run**: `npm start`
 
 ## Recent Changes
+### 2025-10-10 (Transformation Field Dependencies)
+- Implemented comprehensive transformation dependency system with cycle detection and topological sort
+- Transformations can now reference other transformation fields as inputs using `{Field Name}` syntax
+- Dependency graph automatically determines execution order using wave-based processing
+- Added cycle detection to prevent circular dependencies between transformations
+- Implemented error propagation - when a transformation fails, dependent transformations are blocked
+- UI updated to show transformation fields as available inputs in transform builder
+- Visual indicators show dependency relationships and blocked states
+- Supports both name-based `{Field}` and ID-based structured references for maximum compatibility
+- All resolution, validation, and execution logic handles dual name/ID lookup strategy
+
 ### 2025-10-10 (Web Search Tool Integration)
 - Added Tavily web search API integration to the transform tool
 - LLM can now browse the web for current information, facts, and real-time data
