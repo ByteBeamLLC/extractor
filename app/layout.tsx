@@ -41,7 +41,7 @@ export default function RootLayout({
   className="flex items-center transition hover:opacity-80"
 >
   <img
-    src="/shetit_logo_v2.jpg"
+    src="/sheetit_logo_v3.jpg"
     alt="SheetIT by ByteBeam"
     className="h-12"
   />
