@@ -82,6 +82,7 @@ export interface ExtractionJob {
   results?: Record<string, any> // flattened by leaf field id
   createdAt: Date
   completedAt?: Date
+  agentType?: "standard" | "pharma" // Track which agent processed this job
 }
 
 export interface VisualGroup {
