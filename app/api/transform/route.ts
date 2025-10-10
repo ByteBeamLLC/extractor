@@ -161,8 +161,17 @@ export async function POST(request: NextRequest) {
           } else if (typeof toolOutput === 'number') {
             finalResult = String(toolOutput)
             console.log("[bytebeam] Transform - Extracted number from toolOutput:", finalResult)
+          } else if (toolOutput && toolOutput.results && Array.isArray(toolOutput.results)) {
+            const formattedResults = toolOutput.results.map((r: any, idx: number) => 
+              `${idx + 1}. ${r.title}\n   ${r.url}\n   ${r.content}`
+            ).join('\n\n')
+            finalResult = formattedResults
+            console.log("[bytebeam] Transform - Extracted web search results, count:", toolOutput.results.length)
+          } else if (toolOutput && toolOutput.answer && toolOutput.answer !== "No direct answer available") {
+            finalResult = toolOutput.answer
+            console.log("[bytebeam] Transform - Extracted answer from web search:", finalResult)
           } else {
-            console.log("[bytebeam] Transform - Could not extract number, toolOutput type:", typeof toolOutput)
+            console.log("[bytebeam] Transform - Could not extract result, toolOutput type:", typeof toolOutput)
           }
         }
       }
