@@ -22,10 +22,31 @@ export interface DependencyError {
 export function extractFieldReferences(config: any): string[] {
   if (!config) return []
   
-  const configStr = typeof config === 'string' ? config : JSON.stringify(config)
-  const matches = configStr.match(/\{([^}]+)\}/g) || []
+  const refs = new Set<string>()
   
-  return matches.map(match => match.slice(1, -1).trim())
+  function extractFromValue(value: any) {
+    if (typeof value === 'string') {
+      const matches = value.match(/\{([^}]+)\}/g) || []
+      matches.forEach(match => {
+        const fieldName = match.slice(1, -1).trim()
+        if (fieldName) refs.add(fieldName)
+      })
+    } else if (typeof value === 'object' && value !== null) {
+      if (value.type === 'column' && value.value) {
+        const fieldRef = String(value.value).trim()
+        if (fieldRef) refs.add(fieldRef)
+      }
+      
+      if (Array.isArray(value)) {
+        value.forEach(extractFromValue)
+      } else {
+        Object.values(value).forEach(extractFromValue)
+      }
+    }
+  }
+  
+  extractFromValue(config)
+  return Array.from(refs)
 }
 
 export function buildDependencyGraph(fields: SchemaField[]): DependencyGraph {
@@ -40,14 +61,15 @@ export function buildDependencyGraph(fields: SchemaField[]): DependencyGraph {
   })
   
   const fieldsByName = new Map(fields.map(f => [f.name, f]))
+  const fieldsById = new Map(fields.map(f => [f.id, f]))
   
   fields.forEach(field => {
     if (!field.isTransformation) return
     
     const refs = extractFieldReferences(field.transformationConfig)
     
-    refs.forEach(refName => {
-      const refField = fieldsByName.get(refName)
+    refs.forEach(ref => {
+      const refField = fieldsByName.get(ref) || fieldsById.get(ref)
       if (refField) {
         edges.get(field.id)?.add(refField.id)
         reverseEdges.get(refField.id)?.add(field.id)
@@ -110,7 +132,7 @@ export function detectSelfReferences(fields: SchemaField[]): DependencyError[] {
     if (!field.isTransformation) return
     
     const refs = extractFieldReferences(field.transformationConfig)
-    if (refs.includes(field.name)) {
+    if (refs.includes(field.name) || refs.includes(field.id)) {
       errors.push({
         type: 'self-reference',
         fieldId: field.id,
@@ -125,18 +147,19 @@ export function detectSelfReferences(fields: SchemaField[]): DependencyError[] {
 export function detectMissingReferences(fields: SchemaField[]): DependencyError[] {
   const errors: DependencyError[] = []
   const fieldNames = new Set(fields.map(f => f.name))
+  const fieldIds = new Set(fields.map(f => f.id))
   
   fields.forEach(field => {
     if (!field.isTransformation) return
     
     const refs = extractFieldReferences(field.transformationConfig)
-    refs.forEach(refName => {
-      if (!fieldNames.has(refName)) {
+    refs.forEach(ref => {
+      if (!fieldNames.has(ref) && !fieldIds.has(ref)) {
         errors.push({
           type: 'missing',
           fieldId: field.id,
           fieldName: field.name,
-          missingRef: refName
+          missingRef: ref
         })
       }
     })
@@ -204,9 +227,10 @@ export function topologicalSort(graph: DependencyGraph): ExecutionWave[] {
 export function getFieldDependencies(field: SchemaField, allFields: SchemaField[]): SchemaField[] {
   const refs = extractFieldReferences(field.transformationConfig)
   const fieldsByName = new Map(allFields.map(f => [f.name, f]))
+  const fieldsById = new Map(allFields.map(f => [f.id, f]))
   
   return refs
-    .map(refName => fieldsByName.get(refName))
+    .map(ref => fieldsByName.get(ref) || fieldsById.get(ref))
     .filter((f): f is SchemaField => f !== undefined)
 }
 
@@ -217,7 +241,7 @@ export function getFieldDependents(field: SchemaField, allFields: SchemaField[])
     if (!f.isTransformation) return
     
     const refs = extractFieldReferences(f.transformationConfig)
-    if (refs.includes(field.name)) {
+    if (refs.includes(field.name) || refs.includes(field.id)) {
       dependents.push(f)
     }
   })

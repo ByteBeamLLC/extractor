@@ -2089,7 +2089,7 @@ export function DataExtractionPlatform() {
                 finalResults[tcol.id] = errorMsg
                 fieldStatus.set(tcol.id, { status: 'error', error: errorMsg })
               }
-              } catch (e) {
+            } catch (e) {
                 console.error("Gemini transform error:", e)
                 const errorMsg = "Error: " + String(e)
                 finalResults[tcol.id] = errorMsg
