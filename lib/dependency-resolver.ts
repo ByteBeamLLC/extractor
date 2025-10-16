@@ -19,6 +19,11 @@ export interface DependencyError {
   missingRef?: string
 }
 
+export interface DependencyValidationResult {
+  errors: DependencyError[]
+  unresolvable: string[]
+}
+
 export function extractFieldReferences(config: any): string[] {
   if (!config) return []
   
@@ -168,18 +173,34 @@ export function detectMissingReferences(fields: SchemaField[]): DependencyError[
   return errors
 }
 
-export function validateDependencies(fields: SchemaField[]): DependencyError[] {
+function materializeFields(input: DependencyGraph | SchemaField[]): SchemaField[] {
+  if (Array.isArray(input)) return input
+  return Array.from(input.nodes.values())
+}
+
+function ensureGraph(input: DependencyGraph | SchemaField[]): DependencyGraph {
+  if (Array.isArray(input)) return buildDependencyGraph(input)
+  return input
+}
+
+export function validateDependencies(input: DependencyGraph | SchemaField[]): DependencyValidationResult {
+  const fields = materializeFields(input)
+  const graph = ensureGraph(input)
+
   const errors: DependencyError[] = []
+  const missingOrSelf: DependencyError[] = []
+
+  missingOrSelf.push(...detectSelfReferences(fields))
+  missingOrSelf.push(...detectMissingReferences(fields))
+  errors.push(...missingOrSelf)
   
-  errors.push(...detectSelfReferences(fields))
-  errors.push(...detectMissingReferences(fields))
-  
-  if (errors.length === 0) {
-    const graph = buildDependencyGraph(fields)
+  if (missingOrSelf.length === 0) {
     errors.push(...detectCycles(graph))
   }
+
+  const unresolvable = missingOrSelf.map((error) => error.fieldId)
   
-  return errors
+  return { errors, unresolvable }
 }
 
 export function topologicalSort(graph: DependencyGraph): ExecutionWave[] {

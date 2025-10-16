@@ -1,6 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { google } from "@ai-sdk/google"
 import { generateText } from "ai"
+import type { SupabaseClient } from "@supabase/supabase-js"
+
+import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { upsertJobStatus, type JobMetadata } from "@/lib/jobs/server"
+import type { Database } from "@/lib/supabase/types"
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -174,10 +179,57 @@ function tryParseJSON(text: string): any | null {
 
 export async function POST(request: NextRequest) {
   try {
+    let supabase: SupabaseClient<Database> | null = null
+    let userId: string | null = null
+    let jobMeta: JobMetadata | null = null
+    const syncJob = async (patch: Parameters<typeof upsertJobStatus>[3]) => {
+      if (!supabase || !userId || !jobMeta) return
+      try {
+        await upsertJobStatus(supabase, userId, jobMeta, patch)
+      } catch (error) {
+        console.error('[fnb] translate sync error:', error)
+      }
+    }
+
     const body = await request.json()
     const source = body?.source
     if (!source) return NextResponse.json({ success: false, error: "Missing source JSON" }, { status: 400 })
     const sourceText = typeof source === 'string' ? source : JSON.stringify(source)
+
+    if (body?.job && typeof body.job === 'object') {
+      const rawJob = body.job as Record<string, any>
+      const maybeJob: JobMetadata = {
+        jobId: typeof rawJob.jobId === 'string' ? rawJob.jobId : '',
+        schemaId: typeof rawJob.schemaId === 'string' ? rawJob.schemaId : '',
+        fileName: typeof rawJob.fileName === 'string' ? rawJob.fileName : undefined,
+        agentType: typeof rawJob.agentType === 'string' ? rawJob.agentType : undefined,
+        userId: typeof rawJob.userId === 'string' ? rawJob.userId : undefined,
+      }
+      if (maybeJob.jobId && maybeJob.schemaId) {
+        jobMeta = maybeJob
+      }
+    }
+
+    if (jobMeta) {
+      try {
+        supabase = createSupabaseServerClient()
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+        userId = user?.id ?? null
+      } catch (error) {
+        console.warn('[fnb] translate Supabase init failed:', error)
+        supabase = null
+        userId = null
+      }
+
+      if (supabase && userId) {
+        await syncJob({ status: "processing", completedAt: null })
+      } else {
+        supabase = null
+        userId = null
+      }
+    }
 
     const { text } = await generateText({
       model: google("gemini-2.5-pro"),
@@ -186,10 +238,34 @@ export async function POST(request: NextRequest) {
     })
 
     const parsed = tryParseJSON(text)
-    if (!parsed) return NextResponse.json({ success: false, error: "Failed to parse translation JSON" }, { status: 200 })
+    if (!parsed) {
+      await syncJob({
+        status: "error",
+        completedAt: new Date(),
+        errorMessage: "Failed to parse translation JSON",
+      })
+      return NextResponse.json({ success: false, error: "Failed to parse translation JSON" }, { status: 200 })
+    }
+
+    const finalResults: Record<string, any> = {
+      fnb_extraction: body?.extraction ?? null,
+      fnb_translation: parsed,
+    }
+    await syncJob({
+      status: "completed",
+      results: finalResults,
+      completedAt: new Date(),
+    })
+
     return NextResponse.json({ success: true, data: parsed })
   } catch (e) {
     console.error("[fnb] translate error", e)
-    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : "Unknown error" }, { status: 500 })
+    const errorMessage = e instanceof Error ? e.message : "Unknown error"
+    await syncJob({
+      status: "error",
+      completedAt: new Date(),
+      errorMessage,
+    })
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 })
   }
 }

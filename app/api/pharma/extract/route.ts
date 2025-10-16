@@ -1,6 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { google } from "@ai-sdk/google"
 import { generateText } from "ai"
+import type { SupabaseClient } from "@supabase/supabase-js"
+
+import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { upsertJobStatus, type JobMetadata } from "@/lib/jobs/server"
+import type { Database } from "@/lib/supabase/types"
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -301,17 +306,70 @@ async function findBestMatch(originalDrugInfo: any, searchResultsHtml: string, d
 
 export async function POST(request: NextRequest) {
   try {
+    let supabase: SupabaseClient<Database> | null = null
+    let userId: string | null = null
+    let jobMeta: JobMetadata | null = null
+    const syncJob = async (patch: Parameters<typeof upsertJobStatus>[3]) => {
+      if (!supabase || !userId || !jobMeta) return
+      try {
+        await upsertJobStatus(supabase, userId, jobMeta, patch)
+      } catch (syncError) {
+        console.error("[pharma] Failed to sync job status:", syncError)
+      }
+    }
+
     const body = await request.json()
+
+    if (body?.job && typeof body.job === "object") {
+      const rawJob = body.job as Record<string, any>
+      const maybeJob: JobMetadata = {
+        jobId: typeof rawJob.jobId === "string" ? rawJob.jobId : "",
+        schemaId: typeof rawJob.schemaId === "string" ? rawJob.schemaId : "",
+        fileName: typeof rawJob.fileName === "string" ? rawJob.fileName : undefined,
+        agentType: typeof rawJob.agentType === "string" ? rawJob.agentType : undefined,
+        userId: typeof rawJob.userId === "string" ? rawJob.userId : undefined,
+      }
+      if (maybeJob.jobId && maybeJob.schemaId) {
+        jobMeta = maybeJob
+      }
+    }
+
+    if (jobMeta) {
+      try {
+        supabase = createSupabaseServerClient()
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+        userId = user?.id ?? null
+      } catch (error) {
+        console.warn("[pharma] Unable to initialize Supabase client:", error)
+        supabase = null
+        userId = null
+      }
+
+      if (supabase && userId) {
+        await syncJob({ status: "processing", results: null, completedAt: null })
+      } else {
+        supabase = null
+        userId = null
+      }
+    }
     
     console.log("[pharma] Starting drug extraction")
     
     const { imageBase64, extractedText, fileName } = body
+    if (fileName && jobMeta) {
+      jobMeta.fileName = fileName
+    }
     
     if (!imageBase64 && !extractedText) {
-      return NextResponse.json(
-        { success: false, error: "No image or text provided" },
-        { status: 400 }
-      )
+      const responsePayload = { success: false, error: "No image or text provided" }
+      await syncJob({
+        status: "error",
+        completedAt: new Date(),
+        errorMessage: responsePayload.error,
+      })
+      return NextResponse.json(responsePayload, { status: 400 })
     }
 
     // Step 1: Extract drug identifiers from the uploaded file
@@ -319,10 +377,13 @@ export async function POST(request: NextRequest) {
     const drugInfo = await extractDrugIdentifiers(imageBase64, extractedText)
     
     if (!drugInfo) {
-      return NextResponse.json(
-        { success: false, error: "Failed to extract drug information" },
-        { status: 500 }
-      )
+      const responsePayload = { success: false, error: "Failed to extract drug information" }
+      await syncJob({
+        status: "error",
+        completedAt: new Date(),
+        errorMessage: responsePayload.error,
+      })
+      return NextResponse.json(responsePayload, { status: 500 })
     }
     
     console.log("[pharma] Extracted drug info:", drugInfo)
@@ -338,13 +399,19 @@ export async function POST(request: NextRequest) {
     console.log("[pharma] Found drug IDs:", searchResults.drugIds)
 
     if (searchResults.drugIds.length === 0) {
-      return NextResponse.json({
+      const responsePayload = {
         success: true,
         drugInfo,
         searchQuery,
         searchUrl: searchResults.searchUrl,
         message: "No drugs found in Saudi FDA database matching the search criteria",
+      }
+      await syncJob({
+        status: "completed",
+        results: { pharma_data: responsePayload },
+        completedAt: new Date(),
       })
+      return NextResponse.json(responsePayload)
     }
 
     // Step 4: For each drug ID, fetch details and try to match
@@ -360,13 +427,19 @@ export async function POST(request: NextRequest) {
     const validDrugDetails = allDrugDetails.filter(d => d !== null)
     
     if (validDrugDetails.length === 0) {
-      return NextResponse.json({
+      const responsePayload = {
         success: true,
         drugInfo,
         searchQuery,
         searchUrl: searchResults.searchUrl,
         message: "Found drugs but failed to fetch details",
+      }
+      await syncJob({
+        status: "completed",
+        results: { pharma_data: responsePayload },
+        completedAt: new Date(),
       })
+      return NextResponse.json(responsePayload)
     }
 
     // Step 5: Find best match using AI
@@ -381,14 +454,20 @@ export async function POST(request: NextRequest) {
     const bestMatch = validDrugDetails.find(d => d!.detailUrl.includes(`drugId=${bestMatchId}`))
 
     if (!bestMatch) {
-      return NextResponse.json({
+      const responsePayload = {
         success: true,
         drugInfo,
         searchQuery,
         searchUrl: searchResults.searchUrl,
         matches: matchResult?.matches || [],
         message: "Could not determine best match",
+      }
+      await syncJob({
+        status: "completed",
+        results: { pharma_data: responsePayload },
+        completedAt: new Date(),
       })
+      return NextResponse.json(responsePayload)
     }
 
     // Step 6: Extract detailed information from best match
@@ -396,7 +475,7 @@ export async function POST(request: NextRequest) {
     const detailedInfo = await extractDrugDetails(bestMatch.html)
     console.log("[pharma] Extracted detailed info:", JSON.stringify(detailedInfo, null, 2))
 
-    return NextResponse.json({
+    const responsePayload = {
       success: true,
       drugInfo,
       searchQuery,
@@ -405,14 +484,26 @@ export async function POST(request: NextRequest) {
       matchedDrugUrl: bestMatch.detailUrl,
       matches: matchResult?.matches || [],
       detailedInfo,
+    }
+    await syncJob({
+      status: "completed",
+      results: { pharma_data: responsePayload },
+      completedAt: new Date(),
     })
+    return NextResponse.json(responsePayload)
 
   } catch (error) {
     console.error("[pharma] Extraction error:", error)
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
+    await syncJob({
+      status: "error",
+      completedAt: new Date(),
+      errorMessage,
+    })
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: errorMessage,
       },
       { status: 500 }
     )

@@ -98,6 +98,8 @@ export interface SchemaDefinition {
   jobs: ExtractionJob[]
   templateId?: string
   visualGroups?: VisualGroup[] // Visual grouping for display only, doesn't affect data structure
+  createdAt?: Date
+  updatedAt?: Date
 }
 
 // Helpers

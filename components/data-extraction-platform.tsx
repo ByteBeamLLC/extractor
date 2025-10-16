@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useRef, useEffect, useMemo } from "react"
+import { useState, useRef, useEffect, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -10,7 +10,17 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 // import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -21,6 +31,8 @@ import { AgGridSheet } from "./ag-grid-sheet"
 import { TransformBuilder } from "@/components/transform-builder"
 import { cn } from "@/lib/utils"
  
+type AgentType = "standard" | "pharma"
+
 import {
   type DataType,
   type DataPrimitive,
@@ -48,6 +60,10 @@ import {
   validateDependencies,
   getFieldDependents,
 } from "@/lib/dependency-resolver"
+import {
+  sanitizeResultsFromFlat,
+  sanitizeResultsFromTree,
+} from "@/lib/extraction-results"
  
 import {
   Upload,
@@ -78,8 +94,16 @@ import {
   Layers,
   Edit,
   Save,
+  Loader2,
+  Sparkle,
 } from "lucide-react"
- 
+import { formatDistanceToNow } from "date-fns"
+import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
+import type { Database } from "@/lib/supabase/types"
+import { useAuthDialog } from "@/components/auth/AuthDialogContext"
+import { useToast } from "@/components/ui/use-toast"
+import type { SchemaTemplateDefinition } from "@/lib/schema-templates"
+import { cloneSchemaFields, getStaticSchemaTemplates } from "@/lib/schema-templates"
 
 // Types moved to lib/schema
 
@@ -208,6 +232,157 @@ async function maybeDownscaleImage(
   } catch {
     return { blob: file, type: file.type || 'application/octet-stream', name: file.name }
   }
+}
+
+type SchemaRow = Database["public"]["Tables"]["schemas"]["Row"]
+type ExtractionJobRow = Database["public"]["Tables"]["extraction_jobs"]["Row"]
+
+type SchemaSyncInfo = {
+  status: 'idle' | 'saving' | 'error'
+  updatedAt?: Date
+  error?: string
+}
+
+function generateUuid(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID()
+  }
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`
+}
+
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+function isValidUuid(value: string | null | undefined): value is string {
+  return typeof value === "string" && UUID_REGEX.test(value)
+}
+
+function createInitialSchemaDefinition(): SchemaDefinition {
+  return {
+    id: generateUuid(),
+    name: "Data Extraction Schema",
+    fields: [],
+    jobs: [],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }
+}
+
+function schemaRowToDefinition(row: SchemaRow, jobRows: ExtractionJobRow[]): SchemaDefinition {
+  const jobs = jobRows
+    .filter((job) => job.schema_id === row.id)
+    .map((job) => extractionJobRowToJob(job))
+
+  return {
+    id: row.id,
+    name: row.name ?? "Data Extraction Schema",
+    fields: Array.isArray(row.fields) ? (row.fields as unknown as SchemaField[]) : [],
+    jobs,
+    templateId: row.template_id ?? undefined,
+    visualGroups: Array.isArray(row.visual_groups)
+      ? (row.visual_groups as unknown as VisualGroup[])
+      : undefined,
+    createdAt: row.created_at ? new Date(row.created_at) : undefined,
+    updatedAt: row.updated_at ? new Date(row.updated_at) : undefined,
+  }
+}
+
+function extractionJobRowToJob(row: ExtractionJobRow): ExtractionJob {
+  return {
+    id: row.id,
+    fileName: row.file_name,
+    status: row.status,
+    results: (row.results as Record<string, any> | null) ?? undefined,
+    createdAt: row.created_at ? new Date(row.created_at) : new Date(),
+    completedAt: row.completed_at ? new Date(row.completed_at) : undefined,
+    agentType: row.agent_type ?? undefined,
+  }
+}
+
+function schemaDefinitionToRow(schema: SchemaDefinition, userId: string): SchemaRow {
+  return {
+    id: schema.id,
+    user_id: userId,
+    name: schema.name,
+    fields: schema.fields as unknown as SchemaRow["fields"],
+    template_id: schema.templateId ?? null,
+    visual_groups: (schema.visualGroups ?? null) as unknown as SchemaRow["visual_groups"],
+    created_at: schema.createdAt ? schema.createdAt.toISOString() : null,
+    updated_at: new Date().toISOString(),
+  }
+}
+
+function extractionJobToRow(job: ExtractionJob, schemaId: string, userId: string): ExtractionJobRow {
+  return {
+    id: job.id,
+    schema_id: schemaId,
+    user_id: userId,
+    file_name: job.fileName,
+    status: job.status,
+    results: (job.results ?? null) as unknown as ExtractionJobRow["results"],
+    agent_type: job.agentType ?? null,
+    created_at: job.createdAt?.toISOString() ?? new Date().toISOString(),
+    completed_at: job.completedAt ? job.completedAt.toISOString() : null,
+  }
+}
+
+function jobsShallowEqual(a: ExtractionJob, b: ExtractionJob): boolean {
+  if (a === b) {
+    return true
+  }
+
+  const createdAtA = a.createdAt ? a.createdAt.getTime() : null
+  const createdAtB = b.createdAt ? b.createdAt.getTime() : null
+  const completedAtA = a.completedAt ? a.completedAt.getTime() : null
+  const completedAtB = b.completedAt ? b.completedAt.getTime() : null
+
+  const resultsA = a.results ?? null
+  const resultsB = b.results ?? null
+  const resultsEqual = JSON.stringify(resultsA) === JSON.stringify(resultsB)
+
+  return (
+    a.id === b.id &&
+    a.fileName === b.fileName &&
+    a.status === b.status &&
+    (a.agentType ?? null) === (b.agentType ?? null) &&
+    createdAtA === createdAtB &&
+    completedAtA === completedAtB &&
+    resultsEqual
+  )
+}
+
+function diffJobLists(prevJobs: ExtractionJob[], nextJobs: ExtractionJob[]) {
+  const prevMap = new Map(prevJobs.map((job) => [job.id, job]))
+  const upsert: ExtractionJob[] = []
+  const deleted: string[] = []
+
+  for (const job of nextJobs) {
+    const prev = prevMap.get(job.id)
+    if (!prev) {
+      upsert.push(job)
+    } else {
+      if (!jobsShallowEqual(prev, job)) {
+        upsert.push(job)
+      }
+      prevMap.delete(job.id)
+    }
+  }
+
+  prevMap.forEach((_, jobId) => {
+    deleted.push(jobId)
+  })
+
+  return { upsert, deleted }
+}
+
+function upsertJobInList(list: ExtractionJob[], job: ExtractionJob): ExtractionJob[] {
+  const index = list.findIndex((existing) => existing.id === job.id)
+  if (index === -1) {
+    return [...list, job]
+  }
+  const next = [...list]
+  next[index] = job
+  return next
 }
 
 //
@@ -365,26 +540,140 @@ async function maybeDownscaleImage(
   )
 } */
 
-export function DataExtractionPlatform() {
-  const initialSchema: SchemaDefinition = {
-    id: `schema_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-    name: "Data Extraction Schema",
-    fields: [],
-    jobs: [],
+interface DataExtractionPlatformProps {
+  externalActiveSchemaId?: string
+  onSchemasChanged?: (schemas: SchemaDefinition[]) => void
+  pendingSchemaCreate?: {
+    id: string
+    name: string
+    templateId?: string | null
+    agent: AgentType
+  } | null
+  onPendingCreateConsumed?: () => void
+  templateLibrary?: SchemaTemplateDefinition[]
+  onCreateTemplate?: (
+    schema: SchemaDefinition,
+    input: { name: string; description?: string; agent: AgentType },
+  ) => Promise<{ success: true; template: SchemaTemplateDefinition } | { success: false; error: string }>
+}
+
+export function DataExtractionPlatform({
+  externalActiveSchemaId,
+  onSchemasChanged,
+  pendingSchemaCreate,
+  onPendingCreateConsumed,
+  templateLibrary,
+  onCreateTemplate,
+}: DataExtractionPlatformProps = {}) {
+  const initialSchemaRef = useRef<SchemaDefinition | null>(null)
+  if (!initialSchemaRef.current) {
+    initialSchemaRef.current = createInitialSchemaDefinition()
   }
-  const [schemas, setSchemas] = useState<SchemaDefinition[]>([initialSchema])
-  const [activeSchemaId, setActiveSchemaId] = useState<string>(initialSchema.id)
-  const activeSchema = schemas.find((s) => s.id === activeSchemaId) || initialSchema
-  // Agent type selection
-  type AgentType = "standard" | "pharma"
+  const [schemas, setSchemas] = useState<SchemaDefinition[]>([initialSchemaRef.current])
+  const schemasRef = useRef<SchemaDefinition[]>([initialSchemaRef.current])
+  const [activeSchemaId, setActiveSchemaId] = useState<string>(initialSchemaRef.current.id)
+  const activeSchema = schemas.find((s) => s.id === activeSchemaId) || initialSchemaRef.current
+  const isEmbedded = Boolean(externalActiveSchemaId)
   const [selectedAgent, setSelectedAgent] = useState<AgentType>("standard")
   const fields = activeSchema.fields
   const jobs = activeSchema.jobs
   const displayColumns = useMemo(() => flattenFields(fields), [fields])
+  const session = useSession()
+  const supabase = useSupabaseClient()
+  const { openAuthDialog } = useAuthDialog()
+  const { toast } = useToast()
+  const [isWorkspaceLoading, setIsWorkspaceLoading] = useState(false)
+  const [loadWorkspaceError, setLoadWorkspaceError] = useState<string | null>(null)
+  const [schemaSyncState, setSchemaSyncState] = useState<Record<string, SchemaSyncInfo>>({})
+  const schemaSyncStateRef = useRef<Record<string, SchemaSyncInfo>>({})
+  const lastLoadedUserIdRef = useRef<string | null>(null)
+  const guestSchemasRef = useRef<SchemaDefinition[] | null>(null)
+  const guestPromptShownRef = useRef(false)
+  const [schemaDeletionDialog, setSchemaDeletionDialog] = useState<SchemaDefinition | null>(null)
+  const hasInitialLoadCompletedRef = useRef(false)
+  const autoAppliedTemplatesRef = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    if (!externalActiveSchemaId) return
+    setActiveSchemaId((current) => {
+      if (current === externalActiveSchemaId) return current
+      const exists = schemas.some((schema) => schema.id === externalActiveSchemaId)
+      return exists ? externalActiveSchemaId : current
+    })
+  }, [externalActiveSchemaId, schemas])
+  useEffect(() => {
+    onSchemasChanged?.(schemas)
+  }, [schemas, onSchemasChanged])
+  useEffect(() => {
+    schemasRef.current = schemas
+  }, [schemas])
+  useEffect(() => {
+    schemaSyncStateRef.current = schemaSyncState
+  }, [schemaSyncState])
+  useEffect(() => {
+    if (!isEmbedded) return
+    const nextAgent = inferAgentTypeFromSchema(activeSchema)
+    setSelectedAgent((prev) => (prev === nextAgent ? prev : nextAgent))
+  }, [isEmbedded, activeSchemaId, activeSchema.templateId])
+  const applySchemaUpdate = useCallback(
+    (schemaId: string, updater: (schema: SchemaDefinition) => SchemaDefinition): SchemaDefinition | null => {
+      let updatedSchema: SchemaDefinition | null = null
+      setSchemas((prev) =>
+        prev.map((schema) => {
+          if (schema.id !== schemaId) return schema
+          const draft = { ...schema }
+          const updated = updater(draft)
+          const next = { ...updated, updatedAt: new Date(), createdAt: updated.createdAt ?? schema.createdAt }
+          updatedSchema = next
+          return next
+        }),
+      )
+      return updatedSchema
+    },
+    [],
+  )
+  const hasWorkspaceContent = useMemo(
+    () =>
+      schemas.some(
+        (schema) => (schema.fields?.length ?? 0) > 0 || (schema.jobs?.length ?? 0) > 0,
+      ),
+    [schemas],
+  )
   if (process.env.NODE_ENV !== 'production') {
     // eslint-disable-next-line no-console
     console.log('Active schema:', activeSchema.name, 'Fields count:', fields.length)
   }
+  useEffect(() => {
+    if (!session?.user?.id) {
+      guestSchemasRef.current = schemas
+    }
+  }, [schemas, session?.user?.id])
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const handler = (event: BeforeUnloadEvent) => {
+      const hasPendingSync = Object.values(schemaSyncState).some((state) => state.status === 'saving')
+      const hasSyncError = Object.values(schemaSyncState).some((state) => state.status === 'error')
+      const shouldWarn = session?.user?.id ? hasPendingSync || hasSyncError || isWorkspaceLoading : hasWorkspaceContent
+      if (shouldWarn) {
+        event.preventDefault()
+        event.returnValue = "You have unsaved progress. Sign in to save your work."
+      }
+    }
+    window.addEventListener("beforeunload", handler)
+    return () => window.removeEventListener("beforeunload", handler)
+  }, [schemaSyncState, hasWorkspaceContent, isWorkspaceLoading, session?.user?.id])
+  useEffect(() => {
+    if (session?.user?.id) {
+      guestPromptShownRef.current = false
+      return
+    }
+    const hasCompletedJob = schemas.some((schema) =>
+      schema.jobs.some((job) => job.status === "completed"),
+    )
+    if (hasCompletedJob && !guestPromptShownRef.current) {
+      guestPromptShownRef.current = true
+      openAuthDialog("sign-up")
+    }
+  }, [openAuthDialog, schemas, session?.user?.id])
   const [selectedColumn, setSelectedColumn] = useState<SchemaField | null>(null)
   const [draftColumn, setDraftColumn] = useState<SchemaField | null>(null)
   const [isColumnDialogOpen, setIsColumnDialogOpen] = useState(false)
@@ -394,7 +683,200 @@ export function DataExtractionPlatform() {
   const [editingSchemaName, setEditingSchemaName] = useState(false)
   const [schemaNameInput, setSchemaNameInput] = useState<string>(activeSchema.name)
   const isDraftTransformation = !!draftColumn?.isTransformation
-  
+  useEffect(() => {
+    const userId = session?.user?.id
+
+    if (!userId) {
+      lastLoadedUserIdRef.current = null
+      const fresh = createInitialSchemaDefinition()
+      setSchemas([fresh])
+      setActiveSchemaId(fresh.id)
+      setSchemaNameInput(fresh.name)
+      setSchemaSyncState({})
+      setLoadWorkspaceError(null)
+      hasInitialLoadCompletedRef.current = true
+      return
+    }
+
+    if (lastLoadedUserIdRef.current === userId) {
+      hasInitialLoadCompletedRef.current = true
+      return
+    }
+
+    hasInitialLoadCompletedRef.current = false
+
+    let cancelled = false
+    const loadWorkspace = async () => {
+      setIsWorkspaceLoading(true)
+      setLoadWorkspaceError(null)
+      try {
+        const { data: schemaRows, error: schemaError } = await supabase
+          .from("schemas")
+          .select("*")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: true })
+
+        if (schemaError) {
+          throw schemaError
+        }
+
+        const { data: jobRows, error: jobError } = await supabase
+          .from("extraction_jobs")
+          .select("*")
+          .eq("user_id", userId)
+
+        if (jobError) {
+          throw jobError
+        }
+
+        const schemaData = schemaRows ?? []
+        const jobData = jobRows ?? []
+
+        const guestSchemas = guestSchemasRef.current
+        const hasLocalWorkspace =
+          Array.isArray(guestSchemas) &&
+          guestSchemas.some(
+            (schema) => (schema.fields?.length ?? 0) > 0 || (schema.jobs?.length ?? 0) > 0,
+          )
+
+        if (schemaData.length === 0 && hasLocalWorkspace) {
+          if (cancelled) return
+          lastLoadedUserIdRef.current = userId
+          hasInitialLoadCompletedRef.current = true
+          setSchemaSyncState({})
+          return
+        }
+
+    const remoteSchemas =
+      schemaData.length > 0
+        ? schemaData.map((row) => schemaRowToDefinition(row, jobData))
+        : [createInitialSchemaDefinition()]
+
+    if (cancelled) return
+
+    const localSchemasSnapshot = schemasRef.current
+    const localMap = new Map(localSchemasSnapshot.map((schema) => [schema.id, schema]))
+    const mergedSchemas: SchemaDefinition[] = remoteSchemas.map((remote) => {
+      const local = localMap.get(remote.id)
+      if (!local) return remote
+      const syncStatus = schemaSyncStateRef.current[remote.id]?.status
+      const localUpdatedAt = local.updatedAt?.getTime() ?? 0
+      const remoteUpdatedAt = remote.updatedAt?.getTime() ?? 0
+      if (syncStatus === 'saving' || localUpdatedAt > remoteUpdatedAt) {
+        return local
+      }
+      return remote
+    })
+
+    const remoteIds = new Set(remoteSchemas.map((schema) => schema.id))
+    localSchemasSnapshot.forEach((local) => {
+      if (!remoteIds.has(local.id)) {
+        mergedSchemas.push(local)
+      }
+    })
+
+    if (mergedSchemas.length === 0) {
+      mergedSchemas.push(createInitialSchemaDefinition())
+    }
+
+    setSchemas(mergedSchemas)
+    const nextActive = mergedSchemas.find((schema) => schema.id === activeSchemaId) ?? mergedSchemas[0]
+    setActiveSchemaId(nextActive.id)
+    setSchemaNameInput(nextActive.name)
+    guestSchemasRef.current = null
+    lastLoadedUserIdRef.current = userId
+    setSchemaSyncState((prev) => {
+      const nextState: Record<string, SchemaSyncInfo> = {}
+      mergedSchemas.forEach((schema) => {
+        const previous = prev[schema.id]
+        nextState[schema.id] =
+          previous ?? {
+            status: 'idle',
+            updatedAt: schema.updatedAt,
+          }
+      })
+      return nextState
+    })
+        hasInitialLoadCompletedRef.current = true
+      } catch (error) {
+        if (!cancelled) {
+          setLoadWorkspaceError(error instanceof Error ? error.message : "Failed to load your saved workspace.")
+        }
+      } finally {
+        if (!cancelled) {
+          setIsWorkspaceLoading(false)
+          if (!hasInitialLoadCompletedRef.current) {
+            hasInitialLoadCompletedRef.current = true
+          }
+        }
+      }
+    }
+
+    loadWorkspace()
+
+    return () => {
+      cancelled = true
+    }
+  }, [session?.user?.id, supabase, activeSchemaId])
+  const schemaIdsKey = useMemo(() => {
+    if (!session?.user?.id) return ""
+    const ids = schemas.map((schema) => schema.id).sort()
+    return ids.join(",")
+  }, [schemas, session?.user?.id])
+
+  useEffect(() => {
+    if (!session?.user?.id) return
+    if (!schemaIdsKey) return
+
+    const schemaIds = schemaIdsKey.split(",").filter((id) => id.length > 0)
+    if (schemaIds.length === 0) return
+
+    const filterList = schemaIds.map((id) => `'${id}'`).join(",")
+    const channelName = `job-sync-${schemaIdsKey.replace(/,/g, "-")}`
+
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'extraction_jobs',
+          filter: `schema_id=in.(${filterList})`,
+        },
+        (payload) => {
+          const eventType = payload.eventType
+          if (eventType === 'INSERT' || eventType === 'UPDATE') {
+            const row = payload.new as ExtractionJobRow | null
+            if (!row?.schema_id) return
+            const mapped = extractionJobRowToJob(row)
+            setSchemas((prev) =>
+              prev.map((schema) => {
+                if (schema.id !== row.schema_id) return schema
+                const nextJobs = upsertJobInList(schema.jobs ?? [], mapped)
+                return { ...schema, jobs: nextJobs }
+              }),
+            )
+          } else if (eventType === 'DELETE') {
+            const row = payload.old as ExtractionJobRow | null
+            if (!row?.schema_id || !row.id) return
+            setSchemas((prev) =>
+              prev.map((schema) => {
+                if (schema.id !== row.schema_id) return schema
+                return { ...schema, jobs: (schema.jobs ?? []).filter((job) => job.id !== row.id) }
+              }),
+            )
+          }
+        },
+      )
+
+    channel.subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [schemaIdsKey, session?.user?.id, supabase])
+
   // UI state for modern grid behaviors
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null)
   // Pharma agent editing state
@@ -426,6 +908,14 @@ export function DataExtractionPlatform() {
   const [totalHoursSaved, setTotalHoursSaved] = useState<number>(0)
   const [monthlyDollarSavings, setMonthlyDollarSavings] = useState<number | null>(null)
   const [annualDollarSavings, setAnnualDollarSavings] = useState<number | null>(null)
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false)
+  const [templateNameInput, setTemplateNameInput] = useState<string>(activeSchema.name)
+  const [templateDescriptionInput, setTemplateDescriptionInput] = useState<string>("")
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false)
+  useEffect(() => {
+    if (isTemplateDialogOpen) return
+    setTemplateNameInput(activeSchema.name || "New template")
+  }, [activeSchema.name, isTemplateDialogOpen])
   const completedJobsCount = jobs.filter((j) => j.status === 'completed').length
   const sortedJobs = useMemo(
     () => [...jobs].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()),
@@ -700,14 +1190,9 @@ export function DataExtractionPlatform() {
     const selectedIds = Array.from(selectedColumnIds)
     const newGroupName = groupName.trim()
 
-    setSchemas((prev) => {
-      return prev.map((schema) => {
-        if (schema.id !== activeSchemaId) return schema
-
-        // Create visual group (keeps fields intact, just adds visual grouping)
-        const newGroup = createVisualGroup(newGroupName, selectedIds)
-        return addVisualGroup(schema, newGroup)
-      })
+    commitSchemaUpdate(activeSchemaId, (schema) => {
+      const newGroup = createVisualGroup(newGroupName, selectedIds)
+      return addVisualGroup(schema, newGroup)
     })
 
     // Reset selection and close dialog
@@ -869,434 +1354,43 @@ export function DataExtractionPlatform() {
     return null
   }
 
-  // Minimal nested templates to seed schemas
-  const NESTED_TEMPLATES: { id: string; name: string; description?: string; fields: SchemaField[] }[] = [
-    // {
-    //   id: "fnb-label-compliance",
-    //   name: "F&B Label Compliance",
-    //   description: "Primary-language extraction + EN/AR translation in split view.",
-    //   fields: [],
-    // },
-    {
-      id: "invoice-nested",
-      name: "Invoice",
-      description: "Nested vendor/customer and totals.",
-      fields: [
-        { id: "invoice_number", name: "invoice_number", type: "string", description: "Unique invoice ID", extractionInstructions: "Look for 'Invoice #', 'Invoice No.'", required: true },
-        { id: "invoice_date", name: "invoice_date", type: "date", description: "Issue date", extractionInstructions: "Normalize to YYYY-MM-DD", required: true },
-        { id: "due_date", name: "due_date", type: "date", description: "Payment due date" },
-        { id: "po_number", name: "po_number", type: "string", description: "PO number if present" },
-        {
-          id: "vendor",
-          name: "vendor",
-          type: "object",
-          description: "Vendor details",
-          children: [
-            { id: "vendor_name", name: "name", type: "string", description: "Vendor name", required: true },
-            { id: "vendor_country", name: "country", type: "string", description: "Vendor country" },
-            { id: "vendor_address", name: "address", type: "string", description: "Vendor address" },
-            { id: "vendor_tax_id", name: "tax_id", type: "string", description: "Tax/VAT ID" },
-          ],
-        },
-        {
-          id: "customer",
-          name: "customer",
-          type: "object",
-          description: "Customer details",
-          children: [
-            { id: "customer_name", name: "name", type: "string", description: "Customer name" },
-            { id: "customer_address", name: "address", type: "string", description: "Billing address" },
-          ],
-        },
-        {
-          id: "line_items",
-          name: "line_items",
-          type: "list",
-          description: "Itemized products/services",
-          item: {
-            id: "line_item",
-            name: "item",
-            type: "object",
-            children: [
-              { id: "li_desc", name: "description", type: "string" },
-              { id: "li_qty", name: "quantity", type: "number" },
-              { id: "li_unit_price", name: "unit_price", type: "number" },
-              { id: "li_total", name: "total", type: "number" },
-            ],
-          },
-        },
-        { id: "subtotal", name: "subtotal", type: "number" },
-        { id: "tax_amount", name: "tax_amount", type: "number" },
-        {
-          id: "total_amount",
-          name: "total_amount",
-          type: "object",
-          description: "Final total as amount + currency",
-          children: [
-            { id: "total_amount_value", name: "amount", type: "number", description: "Amount" },
-            { id: "total_amount_ccy", name: "currency", type: "string", description: "Currency code" },
-          ],
-        },
-      ],
-    },
-    {
-      id: "po-simple",
-      name: "Purchase Order (simple)",
-      description: "Basic PO fields.",
-      fields: [
-        { id: "po_number", name: "po_number", type: "string", description: "PO identifier.", required: true },
-        { id: "order_date", name: "order_date", type: "date", description: "Date PO created." },
-        { id: "vendor_name", name: "vendor_name", type: "string", description: "Supplier/vendor name." },
-        { id: "shipping_address", name: "shipping_address", type: "string", description: "Ship To address." },
-        { id: "billing_address", name: "billing_address", type: "string", description: "Billing address." },
-        {
-          id: "line_items",
-          name: "line_items",
-          type: "list",
-          description: "Goods/services requested.",
-          item: {
-            id: "po_item",
-            name: "item",
-            type: "object",
-            children: [
-              { id: "po_item_sku", name: "sku", type: "string" },
-              { id: "po_item_desc", name: "description", type: "string" },
-              { id: "po_item_qty", name: "quantity", type: "number" },
-              { id: "po_item_unit_price", name: "unit_price", type: "number" },
-              { id: "po_item_total", name: "total", type: "number" },
-            ],
-          },
-        },
-        { id: "total_amount", name: "total_amount", type: "number", description: "PO total value.", required: true },
-        { id: "requested_by", name: "requested_by", type: "string", description: "Requester or department." },
-      ],
-    },
-    {
-      id: "pharma-artwork",
-      name: "Pharma Artwork",
-      description: "Key data points for pharmaceutical packaging/artwork.",
-      fields: [
-        { id: "product_name", name: "product_name", type: "string", description: "Product name as printed on artwork.", required: true },
-        { id: "batch_number", name: "batch_number", type: "string", description: "Batch/Lot number (e.g., LOT/BN).", required: true },
-        { id: "manufacturing_date", name: "manufacturing_date", type: "date", description: "Manufacturing date (MFG).", required: false },
-        { id: "expiry_date", name: "expiry_date", type: "date", description: "Expiry/Best Before date (EXP).", required: true },
-        { id: "barcode", name: "barcode", type: "string", description: "Linear/2D barcode data if present." },
-        { id: "pharmacode", name: "pharmacode", type: "string", description: "Pharmacode value printed for packaging control." },
-      ],
-    },
-  ]
-  // Simple built-in templates (placeholder). You will provide real ones later.
-  const SCHEMA_TEMPLATES: {
-    id: string
-    name: string
-    description?: string
-    fields: SchemaField[]
-  }[] = [
-    {
-      id: "invoice-nested",
-      name: "Invoice (Nested)",
-      description: "Nested vendor/customer and totals.",
-      fields: [
-        { id: "invoice_number", name: "invoice_number", type: "string", description: "Unique invoice ID", extractionInstructions: "Look for 'Invoice #', 'Invoice No.'", required: true },
-        { id: "invoice_date", name: "invoice_date", type: "date", description: "Issue date", extractionInstructions: "Normalize to YYYY-MM-DD", required: true },
-        { id: "due_date", name: "due_date", type: "date", description: "Payment due date" },
-        { id: "po_number", name: "po_number", type: "string", description: "PO number if present" },
-        {
-          id: "vendor",
-          name: "vendor",
-          type: "object",
-          description: "Vendor details",
-          children: [
-            { id: "vendor_name", name: "name", type: "string", description: "Vendor name", required: true },
-            { id: "vendor_country", name: "country", type: "string", description: "Vendor country" },
-            { id: "vendor_address", name: "address", type: "string", description: "Vendor address" },
-            { id: "vendor_tax_id", name: "tax_id", type: "string", description: "Tax/VAT ID" },
-          ],
-        },
-        {
-          id: "customer",
-          name: "customer",
-          type: "object",
-          description: "Customer details",
-          children: [
-            { id: "customer_name", name: "name", type: "string", description: "Customer name" },
-            { id: "customer_address", name: "address", type: "string", description: "Billing address" },
-          ],
-        },
-        {
-          id: "line_items",
-          name: "line_items",
-          type: "list",
-          description: "Itemized products/services",
-          item: {
-            id: "line_item",
-            name: "item",
-            type: "object",
-            children: [
-              { id: "li_desc", name: "description", type: "string" },
-              { id: "li_qty", name: "quantity", type: "number" },
-              { id: "li_unit_price", name: "unit_price", type: "number" },
-              { id: "li_total", name: "total", type: "number" },
-            ],
-          },
-        },
-        { id: "subtotal", name: "subtotal", type: "number" },
-        { id: "tax_amount", name: "tax_amount", type: "number" },
-        {
-          id: "total_amount",
-          name: "total_amount",
-          type: "object",
-          description: "Final total as amount + currency",
-          children: [
-            { id: "total_amount_value", name: "amount", type: "number", description: "Amount" },
-            { id: "total_amount_ccy", name: "currency", type: "string", description: "Currency code" },
-          ],
-        },
-      ],
-    },
-    {
-      id: "po-simple",
-      name: "Purchase Order (simple)",
-      description: "Basic PO fields.",
-      fields: [
-        {
-          id: "po_number",
-          name: "po_number",
-          type: "string",
-          description: "PO identifier.",
-          extractionInstructions: "Top labels: 'Purchase Order #', 'PO Number', 'PO No.'.",
-          required: true,
-        },
-        {
-          id: "order_date",
-          name: "order_date",
-          type: "date",
-          description: "Date PO created.",
-          extractionInstructions: "Labels 'Date', 'Order Date' near po_number.",
-        },
-        {
-          id: "vendor_name",
-          name: "vendor_name",
-          type: "string",
-          description: "Supplier/vendor name.",
-          extractionInstructions: "Sections 'Vendor', 'Supplier', 'To'.",
-        },
-        { id: "shipping_address", name: "shipping_address", type: "string", description: "Ship To address.", extractionInstructions: "'Ship To', 'Deliver To'." },
-        { id: "billing_address", name: "billing_address", type: "string", description: "Billing address.", extractionInstructions: "'Bill To', 'Invoice To'." },
-        {
-          id: "line_items",
-          name: "line_items",
-          type: "list",
-          description: "Goods/services requested.",
-          extractionInstructions: "Main items section: Item/SKU, Description, Quantity, Unit Price, Line Total.",
-          item: {
-            id: "po_item",
-            name: "item",
-            type: "object",
-            children: [
-              { id: "po_item_sku", name: "sku", type: "string" },
-              { id: "po_item_desc", name: "description", type: "string" },
-              { id: "po_item_qty", name: "quantity", type: "number" },
-              { id: "po_item_unit_price", name: "unit_price", type: "number" },
-              { id: "po_item_total", name: "total", type: "number" },
-            ],
-          },
-        },
-        { id: "total_amount", name: "total_amount", type: "number", description: "PO total value.", extractionInstructions: "'Total', 'Grand Total'.", required: true },
-        { id: "requested_by", name: "requested_by", type: "string", description: "Requester or department.", extractionInstructions: "'Requested by', 'Attention', 'Buyer'." },
-      ],
-    },
-    {
-      id: "receipt",
-      name: "Receipt",
-      description: "Payment proof details for expenses.",
-      columns: [
-        { name: "merchant_name", type: "string", description: "Store/provider name.", extractionInstructions: "Prominent text at top, may be stylized." },
-        { name: "merchant_address", type: "address", description: "Store address.", extractionInstructions: "Below merchant name; may include phone." },
-        { name: "transaction_date", type: "date", description: "Purchase date.", extractionInstructions: "Label 'Date'." },
-        { name: "transaction_time", type: "string", description: "Purchase time.", extractionInstructions: "Near transaction_date; formats HH:MM(:SS) AM/PM." },
-        { name: "line_items", type: "list", description: "Purchased items.", extractionInstructions: "Rows between header and subtotal: Item, Qty, Price." },
-        { name: "tax_amount", type: "number", description: "Tax paid.", extractionInstructions: "'Tax', 'VAT', 'GST'." },
-        { name: "total_amount", type: "number", description: "Final amount paid.", extractionInstructions: "'Total', 'Balance', or payment method label." },
-        { name: "payment_method", type: "string", description: "Payment method.", extractionInstructions: "'Paid by' or card name; last 4 digits indicative." },
-      ],
-    },
-    {
-      id: "resume",
-      name: "Resume / CV",
-      description: "Candidate professional and educational history.",
-      columns: [
-        { name: "full_name", type: "string", description: "Candidate full name.", extractionInstructions: "Most prominent text at top." },
-        { name: "email_address", type: "email", description: "Email address.", extractionInstructions: "String with @ in contact section." },
-        { name: "phone_number", type: "phone", description: "Phone number.", extractionInstructions: "Numbers with dashes/parentheses; consider intl codes." },
-        { name: "location", type: "address", description: "City, state, country.", extractionInstructions: "Header contact area (e.g., 'Beirut, Lebanon')." },
-        { name: "work_experience", type: "list", description: "Jobs list.", extractionInstructions: "Sections 'Experience', extract Job Title, Company, Location, Start Date, End Date, Responsibilities." },
-        { name: "education", type: "list", description: "Education list.", extractionInstructions: "Section 'Education'; Institution, Degree, Field, Graduation Date." },
-        { name: "skills", type: "list", description: "Skills list.", extractionInstructions: "Section 'Skills'; list items or comma-separated." },
-      ],
-    },
-    {
-      id: "bill-of-lading",
-      name: "Bill of Lading (BOL)",
-      description: "Shipping and freight document details.",
-      columns: [
-        { name: "bol_number", type: "string", description: "Tracking number.", extractionInstructions: "'Bill of Lading No.', 'BOL #', often near barcode." },
-        { name: "carrier_name", type: "string", description: "Freight carrier.", extractionInstructions: "Labels 'Carrier', 'Shipping Line'." },
-        { name: "shipper_details", type: "object", description: "Sender info.", extractionInstructions: "Box 'Shipper'/'From'; extract Name and Address." },
-        { name: "consignee_details", type: "object", description: "Recipient info.", extractionInstructions: "Box 'Consignee'/'To'; extract Name and Address." },
-        { name: "port_of_loading", type: "string", description: "Origin port/location.", extractionInstructions: "'Port of Loading', 'Origin'." },
-        { name: "port_of_discharge", type: "string", description: "Destination port/location.", extractionInstructions: "'Port of Discharge', 'Destination'." },
-        { name: "freight_description", type: "list", description: "Goods details.", extractionInstructions: "Main items table: Number of Packages, Description, Weight, Measurements." },
-        { name: "freight_terms", type: "string", description: "Payment terms.", extractionInstructions: "'Freight Prepaid' or 'Freight Collect'." },
-      ],
-    },
-    {
-      id: "patient-registration",
-      name: "Patient Registration Form",
-      description: "Patient demographic and insurance info.",
-      columns: [
-        { name: "patient_full_name", type: "string", description: "Full legal name.", extractionInstructions: "Labels 'Patient Name', 'Full Name'. Extract First/Middle/Last when separate." },
-        { name: "date_of_birth", type: "date", description: "DOB.", extractionInstructions: "Labels 'Date of Birth', 'DOB'. Validate realism." },
-        { name: "gender", type: "string", description: "Gender.", extractionInstructions: "Often checkboxes or dropdown; 'Gender', 'Sex'." },
-        { name: "patient_address", type: "address", description: "Home address.", extractionInstructions: "'Address', 'Home Address'. Extract Street/City/State/Zip." },
-        { name: "phone_number", type: "phone", description: "Primary contact phone.", extractionInstructions: "'Phone', 'Contact No.'" },
-        { name: "emergency_contact_name", type: "string", description: "Emergency contact name.", extractionInstructions: "Section 'Emergency Contact'." },
-        { name: "emergency_contact_phone", type: "phone", description: "Emergency contact phone.", extractionInstructions: "In 'Emergency Contact' section, 'Phone' field." },
-        { name: "primary_insurance_provider", type: "string", description: "Insurance company.", extractionInstructions: "'Insurance Company', 'Provider', 'Payer'." },
-        { name: "policy_number", type: "string", description: "Policy/member ID.", extractionInstructions: "'Policy #', 'Member ID', 'ID Number'." },
-        { name: "group_number", type: "string", description: "Group number.", extractionInstructions: "Near policy number; 'Group #'." },
-        { name: "primary_care_physician", type: "string", description: "PCP name.", extractionInstructions: "'Primary Care Physician', 'PCP'." },
-        { name: "medical_history", type: "object", description: "Allergies/medications/surgeries.", extractionInstructions: "Sections 'Medical History'/'Health Information'." },
-      ],
-    },
-    {
-      id: "medical-claim-cms1500",
-      name: "Medical Claim Form (CMS-1500)",
-      description: "Billing info from CMS-1500.",
-      columns: [
-        { name: "patient_name", type: "string", description: "Patient full name.", extractionInstructions: "Corresponds to Box 2." },
-        { name: "patient_dob_sex", type: "object", description: "DOB and sex.", extractionInstructions: "Box 3; extract both date and sex." },
-        { name: "insureds_name", type: "string", description: "Insured person name.", extractionInstructions: "Box 4." },
-        { name: "patient_address", type: "address", description: "Patient address.", extractionInstructions: "Box 5: street, city, state, zip." },
-        { name: "insureds_id_number", type: "string", description: "Policy number.", extractionInstructions: "Box 1a." },
-        { name: "insurance_plan_name", type: "string", description: "Insurance company/program.", extractionInstructions: "Top 'CARRIER' or Box 11c." },
-        { name: "diagnosis_codes", type: "list", description: "ICD-10 codes.", extractionInstructions: "Box 21; extract all listed codes." },
-        { name: "service_lines", type: "list", description: "Services provided.", extractionInstructions: "Box 24; for each row: Date of Service, Place of Service, Procedure Code, Diagnosis Pointer, Charges, Units." },
-        { name: "federal_tax_id", type: "string", description: "Provider tax ID.", extractionInstructions: "Box 25; SSN or EIN." },
-        { name: "total_charge", type: "number", description: "Total charge.", extractionInstructions: "Box 28 'Total Charge'." },
-        { name: "rendering_provider_npi", type: "string", description: "Rendering provider NPI.", extractionInstructions: "Box 24J." },
-      ],
-    },
-    {
-      id: "explanation-of-benefits",
-      name: "Explanation of Benefits (EOB)",
-      description: "Details of insurer claim processing.",
-      columns: [
-        { name: "patient_name", type: "string", description: "Patient name.", extractionInstructions: "Labels 'Patient', 'Member'." },
-        { name: "claim_number", type: "string", description: "Claim number.", extractionInstructions: "'Claim #', 'Claim Number'." },
-        { name: "provider_name", type: "string", description: "Provider name.", extractionInstructions: "'Provider', 'Doctor', 'Hospital'." },
-        { name: "service_details", type: "list", description: "Service line breakdown.", extractionInstructions: "Main table: Date of Service, Description, Amount Billed, Amount Allowed, Deductible, Copay/Coinsurance, Not Covered, Amount Paid by Plan." },
-        { name: "amount_billed", type: "number", description: "Total billed.", extractionInstructions: "'Total Charges'/'Amount Billed'." },
-        { name: "amount_paid_by_plan", type: "number", description: "Total plan payment.", extractionInstructions: "'Plan Paid'/'Total Payment'." },
-        { name: "patient_responsibility", type: "number", description: "Amount patient owes.", extractionInstructions: "'Patient Responsibility'/'You Owe'." },
-        { name: "denial_reason_codes", type: "list", description: "Non-coverage reason codes.", extractionInstructions: "Section 'Remarks'/'Notes'/'Adjustments'." },
-      ],
-    },
-    {
-      id: "prescription-form",
-      name: "Prescription Form",
-      description: "Medication and directions for dispensing.",
-      columns: [
-        { name: "patient_name", type: "string", description: "Patient full name.", extractionInstructions: "Field 'Patient Name'/'For:'." },
-        { name: "patient_dob", type: "date", description: "DOB for verification.", extractionInstructions: "'DOB'/'Date of Birth'." },
-        { name: "prescriber_name", type: "string", description: "Doctor name.", extractionInstructions: "Near signature line or in header, may include titles (MD, DO, NP)." },
-        { name: "prescriber_dea_number", type: "string", description: "DEA number.", extractionInstructions: "Field 'DEA #'; 2 letters + 7 digits." },
-        { name: "medication_name", type: "string", description: "Drug name.", extractionInstructions: "After 'Rx'; brand or generic." },
-        { name: "strength", type: "string", description: "Dosage strength.", extractionInstructions: "Immediately after drug name (e.g., 500mg)." },
-        { name: "dosage_instructions", type: "string", description: "Sig/instructions.", extractionInstructions: "'Sig:'/'Instructions:' section; free text." },
-        { name: "quantity", type: "string", description: "Quantity to dispense.", extractionInstructions: "'Disp:'/'Qty:'/'Quantity'." },
-        { name: "refills", type: "number", description: "Number of refills.", extractionInstructions: "Field 'Refills'; default often 0." },
-        { name: "date_of_issue", type: "date", description: "Prescription date.", extractionInstructions: "Field 'Date' near signature." },
-      ],
-    },
-    {
-      id: "certificate-liability-insurance",
-      name: "Certificate of Liability Insurance (ACORD 25)",
-      description: "Evidence of insurance coverage.",
-      columns: [
-        { name: "producer", type: "object", description: "Agent/broker issuer.", extractionInstructions: "Box 'PRODUCER'; extract Name and Address." },
-        { name: "insured", type: "object", description: "Insured individual or entity.", extractionInstructions: "Box 'INSURED'; extract Name and Address." },
-        { name: "certificate_holder", type: "object", description: "To whom certificate is issued.", extractionInstructions: "Bottom left 'CERTIFICATE HOLDER'; extract Name/Address." },
-        { name: "policies", type: "list", description: "Active policies.", extractionInstructions: "Main table rows A,B,C... extract Insurance Type, Policy Number, Effective Date, Expiration Date." },
-        { name: "insurer_a", type: "string", description: "Insurer A name.", extractionInstructions: "List 'INSURER(S) AFFORDING COVERAGE'." },
-        { name: "general_liability_limits", type: "object", description: "GL coverage limits.", extractionInstructions: "Find 'GENERAL LIABILITY' row and extract limits (Each Occurrence, Damage to Premises, etc.)." },
-        { name: "description_of_operations", type: "string", description: "Description of operations/locations/vehicles.", extractionInstructions: "Large bottom box; extract full text." },
-      ],
-    },
-    {
-      id: "proof-of-delivery",
-      name: "Proof of Delivery (POD)",
-      description: "Signed confirmation of goods delivered.",
-      columns: [
-        { name: "tracking_number", type: "string", description: "Shipment tracking number.", extractionInstructions: "'Tracking #', 'Waybill No.', 'Reference No.' near barcode." },
-        { name: "shipper_name", type: "string", description: "Shipper name.", extractionInstructions: "Section 'Shipper'/'From'." },
-        { name: "recipient_name", type: "string", description: "Recipient name.", extractionInstructions: "Section 'Recipient'/'Consignee'." },
-        { name: "delivery_address", type: "address", description: "Delivery address.", extractionInstructions: "Within 'Recipient'/'Consignee'." },
-        { name: "delivery_date", type: "date", description: "Delivery date.", extractionInstructions: "Label 'Delivery Date'." },
-        { name: "recipient_signature", type: "boolean", description: "Signature present.", extractionInstructions: "Box 'Signature' – confirm presence." },
-        { name: "printed_name", type: "string", description: "Printed name of signer.", extractionInstructions: "Field 'Printed Name'/ 'Name'." },
-        { name: "condition_of_goods", type: "string", description: "Condition notes.", extractionInstructions: "Notes/Remarks or checklist (Damaged/Intact)." },
-      ],
-    },
-    {
-      id: "legal-summons",
-      name: "Legal Summons",
-      description: "Court notice requiring response.",
-      columns: [
-        { name: "court_name", type: "string", description: "Court name and jurisdiction.", extractionInstructions: "Official heading at top of document." },
-        { name: "case_number", type: "string", description: "Court-assigned identifier.", extractionInstructions: "'Case Number', 'Docket No.', 'Index No.'." },
-        { name: "plaintiff_name", type: "string", description: "Plaintiff name.", extractionInstructions: "Plaintiff(s) section." },
-        { name: "defendant_name", type: "string", description: "Defendant name.", extractionInstructions: "Defendant(s) section." },
-        { name: "date_of_issue", type: "date", description: "Issued date.", extractionInstructions: "Near clerk signature/stamp." },
-        { name: "response_deadline", type: "date", description: "Deadline to respond.", extractionInstructions: "Phrases like 'You must respond within [XX] days'; compute based on date_of_issue when provided." },
-        { name: "plaintiffs_attorney", type: "object", description: "Plaintiff's attorney name and address.", extractionInstructions: "Signature block identifying Attorney for Plaintiff." },
-      ],
-    },
-    {
-      id: "utility-bill",
-      name: "Utility Bill",
-      description: "Billing and usage details for utilities.",
-      columns: [
-        { name: "service_provider_name", type: "string", description: "Utility company name.", extractionInstructions: "Prominent name/logo at top." },
-        { name: "account_number", type: "string", description: "Customer account number.", extractionInstructions: "'Account Number'/'Account #'." },
-        { name: "service_address", type: "address", description: "Service address.", extractionInstructions: "Section 'Service Address'." },
-        { name: "billing_period", type: "object", description: "Start and end dates for service period.", extractionInstructions: "Labels 'Billing Period'/'Service Dates'; extract start and end." },
-        { name: "statement_date", type: "date", description: "Bill date.", extractionInstructions: "'Bill Date'/'Statement Date'/'Invoice Date'." },
-        { name: "amount_due", type: "number", description: "Amount due.", extractionInstructions: "Prominent 'Amount Due'/'Total Due' value." },
-        { name: "due_date", type: "date", description: "Payment due date.", extractionInstructions: "'Due Date'/'Pay By'." },
-        { name: "usage_details", type: "object", description: "Usage metrics.", extractionInstructions: "Section 'Usage'/'Consumption'; extract values like kWh/Gallons/Therms and meter readings if present." },
-      ],
-    },
-  ]
-
-  const applySchemaTemplate = (templateId: string) => {
-    const tpl = NESTED_TEMPLATES.find((t) => t.id === templateId)
-    if (!tpl) return
-    if (isSchemaFresh(activeSchema)) {
-      setSchemas((prev) =>
-        prev.map((s) => (s.id === activeSchemaId ? { ...s, name: tpl.name, fields: tpl.fields, templateId } : s)),
-      )
-    } else {
-      const newSchema: SchemaDefinition = {
-        id: `schema_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-        name: tpl.name,
-        fields: tpl.fields,
-        jobs: [],
-        templateId,
-      }
-      setSchemas((prev) => [...prev, newSchema])
-      setActiveSchemaId(newSchema.id)
+  const staticTemplates = useMemo(() => getStaticSchemaTemplates(), [])
+  const combinedTemplates = useMemo(() => {
+    const registry = new Map<string, SchemaTemplateDefinition>()
+    for (const tpl of staticTemplates) {
+      registry.set(tpl.id, tpl)
     }
+    if (templateLibrary) {
+      for (const tpl of templateLibrary) {
+        registry.set(tpl.id, {
+          ...tpl,
+          fields: cloneSchemaFields(tpl.fields ?? []),
+        })
+      }
+    }
+    return Array.from(registry.values())
+  }, [staticTemplates, templateLibrary])
+  const templateMap = useMemo(() => {
+    const map = new Map<string, SchemaTemplateDefinition>()
+    for (const tpl of combinedTemplates) {
+      map.set(tpl.id, tpl)
+    }
+    return map
+  }, [combinedTemplates])
+
+  const inferAgentTypeFromSchema = (schema: SchemaDefinition | null | undefined): AgentType => {
+    const templateId = schema?.templateId?.toLowerCase() ?? ""
+    if (templateId.includes("pharma")) return "pharma"
+    return "standard"
+  }
+
+  const shouldAutoApplyTemplate = (templateId: string | null | undefined) => {
+    if (!templateId) return false
+    if (templateId.startsWith("custom-")) return false
+    const candidate = templateMap.get(templateId)
+    if (!candidate) return false
+    if (candidate.isCustom) return false
+    return (candidate.fields?.length ?? 0) > 0
   }
 
   // ROI helpers
@@ -1359,56 +1453,491 @@ export function DataExtractionPlatform() {
   }
 
   // Helpers to update active schema's fields and jobs
+  const syncSchema = useCallback(
+    async (schema: SchemaDefinition, opts?: { includeJobs?: boolean }) => {
+      if (!session?.user?.id) {
+        openAuthDialog("sign-in")
+        return
+      }
+
+      setSchemaSyncState((prev) => ({
+        ...prev,
+        [schema.id]: {
+          status: 'saving',
+          updatedAt: schema.updatedAt ?? prev[schema.id]?.updatedAt,
+        },
+      }))
+
+      const userId = session.user.id
+      const includeJobs = opts?.includeJobs ?? false
+
+      try {
+        const schemaRow = schemaDefinitionToRow(schema, userId)
+        await supabase.from("schemas").upsert([schemaRow])
+
+        if (includeJobs) {
+          const jobRows = (schema.jobs ?? []).map((job) => extractionJobToRow(job, schema.id, userId))
+
+          if (jobRows.length > 0) {
+            await supabase.from("extraction_jobs").upsert(jobRows)
+            const idList = jobRows.map((row) => `'${row.id}'`).join(",")
+            const deleteQuery = supabase
+              .from("extraction_jobs")
+              .delete()
+              .eq("schema_id", schema.id)
+              .eq("user_id", userId)
+
+            if (idList.length > 0) {
+              deleteQuery.not("id", "in", `(${idList})`)
+            }
+
+            await deleteQuery
+          } else {
+            await supabase.from("extraction_jobs").delete().eq("schema_id", schema.id).eq("user_id", userId)
+          }
+        }
+
+        setSchemaSyncState((prev) => ({
+          ...prev,
+          [schema.id]: {
+            status: 'idle',
+            updatedAt: new Date(),
+          },
+        }))
+      } catch (error) {
+        console.error('Failed to sync schema', error)
+        setSchemaSyncState((prev) => ({
+          ...prev,
+          [schema.id]: {
+            status: 'error',
+            error: error instanceof Error ? error.message : 'Failed to save workspace.',
+            updatedAt: prev[schema.id]?.updatedAt,
+          },
+        }))
+      }
+    },
+    [openAuthDialog, session?.user?.id, supabase],
+  )
+
+  const deleteSchemaRecord = useCallback(
+    async (schemaId: string) => {
+      if (!session?.user?.id) return
+      setSchemaSyncState((prev) => ({
+        ...prev,
+        [schemaId]: {
+          status: 'saving',
+          updatedAt: prev[schemaId]?.updatedAt,
+        },
+      }))
+      try {
+        await supabase.from("extraction_jobs").delete().eq("schema_id", schemaId).eq("user_id", session.user.id)
+        await supabase.from("schemas").delete().eq("id", schemaId).eq("user_id", session.user.id)
+        setSchemaSyncState((prev) => {
+          const next = { ...prev }
+          delete next[schemaId]
+          return next
+        })
+      } catch (error) {
+        console.error('Failed to delete schema', error)
+        setSchemaSyncState((prev) => ({
+          ...prev,
+          [schemaId]: {
+            status: 'error',
+            error: error instanceof Error ? error.message : 'Failed to delete schema.',
+            updatedAt: prev[schemaId]?.updatedAt,
+          },
+        }))
+      }
+    },
+    [session?.user?.id, supabase],
+  )
+
+  type CommitSchemaOptions = {
+    persistSchema?: boolean
+    includeJobs?: boolean
+  }
+
+  const commitSchemaUpdate = useCallback(
+    (
+      schemaId: string,
+      updater: (schema: SchemaDefinition) => SchemaDefinition,
+      options?: CommitSchemaOptions,
+    ) => {
+      const updated = applySchemaUpdate(schemaId, updater)
+      const shouldPersist = options?.persistSchema ?? true
+      const includeJobs = options?.includeJobs ?? false
+      if (updated && session?.user?.id && shouldPersist) {
+        void syncSchema(updated, { includeJobs })
+      }
+      return updated
+    },
+    [applySchemaUpdate, session?.user?.id, syncSchema],
+  )
+
+  const applySchemaTemplate = useCallback(
+    (templateId: string) => {
+      const tpl = templateMap.get(templateId)
+      if (!tpl) return
+      const templateFields = cloneSchemaFields(tpl.fields ?? [])
+      if (isSchemaFresh(activeSchema)) {
+        commitSchemaUpdate(activeSchemaId, (schema) => ({
+          ...schema,
+          name: tpl.name,
+          fields: templateFields,
+          templateId,
+        }))
+        setSchemaNameInput(tpl.name)
+      } else {
+        const newSchema: SchemaDefinition = {
+          id: generateUuid(),
+          name: tpl.name,
+          fields: templateFields,
+          jobs: [],
+          templateId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }
+        setSchemas((prev) => [...prev, newSchema])
+        setActiveSchemaId(newSchema.id)
+        setSchemaNameInput(newSchema.name)
+        if (session?.user?.id) {
+          setSchemaSyncState((prev) => ({
+            ...prev,
+            [newSchema.id]: { status: 'saving', updatedAt: newSchema.updatedAt },
+          }))
+          void syncSchema(newSchema)
+        }
+      }
+    },
+    [
+      templateMap,
+      activeSchema,
+      activeSchemaId,
+      commitSchemaUpdate,
+      isSchemaFresh,
+      session?.user?.id,
+      setActiveSchemaId,
+      setSchemaNameInput,
+      setSchemaSyncState,
+      setSchemas,
+      syncSchema,
+    ],
+  )
+
+  const handleTemplateSave = useCallback(async () => {
+    if (!onCreateTemplate) return
+    if (fields.length === 0) {
+      toast({
+        title: "Add fields before saving",
+        description: "Create at least one field so the template has structure to save.",
+        variant: "destructive",
+      })
+      return
+    }
+    const trimmedName = (templateNameInput || activeSchema.name || "New template").trim()
+    setTemplateNameInput(trimmedName)
+    const trimmedDescription = templateDescriptionInput.trim()
+    setIsSavingTemplate(true)
+    try {
+      const result = await onCreateTemplate(activeSchema, {
+        name: trimmedName,
+        description: trimmedDescription.length > 0 ? trimmedDescription : undefined,
+        agent: selectedAgent,
+      })
+      if (result.success) {
+        setIsTemplateDialogOpen(false)
+        setTemplateDescriptionInput("")
+        commitSchemaUpdate(activeSchema.id, (schema) => ({
+          ...schema,
+          templateId: result.template.id,
+        }))
+        toast({
+          title: "Template created",
+          description: "You'll find it in the New schema template picker.",
+        })
+      } else {
+        toast({
+          title: "Unable to save template",
+          description: result.error,
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Unable to save template",
+        description: error instanceof Error ? error.message : "An unexpected error occurred.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSavingTemplate(false)
+    }
+  }, [
+    onCreateTemplate,
+    fields.length,
+    templateNameInput,
+    activeSchema,
+    activeSchemaId,
+    templateDescriptionInput,
+    selectedAgent,
+    commitSchemaUpdate,
+    toast,
+  ])
+
+  const activeSchemaTemplateId = activeSchema.templateId ?? null
+  const activeSchemaIsFresh = isSchemaFresh(activeSchema)
+  useEffect(() => {
+    if (!isEmbedded) return
+    if (!shouldAutoApplyTemplate(activeSchemaTemplateId)) return
+    if (!activeSchemaIsFresh) return
+    if (autoAppliedTemplatesRef.current.has(activeSchemaId)) return
+    autoAppliedTemplatesRef.current.add(activeSchemaId)
+    applySchemaTemplate(activeSchemaTemplateId)
+  }, [isEmbedded, activeSchemaTemplateId, activeSchemaIsFresh, activeSchemaId, applySchemaTemplate])
+
+  useEffect(() => {
+    if (!pendingSchemaCreate) return
+    const exists = schemas.some((schema) => schema.id === pendingSchemaCreate.id)
+    if (exists) {
+      if (onPendingCreateConsumed) onPendingCreateConsumed()
+      setActiveSchemaId(pendingSchemaCreate.id)
+      return
+    }
+
+    const templateId = pendingSchemaCreate.templateId ?? null
+    let fields: SchemaField[] = []
+    let shouldAutoApplyTemplate = false
+    if (templateId) {
+      const templateDef = templateMap.get(templateId)
+      if (templateDef) {
+        if (templateDef.isCustom) {
+          fields = cloneSchemaFields(templateDef.fields ?? [])
+        } else {
+          shouldAutoApplyTemplate = true
+        }
+      }
+    }
+
+    const newSchema: SchemaDefinition = {
+      id: pendingSchemaCreate.id,
+      name: pendingSchemaCreate.name,
+      fields,
+      jobs: [],
+      templateId: templateId ?? undefined,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+
+    setSchemas((prev) => [...prev, newSchema])
+    setActiveSchemaId(newSchema.id)
+    setSchemaNameInput(newSchema.name)
+    setSelectedAgent(pendingSchemaCreate.agent)
+    autoAppliedTemplatesRef.current.add(newSchema.id)
+    if (session?.user?.id && !shouldAutoApplyTemplate) {
+      setSchemaSyncState((prev) => ({
+        ...prev,
+        [newSchema.id]: {
+          status: 'saving',
+          updatedAt: newSchema.updatedAt,
+        },
+      }))
+      void syncSchema(newSchema)
+    }
+    if (shouldAutoApplyTemplate) {
+      setTimeout(() => {
+        applySchemaTemplate(templateId ?? "")
+      }, 0)
+    }
+    if (onPendingCreateConsumed) onPendingCreateConsumed()
+  }, [
+    pendingSchemaCreate,
+    schemas,
+    templateMap,
+    setSchemas,
+    setActiveSchemaId,
+    setSchemaNameInput,
+    session?.user?.id,
+    setSchemaSyncState,
+    syncSchema,
+    applySchemaTemplate,
+    onPendingCreateConsumed,
+  ])
+
   const setFields = (
     updater: SchemaField[] | ((prev: SchemaField[]) => SchemaField[]),
   ) => {
-    setSchemas((prev) =>
-      prev.map((s) => (s.id === activeSchemaId ? { ...s, fields: typeof updater === "function" ? (updater as any)(s.fields) : updater } : s)),
-    )
+    const updated = commitSchemaUpdate(activeSchemaId, (schema) => ({
+      ...schema,
+      fields: typeof updater === "function" ? (updater as (prev: SchemaField[]) => SchemaField[])(schema.fields) : updater,
+    }))
+    return updated?.fields ?? null
   }
+
+  const syncJobRecords = useCallback(
+    async (schemaId: string, payload: { upsert?: ExtractionJob[]; deleted?: string[] }) => {
+      if (!session?.user?.id) return
+      const userId = session.user.id
+      const operations: Promise<unknown>[] = []
+
+      if (payload.upsert && payload.upsert.length > 0) {
+        const rows = payload.upsert.map((job) => extractionJobToRow(job, schemaId, userId))
+        operations.push(supabase.from("extraction_jobs").upsert(rows))
+      }
+
+      if (payload.deleted && payload.deleted.length > 0) {
+        operations.push(
+          supabase
+            .from("extraction_jobs")
+            .delete()
+            .eq("schema_id", schemaId)
+            .eq("user_id", userId)
+            .in("id", payload.deleted),
+        )
+      }
+
+      if (operations.length === 0) return
+
+      try {
+        await Promise.all(operations)
+      } catch (error) {
+        console.error('Failed to sync jobs', error)
+      }
+    },
+    [session?.user?.id, supabase],
+  )
+
+  const updateSchemaJobs = useCallback(
+    (
+      schemaId: string,
+      updater: ExtractionJob[] | ((prev: ExtractionJob[]) => ExtractionJob[]),
+      options?: { persistSchema?: boolean; syncJobs?: boolean },
+    ) => {
+      const previousSchema = schemas.find((schema) => schema.id === schemaId)
+      const previousJobs = previousSchema?.jobs ?? []
+      let nextJobs = previousJobs
+
+      const updated = commitSchemaUpdate(
+        schemaId,
+        (schema) => {
+          const currentJobs = schema.jobs ?? []
+          nextJobs =
+            typeof updater === "function"
+              ? (updater as (prev: ExtractionJob[]) => ExtractionJob[])(currentJobs)
+              : Array.isArray(updater)
+                ? updater
+                : currentJobs
+          return {
+            ...schema,
+            jobs: nextJobs,
+          }
+        },
+        { persistSchema: options?.persistSchema ?? false },
+      )
+
+      if (updated && session?.user?.id && options?.syncJobs !== false) {
+        const { upsert, deleted } = diffJobLists(previousJobs, nextJobs)
+        if (upsert.length > 0 || deleted.length > 0) {
+          void syncJobRecords(schemaId, { upsert, deleted })
+        }
+      }
+
+      return updated?.jobs ?? null
+    },
+    [commitSchemaUpdate, schemas, session?.user?.id, syncJobRecords],
+  )
 
   const setJobs = (
     updater: ExtractionJob[] | ((prev: ExtractionJob[]) => ExtractionJob[]),
-  ) => {
-    setSchemas((prev) =>
-      prev.map((s) => (s.id === activeSchemaId ? { ...s, jobs: typeof updater === "function" ? (updater as any)(s.jobs) : updater } : s)),
-    )
-  }
+    schemaId: string = activeSchemaId,
+    options?: { persistSchema?: boolean; syncJobs?: boolean },
+  ) => updateSchemaJobs(schemaId, updater, options)
 
   const addSchema = () => {
     const nextIndex = schemas.length + 1
     const newSchema: SchemaDefinition = {
-      id: `schema_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      id: generateUuid(),
       name: `Schema ${nextIndex}`,
       fields: [],
       jobs: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
     }
     setSchemas((prev) => [...prev, newSchema])
     setActiveSchemaId(newSchema.id)
+    setSchemaNameInput(newSchema.name)
     setSelectedColumn(null)
     setIsColumnDialogOpen(false)
-    
+    if (session?.user?.id) {
+      setSchemaSyncState((prev) => ({
+        ...prev,
+        [newSchema.id]: { status: 'saving', updatedAt: newSchema.updatedAt },
+      }))
+      void syncSchema(newSchema)
+    }
   }
 
-  const closeSchema = (id: string) => {
+  const removeSchema = (id: string) => {
+    const fallback = createInitialSchemaDefinition()
     setSchemas((prev) => {
       const filtered = prev.filter((s) => s.id !== id)
       if (filtered.length === 0) {
-        const fallback: SchemaDefinition = {
-          id: `schema_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-          name: "Data Extraction Schema",
-          fields: [],
-          jobs: [],
-        }
         setActiveSchemaId(fallback.id)
+        setSchemaNameInput(fallback.name)
         return [fallback]
       }
-      if (id === activeSchemaId) setActiveSchemaId(filtered[filtered.length - 1].id)
+      if (id === activeSchemaId) {
+        const nextActive = filtered[filtered.length - 1]
+        setActiveSchemaId(nextActive.id)
+        setSchemaNameInput(nextActive.name)
+      }
       return filtered
     })
+    if (session?.user?.id) {
+      void deleteSchemaRecord(id)
+      if (schemas.length === 1) {
+        setSchemaSyncState((prev) => ({ ...prev, [fallback.id]: { status: 'saving', updatedAt: fallback.updatedAt } }))
+        void syncSchema(fallback)
+      }
+    }
     setSelectedColumn(null)
     setIsColumnDialogOpen(false)
   }
+
+  const closeSchema = (id: string) => {
+    const target = schemas.find((s) => s.id === id)
+    if (!target) return
+    const hasData =
+      (target.fields?.length ?? 0) > 0 ||
+      (target.jobs?.length ?? 0) > 0
+    if (hasData) {
+      setSchemaDeletionDialog(target)
+      return
+    }
+    removeSchema(id)
+  }
+
+  const handleConfirmSchemaDeletion = () => {
+    if (!schemaDeletionDialog) return
+    const id = schemaDeletionDialog.id
+    setSchemaDeletionDialog(null)
+    removeSchema(id)
+  }
+
+  const handleCancelSchemaDeletion = () => {
+    setSchemaDeletionDialog(null)
+  }
+
+  const activeSchemaSync = schemaSyncState[activeSchemaId]
+  const activeSchemaStatus: 'idle' | 'saving' | 'error' = activeSchemaSync?.status ?? 'idle'
+  const activeSchemaError = activeSchemaSync?.status === 'error' ? activeSchemaSync.error : null
+  const activeSchemaUpdatedAt = activeSchemaSync?.updatedAt
+
+  const retryActiveSchema = useCallback(() => {
+    if (!session?.user?.id) return
+    const schema = schemas.find((s) => s.id === activeSchemaId)
+    if (schema) {
+      void syncSchema(schema)
+    }
+  }, [activeSchemaId, schemas, session?.user?.id, syncSchema])
 
   const addColumn = () => {
     const newColumn: SchemaField = {
@@ -1494,29 +2023,21 @@ export function DataExtractionPlatform() {
   }
 
   const deleteColumn = (columnId: string) => {
-    setSchemas((prev) => 
-      prev.map((schema) => {
-        if (schema.id !== activeSchemaId) return schema
-        
-        // Remove field from fields
-        const newFields = removeFieldById(schema.fields, columnId)
-        
-        // Clean up visual groups: remove field from groups and delete empty groups
-        const updatedGroups = (schema.visualGroups || [])
-          .map(group => ({
-            ...group,
-            fieldIds: group.fieldIds.filter(id => id !== columnId)
-          }))
-          .filter(group => group.fieldIds.length > 0)
-        
-        return {
-          ...schema,
-          fields: newFields,
-          visualGroups: updatedGroups
-        }
-      })
-    )
-    
+    commitSchemaUpdate(activeSchemaId, (schema) => {
+      const newFields = removeFieldById(schema.fields, columnId)
+      const updatedGroups = (schema.visualGroups || [])
+        .map(group => ({
+          ...group,
+          fieldIds: group.fieldIds.filter(id => id !== columnId)
+        }))
+        .filter(group => group.fieldIds.length > 0)
+      return {
+        ...schema,
+        fields: newFields,
+        visualGroups: updatedGroups,
+      }
+    })
+
     if (selectedColumn?.id === columnId) {
       setSelectedColumn(null)
       setIsColumnDialogOpen(false)
@@ -1532,22 +2053,58 @@ export function DataExtractionPlatform() {
       return
     }
 
-    for (const file of Array.from(files)) {
-      const newJob: ExtractionJob = {
-        id: `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        fileName: file.name,
-        status: "pending",
-        createdAt: new Date(),
-        agentType: selectedAgent,
+    const fileArray = Array.from(files)
+    if (fileArray.length === 0) return
+
+    const targetSchemaId = activeSchemaId
+    const agentSnapshot = selectedAgent
+    const templateIdSnapshot = activeSchema.templateId
+    const fieldsSnapshot = fields
+    const displayColumnsSnapshot = displayColumns
+
+    const jobsToCreate: ExtractionJob[] = fileArray.map((file) => ({
+      id: generateUuid(),
+      fileName: file.name,
+      status: "pending" as ExtractionJob["status"],
+      createdAt: new Date(),
+      agentType: agentSnapshot,
+    }))
+
+    if (jobsToCreate.length > 0) {
+      updateSchemaJobs(targetSchemaId, (prev) => [...prev, ...jobsToCreate])
+      setSelectedRowId(jobsToCreate[jobsToCreate.length - 1].id)
+    }
+
+    const processEntry = async (file: File, job: ExtractionJob | undefined) => {
+      if (!job) return
+
+      const jobMeta: {
+        jobId: string
+        schemaId: string
+        fileName: string
+        agentType?: string | null
+        userId?: string
+      } = {
+        jobId: job.id,
+        schemaId: targetSchemaId,
+        fileName: job.fileName,
+        agentType: agentSnapshot,
       }
-      setJobs((prev) => [...prev, newJob])
-      setSelectedRowId(newJob.id)
+      if (session?.user?.id) {
+        jobMeta.userId = session.user.id
+      }
+
+      const updateJobsForSchema = (
+        updater: ExtractionJob[] | ((prev: ExtractionJob[]) => ExtractionJob[])
+      ) => updateSchemaJobs(targetSchemaId, updater)
 
       try {
-        // Update status to processing
-        setJobs((prev) => prev.map((job) => (job.id === newJob.id ? { ...job, status: "processing" } : job)))
+        updateJobsForSchema((prev) =>
+          prev.map((existing) =>
+            existing.id === job.id ? { ...existing, status: "processing" } : existing,
+          ),
+        )
 
-        // Build nested schema tree without transformation fields
         const filterTransforms = (fs: SchemaField[]): SchemaField[] =>
           fs
             .filter((f) => !f.isTransformation)
@@ -1557,7 +2114,7 @@ export function DataExtractionPlatform() {
               if (f.type === "table") return { ...f, columns: filterTransforms(f.columns) }
               return f
             })
-        const schemaTree = filterTransforms(fields)
+        const schemaTree = filterTransforms(fieldsSnapshot)
 
         if (process.env.NODE_ENV !== 'production') {
           // eslint-disable-next-line no-console
@@ -1575,14 +2132,22 @@ export function DataExtractionPlatform() {
         const uploadBlob = compressed.blob
         const uploadType = compressed.type || file.type || 'application/octet-stream'
         const uploadName = compressed.name || file.name
-        const imageSizeExceededMessage = 'File is still larger than 3 MB after compression. Please resize or crop the image and try again.'
+        jobMeta.fileName = uploadName
+        if (uploadName !== job.fileName) {
+          updateJobsForSchema((prev) =>
+            prev.map((existing) =>
+              existing.id === job.id ? { ...existing, fileName: uploadName } : existing,
+            ),
+          )
+        }
+        const imageSizeExceededMessage =
+          'File is still larger than 3 MB after compression. Please resize or crop the image and try again.'
         const maxImageBytes = compressionOptions.targetBytes ?? 3_000_000
 
         if (uploadType.startsWith('image/') && uploadBlob.size > maxImageBytes) {
           throw new Error(imageSizeExceededMessage)
         }
 
-        // Convert (potentially compressed) blob to base64 for downstream APIs
         const base64Data = await new Promise<string>((resolve, reject) => {
           try {
             const reader = new FileReader()
@@ -1605,24 +2170,19 @@ export function DataExtractionPlatform() {
           data: base64Data,
         }
 
-        // Special Pharma E-Commerce Content Generation flow
-        if (selectedAgent === 'pharma') {
+        if (agentSnapshot === 'pharma') {
           try {
-            // Prepare data for pharma API
             const pharmaPayload: any = {
               imageBase64: uploadType.startsWith('image/') ? base64Data : undefined,
               fileName: uploadName,
+              job: jobMeta,
             }
 
-            // For non-image files, try to extract text
             if (!uploadType.startsWith('image/')) {
-              // For text files, decode base64 to text
               if (uploadType.includes('text') || uploadType.includes('csv')) {
                 const textBytes = atob(base64Data)
                 pharmaPayload.extractedText = textBytes
               } else {
-                // For PDFs and other documents, send the file data
-                // The API will handle text extraction
                 pharmaPayload.fileData = fileData
               }
             }
@@ -1650,41 +2210,39 @@ export function DataExtractionPlatform() {
               throw new Error(pharmaResult?.error || 'Pharma extraction failed')
             }
 
-            // Store pharma results
             const finalResults: Record<string, any> = {
               pharma_data: pharmaResult,
             }
 
-            setJobs((prev) =>
-              prev.map((job) =>
-                job.id === newJob.id
-                  ? { ...job, status: 'completed', results: finalResults, completedAt: new Date() }
-                  : job,
+            updateJobsForSchema((prev) =>
+              prev.map((existing) =>
+                existing.id === job.id
+                  ? { ...existing, status: 'completed', results: finalResults, completedAt: new Date() }
+                  : existing,
               ),
             )
             recordSuccessAndMaybeOpenRoi()
           } catch (e) {
             console.error('Pharma flow error:', e)
-            setJobs((prev) =>
-              prev.map((job) =>
-                job.id === newJob.id
-                  ? { ...job, status: 'error', completedAt: new Date() }
-                  : job,
+            updateJobsForSchema((prev) =>
+              prev.map((existing) =>
+                existing.id === job.id
+                  ? { ...existing, status: 'error', completedAt: new Date() }
+                  : existing,
               ),
             )
           }
-          continue
+          return
         }
 
-        // Special F&B Label Compliance flow: extraction then translation using fixed prompts
-        if (activeSchema.templateId === 'fnb-label-compliance') {
+        if (templateIdSnapshot === 'fnb-label-compliance') {
           try {
             const r1 = await fetch('/api/fnb/extract', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify({ file: fileData }),
+              body: JSON.stringify({ file: fileData, job: jobMeta }),
             })
             if (r1.status === 413) {
               throw new Error('The uploaded file exceeds the 3 MB limit for F&B extraction. Please compress or resize the image and retry.')
@@ -1701,7 +2259,7 @@ export function DataExtractionPlatform() {
             const r2 = await fetch('/api/fnb/translate', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ source }),
+              body: JSON.stringify({ source, extraction, job: jobMeta }),
             })
             if (!r2.ok) {
               const errText = await r2.text().catch(() => `${r2.status} ${r2.statusText}`)
@@ -1715,28 +2273,27 @@ export function DataExtractionPlatform() {
               fnb_translation: j2.data,
             }
 
-            setJobs((prev) =>
-              prev.map((job) =>
-                job.id === newJob.id
-                  ? { ...job, status: 'completed', results: finalResults, completedAt: new Date() }
-                  : job,
+            updateJobsForSchema((prev) =>
+              prev.map((existing) =>
+                existing.id === job.id
+                  ? { ...existing, status: 'completed', results: finalResults, completedAt: new Date() }
+                  : existing,
               ),
             )
             recordSuccessAndMaybeOpenRoi()
           } catch (e) {
             console.error('FNB flow error:', e)
-            setJobs((prev) =>
-              prev.map((job) =>
-                job.id === newJob.id
-                  ? { ...job, status: 'error', completedAt: new Date() }
-                  : job,
+            updateJobsForSchema((prev) =>
+              prev.map((existing) =>
+                existing.id === job.id
+                  ? { ...existing, status: 'error', completedAt: new Date() }
+                  : existing,
               ),
             )
           }
-          continue
+          return
         }
 
-        // Call extraction API with JSON instead of FormData
         const response = await fetch("/api/extract", {
           method: "POST",
           headers: {
@@ -1746,6 +2303,7 @@ export function DataExtractionPlatform() {
             file: fileData,
             schemaTree,
             extractionPromptOverride: undefined,
+            job: jobMeta,
           }),
         })
 
@@ -1761,355 +2319,183 @@ export function DataExtractionPlatform() {
           result = responseBody ? JSON.parse(responseBody) : {}
         } catch (parseError) {
           throw new Error(
-            `Failed to parse extraction response: ${
-              parseError instanceof Error ? parseError.message : String(parseError)
-            }. Body snippet: ${responseBody.slice(0, 200)}`,
+            `Failed to parse extraction response: ${(parseError as Error).message}`,
           )
-        }
-        if (process.env.NODE_ENV !== 'production') {
-          // eslint-disable-next-line no-console
-          console.log("[bytebeam] API response:", result)
         }
 
         if (result.success) {
-          if (Array.isArray(result.warnings) && result.warnings.length > 0) {
-            console.warn('[bytebeam] Extraction warnings:', result.warnings)
-          }
-          // Flatten nested results (by field id) for grid/transform use
-          const finalResults = flattenResultsById(fields, result.results)
-
-          // Validate dependencies before execution
-          const dependencyErrors = validateDependencies(displayColumns)
-          if (dependencyErrors.length > 0) {
-            console.warn('[bytebeam] Dependency validation errors:', dependencyErrors)
-          }
-
-          // Build dependency graph and execution waves
-          const graph = buildDependencyGraph(displayColumns)
+          const rawResults =
+            (result.data && typeof result.data === 'object' && 'results' in result.data
+              ? result.data.results
+              : undefined) ??
+            result.results ??
+            {}
+          const sanitized = schemaTree?.length
+            ? sanitizeResultsFromTree(schemaTree, rawResults)
+            : sanitizeResultsFromFlat((result.schema ?? result.data?.schema) ?? {}, rawResults)
+          const flattened = flattenResultsById(displayColumnsSnapshot, sanitized ?? {})
+          const finalResults: Record<string, any> = { ...flattened }
+          const graph = buildDependencyGraph(displayColumnsSnapshot, false)
           const waves = topologicalSort(graph)
-          
-          // Track field status for error propagation
-          const fieldStatus = new Map<string, { status: 'success' | 'error' | 'blocked', error?: string }>()
+          const fieldStatus = new Map<string, { status: 'pending' | 'success' | 'error' | 'blocked'; error?: string }>()
+          const baseStatus = validateDependencies(graph)
+          baseStatus.unresolvable.forEach((id) => fieldStatus.set(id, { status: 'blocked', error: 'Missing dependency' }))
+          const needsWaveProcessing = displayColumnsSnapshot.some((col) => col.isTransformation && col.transformationType === 'gemini_api')
+          const pendingTransformations = displayColumnsSnapshot
+            .filter((col) => col.isTransformation && !fieldStatus.has(col.id))
+            .map((col) => col.id)
+          pendingTransformations.forEach((id) => fieldStatus.set(id, { status: 'pending' }))
 
-          // Execute transformations wave by wave (synchronous types first)
-          const synchronousTypes = ['calculation', 'currency_conversion', 'classification']
-          
-          for (const wave of waves) {
-            const syncFields = wave.fields.filter(col => 
-              col.isTransformation && synchronousTypes.includes(col.transformationType || '')
+          displayColumnsSnapshot.forEach((col) => {
+            if (fieldStatus.has(col.id)) return
+            fieldStatus.set(col.id, { status: 'success' })
+          })
+
+          const resolvedSummaryValues = new Map<string, Record<string, any>>()
+
+          const summaryFields = displayColumnsSnapshot.filter((col) => col.displayInSummary)
+          const summaryPrimitives = summaryFields.filter((col) => col.type !== 'object')
+          const summaryComposite = summaryFields.filter((col) => col.type === 'object')
+
+          if (summaryPrimitives.length > 0) {
+            const summaryObject = Object.fromEntries(
+              summaryPrimitives.map((col) => [col.id, finalResults[col.id]]),
             )
-            
-            syncFields.forEach((col) => {
-              // Check if any dependencies failed or are blocked
-              const dependencies = graph.edges.get(col.id) || new Set()
-              const blockedBy: string[] = []
-              
-              dependencies.forEach(depId => {
-                const depStatus = fieldStatus.get(depId)
-                if (depStatus && (depStatus.status === 'error' || depStatus.status === 'blocked')) {
-                  const depField = displayColumns.find(f => f.id === depId)
-                  blockedBy.push(depField?.name || depId)
-                }
-              })
-              
-              if (blockedBy.length > 0) {
-                fieldStatus.set(col.id, { 
-                  status: 'blocked', 
-                  error: `Blocked by failed dependencies: ${blockedBy.join(', ')}` 
-                })
-                finalResults[col.id] = `Error: Blocked by ${blockedBy.join(', ')}`
-                return
-              }
-              
-              if (col.transformationType === "calculation" && col.transformationConfig) {
-                try {
-                  let expression = col.transformationConfig
+            resolvedSummaryValues.set('leaf_summary', summaryObject)
+          }
 
-                  // Replace column references with actual values
-                  // Build a map of replacements first to avoid issues with overlapping replacements
-                  const replacements: { pattern: string; value: string }[] = []
-                  const columnReferences = expression.match(/\{([^}]+)\}/g)
-                  
-                  if (columnReferences) {
-                    for (const ref of columnReferences) {
-                      const fieldName = ref.slice(1, -1).trim()
-                      const referencedColumn = displayColumns.find((c) => c.name === fieldName)
-                      let valueToReplace = "0"
-                      
-                      if (referencedColumn) {
-                        const value = finalResults[referencedColumn.id]
-                        if (value !== undefined && value !== null) {
-                          const numericValue = Number.parseFloat(value.toString())
-                          if (!isNaN(numericValue)) {
-                            valueToReplace = numericValue.toString()
-                          } else {
-                            console.warn(
-                              `Non-numeric value for referenced column '${fieldName}' in calculation. Using 0.`,
-                            )
-                          }
-                        }
-                      } else {
-                        console.warn(`Referenced column '${fieldName}' not found in calculation. Using 0.`)
-                      }
-                      
-                      replacements.push({ pattern: ref, value: valueToReplace })
-                    }
-                    
-                    // Apply all replacements using a function replacer to avoid regex issues
-                    for (const { pattern, value } of replacements) {
-                      // Use split and join for safe string replacement
-                      expression = expression.split(pattern).join(value)
-                    }
-                  }
+          summaryComposite.forEach((col) => {
+            const objectValue = finalResults[col.id]
+            if (!objectValue || typeof objectValue !== 'object') return
+            resolvedSummaryValues.set(col.id, objectValue as Record<string, any>)
+          })
 
-                  // Simple safe evaluation for basic math operations only
-                  // Remove any non-math characters to prevent code injection
-                  const safeExpression = expression.replace(/[^0-9+\-*/.() ]/g, "")
-                  if (safeExpression !== expression) {
-                    console.warn("Invalid characters removed from calculation expression")
-                  }
+          const dependencyWarnings: string[] = []
 
-                  // Check if expression is empty or invalid before evaluation
-                  if (!safeExpression || safeExpression.trim() === "") {
-                    finalResults[col.id] = 0
-                  } else {
-                    try {
-                      // Use Function constructor with timeout protection
-                      const func = new Function(`"use strict"; return (${safeExpression})`)
-                      const result = func()
-                      
-                      // Validate the result
-                      if (typeof result === 'number' && !isNaN(result) && isFinite(result)) {
-                        finalResults[col.id] = result
-                      } else {
-                        console.warn("Calculation resulted in non-numeric value")
-                        finalResults[col.id] = 0
-                      }
-                    } catch (evalError) {
-                      console.error("Error evaluating expression:", evalError)
-                      finalResults[col.id] = 0
-                    }
-                  }
-                  fieldStatus.set(col.id, { status: 'success' })
-                } catch (e) {
-                  console.error("Calculation error:", e)
-                  const errorMsg = `Error: ${e instanceof Error ? e.message : "Invalid calculation"}`
-                  finalResults[col.id] = errorMsg
-                  fieldStatus.set(col.id, { status: 'error', error: errorMsg })
-                }
-              } else if (col.transformationType === "currency_conversion") {
-                try {
-                  // Support structured config or legacy string expressions
-                  let amount = 0
-                  let rate = 1
-                  let decimals: number | undefined
-
-                  const cfg = col.transformationConfig
-                  const resolveColumnValueById = (id: string): number => {
-                    const v = finalResults[id]
-                    const n = Number.parseFloat(String(v))
-                    return isNaN(n) ? 0 : n
-                  }
-                  const resolveBraceOrNumber = (ref: any): number => {
-                    if (typeof ref === "number") return ref
-                    if (typeof ref === "string") {
-                      const m = ref.match(/^\{([^}]+)\}$/)
-                      if (m) {
-                        const byName = displayColumns.find((c) => c.name === m[1].trim())
-                        const v = byName ? finalResults[byName.id] : undefined
-                        const n = Number.parseFloat(String(v))
-                        return isNaN(n) ? 0 : n
-                      }
-                      const n = Number.parseFloat(ref)
-                      return isNaN(n) ? 0 : n
-                    }
-                    return 0
-                  }
-
-                  if (cfg && typeof cfg === "object" && (cfg.amount || cfg.rate)) {
-                    const amt = cfg.amount || { type: "number", value: 0 }
-                    const rt = cfg.rate || { type: "number", value: 1 }
-                    amount = amt.type === "column" ? resolveColumnValueById(String(amt.value)) : resolveBraceOrNumber(amt.value)
-                    rate = rt.type === "column" ? resolveColumnValueById(String(rt.value)) : resolveBraceOrNumber(rt.value)
-                    decimals = typeof cfg.decimals === "number" ? cfg.decimals : undefined
-                  } else {
-                    const cfgText = String(cfg || "")
-                    try {
-                      const j = JSON.parse(cfgText)
-                      amount = resolveBraceOrNumber(j.amount ?? j.value)
-                      rate = resolveBraceOrNumber(j.rate ?? j.fxRate ?? j.multiplier)
-                      decimals = typeof j.decimals === "number" ? j.decimals : undefined
-                    } catch {
-                      // Fallback to formula string like "{Amount} * 3.75"
-                      let expr = cfgText
-                      const refs = expr.match(/\{([^}]+)\}/g)
-                      if (refs) {
-                        for (const r of refs) {
-                          const name = r.slice(1, -1).trim()
-                          const refCol = displayColumns.find((c) => c.name === name)
-                          const v = refCol ? finalResults[refCol.id] : undefined
-                          const n = Number.parseFloat(String(v))
-                          expr = expr.split(r).join(!isNaN(n) ? String(n) : "0")
-                        }
-                      }
-                      const safe = expr.replace(/[^0-9+\-*/.() ]/g, "")
-                      const fn = new Function(`"use strict"; return (${safe})`)
-                      const out = fn()
-                      const num = typeof out === "number" && isFinite(out) ? out : 0
-                      finalResults[col.id] = num
-                      fieldStatus.set(col.id, { status: 'success' })
-                      return
-                    }
-                  }
-
-                  let out = amount * rate
-                  if (typeof decimals === "number") {
-                    const p = Math.pow(10, Math.max(0, decimals))
-                    out = Math.round(out * p) / p
-                  }
-                  finalResults[col.id] = out
-                  fieldStatus.set(col.id, { status: 'success' })
-                } catch (e) {
-                  console.error("Currency conversion error:", e)
-                  finalResults[col.id] = 0
-                  fieldStatus.set(col.id, { status: 'error', error: String(e) })
-                }
-              } else if (col.transformationType === "gemini_api") {
-                // Defer to server for LLM transformation
-                // This block will be handled asynchronously after the loop
-                
-              } else if (col.transformationType === "classification") {
-                // Simple classification based on rules
-                finalResults[col.id] = "Classified result"
-                fieldStatus.set(col.id, { status: 'success' })
-              } else {
-                finalResults[col.id] = "Transformation result"
-                fieldStatus.set(col.id, { status: 'success' })
+          displayColumnsSnapshot.forEach((col) => {
+            if (!col.displayInSummary) return
+            const dependents = getFieldDependents(graph, col.id)
+            dependents.forEach((depId) => {
+              const depField = displayColumnsSnapshot.find((f) => f.id === depId)
+              if (depField?.displayInSummary) {
+                dependencyWarnings.push(
+                  `Field "${depField.name}" depends on "${col.name}" while both are part of the summary. This may cause circular references.`,
+                )
               }
             })
+          })
+
+          if (dependencyWarnings.length > 0) {
+            finalResults['__summary_warnings__'] = dependencyWarnings
           }
 
-          // Update with initial transformation results (calc/currency/classification)
-          setJobs((prev) =>
-            prev.map((job) =>
-              job.id === newJob.id
+          if (resolvedSummaryValues.size > 0) {
+            finalResults['__summary_values__'] = Object.fromEntries(resolvedSummaryValues)
+          }
+
+          const ensurePath = (obj: Record<string, any>, path: string[]): Record<string, any> => {
+            let current = obj
+            for (const key of path) {
+              if (!current[key] || typeof current[key] !== 'object') {
+                current[key] = {}
+              }
+              current = current[key]
+            }
+            return current
+          }
+
+          displayColumnsSnapshot.forEach((col) => {
+            if (!col.displayInSummary) return
+            const parentPath = col.path.slice(0, -1)
+            const destination = ensurePath(finalResults, parentPath)
+            destination[col.id] = finalResults[col.id]
+          })
+
+          updateJobsForSchema((prev) =>
+            prev.map((existing) =>
+              existing.id === job.id
                 ? {
-                    ...job,
+                    ...existing,
                     status: "completed",
                     results: finalResults,
                     completedAt: new Date(),
                   }
-                : job,
+                : existing,
             ),
           )
 
-          // Now perform any async Gemini transformations wave by wave
           for (const wave of waves) {
-            const geminiFields = wave.fields.filter(col => 
+            const geminiFields = wave.fields.filter((col) =>
               col.isTransformation && col.transformationType === 'gemini_api'
             )
-            
+
             for (const tcol of geminiFields) {
-              // Check if any dependencies failed or are blocked
-              const dependencies = graph.edges.get(tcol.id) || new Set()
+              const dependencies = graph.edges.get(tcol.id) || new Set<string>()
               const blockedBy: string[] = []
-              
-              dependencies.forEach(depId => {
+
+              dependencies.forEach((depId) => {
                 const depStatus = fieldStatus.get(depId)
                 if (depStatus && (depStatus.status === 'error' || depStatus.status === 'blocked')) {
-                  const depField = displayColumns.find(f => f.id === depId)
+                  const depField = displayColumnsSnapshot.find((c) => c.id === depId)
                   blockedBy.push(depField?.name || depId)
                 }
               })
-              
+
               if (blockedBy.length > 0) {
-                fieldStatus.set(tcol.id, { 
-                  status: 'blocked', 
-                  error: `Blocked by failed dependencies: ${blockedBy.join(', ')}` 
+                fieldStatus.set(tcol.id, {
+                  status: 'blocked',
+                  error: `Blocked by failed dependencies: ${blockedBy.join(', ')}`,
                 })
                 finalResults[tcol.id] = `Error: Blocked by ${blockedBy.join(', ')}`
                 continue
               }
-              
-              try {
-              const source = tcol.transformationSource || "column"
-              
-              // Build field schema for type-aware formatting
-              const fieldSchema: any = {
-                type: tcol.type,
-                name: tcol.name,
-                description: tcol.description,
-                constraints: tcol.constraints,
-              }
-              
-              // Add type-specific schema information
-              if (tcol.type === 'object' && 'children' in tcol) {
-                fieldSchema.children = tcol.children
-              } else if (tcol.type === 'list' && 'item' in tcol) {
-                fieldSchema.item = tcol.item
-              } else if (tcol.type === 'table' && 'columns' in tcol) {
-                fieldSchema.columns = tcol.columns
-              }
-              
-              let payload: any = {
-                type: "gemini",
-                prompt: String(tcol.transformationConfig || ""),
-                inputSource: source,
-                fieldType: tcol.type,
-                fieldSchema: fieldSchema,
-              }
-              if (source === "document") {
-                payload.file = fileData
-              } else {
-                // Extract all column references from the prompt
-                const columnValues: Record<string, any> = {}
-                const promptText = String(tcol.transformationConfig || "")
-                const refs = promptText.match(/\{([^}]+)\}/g) || []
-                
-                for (const ref of refs) {
-                  const refName = ref.slice(1, -1).trim()
-                  
-                  // Check if this is a visual group reference
-                  const visualGroup = activeSchema.visualGroups?.find((g) => g.name === refName)
-                  if (visualGroup) {
-                    // Build an object with all fields from this group
-                    const groupData: Record<string, any> = {}
-                    for (const fieldId of visualGroup.fieldIds) {
-                      const field = displayColumns.find((c) => c.id === fieldId)
-                      if (field && finalResults[fieldId] !== undefined) {
-                        groupData[field.name] = finalResults[fieldId]
-                      }
-                    }
-                    columnValues[refName] = groupData
-                  } else {
-                    // Regular column reference
-                    const refCol = displayColumns.find((c) => c.name === refName)
-                    if (refCol && finalResults[refCol.id] !== undefined) {
-                      columnValues[refName] = finalResults[refCol.id]
-                    }
-                  }
-                }
-                
-                payload.columnValues = columnValues
-              }
 
-              const resp = await fetch("/api/transform", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-              })
-              const data = await resp.json()
-              if (data?.success) {
-                let val: any = data.result
-                try { val = JSON.parse(data.result) } catch {}
-                finalResults[tcol.id] = val
+              try {
+                const source = tcol.transformationSource || "column"
+
+                const fieldSchema: any = {
+                  type: tcol.type,
+                  name: tcol.name,
+                  description: tcol.description,
+                  constraints: tcol.constraints,
+                }
+
+                if (tcol.type === 'object' && 'children' in tcol) {
+                  fieldSchema.children = tcol.children
+                } else if (tcol.type === 'list' && 'item' in tcol) {
+                  fieldSchema.item = tcol.item
+                } else if (tcol.type === 'table' && 'columns' in tcol) {
+                  fieldSchema.columns = tcol.columns
+                }
+
+                const promptPayload = {
+                  field: fieldSchema,
+                  source,
+                  schema: schemaTree,
+                  results: finalResults,
+                  job: jobMeta,
+                  displayColumns: displayColumnsSnapshot,
+                }
+
+                const response = await fetch("/api/extract/gemini", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify(promptPayload),
+                })
+
+                if (!response.ok) {
+                  const errText = await response.text().catch(() => `${response.status} ${response.statusText}`)
+                  throw new Error(`Gemini transformation failed: ${response.status} ${response.statusText} - ${errText}`)
+                }
+
+                const data = await response.json()
+                if (!data?.success) throw new Error(data?.error || 'Gemini transformation failed')
+
+                finalResults[tcol.id] = data.result?.value ?? data.result
                 fieldStatus.set(tcol.id, { status: 'success' })
-              } else {
-                const errorMsg = data?.error || "Transformation failed"
-                finalResults[tcol.id] = errorMsg
-                fieldStatus.set(tcol.id, { status: 'error', error: errorMsg })
-              }
-            } catch (e) {
+              } catch (e) {
                 console.error("Gemini transform error:", e)
                 const errorMsg = "Error: " + String(e)
                 finalResults[tcol.id] = errorMsg
@@ -2118,44 +2504,42 @@ export function DataExtractionPlatform() {
             }
           }
 
-          // Patch job with final results after async transformations
-          setJobs((prev) =>
-            prev.map((job) =>
-              job.id === newJob.id
+          updateJobsForSchema((prev) =>
+            prev.map((existing) =>
+              existing.id === job.id
                 ? {
-                    ...job,
+                    ...existing,
                     results: finalResults,
                   }
-                : job,
+                : existing,
             ),
           )
-          // Lead modal trigger after successful extraction
           recordSuccessAndMaybeOpenRoi()
         } else {
           throw new Error(result.error || "Extraction failed")
         }
       } catch (error) {
         console.error("Extraction error:", error)
-        setJobs((prev) =>
-          prev.map((job) =>
-            job.id === newJob.id
+        updateJobsForSchema((prev) =>
+          prev.map((existing) =>
+            existing.id === job.id
               ? {
-                  ...job,
+                  ...existing,
                   status: "error",
                   completedAt: new Date(),
                 }
-              : job,
+              : existing,
           ),
         )
       }
     }
 
-    // Clear the file input so selecting the same file again triggers onChange
+    await Promise.allSettled(fileArray.map((file, index) => processEntry(file, jobsToCreate[index])))
+
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
   }
-
   const getStatusIcon = (status: ExtractionJob["status"]) => {
     const iconSizing = "h-3.5 w-3.5"
     switch (status) {
@@ -2841,57 +3225,59 @@ export function DataExtractionPlatform() {
       <SetupBanner />
 
       {/* Tabs */}
-      <div id="tab-bar" className="flex-shrink-0 bg-gray-100 pl-6 border-b border-gray-200 flex items-center">
-        {/* Tab items container */}
-        <div id="tab-container" className="relative flex-grow overflow-x-auto -mb-px tab-container">
-          <div className="flex items-center whitespace-nowrap pr-2">
-            {schemas.map((s) => {
-              const isActive = s.id === activeSchemaId
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  className={cn(
-                    'group relative inline-flex items-center max-w-xs mr-1 px-3 py-2 text-sm rounded-t-md border-b-2',
-                    isActive
-                      ? 'bg-white text-indigo-600 border-indigo-500'
-                      : 'bg-transparent text-gray-500 border-transparent hover:bg-gray-200',
-                  )}
-                  onClick={() => {
-                    setActiveSchemaId(s.id)
-                    setSelectedColumn(null)
-                    setIsColumnDialogOpen(false)
-                  }}
-                  title={s.name}
-                >
-                  <span className="truncate max-w-[10rem] pr-1">{s.name}</span>
-                  <span
+      {!isEmbedded && (
+        <div id="tab-bar" className="flex-shrink-0 bg-gray-100 pl-6 border-b border-gray-200 flex items-center">
+          {/* Tab items container */}
+          <div id="tab-container" className="relative flex-grow overflow-x-auto -mb-px tab-container">
+            <div className="flex items-center whitespace-nowrap pr-2">
+              {schemas.map((s) => {
+                const isActive = s.id === activeSchemaId
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
                     className={cn(
-                      'ml-1 opacity-0 group-hover:opacity-100 transition-opacity',
-                      isActive ? 'text-indigo-600' : 'text-gray-500 hover:text-gray-700',
+                      'group relative inline-flex items-center max-w-xs mr-1 px-3 py-2 text-sm rounded-t-md border-b-2',
+                      isActive
+                        ? 'bg-white text-indigo-600 border-indigo-500'
+                        : 'bg-transparent text-gray-500 border-transparent hover:bg-gray-200',
                     )}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      closeSchema(s.id)
+                    onClick={() => {
+                      setActiveSchemaId(s.id)
+                      setSelectedColumn(null)
+                      setIsColumnDialogOpen(false)
                     }}
-                    aria-label="Close schema tab"
+                    title={s.name}
                   >
-                    <X className="h-3.5 w-3.5" />
-                  </span>
-                </button>
-              )
-            })}
-            {/* Add New Tab Button: sits after last tab; sticks to right on overflow */}
-            <button
-              onClick={() => addSchema()}
-              className="ml-2 p-2 rounded-md hover:bg-gray-200 text-gray-500 hover:text-gray-700 sticky right-0 bg-gray-100"
-              title="New schema"
-            >
-              <Plus className="h-4 w-4" />
-            </button>
+                    <span className="truncate max-w-[10rem] pr-1">{s.name}</span>
+                    <span
+                      className={cn(
+                        'ml-1 opacity-0 group-hover:opacity-100 transition-opacity',
+                        isActive ? 'text-indigo-600' : 'text-gray-500 hover:text-gray-700',
+                      )}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        closeSchema(s.id)
+                      }}
+                      aria-label="Close schema tab"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </span>
+                  </button>
+                )
+              })}
+              {/* Add New Tab Button: sits after last tab; sticks to right on overflow */}
+              <button
+                onClick={() => addSchema()}
+                className="ml-2 p-2 rounded-md hover:bg-gray-200 text-gray-500 hover:text-gray-700 sticky right-0 bg-gray-100"
+                title="New schema"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="flex flex-1 min-h-0 min-w-0">
 
@@ -2923,13 +3309,21 @@ export function DataExtractionPlatform() {
                       autoFocus
                       onBlur={() => {
                         const next = (schemaNameInput || 'Data Extraction Schema').trim()
-                        setSchemas((prev) => prev.map((s) => s.id === activeSchemaId ? { ...s, name: next } : s))
+                        commitSchemaUpdate(activeSchemaId, (schema) => ({
+                          ...schema,
+                          name: next,
+                        }))
+                        setSchemaNameInput(next)
                         setEditingSchemaName(false)
                       }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           const next = (schemaNameInput || 'Data Extraction Schema').trim()
-                          setSchemas((prev) => prev.map((s) => s.id === activeSchemaId ? { ...s, name: next } : s))
+                          commitSchemaUpdate(activeSchemaId, (schema) => ({
+                            ...schema,
+                            name: next,
+                          }))
+                          setSchemaNameInput(next)
                           setEditingSchemaName(false)
                         } else if (e.key === 'Escape') {
                           setEditingSchemaName(false)
@@ -2940,9 +3334,9 @@ export function DataExtractionPlatform() {
                     />
                   )}
                 </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {/* Agent type selector */}
-                {isSchemaFresh(activeSchema) && (
+                {!isEmbedded && isSchemaFresh(activeSchema) && (
                   <Select value={selectedAgent} onValueChange={(val) => setSelectedAgent(val as AgentType)}>
                     <SelectTrigger className="w-64">
                       <SelectValue />
@@ -2954,20 +3348,44 @@ export function DataExtractionPlatform() {
                   </Select>
                 )}
                 {/* Schema template selector in header when schema fresh and standard agent */}
-                {isSchemaFresh(activeSchema) && selectedAgent === "standard" && (
+                {!isEmbedded && isSchemaFresh(activeSchema) && selectedAgent === "standard" && (
                   <Select onValueChange={(val) => applySchemaTemplate(val)}>
                     <SelectTrigger className="w-56">
                       <SelectValue placeholder="Select a template" />
                     </SelectTrigger>
                     <SelectContent>
-                      {NESTED_TEMPLATES.map((t) => (
-                        <SelectItem key={t.id} value={t.id}>
-                          {t.name}
-                        </SelectItem>
-                      ))}
+                      {combinedTemplates
+                        .filter((t) => t.agentType === "standard")
+                        .map((t) => (
+                          <SelectItem key={t.id} value={t.id}>
+                            {t.name}
+                            {t.isCustom ? " (Custom)" : ""}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 )}
+                {onCreateTemplate ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={fields.length === 0 || isSavingTemplate}
+                    onClick={() => {
+                      setTemplateNameInput(activeSchema.name || "New template")
+                      setTemplateDescriptionInput("")
+                      setIsTemplateDialogOpen(true)
+                    }}
+                    title={
+                      fields.length === 0
+                        ? "Add at least one field before saving this schema as a template."
+                        : "Save the current schema structure as a reusable template."
+                    }
+                    className="gap-2"
+                  >
+                    {isSavingTemplate ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkle className="h-4 w-4" />}
+                    Save template
+                  </Button>
+                ) : null}
                 {/* Export / Print: show Export always (non-F&B), Print gated on completion (F&B) */}
                 {activeSchema.templateId === 'fnb-label-compliance' ? (
                   jobs.some((j) => j.status === 'completed') ? (
@@ -3004,6 +3422,59 @@ export function DataExtractionPlatform() {
                     Group Fields ({selectedColumnIds.size})
                   </Button>
                 )}
+                {session?.user ? (
+                  <div className="flex items-center gap-3">
+                    {isWorkspaceLoading ? (
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Syncing…
+                      </span>
+                    ) : activeSchemaStatus === 'saving' ? (
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Saving…
+                      </span>
+                    ) : activeSchemaStatus === 'error' ? (
+                      <span className="flex items-center gap-1 text-xs text-destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        Save failed
+                      </span>
+                    ) : activeSchemaUpdatedAt ? (
+                      <span className="text-xs text-muted-foreground">
+                        Saved {formatDistanceToNow(activeSchemaUpdatedAt, { addSuffix: true })}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">All changes saved</span>
+                    )}
+                    {activeSchemaStatus === 'error' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={retryActiveSchema}
+                        disabled={isWorkspaceLoading || activeSchemaStatus === 'saving'}
+                      >
+                        Retry
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-start gap-1">
+                    {hasWorkspaceContent && (
+                      <span className="text-xs font-medium text-amber-600">
+                        Sign in to save your workspace before you leave.
+                      </span>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openAuthDialog("sign-in")}
+                      className="gap-2"
+                    >
+                      <Save className="h-4 w-4" />
+                      Save workspace
+                    </Button>
+                  </div>
+                )}
                 {/* Add Field button moved to grid area as a floating + */}
                 {/* Upload button moved to header */}
                 <Button
@@ -3025,6 +3496,32 @@ export function DataExtractionPlatform() {
                 />
               </div>
               </div>
+            {(loadWorkspaceError || activeSchemaError) && (
+              <div className="mt-2 space-y-1">
+                {loadWorkspaceError && (
+                  <p className="text-sm text-destructive">
+                    {loadWorkspaceError}
+                  </p>
+                )}
+                {activeSchemaError && (
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm text-destructive">
+                      {activeSchemaError}
+                    </p>
+                    {session?.user && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={retryActiveSchema}
+                        disabled={isWorkspaceLoading || activeSchemaStatus === 'saving'}
+                      >
+                        Retry
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
             {fields.length === 0 && selectedAgent !== 'pharma' && (
               <div className="mt-4 p-3 bg-muted rounded-lg">
                 <p className="text-sm text-muted-foreground">
@@ -3537,7 +4034,7 @@ export function DataExtractionPlatform() {
                   getStatusIcon={getStatusIcon}
                   renderStatusPill={renderStatusPill}
                   onUpdateCell={(jobId, columnId, value) => {
-                    setJobs((prev) =>
+                    updateSchemaJobs(activeSchemaId, (prev) =>
                       prev.map((job) =>
                         job.id === jobId
                           ? { ...job, results: { ...(job.results || {}), [columnId]: value } }
@@ -3762,6 +4259,69 @@ export function DataExtractionPlatform() {
           </DialogContent>
         </Dialog>
       )}
+      {onCreateTemplate ? (
+        <Dialog open={isTemplateDialogOpen} onOpenChange={(open) => {
+          if (isSavingTemplate) return
+          setIsTemplateDialogOpen(open)
+        }}>
+          <DialogContent className="sm:max-w-[480px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkle className="h-4 w-4" />
+                Save as template
+              </DialogTitle>
+              <DialogDescription>
+                Capture the current schema fields and transformations so you can reuse them when creating a new project.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="template-name">Template name</Label>
+                <Input
+                  id="template-name"
+                  value={templateNameInput}
+                  onChange={(event) => setTemplateNameInput(event.target.value)}
+                  placeholder="Invoice – net terms"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="template-description">Description (optional)</Label>
+                <Textarea
+                  id="template-description"
+                  value={templateDescriptionInput}
+                  onChange={(event) => setTemplateDescriptionInput(event.target.value)}
+                  placeholder="What makes this schema unique or when it should be used?"
+                  rows={3}
+                />
+              </div>
+              <div className="rounded-md border border-dashed border-muted-foreground/30 px-3 py-2 text-xs text-muted-foreground">
+                {fields.length === 0
+                  ? "Templates save the schema layout. Add fields before saving."
+                  : `This template will include ${fields.length} ${fields.length === 1 ? "field" : "fields"} along with any transformation settings.`}
+              </div>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsTemplateDialogOpen(false)}
+                disabled={isSavingTemplate}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleTemplateSave}
+                disabled={isSavingTemplate || fields.length === 0 || templateNameInput.trim().length === 0}
+              >
+                {isSavingTemplate ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkle className="mr-2 h-4 w-4" />}
+                Save template
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      ) : null}
+
       {/* Advanced Automation ROI Modal */}
       <Dialog open={roiOpen} onOpenChange={onCloseRoi}>
         <DialogContent className="max-w-2xl">
@@ -4010,6 +4570,33 @@ export function DataExtractionPlatform() {
           </div>
         </DialogContent>
       </Dialog>
+      <AlertDialog
+        open={!!schemaDeletionDialog}
+        onOpenChange={(open) => {
+          if (!open) handleCancelSchemaDeletion()
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete schema?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <p>
+                This will permanently remove "{schemaDeletionDialog?.name ?? "schema"}" and all associated jobs and
+                results.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelSchemaDeletion}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleConfirmSchemaDeletion}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       </div>
     </div>
   )

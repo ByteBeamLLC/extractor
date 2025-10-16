@@ -2,10 +2,18 @@ import { type NextRequest, NextResponse } from "next/server"
 import { generateObject } from "ai"
 import { z } from "zod"
 import { google } from "@ai-sdk/google"
+import type { SupabaseClient } from "@supabase/supabase-js"
+
+import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { upsertJobStatus, type JobMetadata } from "@/lib/jobs/server"
+import type { Database } from "@/lib/supabase/types"
+import {
+  FALLBACK_VALUE,
+  sanitizeResultsFromFlat,
+  sanitizeResultsFromTree,
+} from "@/lib/extraction-results"
 
 export const runtime = "nodejs"
-
-const FALLBACK_VALUE = "-"
 
 const pdfMimeTypes = new Set(["application/pdf"])
 const docxMimeTypes = new Set([
@@ -148,52 +156,6 @@ function buildFallbackFromFlat(schema: Record<string, any>): any {
   return out
 }
 
-function sanitizeResultsFromTree(fields: any[], raw: any): any {
-  const out: Record<string, any> = {}
-  for (const field of fields ?? []) {
-    const value = raw?.[field.id]
-    if (field.type === "object") {
-      const nextRaw =
-        value && typeof value === "object" && !Array.isArray(value) ? value : undefined
-      out[field.id] = sanitizeResultsFromTree(field.children || [], nextRaw ?? {})
-    } else if (field.type === "list" || field.type === "table") {
-      if (Array.isArray(value) && value.length > 0) {
-        out[field.id] = value
-      } else {
-        out[field.id] = FALLBACK_VALUE
-      }
-    } else {
-      out[field.id] = normalizeScalarValue(value)
-    }
-  }
-  return out
-}
-
-function sanitizeResultsFromFlat(schema: Record<string, any>, raw: any): any {
-  const out: Record<string, any> = {}
-  Object.entries(schema || {}).forEach(([key]) => {
-    const value = raw?.[key]
-    out[key] = normalizeScalarValue(value)
-  })
-  return out
-}
-
-function normalizeScalarValue(value: any): any {
-  if (value === undefined || value === null) return FALLBACK_VALUE
-  if (typeof value === "string") {
-    const trimmed = value.trim()
-    return trimmed === "" || trimmed === FALLBACK_VALUE ? FALLBACK_VALUE : value
-  }
-  if (Array.isArray(value)) {
-    return value.length > 0 ? value : FALLBACK_VALUE
-  }
-  if (typeof value === "object") {
-    return Object.keys(value).length > 0 ? value : FALLBACK_VALUE
-  }
-  if (typeof value === "number" && Number.isNaN(value)) return FALLBACK_VALUE
-  return value
-}
-
 export async function POST(request: NextRequest) {
   try {
     console.log("[bytebeam] API route called")
@@ -210,7 +172,46 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { file: fileData, schema, schemaTree, extractionPromptOverride } = requestData
+    const {
+      file: fileData,
+      schema,
+      schemaTree,
+      extractionPromptOverride,
+      job: rawJobMeta,
+    } = requestData
+
+    let supabase: SupabaseClient<Database> | null = null
+    let userId: string | null = null
+    let jobMeta: JobMetadata | null = null
+
+    if (rawJobMeta && typeof rawJobMeta === "object") {
+      if (typeof rawJobMeta.jobId === "string" && typeof rawJobMeta.schemaId === "string") {
+        jobMeta = {
+          jobId: rawJobMeta.jobId,
+          schemaId: rawJobMeta.schemaId,
+          fileName: rawJobMeta.fileName,
+          agentType: rawJobMeta.agentType,
+        }
+        try {
+          supabase = createSupabaseServerClient()
+          const {
+            data: { user },
+          } = await supabase.auth.getUser()
+          userId = user?.id ?? null
+        } catch (authError) {
+          console.warn("[bytebeam] Failed to resolve Supabase user for job sync:", authError)
+        }
+      }
+    }
+
+    const syncJob = async (patch: Parameters<typeof upsertJobStatus>[3]) => {
+      if (!jobMeta || !supabase || !userId) return
+      try {
+        await upsertJobStatus(supabase, userId, jobMeta, patch)
+      } catch (syncError) {
+        console.error("[bytebeam] Failed to sync job status:", syncError)
+      }
+    }
 
     console.log("[bytebeam] Received file data:", fileData?.name, fileData?.type, fileData?.size)
     if (schemaTree) {
@@ -239,6 +240,8 @@ export async function POST(request: NextRequest) {
       console.log("[bytebeam] Error: Empty file received")
       return NextResponse.json({ error: "Uploaded file is empty" }, { status: 400 })
     }
+
+    await syncJob({ status: "processing", results: null, completedAt: null })
 
     // Build Zod schema (nested or flat) for AI SDK
     const schemaLines: string[] = []
@@ -461,15 +464,21 @@ Guidelines:
 
       if (extractedDocumentText.trim().length === 0) {
         console.log("[bytebeam] No readable text detected; returning fallback results")
-        const fallback = schemaTree && Array.isArray(schemaTree)
-          ? buildFallbackFromTree(schemaTree)
-          : buildFallbackFromFlat(schema)
-        warnings.push("No readable text detected. Returned '-' for all fields.")
-        return NextResponse.json(
-          {
-            success: true,
-            results: fallback,
-            warnings,
+      const fallback = schemaTree && Array.isArray(schemaTree)
+        ? buildFallbackFromTree(schemaTree)
+        : buildFallbackFromFlat(schema)
+      warnings.push("No readable text detected. Returned '-' for all fields.")
+      await syncJob({
+        status: "completed",
+        results: fallback,
+        completedAt: new Date(),
+        errorMessage: "No readable text detected",
+      })
+      return NextResponse.json(
+        {
+          success: true,
+          results: fallback,
+          warnings,
             handledWithFallback: true,
           },
           { status: 200 },
@@ -533,11 +542,17 @@ Follow these steps:
         ? sanitizeResultsFromTree(schemaTree, result.object)
         : sanitizeResultsFromFlat(schema, result.object)
 
-      return NextResponse.json({
+      const responsePayload = {
         success: true,
         results: sanitizedResults,
         warnings,
+      }
+      await syncJob({
+        status: "completed",
+        results: sanitizedResults,
+        completedAt: new Date(),
       })
+      return NextResponse.json(responsePayload)
     } catch (modelError) {
       console.error("[bytebeam] Model extraction failed, returning fallback:", modelError)
       const fallback = schemaTree && Array.isArray(schemaTree)
@@ -546,6 +561,12 @@ Follow these steps:
       warnings.push(
         "Automatic extraction failed, so we returned '-' for each field instead. Please review and retry.",
       )
+      await syncJob({
+        status: "completed",
+        results: fallback,
+        completedAt: new Date(),
+        errorMessage: modelError instanceof Error ? modelError.message : String(modelError ?? "Unknown error"),
+      })
       return NextResponse.json({
         success: true,
         results: fallback,
@@ -556,6 +577,11 @@ Follow these steps:
     }
   } catch (error) {
     console.error("[bytebeam] Extraction error:", error)
+    await syncJob({
+      status: "error",
+      completedAt: new Date(),
+      errorMessage: error instanceof Error ? error.message : "Unknown error",
+    })
     return NextResponse.json(
       {
         error: "Failed to extract data",

@@ -1,6 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { google } from "@ai-sdk/google"
 import { generateText } from "ai"
+import type { SupabaseClient } from "@supabase/supabase-js"
+
+import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { upsertJobStatus, type JobMetadata } from "@/lib/jobs/server"
+import type { Database } from "@/lib/supabase/types"
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -191,6 +196,18 @@ function tryParseJSON(text: string): any | null {
 
 export async function POST(request: NextRequest) {
   try {
+    let supabase: SupabaseClient<Database> | null = null
+    let userId: string | null = null
+    let jobMeta: JobMetadata | null = null
+    const syncJob = async (patch: Parameters<typeof upsertJobStatus>[3]) => {
+      if (!supabase || !userId || !jobMeta) return
+      try {
+        await upsertJobStatus(supabase, userId, jobMeta, patch)
+      } catch (error) {
+        console.error('[fnb] Failed to sync job status:', error)
+      }
+    }
+
     const contentType = request.headers.get('content-type') || ''
     let bytes: Uint8Array
     let fileName = 'document'
@@ -198,12 +215,45 @@ export async function POST(request: NextRequest) {
 
     if (contentType.includes('application/json')) {
       const body = await request.json()
+      if (body?.job && typeof body.job === 'object') {
+        const rawJob = body.job as Record<string, any>
+        const maybeJob: JobMetadata = {
+          jobId: typeof rawJob.jobId === 'string' ? rawJob.jobId : '',
+          schemaId: typeof rawJob.schemaId === 'string' ? rawJob.schemaId : '',
+          fileName: typeof rawJob.fileName === 'string' ? rawJob.fileName : undefined,
+          agentType: typeof rawJob.agentType === 'string' ? rawJob.agentType : undefined,
+          userId: typeof rawJob.userId === 'string' ? rawJob.userId : undefined,
+        }
+        if (maybeJob.jobId && maybeJob.schemaId) {
+          jobMeta = maybeJob
+        }
+      }
       const file = body.file
       if (!file || !file.data) return NextResponse.json({ success: false, error: "Missing file" }, { status: 400 })
       const binary = Buffer.from(file.data, "base64")
       bytes = new Uint8Array(binary)
       fileName = file.name || fileName
       fileType = file.type || fileType
+      if (jobMeta) {
+        jobMeta.fileName = fileName
+        try {
+          supabase = createSupabaseServerClient()
+          const {
+            data: { user },
+          } = await supabase.auth.getUser()
+          userId = user?.id ?? null
+        } catch (error) {
+          console.warn('[fnb] Unable to initialize Supabase client:', error)
+          supabase = null
+          userId = null
+        }
+        if (supabase && userId) {
+          await syncJob({ status: "processing", results: null, completedAt: null })
+        } else {
+          supabase = null
+          userId = null
+        }
+      }
     } else {
       // Accept raw binary uploads to avoid base64 bloat and 413 errors
       const ab = await request.arrayBuffer()
@@ -236,10 +286,27 @@ export async function POST(request: NextRequest) {
     }
 
     const parsed = tryParseJSON(text)
-    if (!parsed) return NextResponse.json({ success: false, error: "Failed to parse JSON" }, { status: 200 })
+    if (!parsed) {
+      await syncJob({
+        status: "error",
+        completedAt: new Date(),
+        errorMessage: "Failed to parse JSON",
+      })
+      return NextResponse.json({ success: false, error: "Failed to parse JSON" }, { status: 200 })
+    }
+
+    await syncJob({
+      results: { fnb_extraction: parsed },
+    })
     return NextResponse.json({ success: true, data: parsed })
   } catch (e) {
     console.error("[fnb] extract error", e)
-    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : "Unknown error" }, { status: 500 })
+    const errorMessage = e instanceof Error ? e.message : "Unknown error"
+    await syncJob({
+      status: "error",
+      completedAt: new Date(),
+      errorMessage,
+    })
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 })
   }
 }
