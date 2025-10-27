@@ -79,11 +79,33 @@ Supabase setup:
      with check (auth.uid() = id);
    ```
 
-4. Optional: configure email templates in Supabase Auth to match Bytebeam branding.
+4. Create the schema_templates table and enable Row-Level Security:
 
-5. Create a Supabase Storage bucket named `ocr-annotated-images` (public or with signed URLs) to store annotated OCR previews. Update the bucket name in `lib/jobs/server.ts` if you choose a different name.
+   ```sql
+   create table if not exists schema_templates (
+     id uuid primary key default gen_random_uuid(),
+     user_id uuid not null references auth.users(id) on delete cascade,
+     name text not null,
+     description text,
+     agent_type text not null check (agent_type in ('standard', 'pharma')),
+     fields jsonb default '[]'::jsonb,
+     created_at timestamptz default now(),
+     updated_at timestamptz default now()
+   );
 
-6. The app provides a built-in `/api/dotsocr` proxy that forwards requests to Hugging Face. For custom deployments or additional security, set `DOTSOCR_API_URL`/`DOTSOCR_API_KEY` to point to your own service (or configure `DOTSOCR_SERVICE_TOKEN` to require a bearer token). When no local service is available, the extractor falls back to the Hugging Face Inference API.
+   alter table schema_templates enable row level security;
+
+   create policy "Templates are user-scoped"
+     on schema_templates for all
+     using (auth.uid() = user_id)
+     with check (auth.uid() = user_id);
+   ```
+
+5. Optional: configure email templates in Supabase Auth to match Bytebeam branding.
+
+6. Create a Supabase Storage bucket named `ocr-annotated-images` (public or with signed URLs) to store annotated OCR previews. Update the bucket name in `lib/jobs/server.ts` if you choose a different name.
+
+7. The app provides a built-in `/api/dotsocr` proxy that forwards requests to Hugging Face. For custom deployments or additional security, set `DOTSOCR_API_URL`/`DOTSOCR_API_KEY` to point to your own service (or configure `DOTSOCR_SERVICE_TOKEN` to require a bearer token). When no local service is available, the extractor falls back to the Hugging Face Inference API.
 
 Build & framework:
 
