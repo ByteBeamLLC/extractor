@@ -31,6 +31,7 @@ interface AgGridSheetProps {
   jobs: ExtractionJob[]
   selectedRowId: string | null
   onSelectRow: (jobId: string) => void
+  onRowDoubleClick?: (job: ExtractionJob) => void
   onAddColumn: () => void
   renderCellValue: (
     column: FlatLeaf,
@@ -45,6 +46,7 @@ interface AgGridSheetProps {
   onEditColumn: (column: FlatLeaf) => void
   onDeleteColumn: (columnId: string) => void
   onUpdateCell: (jobId: string, columnId: string, value: unknown) => void
+  onUpdateReviewStatus?: (jobId: string, columnId: string, status: "verified" | "needs_review", payload?: { reason?: string | null }) => void
   onColumnRightClick?: (columnId: string, event: React.MouseEvent) => void
   visualGroups?: VisualGroup[]
 }
@@ -67,6 +69,7 @@ interface ValueCellRendererParams extends ICellRendererParams<GridRow> {
     opts?: { refreshRowHeight?: () => void; mode?: 'interactive' | 'summary' | 'detail' },
   ) => ReactNode
   onUpdateCell: (jobId: string, columnId: string, value: unknown) => void
+  onUpdateReviewStatus?: (jobId: string, columnId: string, status: "verified" | "needs_review", payload?: { reason?: string | null }) => void
 }
 
 interface ColumnHeaderRendererParams extends IHeaderParams<GridRow> {
@@ -80,6 +83,10 @@ function FileCellRenderer(params: FileCellRendererParams) {
   const job = params.data?.__job
   if (!job) return null
 
+  const pendingReviews = Object.values(job.review ?? {}).filter(
+    (meta) => meta?.status === "needs_review",
+  ).length
+
   return (
     <div className="flex items-center gap-2.5">
       <div className="flex items-center gap-2">
@@ -89,6 +96,11 @@ function FileCellRenderer(params: FileCellRendererParams) {
       <span className="truncate text-sm font-medium text-slate-700" title={job.fileName}>
         {job.fileName}
       </span>
+      {pendingReviews > 0 ? (
+        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-700">
+          Review {pendingReviews}
+        </span>
+      ) : null}
     </div>
   )
 }
@@ -96,6 +108,11 @@ function FileCellRenderer(params: FileCellRendererParams) {
 function ValueCellRenderer(params: ValueCellRendererParams) {
   const job = params.data?.__job
   if (!job) return <span className="text-muted-foreground">—</span>
+
+  const review = job.review?.[params.columnMeta.id]
+  const reviewStatus = review?.status ?? "auto_verified"
+  const needsReview = reviewStatus === "needs_review"
+  const isVerified = reviewStatus === "verified"
 
   const refreshRowHeight = () => {
     queueMicrotask(() => {
@@ -143,7 +160,15 @@ function ValueCellRenderer(params: ValueCellRendererParams) {
     if (type === 'boolean') {
       return (
         <div className="flex items-center gap-2">
-          <input type="checkbox" checked={Boolean(draft)} onChange={(e) => { setDraft(e.target.checked); params.onUpdateCell(job.id, params.columnMeta.id, e.target.checked); setIsEditing(false) }} />
+          <input
+            type="checkbox"
+            checked={Boolean(draft)}
+            onChange={(e) => {
+              setDraft(e.target.checked)
+              params.onUpdateCell(job.id, params.columnMeta.id, e.target.checked)
+              setIsEditing(false)
+            }}
+          />
         </div>
       )
     }
@@ -175,9 +200,71 @@ function ValueCellRenderer(params: ValueCellRendererParams) {
     )
   }
 
+  const handleQuickVerify = (event: React.MouseEvent) => {
+    event.preventDefault()
+    event.stopPropagation()
+    params.onUpdateReviewStatus?.(job.id, params.columnMeta.id, "verified", {
+      reason: "Marked as verified in grid",
+    })
+  }
+
+  const reviewBadge = () => {
+    if (needsReview) {
+      return (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+            Needs Review
+          </span>
+          <button
+            type="button"
+            onClick={handleQuickVerify}
+            className="text-[10px] font-semibold uppercase tracking-wide text-amber-700 hover:underline"
+          >
+            Mark Verified
+          </button>
+        </div>
+      )
+    }
+    if (isVerified) {
+      return (
+        <div className="inline-flex items-center gap-2">
+          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+            Verified
+          </span>
+        </div>
+      )
+    }
+    return null
+  }
+
+  const reviewReason =
+    needsReview && review?.reason ? (
+      <div className="text-[11px] text-amber-700">{review.reason}</div>
+    ) : null
+
+
+  const valueContent = params.renderCellValue(params.columnMeta, job, {
+    refreshRowHeight,
+    mode: 'interactive',
+  })
+
+  const hasMetaInfo = Boolean(needsReview || isVerified || reviewReason)
+
   return (
-    <div className="w-full" data-column-id={params.column?.getColId()} onDoubleClick={startEdit}>
-      {params.renderCellValue(params.columnMeta, job, { refreshRowHeight, mode: 'interactive' })}
+    <div
+      className={cn(
+        'w-full',
+        hasMetaInfo && 'space-y-1',
+        needsReview && 'rounded-md border border-amber-300/80 bg-amber-50/60 p-2',
+      )}
+      data-column-id={params.column?.getColId()}
+      onDoubleClick={startEdit}
+    >
+      {reviewBadge()}
+      {reviewReason}
+      <div className={cn(needsReview ? 'text-sm text-slate-900' : undefined)}>
+        {valueContent}
+      </div>
     </div>
   )
 }
@@ -234,6 +321,7 @@ export function AgGridSheet({
   jobs,
   selectedRowId,
   onSelectRow,
+  onRowDoubleClick,
   onAddColumn,
   renderCellValue,
   getStatusIcon,
@@ -241,6 +329,7 @@ export function AgGridSheet({
   onEditColumn,
   onDeleteColumn,
   onUpdateCell,
+  onUpdateReviewStatus,
   onColumnRightClick,
   visualGroups = [],
 }: AgGridSheetProps) {
@@ -341,6 +430,7 @@ export function AgGridSheet({
           columnMeta: column,
           renderCellValue,
           onUpdateCell,
+          onUpdateReviewStatus,
         },
       }))
 
@@ -381,6 +471,7 @@ export function AgGridSheet({
           columnMeta: column,
           renderCellValue,
           onUpdateCell,
+          onUpdateReviewStatus,
         },
       })
     }
@@ -414,7 +505,7 @@ export function AgGridSheet({
     })
 
     return defs
-  }, [columns, visualGroups, getStatusIcon, renderStatusPill, renderCellValue, onEditColumn, onDeleteColumn, onAddColumn, onUpdateCell, onColumnRightClick, pinPlusRight])
+  }, [columns, visualGroups, getStatusIcon, renderStatusPill, renderCellValue, onEditColumn, onDeleteColumn, onAddColumn, onUpdateCell, onUpdateReviewStatus, onColumnRightClick, pinPlusRight])
 
   const defaultColDef = useMemo<ColDef<GridRow>>(
     () => ({
@@ -443,6 +534,18 @@ export function AgGridSheet({
       }
     },
     [onSelectRow],
+  )
+
+  const onRowDoubleClicked = useCallback<
+    NonNullable<ComponentProps<typeof AgGridReact<GridRow>>["onRowDoubleClicked"]>
+  >(
+    (event) => {
+      const job = event.data?.__job
+      if (!job) return
+      onSelectRow(job.id)
+      onRowDoubleClick?.(job)
+    },
+    [onRowDoubleClick, onSelectRow],
   )
 
   // When grid width is smaller than total columns width, pin plus to right
@@ -475,6 +578,7 @@ export function AgGridSheet({
         headerHeight={48}
         rowHeight={60}
         onRowClicked={onRowClicked}
+        onRowDoubleClicked={onRowDoubleClicked}
         animateRows
         overlayNoRowsTemplate="<div class='py-12 text-muted-foreground text-sm'>No extraction results yet. Upload documents to get started.</div>"
       />

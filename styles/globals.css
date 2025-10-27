@@ -127,3 +127,59 @@
 /* Hide horizontal scrollbar on schema tabs container while allowing scroll */
 .tab-container::-webkit-scrollbar { display: none; }
 .tab-container { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Editor layout + overflow controls */
+/* Ensure Radix ScrollArea viewport doesn't bubble scroll to the page */
+[data-slot="scroll-area-viewport"] {
+  overscroll-behavior: contain;
+}
+
+/* Make MDXEditor root fill its container and layout like Notion */
+.mdxeditor,
+[data-mdx-editor] {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0; /* allow child to shrink inside flex parents */
+}
+
+/* The editable surface should not force container growth, and long words wrap */
+.mdxeditor [contenteditable="true"],
+[data-mdx-editor] [contenteditable="true"] {
+  min-height: 0;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+  overflow: visible;
+}
+
+/* Horizontal scrolling for code blocks only inside the block */
+.mdxeditor [contenteditable="true"] pre,
+[data-mdx-editor] [contenteditable="true"] pre {
+  overflow-x: auto;
+  white-space: pre;
+  max-width: 100%;
+}
+
+/* Tables scroll horizontally without expanding the editor width */
+.mdxeditor [contenteditable="true"] table,
+[data-mdx-editor] [contenteditable="true"] table {
+  display: block;
+  width: fit-content;
+  min-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+.mdxeditor [contenteditable="true"] th,
+.mdxeditor [contenteditable="true"] td,
+[data-mdx-editor] [contenteditable="true"] th,
+[data-mdx-editor] [contenteditable="true"] td {
+  white-space: nowrap;
+}
+
+/* Images should fit the pane */
+.mdxeditor [contenteditable="true"] img,
+[data-mdx-editor] [contenteditable="true"] img {
+  max-width: 100%;
+  height: auto;
+}

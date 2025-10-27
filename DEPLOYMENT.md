@@ -9,6 +9,11 @@ Environment variables (set for Production and Preview):
 - NEXT_PUBLIC_SUPABASE_URL: Supabase project URL (Project Settings → API).
 - NEXT_PUBLIC_SUPABASE_ANON_KEY: Supabase anon key (public client).
 - SUPABASE_SERVICE_ROLE_KEY (optional, server-only): needed only if you later add admin automation or background jobs that bypass Row Level Security.
+- HUGGINGFACE_API_KEY: Hugging Face Inference API token used for dots.ocr OCR processing.
+- HUGGINGFACE_DOTS_OCR_ENDPOINT (optional): Override the default dots.ocr model endpoint if you use a custom deployment.
+- DOTSOCR_API_URL (optional): URL of your local dots.ocr service. When set, the extractor will use this instead of calling Hugging Face directly.
+- DOTSOCR_API_KEY (optional): Bearer token passed to the local dots.ocr service, if it requires authentication.
+- DOTSOCR_SERVICE_TOKEN (optional): If provided, the built-in `/api/dotsocr` route requires `Authorization: Bearer <token>`; mirror the same value in `DOTSOCR_API_KEY` so internal requests succeed.
 
 Supabase setup:
 
@@ -42,11 +47,14 @@ Supabase setup:
      file_name text not null,
      status text not null default 'pending',
      results jsonb,
+     ocr_markdown text,
+     ocr_annotated_image_url text,
      agent_type text,
      created_at timestamptz default now(),
-     completed_at timestamptz
+     completed_at timestamptz,
+     updated_at timestamptz default now()
    );
-   ```
+  ```
 
 3. Enable Row-Level Security and add policies so users can only read/write their own rows:
 
@@ -72,6 +80,10 @@ Supabase setup:
    ```
 
 4. Optional: configure email templates in Supabase Auth to match Bytebeam branding.
+
+5. Create a Supabase Storage bucket named `ocr-annotated-images` (public or with signed URLs) to store annotated OCR previews. Update the bucket name in `lib/jobs/server.ts` if you choose a different name.
+
+6. The app provides a built-in `/api/dotsocr` proxy that forwards requests to Hugging Face. For custom deployments or additional security, set `DOTSOCR_API_URL`/`DOTSOCR_API_KEY` to point to your own service (or configure `DOTSOCR_SERVICE_TOKEN` to require a bearer token). When no local service is available, the extractor falls back to the Hugging Face Inference API.
 
 Build & framework:
 

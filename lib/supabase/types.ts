@@ -99,9 +99,13 @@ export interface Database {
           file_name: string
           status: "pending" | "processing" | "completed" | "error"
           results: Json | null
+          ocr_markdown: string | null
+          ocr_annotated_image_url: string | null
+          original_file_url: string | null
           agent_type: "standard" | "pharma" | null
           created_at: string | null
           completed_at: string | null
+          updated_at: string | null
         }
         Insert: {
           id?: string
@@ -110,16 +114,24 @@ export interface Database {
           file_name: string
           status?: "pending" | "processing" | "completed" | "error"
           results?: Json | null
+          ocr_markdown?: string | null
+          ocr_annotated_image_url?: string | null
+          original_file_url?: string | null
           agent_type?: "standard" | "pharma" | null
           created_at?: string | null
           completed_at?: string | null
+          updated_at?: string | null
         }
         Update: {
           status?: "pending" | "processing" | "completed" | "error"
           results?: Json | null
+          ocr_markdown?: string | null
+          ocr_annotated_image_url?: string | null
+          original_file_url?: string | null
           agent_type?: "standard" | "pharma" | null
           created_at?: string | null
           completed_at?: string | null
+          updated_at?: string | null
         }
       }
     }

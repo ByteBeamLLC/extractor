@@ -5,10 +5,14 @@ import { google } from "@ai-sdk/google"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import { upsertJobStatus, type JobMetadata } from "@/lib/jobs/server"
+import { upsertJobStatus, type JobMetadata, uploadOcrAnnotatedImage, uploadOriginalFile } from "@/lib/jobs/server"
 import type { Database } from "@/lib/supabase/types"
+import { flattenFields } from "@/lib/schema"
 import {
   FALLBACK_VALUE,
+  computeInitialReviewMeta,
+  extractResultsMeta,
+  mergeResultsWithMeta,
   sanitizeResultsFromFlat,
   sanitizeResultsFromTree,
 } from "@/lib/extraction-results"
@@ -24,6 +28,52 @@ const docMimeTypes = new Set(["application/msword"])
 const textLikeMimePrefixes = ["text/", "application/json", "application/xml"]
 
 const decoder = new TextDecoder()
+
+function resolveLocalDotsOcrServiceUrl(): string | null {
+  const explicit =
+    process.env.DOTSOCR_API_URL ||
+    process.env.DOTS_OCR_API_URL ||
+    process.env.DOTSOCR_SERVICE_URL ||
+    process.env.DOTS_OCR_SERVICE_URL
+  if (explicit && explicit.trim().length > 0) return explicit.trim()
+
+  const configuredBase =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.SITE_URL ||
+    process.env.APP_URL
+  if (configuredBase && configuredBase.trim().length > 0) {
+    const base = configuredBase.trim().replace(/\/$/, "")
+    return `${base}/api/dotsocr`
+  }
+
+  const vercelUrl = process.env.VERCEL_URL
+  if (vercelUrl && vercelUrl.trim().length > 0) {
+    const base = vercelUrl.startsWith("http")
+      ? vercelUrl.trim()
+      : `https://${vercelUrl.trim()}`
+    return `${base.replace(/\/$/, "")}/api/dotsocr`
+  }
+
+  if (process.env.NODE_ENV !== "production") {
+    return "http://127.0.0.1:3000/api/dotsocr"
+  }
+
+  return null
+}
+
+const DOTS_OCR_SERVICE_URL = resolveLocalDotsOcrServiceUrl()
+
+const DOTS_OCR_SERVICE_API_KEY =
+  process.env.DOTSOCR_API_KEY || process.env.DOTS_OCR_API_KEY || ""
+
+const rawDotsOcrEndpoint =
+  process.env.HUGGINGFACE_DOTS_OCR_ENDPOINT ||
+  process.env.HUGGINGFACE_DOTS_OCR_MODEL ||
+  "dots/ocr"
+const DOTS_OCR_ENDPOINT = rawDotsOcrEndpoint.startsWith("http")
+  ? rawDotsOcrEndpoint
+  : `https://api-inference.huggingface.co/models/${rawDotsOcrEndpoint}`
 
 type PdfParseFn = (data: Buffer, options?: any) => Promise<{ text?: string }>
 let pdfParseSingleton: PdfParseFn | null = null
@@ -156,7 +206,470 @@ function buildFallbackFromFlat(schema: Record<string, any>): any {
   return out
 }
 
+interface DotsOcrArtifacts {
+  markdown?: string
+  imageData?: string
+  imageContentType?: string
+}
+
+function gatherCandidateObjects(value: any): any[] {
+  const out: any[] = []
+  const seen = new Set<any>()
+  const stack: any[] = [value]
+  while (stack.length > 0) {
+    const current = stack.pop()
+    if (!current || typeof current !== "object") continue
+    if (seen.has(current)) continue
+    seen.add(current)
+    out.push(current)
+    if (Array.isArray(current)) {
+      for (const entry of current) {
+        stack.push(entry)
+      }
+    } else {
+      for (const key of Object.keys(current)) {
+        const next = (current as any)[key]
+        if (next && typeof next === "object") {
+          stack.push(next)
+        }
+      }
+    }
+  }
+  return out
+}
+
+function pickFirstString(value: any): string | null {
+  if (typeof value === "string" && value.trim().length > 0) {
+    return value
+  }
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      if (typeof entry === "string" && entry.trim().length > 0) {
+        return entry
+      }
+    }
+  }
+  return null
+}
+
+function extractDotsOcrArtifacts(payload: any): DotsOcrArtifacts | null {
+  if (!payload) return null
+  const candidates = gatherCandidateObjects(payload)
+
+  const markdownKeys = [
+    "markdown",
+    "md",
+    "markdown_body",
+    "text",
+    "content",
+    "rendered_markdown",
+    "markdown_text",
+  ]
+
+  const imageKeys = [
+    "annotated_image",
+    "annotatedImage",
+    "annotated_image_url",
+    "annotatedImageUrl",
+    "visualization",
+    "visualization_image",
+    "rendered_image",
+    "image_url",
+    "imageUrl",
+    "image",
+    "image_base64",
+    "base64",
+    "data",
+    "url",
+  ]
+
+  for (const candidate of candidates) {
+    if (!candidate || typeof candidate !== "object") continue
+    let markdown: string | null = null
+    for (const key of markdownKeys) {
+      if (key in candidate) {
+        markdown = pickFirstString((candidate as any)[key])
+        if (markdown) break
+      }
+    }
+
+    let imageData: string | null = null
+    let imageContentType: string | undefined
+    for (const key of imageKeys) {
+      if (!(key in candidate)) continue
+      const rawValue = (candidate as any)[key]
+      const maybeString = pickFirstString(rawValue)
+      if (maybeString) {
+        imageData = maybeString
+        if (typeof rawValue === "object" && rawValue) {
+          const nestedType =
+            typeof (rawValue as any).content_type === "string"
+              ? (rawValue as any).content_type
+              : typeof (rawValue as any).mime === "string"
+                ? (rawValue as any).mime
+                : undefined
+          if (nestedType) {
+            imageContentType = nestedType
+          }
+        }
+        break
+      }
+    }
+
+    if (markdown || imageData) {
+      return {
+        markdown: markdown ?? undefined,
+        imageData: imageData ?? undefined,
+        imageContentType,
+      }
+    }
+  }
+
+  return null
+}
+
+interface ProcessDotsOcrOptions {
+  bytes: Uint8Array
+  fileName?: string
+  mimeType?: string
+  supabase?: SupabaseClient<Database> | null
+  userId?: string | null
+  jobMeta?: JobMetadata | null
+}
+
+interface ProcessDotsOcrResult {
+  markdown: string | null
+  annotatedImageUrl: string | null
+}
+
+async function processWithDotsOCR(options: ProcessDotsOcrOptions): Promise<ProcessDotsOcrResult | null> {
+  if (!options.bytes || options.bytes.length === 0) return null
+
+  const normalizedMime = options.mimeType?.toLowerCase() ?? ""
+  const ext = options.fileName?.split(".").pop()?.toLowerCase() ?? ""
+  const isSupported =
+    normalizedMime.startsWith("image/") ||
+    normalizedMime === "application/pdf" ||
+    /\.(png|jpg|jpeg|gif|bmp|webp|pdf)$/.test(`.${ext}`)
+  if (!isSupported) return null
+
+  const base64Payload = Buffer.from(options.bytes).toString("base64")
+
+  const fetchWithTimeout = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 60_000)
+    try {
+      const response = await fetch(input, { ...init, signal: controller.signal })
+      return response
+    } finally {
+      clearTimeout(timeout)
+    }
+  }
+
+  const tryLocalService = async (): Promise<DotsOcrArtifacts | null> => {
+    if (!DOTS_OCR_SERVICE_URL) return null
+    try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      }
+      if (DOTS_OCR_SERVICE_API_KEY) {
+        headers.Authorization = `Bearer ${DOTS_OCR_SERVICE_API_KEY}`
+      }
+      const response = await fetchWithTimeout(DOTS_OCR_SERVICE_URL, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          image_base64: base64Payload,
+          file_name: options.fileName,
+          mime_type: options.mimeType,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => response.statusText)
+        console.error(
+          `[bytebeam] Local dots.ocr service error ${response.status}: ${errorText}`,
+        )
+        return null
+      }
+
+      const payload = await response.json().catch((error) => {
+        console.error("[bytebeam] Failed to parse local dots.ocr response:", error)
+        return null
+      })
+      if (!payload) return null
+      const artifacts = extractDotsOcrArtifacts(payload)
+      if (!artifacts) {
+        console.warn("[bytebeam] Local dots.ocr response missing expected artifacts")
+      }
+      return artifacts
+    } catch (error) {
+      if ((error as Error)?.name === "AbortError") {
+        console.warn("[bytebeam] Local dots.ocr request timed out")
+        return null
+      }
+      console.error("[bytebeam] Local dots.ocr service failed:", error)
+      return null
+    }
+  }
+
+  const tryHuggingFace = async (): Promise<DotsOcrArtifacts | null> => {
+    const apiKey = process.env.HUGGINGFACE_API_KEY
+    if (!apiKey || !DOTS_OCR_ENDPOINT) return null
+    try {
+      const response = await fetchWithTimeout(DOTS_OCR_ENDPOINT, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          inputs: base64Payload,
+          parameters: {
+            return_markdown: true,
+            return_visualization: true,
+          },
+          options: {
+            wait_for_model: true,
+          },
+        }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => response.statusText)
+        throw new Error(`Hugging Face dots.ocr error ${response.status}: ${errorText}`)
+      }
+
+      const contentType = response.headers.get("content-type") ?? ""
+      if (!contentType.includes("application/json")) {
+        throw new Error(`Unexpected dots.ocr response type: ${contentType || "unknown"}`)
+      }
+
+      const payload = await response.json()
+      const artifacts = extractDotsOcrArtifacts(payload)
+      if (!artifacts) {
+        console.warn("[bytebeam] dots.ocr response did not include markdown or annotated image")
+      }
+      return artifacts ?? null
+    } catch (error) {
+      if ((error as Error)?.name === "AbortError") {
+        console.warn("[bytebeam] dots.ocr request timed out")
+        return null
+      }
+      console.error("[bytebeam] dots.ocr processing failed:", error)
+      return null
+    }
+  }
+
+  let artifacts = await tryLocalService()
+  if (!artifacts) {
+    artifacts = await tryHuggingFace()
+  }
+
+  if (!artifacts) {
+    return null
+  }
+
+  const markdown = typeof artifacts.markdown === "string" ? artifacts.markdown.trim() : ""
+
+  let annotatedImageUrl: string | null = null
+  const maybePersistAnnotated = async (imageData: string): Promise<string | null> => {
+    if (!options.supabase || !options.userId || !options.jobMeta || !options.jobMeta.jobId) {
+      return /^https?:\/\//i.test(imageData) ? imageData : null
+    }
+
+    try {
+      if (/^https?:\/\//i.test(imageData)) {
+        try {
+          const remoteResponse = await fetch(imageData)
+          if (!remoteResponse.ok) {
+            console.warn(
+              `[bytebeam] Failed to fetch dots.ocr annotated image from ${imageData}: ${remoteResponse.status} ${remoteResponse.statusText}`,
+            )
+            return imageData
+          }
+          const arrayBuffer = await remoteResponse.arrayBuffer()
+          const contentTypeForImage =
+            artifacts.imageContentType || remoteResponse.headers.get("content-type") || undefined
+          const buffer = Buffer.from(arrayBuffer)
+          if (buffer.length === 0) return imageData
+          return await uploadOcrAnnotatedImage(options.supabase, {
+            userId: options.userId,
+            jobId: options.jobMeta.jobId,
+            image: buffer,
+            fileName: options.fileName ?? "annotated",
+            contentType: contentTypeForImage ?? "image/png",
+          })
+        } catch (error) {
+          console.error("[bytebeam] Failed to mirror annotated image URL:", error)
+          return imageData
+        }
+      }
+
+      let imageBuffer: Uint8Array | null = null
+      let contentTypeForImage = artifacts.imageContentType
+
+      const dataUriMatch = imageData.match(/^data:([^;]+);base64,(.*)$/)
+      if (dataUriMatch) {
+        contentTypeForImage = contentTypeForImage ?? dataUriMatch[1]
+        imageBuffer = Buffer.from(dataUriMatch[2], "base64")
+      } else {
+        imageBuffer = Buffer.from(imageData, "base64")
+      }
+
+      if (imageBuffer && imageBuffer.length > 0) {
+        return await uploadOcrAnnotatedImage(options.supabase, {
+          userId: options.userId,
+          jobId: options.jobMeta.jobId,
+          image: imageBuffer,
+          fileName: options.fileName ?? "annotated",
+          contentType: contentTypeForImage ?? "image/png",
+        })
+      }
+    } catch (error) {
+      console.error("[bytebeam] Failed to upload dots.ocr annotated image:", error)
+    }
+    return null
+  }
+
+  if (artifacts.imageData) {
+    if (/^https?:\/\//i.test(artifacts.imageData)) {
+      annotatedImageUrl = await maybePersistAnnotated(artifacts.imageData)
+    } else {
+      try {
+        annotatedImageUrl = await maybePersistAnnotated(artifacts.imageData)
+      } catch (error) {
+        console.error("[bytebeam] Failed to process annotated image data:", error)
+      }
+    }
+  }
+
+  return {
+    markdown: markdown.length > 0 ? markdown : null,
+    annotatedImageUrl,
+  }
+}
+
+interface GenerateMarkdownOptions {
+  bytes: Uint8Array
+  fileName?: string
+  mimeType?: string
+  supabase?: SupabaseClient<Database> | null
+  userId?: string | null
+  jobMeta?: JobMetadata | null
+}
+
+interface GenerateMarkdownResult {
+  markdown: string | null
+  originalFileUrl: string | null
+}
+
+async function generateMarkdownFromDocument(options: GenerateMarkdownOptions): Promise<GenerateMarkdownResult | null> {
+  console.log("[bytebeam] generateMarkdownFromDocument called with:", {
+    bytesLength: options.bytes?.length,
+    fileName: options.fileName,
+    mimeType: options.mimeType,
+    hasSupabase: !!options.supabase,
+    hasUserId: !!options.userId,
+    hasJobMeta: !!options.jobMeta
+  })
+
+  if (!options.bytes || options.bytes.length === 0) {
+    console.log("[bytebeam] No bytes provided, returning null")
+    return null
+  }
+
+  const normalizedMime = options.mimeType?.toLowerCase() ?? ""
+  const ext = options.fileName?.split(".").pop()?.toLowerCase() ?? ""
+  const isSupported =
+    normalizedMime.startsWith("image/") ||
+    normalizedMime === "application/pdf" ||
+    /\.(png|jpg|jpeg|gif|bmp|webp|pdf)$/.test(`.${ext}`)
+  
+  console.log("[bytebeam] File support check:", { normalizedMime, ext, isSupported })
+  if (!isSupported) {
+    console.log("[bytebeam] File type not supported for markdown generation")
+    return null
+  }
+
+  // Upload original file to Supabase storage
+  let originalFileUrl: string | null = null
+  if (options.supabase && options.userId && options.jobMeta?.jobId) {
+    console.log("[bytebeam] Uploading original file to storage...")
+    try {
+      originalFileUrl = await uploadOriginalFile(options.supabase, {
+        userId: options.userId,
+        jobId: options.jobMeta.jobId,
+        file: options.bytes,
+        fileName: options.fileName,
+        contentType: options.mimeType,
+      })
+      console.log("[bytebeam] Original file uploaded successfully:", originalFileUrl)
+    } catch (error) {
+      console.error("[bytebeam] Failed to upload original file:", error)
+    }
+  } else {
+    console.log("[bytebeam] Skipping original file upload - missing requirements:", {
+      hasSupabase: !!options.supabase,
+      hasUserId: !!options.userId,
+      hasJobMeta: !!options.jobMeta,
+      hasJobId: !!options.jobMeta?.jobId
+    })
+  }
+
+  // Generate markdown using Gemini
+  let markdown: string | null = null
+  try {
+    console.log("[bytebeam] Starting markdown generation with Gemini...")
+    const base64Payload = Buffer.from(options.bytes).toString("base64")
+    const mimeType = options.mimeType || "image/png"
+
+    const prompt = `You are converting a document to clean, readable Markdown. 
+
+Instructions:
+- Extract all text content preserving the original structure
+- Use proper markdown formatting (headings, lists, tables, bold, italic)
+- Convert any tabular data to markdown tables
+- Describe non-text elements briefly where relevant
+- Focus on readability and accuracy
+- Do not add interpretations or summaries, just convert the content
+
+Return only the markdown content, no explanations.`
+
+    console.log("[bytebeam] Calling Gemini for markdown generation...")
+    const result = await generateObject({
+      model: google("gemini-2.5-pro"),
+      temperature: 0.1,
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            { type: "image", image: `data:${mimeType};base64,${base64Payload}` },
+          ],
+        },
+      ],
+      schema: z.object({
+        markdown: z.string().describe("The clean markdown content of the document"),
+      }),
+    })
+
+    markdown = result.object.markdown?.trim() || null
+    console.log("[bytebeam] Markdown generation completed, length:", markdown?.length || 0)
+  } catch (error) {
+    console.error("[bytebeam] Failed to generate markdown:", error)
+  }
+
+  return {
+    markdown,
+    originalFileUrl,
+  }
+}
+
 export async function POST(request: NextRequest) {
+  let ocrPromise: Promise<ProcessDotsOcrResult | null> | null = null
+  let markdownPromise: Promise<GenerateMarkdownResult | null> | null = null
   try {
     console.log("[bytebeam] API route called")
 
@@ -241,7 +754,56 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Uploaded file is empty" }, { status: 400 })
     }
 
-    await syncJob({ status: "processing", results: null, completedAt: null })
+    const originalMimeType = fileData.type ?? ""
+    const fileMimeType = originalMimeType.toLowerCase()
+    const fileName = fileData.name ?? "uploaded"
+    const fileExt = fileName.toLowerCase()
+    const isImageFile =
+      fileMimeType.startsWith("image/") || fileExt.match(/\.(png|jpg|jpeg|gif|bmp|webp)$/)
+    const isPdfFile = fileMimeType === "application/pdf" || fileExt.endsWith(".pdf")
+    const shouldProcessDotsOcr = isImageFile || isPdfFile
+
+    await syncJob({
+      status: "processing",
+      results: null,
+      completedAt: null,
+      ocrMarkdown: null,
+      ocrAnnotatedImageUrl: null,
+    })
+
+    if (shouldProcessDotsOcr && !DOTS_OCR_SERVICE_URL && !process.env.HUGGINGFACE_API_KEY) {
+      console.warn("[bytebeam] HUGGINGFACE_API_KEY is not set and no local dots.ocr service configured; skipping dots.ocr processing")
+    }
+
+    ocrPromise = shouldProcessDotsOcr
+      ? processWithDotsOCR({
+          bytes,
+          fileName,
+          mimeType: originalMimeType || fileMimeType,
+          supabase,
+          userId,
+          jobMeta,
+        }).catch((error) => {
+          console.error("[bytebeam] dots.ocr promise failed:", error)
+          return null
+        })
+      : Promise.resolve<ProcessDotsOcrResult | null>(null)
+
+    // Generate markdown and upload original file in parallel
+    console.log("[bytebeam] Setting up markdown generation, shouldProcessDotsOcr:", shouldProcessDotsOcr)
+    markdownPromise = shouldProcessDotsOcr
+      ? generateMarkdownFromDocument({
+          bytes,
+          fileName,
+          mimeType: originalMimeType || fileMimeType,
+          supabase,
+          userId,
+          jobMeta,
+        }).catch((error) => {
+          console.error("[bytebeam] markdown generation promise failed:", error)
+          return null
+        })
+      : Promise.resolve<GenerateMarkdownResult | null>(null)
 
     // Build Zod schema (nested or flat) for AI SDK
     const schemaLines: string[] = []
@@ -257,18 +819,20 @@ export async function POST(request: NextRequest) {
         case "boolean":
           prop = z.boolean()
           break
-        case "date":
-          prop = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+        case "date": {
+          const dateRegex = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+          prop = z.union([dateRegex, z.literal("-")])
           if (column.constraints?.minLength !== undefined) prop = prop.min(column.constraints.minLength)
           if (column.constraints?.maxLength !== undefined) prop = prop.max(column.constraints.maxLength)
           break
+        }
         case "email":
-          prop = z.string().email()
+          prop = z.union([z.string().email(), z.literal("-")])
           if (column.constraints?.minLength !== undefined) prop = prop.min(column.constraints.minLength)
           if (column.constraints?.maxLength !== undefined) prop = prop.max(column.constraints.maxLength)
           break
         case "url":
-          prop = z.string().url()
+          prop = z.union([z.string().url(), z.literal("-")])
           if (column.constraints?.minLength !== undefined) prop = prop.min(column.constraints.minLength)
           if (column.constraints?.maxLength !== undefined) prop = prop.max(column.constraints.maxLength)
           break
@@ -285,12 +849,26 @@ export async function POST(request: NextRequest) {
       return prop
     }
 
-    const buildObjectFromTree = (fields: any[]): z.ZodObject<any> => {
+    const metaSchema = z.object({
+      confidence: z
+        .array(
+          z.object({
+            fieldId: z.string(),
+            value: z.number().min(0).max(1),
+          }),
+        )
+        .optional(),
+    })
+
+    const buildObjectFromTree = (
+      fields: any[],
+      options?: { includeMeta?: boolean },
+    ): z.ZodObject<any> => {
       const shape: Record<string, z.ZodTypeAny> = {}
       for (const field of fields) {
         const desc = `${field.description || ""} ${field.extractionInstructions || ""}`.trim()
         if (field.type === "object") {
-          const obj = buildObjectFromTree(field.children || [])
+          const obj = buildObjectFromTree(field.children || [], { includeMeta: false })
           let prop: z.ZodTypeAny = obj
           // Avoid unions in provider schema; prefer optional over nullable for objects
           prop = prop.optional()
@@ -302,7 +880,7 @@ export async function POST(request: NextRequest) {
           const item = field.item
           let zItem: z.ZodTypeAny
           if (item?.type === "object") {
-            zItem = buildObjectFromTree(item.children || [])
+            zItem = buildObjectFromTree(item.children || [], { includeMeta: false })
           } else {
             zItem = makePrimitive(item || { type: "string" })
           }
@@ -314,7 +892,7 @@ export async function POST(request: NextRequest) {
           const line = `- ${field.name} [list]${desc ? `: ${desc}` : ""}`
           schemaLines.push(line)
         } else if (field.type === "table") {
-          const rowObj = buildObjectFromTree(field.columns || [])
+          const rowObj = buildObjectFromTree(field.columns || [], { includeMeta: false })
           let prop: z.ZodTypeAny = z.array(rowObj)
           prop = prop.optional()
           if (desc) prop = prop.describe(desc)
@@ -330,12 +908,20 @@ export async function POST(request: NextRequest) {
           schemaLines.push(`- ${field.name} [${typeLabel}]${desc ? `: ${desc}` : ""}`)
         }
       }
-      return z.object(shape).strict()
+      const base = z.object(shape).strict()
+      if (options?.includeMeta) {
+        return base
+          .extend({
+            __meta__: metaSchema.optional(),
+          })
+          .strict()
+      }
+      return base
     }
 
     let zodSchema: z.ZodObject<any>
     if (schemaTree && Array.isArray(schemaTree)) {
-      zodSchema = buildObjectFromTree(schemaTree)
+      zodSchema = buildObjectFromTree(schemaTree, { includeMeta: true })
     } else {
       // Back-compat: flat map schema
       const zodShape: Record<string, z.ZodTypeAny> = {}
@@ -355,7 +941,12 @@ export async function POST(request: NextRequest) {
         const name = column.name || key
         schemaLines.push(`- ${name} [${typeLabel}]${desc ? `: ${desc}` : ""}`)
       })
-      zodSchema = z.object(zodShape).strict()
+      zodSchema = z
+        .object({
+          ...zodShape,
+          __meta__: metaSchema.optional(),
+        })
+        .strict()
     }
     console.log("[bytebeam] Built Zod schema for Gemini")
 
@@ -364,18 +955,11 @@ export async function POST(request: NextRequest) {
     let documentContent: any
     let extractionPrompt: string
 
-    const fileName = fileData.name ?? "uploaded"
-    const fileType = (fileData.type ?? "").toLowerCase()
-    const fileExt = fileName.toLowerCase()
-    const isImageFile =
-      fileType.startsWith("image/") || fileExt.match(/\.(png|jpg|jpeg|gif|bmp|webp)$/)
-    const isPdfFile = fileType === "application/pdf" || fileExt.endsWith(".pdf")
-
     const warnings: string[] = []
 
     let extractedDocumentText = ""
     if (!isImageFile) {
-      const extraction = await extractTextFromDocument(bytes, fileName, fileType)
+      const extraction = await extractTextFromDocument(bytes, fileName, fileMimeType)
       extractedDocumentText = extraction.text
       warnings.push(...extraction.warnings)
     }
@@ -385,7 +969,7 @@ export async function POST(request: NextRequest) {
 
       // Build base64 without spreading large arrays (prevents stack issues)
       const base64 = Buffer.from(bytes).toString("base64")
-      const mimeType = fileType || "image/png"
+      const mimeType = originalMimeType || fileMimeType || "image/png"
 
       console.log("[bytebeam] Image processed, base64 length:", base64.length)
 
@@ -396,6 +980,8 @@ export async function POST(request: NextRequest) {
 Here are the guiding principles for your operation:
 
 Strict Adherence to Schema: The primary goal is to populate the fields defined in the schema. You must not add, omit, or alter any fields. The structure of your output must perfectly match the provided schema.
+
+Confidence Reporting: You must include a confidence entry for every leaf field in the schema. Use 1.0 only when you are highly certain the extracted value is correct. Use 0 when the value is "-" or otherwise uncertain. Do not omit fields from the confidence array.
 
 Contextual Extraction: Analyze the image content carefully to understand the context and ensure the extracted data correctly corresponds to the schema's field descriptions.
 
@@ -410,7 +996,8 @@ Follow these steps:
 2. Examine the entire image to locate the information corresponding to each field in the schema.
 3. For each field, extract the precise data from the image that matches the field's description and context.
 4. If information for a field is not present in the image, return "-" as its value.
-5. Construct the final JSON object, ensuring it strictly validates against the provided schema and contains no extra text or explanations.`
+5. Construct the final JSON object, ensuring it strictly validates against the provided schema and contains no extra text or explanations.
+6. Include a "__meta__" object with a "confidence" array. Each entry must be an object with keys "fieldId" (the schema field ID) and "value" (a decimal between 0 and 1 representing your confidence in that field). Every leaf field must appear exactly once in this array.`
 
       documentContent = [
         { type: "text", text: baseText },
@@ -429,13 +1016,15 @@ Guidelines:
 - Strictly adhere to the schema. Do not add or remove fields.
 - If a field is not present in the document, return "-" (a single hyphen) for that field. Do not guess.
 - Respect data types and formatting instructions supplied in the schema.
-- Where possible, cross-verify values across the PDF to ensure accuracy.`
+- Where possible, cross-verify values across the PDF to ensure accuracy.
+- Provide a "__meta__" object with a "confidence" array. Each entry must contain a "fieldId" and a "value" between 0 and 1 describing your confidence in that field.
+- Every field defined in the schema must appear exactly once in the confidence array. Use 1.0 only when you are highly certain; use 0.0 when the value is "-" or uncertain.`
 
       documentContent = [
         { type: "text", text: baseInstructions },
         {
           type: "file",
-          mediaType: fileType || "application/pdf",
+          mediaType: originalMimeType || fileMimeType || "application/pdf",
           data: Buffer.from(bytes),
         },
       ]
@@ -458,28 +1047,48 @@ Guidelines:
 
       extractionPrompt = ""
     } else {
-      console.log("[bytebeam] Processing as text-based document...", fileType || fileName)
+      console.log("[bytebeam] Processing as text-based document...", originalMimeType || fileMimeType || fileName)
 
       console.log("[bytebeam] Document text length:", extractedDocumentText.length)
 
       if (extractedDocumentText.trim().length === 0) {
         console.log("[bytebeam] No readable text detected; returning fallback results")
-      const fallback = schemaTree && Array.isArray(schemaTree)
-        ? buildFallbackFromTree(schemaTree)
-        : buildFallbackFromFlat(schema)
-      warnings.push("No readable text detected. Returned '-' for all fields.")
-      await syncJob({
-        status: "completed",
-        results: fallback,
-        completedAt: new Date(),
-        errorMessage: "No readable text detected",
-      })
-      return NextResponse.json(
-        {
-          success: true,
-          results: fallback,
-          warnings,
+        const fallback = schemaTree && Array.isArray(schemaTree)
+          ? buildFallbackFromTree(schemaTree)
+          : buildFallbackFromFlat(schema)
+        const reviewMeta = computeInitialReviewMeta(fallback, {
+          handledWithFallback: true,
+          fallbackReason: "No readable text detected.",
+        })
+        const confidenceMap = Object.fromEntries(
+          Object.entries(reviewMeta).map(([fieldId, meta]) => [fieldId, meta.confidence ?? null]),
+        )
+        const fallbackWithMeta = mergeResultsWithMeta(fallback, {
+          review: reviewMeta,
+          confidence: confidenceMap,
+        })
+        warnings.push("No readable text detected. Returned '-' for all fields.")
+        const ocrResult = ocrPromise ? await ocrPromise : null
+        const markdownResult = markdownPromise ? await markdownPromise : null
+        const completedAt = new Date()
+        await syncJob({
+          status: "completed",
+          results: fallbackWithMeta,
+          completedAt,
+          errorMessage: "No readable text detected",
+          ocrMarkdown: markdownResult?.markdown ?? ocrResult?.markdown ?? null,
+          ocrAnnotatedImageUrl: ocrResult?.annotatedImageUrl ?? null,
+          originalFileUrl: markdownResult?.originalFileUrl ?? null,
+        })
+        return NextResponse.json(
+          {
+            success: true,
+            results: fallbackWithMeta,
+            warnings,
             handledWithFallback: true,
+            ocrMarkdown: markdownResult?.markdown ?? ocrResult?.markdown ?? null,
+            ocrAnnotatedImageUrl: ocrResult?.annotatedImageUrl ?? null,
+            originalFileUrl: markdownResult?.originalFileUrl ?? null,
           },
           { status: 200 },
         )
@@ -505,6 +1114,8 @@ No Hallucination: If a piece of information for a specific field cannot be found
 
 Data Type Integrity: Ensure the extracted data conforms to the data type specified in the schema (e.g., number, string, boolean, array). Format dates according to ISO 8601 (YYYY-MM-DD) unless the schema specifies otherwise. Use "-" only when the information is truly unavailable.
 
+Confidence Reporting: You must include a confidence entry for every field listed in the schema. Use 1.0 only when you are highly certain the extracted value is correct. Use 0.0 when the value is "-" or when you are unsure. Do not omit any fields from the confidence array.
+
 Here is the document to process:
 ${extractedDocumentText}
 
@@ -515,7 +1126,8 @@ Follow these steps:
 2. Read through the entire document to locate the information corresponding to each field in the schema.
 3. For each field, extract the precise data from the document that matches the field's description and context.
 4. If information for a field is not present in the document, return "-" as its value.
-5. Construct the final JSON object, ensuring it strictly validates against the provided schema and contains no extra text or explanations.`
+5. Construct the final JSON object, ensuring it strictly validates against the provided schema and contains no extra text or explanations.
+6. Add a "__meta__" object with a "confidence" array where each item includes a "fieldId" and a "value" between 0 and 1 indicating your confidence in that field's value. Every field must appear exactly once in this array.`
     }
 
     console.log("[bytebeam] Processing with Gemini...")
@@ -538,19 +1150,71 @@ Follow these steps:
 
       console.log("[bytebeam] Extraction successful:", result.object)
 
+      const { values: modelValues, meta: modelMeta } = extractResultsMeta(result.object as Record<string, any>)
+
+      const rawForSanitization = modelValues ?? (result.object as Record<string, any>)
+
       const sanitizedResults = schemaTree && Array.isArray(schemaTree)
-        ? sanitizeResultsFromTree(schemaTree, result.object)
-        : sanitizeResultsFromFlat(schema, result.object)
+        ? sanitizeResultsFromTree(schemaTree, rawForSanitization)
+        : sanitizeResultsFromFlat(schema, rawForSanitization)
+
+      const expectedFieldIds = schemaTree && Array.isArray(schemaTree)
+        ? Array.from(
+            new Set(
+              flattenFields(schemaTree as any)
+                .map((field) => field?.id)
+                .filter((id): id is string => typeof id === "string" && !id.startsWith("__")),
+            ),
+          )
+        : Object.keys((schema ?? result.schema ?? result.data?.schema ?? {})).filter((id) => !id.startsWith("__"))
+
+      const reviewMeta = computeInitialReviewMeta(sanitizedResults, {
+        confidenceByField: modelMeta?.confidence,
+        confidenceThreshold: 0.5,
+        fallbackReason: warnings.length > 0 ? warnings.join(" ") : undefined,
+      })
+
+      if (expectedFieldIds.length > 0) {
+        const providedConfidence = modelMeta?.confidence ?? {}
+        const missingConfidenceFields = expectedFieldIds.filter((fieldId) => !(fieldId in (providedConfidence || {})))
+        if (missingConfidenceFields.length > 0) {
+          console.warn(
+            `[bytebeam] Missing confidence entries for fields: ${missingConfidenceFields.join(", ")}`,
+          )
+        }
+      }
+
+      const resultsWithMeta = mergeResultsWithMeta(sanitizedResults, {
+        review: reviewMeta,
+        confidence: modelMeta?.confidence,
+      })
+
+      const completedAt = new Date()
+      const ocrResult = ocrPromise ? await ocrPromise : null
+      const markdownResult = markdownPromise ? await markdownPromise : null
+
+      console.log("[bytebeam] Final results before sync:", {
+        ocrMarkdown: ocrResult?.markdown?.length || 0,
+        ocrAnnotatedImageUrl: ocrResult?.annotatedImageUrl,
+        originalFileUrl: markdownResult?.originalFileUrl,
+        markdownFromGeneration: markdownResult?.markdown?.length || 0
+      })
 
       const responsePayload = {
         success: true,
-        results: sanitizedResults,
+        results: resultsWithMeta,
         warnings,
+        ocrMarkdown: markdownResult?.markdown ?? ocrResult?.markdown ?? null,
+        ocrAnnotatedImageUrl: ocrResult?.annotatedImageUrl ?? null,
+        originalFileUrl: markdownResult?.originalFileUrl ?? null,
       }
       await syncJob({
         status: "completed",
-        results: sanitizedResults,
-        completedAt: new Date(),
+        results: resultsWithMeta,
+        completedAt,
+        ocrMarkdown: markdownResult?.markdown ?? ocrResult?.markdown ?? null,
+        ocrAnnotatedImageUrl: ocrResult?.annotatedImageUrl ?? null,
+        originalFileUrl: markdownResult?.originalFileUrl ?? null,
       })
       return NextResponse.json(responsePayload)
     } catch (modelError) {
@@ -561,31 +1225,62 @@ Follow these steps:
       warnings.push(
         "Automatic extraction failed, so we returned '-' for each field instead. Please review and retry.",
       )
+      const reviewMeta = computeInitialReviewMeta(fallback, {
+        handledWithFallback: true,
+        fallbackReason:
+          modelError instanceof Error ? modelError.message : String(modelError ?? "Unknown error"),
+      })
+      const confidenceMap = Object.fromEntries(
+        Object.entries(reviewMeta).map(([fieldId, meta]) => [fieldId, meta.confidence ?? null]),
+      )
+      const fallbackWithMeta = mergeResultsWithMeta(fallback, {
+        review: reviewMeta,
+        confidence: confidenceMap,
+      })
+
+      const ocrResult = ocrPromise ? await ocrPromise : null
+      const markdownResult = markdownPromise ? await markdownPromise : null
+      const completedAt = new Date()
       await syncJob({
         status: "completed",
-        results: fallback,
-        completedAt: new Date(),
+        results: fallbackWithMeta,
+        completedAt,
         errorMessage: modelError instanceof Error ? modelError.message : String(modelError ?? "Unknown error"),
+        ocrMarkdown: markdownResult?.markdown ?? ocrResult?.markdown ?? null,
+        ocrAnnotatedImageUrl: ocrResult?.annotatedImageUrl ?? null,
+        originalFileUrl: markdownResult?.originalFileUrl ?? null,
       })
       return NextResponse.json({
         success: true,
-        results: fallback,
+        results: fallbackWithMeta,
         warnings,
         handledWithFallback: true,
         error: modelError instanceof Error ? modelError.message : String(modelError ?? "Unknown error"),
+        ocrMarkdown: markdownResult?.markdown ?? ocrResult?.markdown ?? null,
+        ocrAnnotatedImageUrl: ocrResult?.annotatedImageUrl ?? null,
+        originalFileUrl: markdownResult?.originalFileUrl ?? null,
       })
     }
   } catch (error) {
     console.error("[bytebeam] Extraction error:", error)
+    const ocrResult = ocrPromise ? await ocrPromise : null
+    const markdownResult = markdownPromise ? await markdownPromise : null
+    const completedAt = new Date()
     await syncJob({
       status: "error",
-      completedAt: new Date(),
+      completedAt,
       errorMessage: error instanceof Error ? error.message : "Unknown error",
+      ocrMarkdown: markdownResult?.markdown ?? ocrResult?.markdown ?? null,
+      ocrAnnotatedImageUrl: ocrResult?.annotatedImageUrl ?? null,
+      originalFileUrl: markdownResult?.originalFileUrl ?? null,
     })
     return NextResponse.json(
       {
         error: "Failed to extract data",
         details: error instanceof Error ? error.message : "Unknown error",
+        ocrMarkdown: markdownResult?.markdown ?? ocrResult?.markdown ?? null,
+        ocrAnnotatedImageUrl: ocrResult?.annotatedImageUrl ?? null,
+        originalFileUrl: markdownResult?.originalFileUrl ?? null,
       },
       { status: 500 },
     )

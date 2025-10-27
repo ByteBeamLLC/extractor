@@ -28,6 +28,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Skeleton } from "@/components/ui/skeleton"
 import { SetupBanner } from "./setup-banner"
 import { AgGridSheet } from "./ag-grid-sheet"
+import { OCRDetailModal } from "@/components/OCRDetailModal"
 import { TransformBuilder } from "@/components/transform-builder"
 import { cn } from "@/lib/utils"
  
@@ -45,6 +46,8 @@ import {
   type SchemaDefinition,
   type ExtractionJob,
   type VisualGroup,
+  type ExtractionResultsMeta,
+  type FieldReviewMeta,
   flattenFields,
   updateFieldById,
   removeFieldById,
@@ -61,6 +64,9 @@ import {
   getFieldDependents,
 } from "@/lib/dependency-resolver"
 import {
+  computeInitialReviewMeta,
+  extractResultsMeta,
+  mergeResultsWithMeta,
   sanitizeResultsFromFlat,
   sanitizeResultsFromTree,
 } from "@/lib/extraction-results"
@@ -288,14 +294,21 @@ function schemaRowToDefinition(row: SchemaRow, jobRows: ExtractionJobRow[]): Sch
 }
 
 function extractionJobRowToJob(row: ExtractionJobRow): ExtractionJob {
+  const raw = (row.results as Record<string, any> | null) ?? undefined
+  const { values, meta } = extractResultsMeta(raw)
+
   return {
     id: row.id,
     fileName: row.file_name,
     status: row.status,
-    results: (row.results as Record<string, any> | null) ?? undefined,
+    results: values ?? undefined,
+    review: meta?.review ?? undefined,
     createdAt: row.created_at ? new Date(row.created_at) : new Date(),
     completedAt: row.completed_at ? new Date(row.completed_at) : undefined,
     agentType: row.agent_type ?? undefined,
+    ocrMarkdown: row.ocr_markdown ?? null,
+    ocrAnnotatedImageUrl: row.ocr_annotated_image_url ?? null,
+    originalFileUrl: row.original_file_url ?? null,
   }
 }
 
@@ -313,17 +326,69 @@ function schemaDefinitionToRow(schema: SchemaDefinition, userId: string): Schema
 }
 
 function extractionJobToRow(job: ExtractionJob, schemaId: string, userId: string): ExtractionJobRow {
+  const baseResults = job.results ? { ...job.results } : {}
+  let meta: ExtractionResultsMeta | undefined
+
+  if (job.review && Object.keys(job.review).length > 0) {
+    const confidenceMap = Object.entries(job.review).reduce<Record<string, number | null>>(
+      (acc, [fieldId, info]) => {
+        if (info && typeof info.confidence === "number") {
+          acc[fieldId] = Math.max(0, Math.min(1, info.confidence))
+        } else if (info && info.confidence === null) {
+          acc[fieldId] = null
+        }
+        return acc
+      },
+      {},
+    )
+
+    meta = {
+      review: job.review,
+    }
+
+    if (Object.keys(confidenceMap).length > 0) {
+      meta.confidence = confidenceMap
+    }
+  }
+
+  const merged = mergeResultsWithMeta(baseResults, meta)
+  const serializedResults =
+    Object.keys(merged).length === 0 ? null : (merged as ExtractionJobRow["results"])
+
   return {
     id: job.id,
     schema_id: schemaId,
     user_id: userId,
     file_name: job.fileName,
     status: job.status,
-    results: (job.results ?? null) as unknown as ExtractionJobRow["results"],
+    results: serializedResults,
+     ocr_markdown: job.ocrMarkdown ?? null,
+     ocr_annotated_image_url: job.ocrAnnotatedImageUrl ?? null,
+     original_file_url: job.originalFileUrl ?? null,
     agent_type: job.agentType ?? null,
     created_at: job.createdAt?.toISOString() ?? new Date().toISOString(),
     completed_at: job.completedAt ? job.completedAt.toISOString() : null,
+    updated_at: new Date().toISOString(),
   }
+}
+
+function sortObject(value: any): any {
+  if (Array.isArray(value)) {
+    return value.map(sortObject)
+  }
+  if (value && typeof value === "object") {
+    const sortedKeys = Object.keys(value).sort()
+    return sortedKeys.reduce<Record<string, any>>((acc, key) => {
+      acc[key] = sortObject(value[key])
+      return acc
+    }, {})
+  }
+  return value
+}
+
+function stableStringify(value: any): string {
+  if (value === undefined) return "undefined"
+  return JSON.stringify(sortObject(value))
 }
 
 function jobsShallowEqual(a: ExtractionJob, b: ExtractionJob): boolean {
@@ -338,16 +403,23 @@ function jobsShallowEqual(a: ExtractionJob, b: ExtractionJob): boolean {
 
   const resultsA = a.results ?? null
   const resultsB = b.results ?? null
-  const resultsEqual = JSON.stringify(resultsA) === JSON.stringify(resultsB)
+  const resultsEqual = stableStringify(resultsA) === stableStringify(resultsB)
+  const reviewA = a.review ?? null
+  const reviewB = b.review ?? null
+  const reviewEqual = stableStringify(reviewA) === stableStringify(reviewB)
 
   return (
     a.id === b.id &&
     a.fileName === b.fileName &&
     a.status === b.status &&
     (a.agentType ?? null) === (b.agentType ?? null) &&
+    (a.ocrMarkdown ?? null) === (b.ocrMarkdown ?? null) &&
+    (a.ocrAnnotatedImageUrl ?? null) === (b.ocrAnnotatedImageUrl ?? null) &&
+    (a.originalFileUrl ?? null) === (b.originalFileUrl ?? null) &&
     createdAtA === createdAtB &&
     completedAtA === completedAtB &&
-    resultsEqual
+    resultsEqual &&
+    reviewEqual
   )
 }
 
@@ -611,9 +683,14 @@ export function DataExtractionPlatform({
   }, [schemaSyncState])
   useEffect(() => {
     if (!isEmbedded) return
+    // Only re-run when the templateId actually changes
     const nextAgent = inferAgentTypeFromSchema(activeSchema)
-    setSelectedAgent((prev) => (prev === nextAgent ? prev : nextAgent))
-  }, [isEmbedded, activeSchemaId, activeSchema.templateId])
+    setSelectedAgent((prev) => {
+      // Only update if actually different
+      if (prev === nextAgent) return prev
+      return nextAgent
+    })
+  }, [isEmbedded, activeSchema.templateId])
   const applySchemaUpdate = useCallback(
     (schemaId: string, updater: (schema: SchemaDefinition) => SchemaDefinition): SchemaDefinition | null => {
       let updatedSchema: SchemaDefinition | null = null
@@ -879,6 +956,7 @@ export function DataExtractionPlatform({
 
   // UI state for modern grid behaviors
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null)
+  const [ocrModalJobId, setOcrModalJobId] = useState<string | null>(null)
   // Pharma agent editing state
   const [pharmaEditingSection, setPharmaEditingSection] = useState<string | null>(null)
   const [pharmaEditedValues, setPharmaEditedValues] = useState<Record<string, string>>({})
@@ -921,6 +999,17 @@ export function DataExtractionPlatform({
     () => [...jobs].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()),
     [jobs],
   )
+
+  const ocrModalJob = useMemo(
+    () => (ocrModalJobId ? sortedJobs.find((job) => job.id === ocrModalJobId) ?? null : null),
+    [ocrModalJobId, sortedJobs],
+  )
+
+  useEffect(() => {
+    if (ocrModalJobId && !sortedJobs.some((job) => job.id === ocrModalJobId)) {
+      setOcrModalJobId(null)
+    }
+  }, [ocrModalJobId, sortedJobs])
   // Avoid referencing process.env in client runtime
   const { BOOKING_URL } = require("@/lib/publicEnv") as { BOOKING_URL: string }
   const isSchemaFresh = (s: SchemaDefinition) => (s.fields?.length ?? 0) === 0 && (s.jobs?.length ?? 0) === 0
@@ -1851,6 +1940,68 @@ export function DataExtractionPlatform({
     options?: { persistSchema?: boolean; syncJobs?: boolean },
   ) => updateSchemaJobs(schemaId, updater, options)
 
+  const updateReviewStatus = useCallback(
+    (
+      jobId: string,
+      columnId: string,
+      status: "verified" | "needs_review",
+      payload?: { reason?: string | null },
+    ) => {
+      const nowIso = new Date().toISOString()
+      updateSchemaJobs(
+        activeSchemaId,
+        (prev) =>
+          prev.map((job) => {
+            if (job.id !== jobId) return job
+            const previousMeta = job.review?.[columnId]
+            const originalValue =
+              status === "verified"
+                ? job.results?.[columnId]
+                : previousMeta?.originalValue ?? job.results?.[columnId]
+            const previousConfidence = previousMeta?.confidence ?? null
+            let nextConfidence: number | null
+            if (status === "verified") {
+              nextConfidence = 1
+            } else if (previousConfidence !== null) {
+              nextConfidence = previousConfidence
+            } else {
+              nextConfidence = status === "needs_review" ? 0 : null
+            }
+            const nextMeta: FieldReviewMeta = {
+              status,
+              updatedAt: nowIso,
+              reason:
+                payload?.reason ??
+                (status === "verified"
+                  ? "Verified by user"
+                  : previousMeta?.reason ?? "Requires review"),
+              confidence: nextConfidence,
+              verifiedAt: status === "verified" ? nowIso : null,
+              verifiedBy: status === "verified" ? session?.user?.id ?? null : null,
+              originalValue,
+            }
+            return {
+              ...job,
+              review: {
+                ...(job.review ?? {}),
+                [columnId]: nextMeta,
+              },
+            }
+          }),
+        { syncJobs: true },
+      )
+    },
+    [activeSchemaId, session?.user?.id, updateSchemaJobs],
+  )
+
+  const handleRowDoubleClick = useCallback(
+    (job: ExtractionJob) => {
+      if (!job) return
+      setOcrModalJobId(job.id)
+    },
+    [setOcrModalJobId],
+  )
+
   const addSchema = () => {
     const nextIndex = schemas.length + 1
     const newSchema: SchemaDefinition = {
@@ -2068,6 +2219,10 @@ export function DataExtractionPlatform({
       status: "pending" as ExtractionJob["status"],
       createdAt: new Date(),
       agentType: agentSnapshot,
+      review: {},
+      ocrMarkdown: null,
+      ocrAnnotatedImageUrl: null,
+      originalFileUrl: null,
     }))
 
     if (jobsToCreate.length > 0) {
@@ -2213,11 +2368,19 @@ export function DataExtractionPlatform({
             const finalResults: Record<string, any> = {
               pharma_data: pharmaResult,
             }
+            const reviewMeta = computeInitialReviewMeta(finalResults)
+            const completedAt = new Date()
 
             updateJobsForSchema((prev) =>
               prev.map((existing) =>
                 existing.id === job.id
-                  ? { ...existing, status: 'completed', results: finalResults, completedAt: new Date() }
+                  ? {
+                      ...existing,
+                      status: 'completed',
+                      results: finalResults,
+                      completedAt,
+                      review: reviewMeta,
+                    }
                   : existing,
               ),
             )
@@ -2272,11 +2435,19 @@ export function DataExtractionPlatform({
               fnb_extraction: extraction,
               fnb_translation: j2.data,
             }
+            const reviewMeta = computeInitialReviewMeta(finalResults)
+            const completedAt = new Date()
 
             updateJobsForSchema((prev) =>
               prev.map((existing) =>
                 existing.id === job.id
-                  ? { ...existing, status: 'completed', results: finalResults, completedAt: new Date() }
+                  ? {
+                      ...existing,
+                      status: 'completed',
+                      results: finalResults,
+                      completedAt,
+                      review: reviewMeta,
+                    }
                   : existing,
               ),
             )
@@ -2330,9 +2501,10 @@ export function DataExtractionPlatform({
               : undefined) ??
             result.results ??
             {}
+          const { values: rawValues, meta: rawMeta } = extractResultsMeta(rawResults)
           const sanitized = schemaTree?.length
-            ? sanitizeResultsFromTree(schemaTree, rawResults)
-            : sanitizeResultsFromFlat((result.schema ?? result.data?.schema) ?? {}, rawResults)
+            ? sanitizeResultsFromTree(schemaTree, rawValues ?? {})
+            : sanitizeResultsFromFlat((result.schema ?? result.data?.schema) ?? {}, rawValues ?? {})
           const flattened = flattenResultsById(displayColumnsSnapshot, sanitized ?? {})
           const finalResults: Record<string, any> = { ...flattened }
           const graph = buildDependencyGraph(displayColumnsSnapshot, false)
@@ -2340,7 +2512,6 @@ export function DataExtractionPlatform({
           const fieldStatus = new Map<string, { status: 'pending' | 'success' | 'error' | 'blocked'; error?: string }>()
           const baseStatus = validateDependencies(graph)
           baseStatus.unresolvable.forEach((id) => fieldStatus.set(id, { status: 'blocked', error: 'Missing dependency' }))
-          const needsWaveProcessing = displayColumnsSnapshot.some((col) => col.isTransformation && col.transformationType === 'gemini_api')
           const pendingTransformations = displayColumnsSnapshot
             .filter((col) => col.isTransformation && !fieldStatus.has(col.id))
             .map((col) => col.id)
@@ -2410,19 +2581,6 @@ export function DataExtractionPlatform({
             const destination = ensurePath(finalResults, parentPath)
             destination[col.id] = finalResults[col.id]
           })
-
-          updateJobsForSchema((prev) =>
-            prev.map((existing) =>
-              existing.id === job.id
-                ? {
-                    ...existing,
-                    status: "completed",
-                    results: finalResults,
-                    completedAt: new Date(),
-                  }
-                : existing,
-            ),
-          )
 
           for (const wave of waves) {
             const geminiFields = wave.fields.filter((col) =>
@@ -2504,12 +2662,84 @@ export function DataExtractionPlatform({
             }
           }
 
+          const completedAt = new Date()
+          const reviewMeta = computeInitialReviewMeta(finalResults, {
+            handledWithFallback: Boolean(result.handledWithFallback),
+            fallbackReason: result.error,
+            confidenceByField: rawMeta?.confidence,
+            confidenceThreshold: 0.5,
+          })
+
+          if (rawMeta?.review) {
+            const fallbackUpdatedAt = completedAt.toISOString()
+            Object.entries(rawMeta.review).forEach(([fieldId, meta]) => {
+              const current = reviewMeta[fieldId]
+              reviewMeta[fieldId] = {
+                ...current,
+                ...meta,
+                updatedAt: meta.updatedAt ?? current?.updatedAt ?? fallbackUpdatedAt,
+                originalValue: finalResults[fieldId],
+                confidence:
+                  meta.confidence ?? current?.confidence ?? rawMeta.confidence?.[fieldId] ?? null,
+              }
+            })
+          }
+
+          fieldStatus.forEach((info, fieldId) => {
+            if (info.status === 'error' || info.status === 'blocked') {
+              reviewMeta[fieldId] = {
+                status: 'needs_review',
+                updatedAt: completedAt.toISOString(),
+                reason: info.error ?? 'Transformation requires review.',
+                confidence: 0,
+                originalValue: finalResults[fieldId],
+              }
+            }
+          })
+
+          const hasOcrMarkdown = Object.prototype.hasOwnProperty.call(result, "ocrMarkdown")
+          const hasOcrAnnotatedImageUrl = Object.prototype.hasOwnProperty.call(result, "ocrAnnotatedImageUrl")
+          const hasOriginalFileUrl = Object.prototype.hasOwnProperty.call(result, "originalFileUrl")
+          const nextOcrMarkdown =
+            hasOcrMarkdown
+              ? typeof result.ocrMarkdown === "string" && result.ocrMarkdown.trim().length > 0
+                ? result.ocrMarkdown
+                : null
+              : undefined
+          const nextOcrAnnotatedImageUrl =
+            hasOcrAnnotatedImageUrl
+              ? typeof result.ocrAnnotatedImageUrl === "string" && result.ocrAnnotatedImageUrl.length > 0
+                ? result.ocrAnnotatedImageUrl
+                : null
+              : undefined
+          const nextOriginalFileUrl =
+            hasOriginalFileUrl
+              ? typeof result.originalFileUrl === "string" && result.originalFileUrl.length > 0
+                ? result.originalFileUrl
+                : null
+              : undefined
+
           updateJobsForSchema((prev) =>
             prev.map((existing) =>
               existing.id === job.id
                 ? {
                     ...existing,
+                    status: "completed",
+                    completedAt,
                     results: finalResults,
+                    review: reviewMeta,
+                    ocrMarkdown:
+                      nextOcrMarkdown !== undefined
+                        ? nextOcrMarkdown
+                        : existing.ocrMarkdown ?? null,
+                    ocrAnnotatedImageUrl:
+                      nextOcrAnnotatedImageUrl !== undefined
+                        ? nextOcrAnnotatedImageUrl
+                        : existing.ocrAnnotatedImageUrl ?? null,
+                    originalFileUrl:
+                      nextOriginalFileUrl !== undefined
+                        ? nextOriginalFileUrl
+                        : existing.originalFileUrl ?? null,
                   }
                 : existing,
             ),
@@ -4029,6 +4259,7 @@ export function DataExtractionPlatform({
                   jobs={sortedJobs}
                   selectedRowId={selectedRowId}
                   onSelectRow={(jobId) => setSelectedRowId(jobId)}
+                  onRowDoubleClick={handleRowDoubleClick}
                   onAddColumn={() => addColumn()}
                   renderCellValue={renderCellValue}
                   getStatusIcon={getStatusIcon}
@@ -4041,6 +4272,9 @@ export function DataExtractionPlatform({
                           : job,
                       ),
                     )
+                    updateReviewStatus(jobId, columnId, "verified", {
+                      reason: "Value edited by user",
+                    })
                   }}
                   onEditColumn={(column) => {
                     setSelectedColumn(column)
@@ -4049,6 +4283,7 @@ export function DataExtractionPlatform({
                     setIsColumnDialogOpen(true)
                   }}
                   onDeleteColumn={deleteColumn}
+                  onUpdateReviewStatus={updateReviewStatus}
                   onColumnRightClick={handleColumnRightClick}
                   visualGroups={activeSchema.visualGroups || []}
                 />
@@ -4321,6 +4556,16 @@ export function DataExtractionPlatform({
           </DialogContent>
         </Dialog>
       ) : null}
+
+      <OCRDetailModal
+        open={ocrModalJobId !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setOcrModalJobId(null)
+          }
+        }}
+        job={ocrModalJob}
+      />
 
       {/* Advanced Automation ROI Modal */}
       <Dialog open={roiOpen} onOpenChange={onCloseRoi}>

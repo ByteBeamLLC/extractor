@@ -23,6 +23,23 @@ export type TransformationType =
   | "gemini_api"
   | "custom"
 
+export type FieldReviewStatus = "auto_verified" | "needs_review" | "verified"
+
+export interface FieldReviewMeta {
+  status: FieldReviewStatus
+  updatedAt: string
+  reason?: string | null
+  confidence?: number | null
+  verifiedAt?: string | null
+  verifiedBy?: string | null
+  originalValue?: any
+}
+
+export interface ExtractionResultsMeta {
+  review?: Record<string, FieldReviewMeta>
+  confidence?: Record<string, number | null>
+}
+
 export interface FieldConstraints {
   minLength?: number
   maxLength?: number
@@ -80,9 +97,13 @@ export interface ExtractionJob {
   fileName: string
   status: "pending" | "processing" | "completed" | "error"
   results?: Record<string, any> // flattened by leaf field id
+  review?: Record<string, FieldReviewMeta>
   createdAt: Date
   completedAt?: Date
   agentType?: "standard" | "pharma" // Track which agent processed this job
+  ocrMarkdown?: string | null
+  ocrAnnotatedImageUrl?: string | null
+  originalFileUrl?: string | null
 }
 
 export interface VisualGroup {
@@ -189,7 +210,12 @@ export function flattenResultsById(fields: SchemaField[], nested: any): Record<s
         out[f.id] = v ?? null
       } else if (f.type === "object") {
         // Keep the entire object structure intact for unified display
-        out[f.id] = v ?? null
+        if (v && typeof v === "object" && "__meta__" in v) {
+          const { __meta__, ...rest } = v as Record<string, any>
+          out[f.id] = rest
+        } else {
+          out[f.id] = v ?? null
+        }
         // Don't walk children - keep object as unified entity
       } else if (f.type === "list") {
         out[f.id] = Array.isArray(v) ? v : v ?? null // keep list value as-is
