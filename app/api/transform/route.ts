@@ -2,7 +2,6 @@ import { type NextRequest, NextResponse } from "next/server"
 import { google } from "@ai-sdk/google"
 import { generateText, generateObject, tool } from "ai"
 import { z } from "zod"
-import { tavily } from "@tavily/core"
 
 const calculatorTool = tool({
   description: "A comprehensive calculator tool for performing arithmetic operations. Use this whenever you need to calculate mathematical expressions, including basic arithmetic, exponentiation, square roots, and more. The calculator supports: addition (+), subtraction (-), multiplication (*), division (/), exponentiation (^), square root (sqrt), parentheses for grouping, and follows proper order of operations.",
@@ -26,33 +25,411 @@ const webSearchTool = tool({
   }),
   execute: async ({ query }) => {
     try {
-      const apiKey = process.env.TAVILY_API_KEY
+      const apiKey = process.env.JINA_API_KEY
+      console.log("[bytebeam] Jina API Key check:", apiKey ? "Present" : "Missing")
+      
       if (!apiKey) {
-        return { error: "TAVILY_API_KEY not configured" }
+        return { error: "JINA_API_KEY not configured. Please set the JINA_API_KEY environment variable to enable web search." }
       }
 
-      const tvly = tavily({ apiKey })
-      const response = await tvly.search(query, {
-        searchDepth: "basic",
-        maxResults: 5,
+      console.log("[bytebeam] Calling Jina Search API with query:", query)
+      
+      const response = await fetch(`https://s.jina.ai/${encodeURIComponent(query)}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Accept': 'application/json',
+          'X-Retain-Images': 'none',
+        },
       })
+      
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => response.statusText)
+        throw new Error(`Jina API error: ${response.status} ${errorText}`)
+      }
+      
+      const data = await response.json()
+      console.log("[bytebeam] Jina response received:", data)
 
-      const results = response.results.map((result: any) => ({
-        title: result.title,
-        url: result.url,
-        content: result.content,
+      // Transform Jina response to match expected format
+      const results = (data.data || []).slice(0, 5).map((result: any) => ({
+        title: result.title || result.breadcrumb || '',
+        url: result.url || '',
+        content: result.content || result.description || '',
       }))
 
       return {
         query,
         results,
-        answer: response.answer || "No direct answer available",
+        answer: data.answer || results[0]?.content || "No direct answer available",
       }
     } catch (error) {
+      console.error("[bytebeam] Jina search error:", error)
       return { error: error instanceof Error ? error.message : "Web search failed", query }
     }
   },
 })
+
+const webReaderTool = tool({
+  description: "Read and extract full content from a specific URL. Use this tool when you need detailed information from a particular webpage that was found in search results, or when you need to read the content of a known URL. This provides the complete text content of the page in a clean, readable format.",
+  inputSchema: z.object({
+    url: z.string().describe("The URL of the webpage to read and extract content from. Must be a valid HTTP/HTTPS URL."),
+  }),
+  execute: async ({ url }) => {
+    try {
+      const apiKey = process.env.JINA_API_KEY
+      console.log("[bytebeam] Jina Reader API - Reading URL:", url)
+      
+      if (!apiKey) {
+        return { error: "JINA_API_KEY not configured. Please set the JINA_API_KEY environment variable to enable web reading." }
+      }
+
+      // Validate URL format
+      try {
+        new URL(url)
+      } catch {
+        return { error: "Invalid URL format", url }
+      }
+
+      const response = await fetch(`https://r.jina.ai/${url}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Accept': 'application/json',
+          'X-Return-Format': 'json',
+        },
+      })
+      
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => response.statusText)
+        throw new Error(`Jina Reader API error: ${response.status} ${errorText}`)
+      }
+      
+      const data = await response.json()
+      console.log("[bytebeam] Jina Reader response received for:", url)
+
+      return {
+        url,
+        title: data.title || '',
+        content: data.content || data.text || '',
+        description: data.description || '',
+      }
+    } catch (error) {
+      console.error("[bytebeam] Jina Reader error:", error)
+      return { error: error instanceof Error ? error.message : "Web reading failed", url }
+    }
+  },
+})
+
+// ===== PLANNER-OPERATOR-REFLECTOR ARCHITECTURE =====
+
+// Type Definitions
+interface Task {
+  id: string
+  description: string
+  tool: 'calculator' | 'webSearch' | 'webReader'
+  input: Record<string, any>
+  dependsOn?: string[]
+}
+
+interface Plan {
+  tasks: Task[]
+  reasoning: string
+}
+
+interface ExecutionResult {
+  taskId: string
+  success: boolean
+  output: any
+  error?: string
+}
+
+interface ReflectionResult {
+  status: 'SUCCESS' | 'RETRY' | 'FAIL'
+  reasoning: string
+  finalAnswer?: any
+  replanInstructions?: string
+}
+
+// Planner Agent - Creates execution plans
+async function planTasks(prompt: string, context: string): Promise<Plan> {
+  const plannerPrompt = `You are a task planning agent. Analyze the request and create an execution plan.
+
+Request: ${prompt}
+Context: ${context}
+
+Available tools:
+- calculator: For mathematical operations
+- webSearch: For finding current information, rates, prices
+- webReader: For reading specific URLs
+
+Create a task plan. For simple tasks (e.g., basic math, direct questions), create a single task.
+For complex tasks (e.g., convert currency, calculate with external data), create multiple tasks with dependencies.
+
+CRITICAL: For conversion/calculation tasks, you MUST include BOTH:
+1. A webSearch task to find the rate/price
+2. A calculator task that depends on the search (dependsOn: ['search_task_id'])
+
+IMPORTANT: The "input" field must be a JSON STRING (not an object).
+Use JSON.stringify() to serialize the input object.
+
+Return a JSON plan with this structure:
+{
+  "tasks": [
+    {
+      "id": "task1",
+      "description": "Find JOD to USD rate",
+      "tool": "webSearch",
+      "input": "{\"query\":\"JOD to USD conversion rate\"}"
+    },
+    {
+      "id": "task2", 
+      "description": "Calculate 666 * rate",
+      "tool": "calculator",
+      "input": "{\"expression\":\"666 * {rate_from_task1}\"}",
+      "dependsOn": ["task1"]
+    }
+  ],
+  "reasoning": "Need to find rate then calculate"
+}`
+
+  const result = await generateObject({
+    model: google("gemini-2.5-pro"),
+    temperature: 0.3,
+    schema: z.object({
+      tasks: z.array(z.object({
+        id: z.string(),
+        description: z.string(),
+        tool: z.enum(['calculator', 'webSearch', 'webReader']),
+        input: z.string(),  // Use string to avoid empty object schema issue
+        dependsOn: z.array(z.string()).optional()
+      })),
+      reasoning: z.string()
+    }),
+    prompt: plannerPrompt
+  })
+  
+  // Parse the input JSON string to object after receiving the result
+  return {
+    ...result.object,
+    tasks: result.object.tasks.map(task => ({
+      ...task,
+      input: JSON.parse(task.input || '{}')
+    }))
+  }
+}
+
+// Helper function to extract numeric values from tool outputs using LLM
+async function extractNumericValue(
+  taskDescription: string,
+  toolOutput: any
+): Promise<number> {
+  // Handle simple numeric outputs directly
+  if (typeof toolOutput === 'number') return toolOutput
+  if (toolOutput?.result !== undefined && typeof toolOutput.result === 'number') {
+    return toolOutput.result
+  }
+  
+  // For complex outputs (webSearch, etc.), use LLM to extract the number
+  const extractionPrompt = `You are a data extraction agent. Extract ONLY the relevant numeric value from the tool output below.
+
+Task Description: ${taskDescription}
+
+Tool Output:
+${JSON.stringify(toolOutput, null, 2)}
+
+Extract the single most relevant number for this task. Return ONLY the number, no units or text.
+
+Examples:
+- If task is "Find JOD to USD rate" and output mentions "1 JOD = 1.4104 USD", return: 1.4104
+- If task is "Get price of iPhone" and output says "$999", return: 999
+- If task is "Find temperature in NYC" and output says "72°F", return: 72
+
+Return only the numeric value as a number.`
+
+  try {
+    const result = await generateObject({
+      model: google("gemini-2.0-flash-exp"),
+      temperature: 0,
+      schema: z.object({
+        value: z.number(),
+        reasoning: z.string().optional()
+      }),
+      prompt: extractionPrompt
+    })
+    
+    console.log(`[bytebeam] Transform - Extracted value ${result.object.value} from tool output (reason: ${result.object.reasoning})`)
+    return result.object.value
+  } catch (error) {
+    console.error(`[bytebeam] Transform - Error extracting numeric value:`, error)
+    // Fallback: try to parse as number
+    const str = String(toolOutput)
+    const match = str.match(/[\d.]+/)
+    if (match) return parseFloat(match[0])
+    throw new Error(`Could not extract numeric value from output`)
+  }
+}
+
+// Helper function to resolve input placeholders
+async function resolveInputs(
+  input: Record<string, any>, 
+  results: Map<string, ExecutionResult>,
+  plan: Plan
+): Promise<Record<string, any>> {
+  const resolved: Record<string, any> = {}
+  
+  for (const [key, value] of Object.entries(input)) {
+    if (typeof value === 'string' && value.includes('{') && value.includes('}')) {
+      // Replace placeholders like {rate_from_task1} with actual values
+      let resolvedValue = value
+      
+      for (const [taskId, result] of results.entries()) {
+        if (result.success && result.output) {
+          // Find the task description from the plan
+          const task = plan.tasks.find(t => t.id === taskId)
+          const taskDescription = task?.description || 'Extract value'
+          
+          // Extract numeric result from tool output using LLM
+          const numericValue = await extractNumericValue(taskDescription, result.output)
+          
+          resolvedValue = resolvedValue.replace(
+            new RegExp(`\\{[^}]*${taskId}[^}]*\\}`, 'g'),
+            String(numericValue)
+          )
+        }
+      }
+      resolved[key] = resolvedValue
+    } else {
+      resolved[key] = value
+    }
+  }
+  
+  return resolved
+}
+
+// Operator Agent - Executes plans with parallel task execution
+async function executePlan(
+  plan: Plan, 
+  tools: Record<string, any>
+): Promise<ExecutionResult[]> {
+  const results: Map<string, ExecutionResult> = new Map()
+  const pendingTasks = [...plan.tasks]
+  
+  while (pendingTasks.length > 0) {
+    // Find tasks ready to execute (no dependencies or dependencies completed)
+    const readyTasks = pendingTasks.filter(task => {
+      if (!task.dependsOn || task.dependsOn.length === 0) return true
+      return task.dependsOn.every(depId => results.has(depId) && results.get(depId)!.success)
+    })
+    
+    if (readyTasks.length === 0) {
+      // No tasks ready means we have unmet dependencies - fail remaining tasks
+      for (const task of pendingTasks) {
+        results.set(task.id, {
+          taskId: task.id,
+          success: false,
+          output: null,
+          error: 'Unmet dependencies'
+        })
+      }
+      break
+    }
+    
+    // Execute ready tasks in parallel
+    const executions = await Promise.allSettled(
+      readyTasks.map(async (task) => {
+        try {
+          // Resolve input values from dependent task results
+          const resolvedInput = await resolveInputs(task.input, results, plan)
+          
+          const tool = tools[task.tool]
+          if (!tool) throw new Error(`Tool ${task.tool} not found`)
+          
+          const output = await tool.execute(resolvedInput)
+          
+          return {
+            taskId: task.id,
+            success: true,
+            output
+          } as ExecutionResult
+        } catch (error) {
+          return {
+            taskId: task.id,
+            success: false,
+            output: null,
+            error: error instanceof Error ? error.message : String(error)
+          } as ExecutionResult
+        }
+      })
+    )
+    
+    // Store results
+    executions.forEach((result, index) => {
+      const taskResult = result.status === 'fulfilled' ? result.value : {
+        taskId: readyTasks[index].id,
+        success: false,
+        output: null,
+        error: 'Execution failed'
+      }
+      results.set(taskResult.taskId, taskResult)
+    })
+    
+    // Remove completed tasks
+    readyTasks.forEach(task => {
+      const index = pendingTasks.indexOf(task)
+      if (index > -1) pendingTasks.splice(index, 1)
+    })
+  }
+  
+  return Array.from(results.values())
+}
+
+// Reflector Agent - Reviews results and determines success
+async function reflectOnResults(
+  prompt: string,
+  plan: Plan,
+  results: ExecutionResult[],
+  iteration: number
+): Promise<ReflectionResult> {
+  const reflectorPrompt = `You are a reflection agent. Review the execution results and determine if the goal was achieved.
+
+Original Request: ${prompt}
+
+Plan Executed:
+${JSON.stringify(plan, null, 2)}
+
+Execution Results:
+${JSON.stringify(results, null, 2)}
+
+Current Iteration: ${iteration}/3
+
+Evaluate:
+1. Was the original request fully satisfied?
+2. For calculation/conversion tasks: Did we actually calculate the final number (not just find a rate)?
+3. Is the final answer in the correct format?
+
+Return your assessment with:
+- status: "SUCCESS" if goal achieved, "RETRY" if need to replan, "FAIL" if cannot be done
+- reasoning: Explain your decision
+- finalAnswer: The final answer to return (if SUCCESS)
+- replanInstructions: What to fix in the next plan (if RETRY)`
+
+  const result = await generateObject({
+    model: google("gemini-2.5-pro"),
+    temperature: 0.2,
+    schema: z.object({
+      status: z.enum(['SUCCESS', 'RETRY', 'FAIL']),
+      reasoning: z.string(),
+      finalAnswer: z.any().optional(),
+      replanInstructions: z.string().optional()
+    }),
+    prompt: reflectorPrompt
+  })
+  
+  return result.object
+}
+
+// ===== END PLANNER-OPERATOR-REFLECTOR ARCHITECTURE =====
 
 function evaluateExpression(expr: string): number {
   expr = expr.trim().toLowerCase()
@@ -225,38 +602,70 @@ export async function POST(request: NextRequest) {
       console.log("[bytebeam] Transform - Field type:", fieldType)
       console.log("[bytebeam] Transform - Field schema:", fieldSchema)
       
-      // Build the AI prompt with context
-      let aiPrompt = `You are a transformation assistant. Task: ${substitutedPrompt}\n\n`
+      // ===== PLANNER-OPERATOR-REFLECTOR ORCHESTRATION =====
       
-      if (columnContext.length > 0) {
-        aiPrompt += `Available column data (as JSON):\n${columnContext.join('\n')}\n\n`
-        aiPrompt += `When you see structured data (objects, tables, lists), analyze the fields and use the appropriate numeric values for calculations.\n\n`
-      }
-      
-      aiPrompt += `Return only the transformed value with no extra commentary.`
-      
-      const result = await generateText({
-        model: google("gemini-2.5-pro"),
-        temperature: 0.2,
-        prompt: aiPrompt,
-        tools: {
+      // Orchestration loop with max 3 iterations
+      let iteration = 0
+      let plan: Plan | null = null
+      let executionResults: ExecutionResult[] = []
+      let reflection: ReflectionResult | null = null
+      let finalResult: any = null
+
+      const contextInfo = columnContext.length > 0 
+        ? `Available data:\n${columnContext.join('\n')}` 
+        : ''
+
+      while (iteration < 3) {
+        iteration++
+        console.log(`\n[bytebeam] Transform - ===== Iteration ${iteration}/3 =====`)
+        
+        // Step 1: Plan
+        const planContext = iteration === 1 
+          ? contextInfo 
+          : `${contextInfo}\n\nPrevious attempt failed: ${reflection?.replanInstructions || ''}`
+        
+        plan = await planTasks(substitutedPrompt, planContext)
+        console.log(`[bytebeam] Transform - Plan created:`, JSON.stringify(plan, null, 2))
+        
+        // Step 2: Execute
+        const toolMap = {
           calculator: calculatorTool,
           webSearch: webSearchTool,
-        },
-      })
+          webReader: webReaderTool
+        }
+        
+        executionResults = await executePlan(plan, toolMap)
+        console.log(`[bytebeam] Transform - Execution results:`, JSON.stringify(executionResults, null, 2))
+        
+        // Step 3: Reflect
+        reflection = await reflectOnResults(substitutedPrompt, plan, executionResults, iteration)
+        console.log(`[bytebeam] Transform - Reflection:`, JSON.stringify(reflection, null, 2))
+        
+        if (reflection.status === 'SUCCESS') {
+          console.log(`[bytebeam] Transform - ✓ Success on iteration ${iteration}`)
+          finalResult = reflection.finalAnswer
+          break
+        } else if (reflection.status === 'FAIL' || iteration >= 3) {
+          console.log(`[bytebeam] Transform - ✗ Failed after ${iteration} iterations`)
+          // Use best available result
+          const lastSuccessfulResult = executionResults
+            .filter(r => r.success)
+            .pop()
+          finalResult = lastSuccessfulResult?.output || "Unable to complete transformation"
+          break
+        }
+        // Otherwise continue loop for RETRY
+        console.log(`[bytebeam] Transform - → Retrying with new plan...`)
+      }
       
-      console.log("[bytebeam] Transform - Tool calls:", result.toolCalls)
-      console.log("[bytebeam] Transform - Result text:", result.text)
-      console.log("[bytebeam] Transform - Tool results:", result.toolResults)
+      console.log(`[bytebeam] Transform - Final result from orchestration:`, finalResult)
       
-      let finalResult: any = result.text
-      
-      // Check if we have tool results
-      const hasToolResults = result.toolResults && result.toolResults.length > 0
-      const lastToolResult = hasToolResults ? result.toolResults[result.toolResults.length - 1] : null
+      // Check if we have tool results from the last execution
+      const hasToolResults = executionResults && executionResults.length > 0
+      const lastToolResult = hasToolResults ? executionResults[executionResults.length - 1] : null
       const toolOutput = lastToolResult?.output as any
       
-      // If we have field type information, use type-aware formatting (for both tool results AND direct responses)
+      // If we have field type information, use type-aware formatting
       if (fieldType && fieldSchema) {
         console.log("[bytebeam] Transform - Using type-aware formatting for type:", fieldType)
         
@@ -272,12 +681,28 @@ export async function POST(request: NextRequest) {
             }
           }
           
-          // Build context from tool output OR direct LLM response
+          // Determine source context from finalResult
           let sourceContext = ""
           let isEmpty = false
           
-          // Prefer tool output if available
-          if (hasToolResults && toolOutput) {
+          const isPrimitiveType = !fieldType || ['string', 'number', 'decimal', 'boolean', 'date'].includes(fieldType)
+          
+          // The reflector has already determined the finalAnswer, so use it
+          if (finalResult !== null && finalResult !== undefined) {
+            if (typeof finalResult === 'string' && finalResult.trim()) {
+              sourceContext = finalResult.trim()
+              console.log("[bytebeam] Transform - Using reflector's final answer:", sourceContext)
+            } else if (typeof finalResult === 'object') {
+              sourceContext = JSON.stringify(finalResult, null, 2)
+              console.log("[bytebeam] Transform - Using reflector's structured result")
+            } else {
+              sourceContext = String(finalResult)
+              console.log("[bytebeam] Transform - Using reflector's result as string:", sourceContext)
+            }
+          } else if (hasToolResults && toolOutput) {
+            // Fallback to tool output if no finalResult from reflector
+            console.log("[bytebeam] Transform - Using tool output as fallback")
+            
             if (toolOutput.results && Array.isArray(toolOutput.results)) {
               if (toolOutput.results.length === 0) {
                 isEmpty = true
@@ -287,17 +712,12 @@ export async function POST(request: NextRequest) {
               }
             } else if (toolOutput.result !== undefined) {
               sourceContext = String(toolOutput.result)
-            } else if (toolOutput.answer && toolOutput.answer !== "No direct answer available") {
-              sourceContext = toolOutput.answer
             } else if (toolOutput.error) {
               isEmpty = true
               sourceContext = `Error: ${toolOutput.error}`
             } else {
               sourceContext = JSON.stringify(toolOutput, null, 2)
             }
-          } else if (result.text && result.text.trim()) {
-            // Use direct LLM response
-            sourceContext = result.text.trim()
           } else {
             isEmpty = true
             sourceContext = "No content generated"
@@ -306,6 +726,18 @@ export async function POST(request: NextRequest) {
           // Handle empty results
           if (isEmpty) {
             console.log("[bytebeam] Transform - Empty or error result")
+            
+            // Check if there's an error in tool output that we should surface
+            if (toolOutput?.error) {
+              const errorMsg = String(toolOutput.error)
+              // If it's an API key error, provide helpful guidance
+              if (errorMsg.includes('JINA_API_KEY not configured') || errorMsg.includes('403') || errorMsg.includes('401')) {
+                throw new Error(`${errorMsg}. To fix this, get a free API key from https://jina.ai and set the JINA_API_KEY environment variable.`)
+              }
+              // For other errors, try to continue without the search data
+              console.warn("[bytebeam] Transform - Tool error:", errorMsg)
+            }
+            
             if (fieldType === 'list' || fieldType === 'table') {
               finalResult = []
             } else if (fieldType === 'object') {
@@ -355,15 +787,15 @@ Instructions:
           } else if (toolOutput?.result !== undefined) {
             // Return calculator result
             finalResult = String(toolOutput.result)
-          } else if (result.text && result.text.trim()) {
-            // Fall back to direct LLM response text
-            finalResult = result.text.trim()
+          } else if (finalResult) {
+            // Keep the finalResult from reflector
+            finalResult = String(finalResult)
           } else {
             // Last resort: error message
             finalResult = "Error formatting result: " + (error instanceof Error ? error.message : String(error))
           }
         }
-      } else if ((!finalResult || finalResult.trim() === '') && hasToolResults && toolOutput) {
+      } else if ((!finalResult || (typeof finalResult === 'string' && finalResult.trim() === '')) && hasToolResults && toolOutput) {
         // Fallback to legacy formatting for backward compatibility
         console.log("[bytebeam] Transform - Using legacy formatting (no type info)")
         
@@ -412,14 +844,30 @@ Instructions:
     if (isImage) {
       const base64 = Buffer.from(bytes).toString("base64")
       const mimeType = fileType || "image/png"
-      const { text } = await generateText({
+      const { text, toolResults } = await generateText({
         model: google("gemini-2.5-pro"),
-        temperature: 0.2,
+        temperature: 0.3,
         messages: [
           {
             role: "user",
             content: [
-              { type: "text", text: `You are a transformation assistant. Task: ${prompt}.\nReturn only the transformed value.` },
+              { type: "text", text: `Task: ${prompt}
+
+⚠️ CRITICAL: For conversion/calculation tasks, you MUST:
+1. webSearch to find rate/price/data
+2. calculator to perform actual calculation ← REQUIRED!
+3. Output ONLY the final calculated number
+
+🚫 NEVER stop after just webSearch!
+✅ ALWAYS call calculator after webSearch for conversion/calculation tasks!
+✅ Output the FINAL calculated result!
+
+Example: "Convert 100 X to Y"
+✓ webSearch → find rate
+✓ calculator("100 * rate") ← MUST DO THIS!
+✓ Output calculated result (NOT the rate!)
+
+Return ONLY the final number.` },
               { type: "image", image: `data:${mimeType};base64,${base64}` },
             ],
           },
@@ -427,23 +875,66 @@ Instructions:
         tools: {
           calculator: calculatorTool,
           webSearch: webSearchTool,
+          webReader: webReaderTool,
         },
+        maxSteps: 10,
       })
-      return NextResponse.json({ success: true, result: text })
+      
+      // Prefer calculator result if available
+      let finalDocResult = text
+      const lastCalculatorResult = toolResults
+        ?.filter((tr: any) => tr.toolName === 'calculator')
+        ?.pop()
+      if (lastCalculatorResult?.output?.result !== undefined) {
+        finalDocResult = String(lastCalculatorResult.output.result)
+      }
+      
+      return NextResponse.json({ success: true, result: finalDocResult })
     }
 
     // Try to decode as UTF-8 text; if it's not text, the output may be garbled but still usable as context
     const docText = new TextDecoder().decode(bytes)
-    const { text } = await generateText({
+    const { text, toolResults } = await generateText({
       model: google("gemini-2.5-pro"),
-      temperature: 0.2,
-      prompt: `You are a transformation assistant. Task: ${prompt}\n\nDocument:\n${docText}\n\nReturn only the transformed value with no extra commentary.`,
+      temperature: 0.3,
+      prompt: `Task: ${prompt}
+
+Document:
+${docText}
+
+⚠️ CRITICAL: For conversion/calculation tasks, you MUST:
+1. webSearch to find rate/price/data
+2. calculator to perform actual calculation ← REQUIRED!
+3. Output ONLY the final calculated number
+
+🚫 NEVER stop after just webSearch!
+✅ ALWAYS call calculator after webSearch for conversion/calculation tasks!
+✅ Output the FINAL calculated result!
+
+Example: "Convert 100 X to Y"
+✓ webSearch → find rate
+✓ calculator("100 * rate") ← MUST DO THIS!
+✓ Output calculated result (NOT the rate!)
+
+Return ONLY the final number.`,
       tools: {
         calculator: calculatorTool,
         webSearch: webSearchTool,
+        webReader: webReaderTool,
       },
+      maxSteps: 10,
     })
-    return NextResponse.json({ success: true, result: text })
+    
+    // Prefer calculator result if available
+    let finalTextResult = text
+    const lastCalculatorResult = toolResults
+      ?.filter((tr: any) => tr.toolName === 'calculator')
+      ?.pop()
+    if (lastCalculatorResult?.output?.result !== undefined) {
+      finalTextResult = String(lastCalculatorResult.output.result)
+    }
+    
+    return NextResponse.json({ success: true, result: finalTextResult })
   } catch (error) {
     console.error("[bytebeam] Transform error:", error)
     return NextResponse.json(

@@ -2626,16 +2626,26 @@ export function DataExtractionPlatform({
                   fieldSchema.columns = tcol.columns
                 }
 
+                // Build columnValues from dependencies by mapping column names to their extracted values
+                const columnValues: Record<string, any> = {}
+                const dependencies = graph.edges.get(tcol.id) || new Set<string>()
+                dependencies.forEach((depId) => {
+                  const depField = displayColumnsSnapshot.find((c) => c.id === depId)
+                  if (depField) {
+                    // Use the field name as the key
+                    columnValues[depField.name] = finalResults[depId]
+                  }
+                })
+
                 const promptPayload = {
-                  field: fieldSchema,
-                  source,
-                  schema: schemaTree,
-                  results: finalResults,
-                  job: jobMeta,
-                  displayColumns: displayColumnsSnapshot,
+                  prompt: tcol.transformationConfig || "",
+                  inputSource: source,
+                  columnValues,
+                  fieldType: tcol.type,
+                  fieldSchema,
                 }
 
-                const response = await fetch("/api/extract/gemini", {
+                const response = await fetch("/api/transform", {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
