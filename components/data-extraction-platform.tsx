@@ -894,7 +894,7 @@ export function DataExtractionPlatform({
     return () => {
       cancelled = true
     }
-  }, [session?.user?.id, supabase, activeSchemaId])
+  }, [session?.user?.id, supabase])
   const schemaIdsKey = useMemo(() => {
     if (!session?.user?.id) return ""
     const ids = schemas.map((schema) => schema.id).sort()
