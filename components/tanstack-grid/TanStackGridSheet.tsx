@@ -6,7 +6,6 @@ import {
   useState,
   useEffect,
   useRef,
-  Fragment,
   type CSSProperties,
 } from "react";
 import {
@@ -15,7 +14,6 @@ import {
   flexRender,
   type ColumnDef,
 } from "@tanstack/react-table";
-import { useVirtualizer } from "@tanstack/react-virtual";
 import type { TanStackGridSheetProps, GridRow } from "./types";
 import { RowIndexCell } from "./cells/RowIndexCell";
 import { FileCellRenderer } from "./cells/FileCellRenderer";
@@ -119,7 +117,6 @@ export function TanStackGridSheet({
   onToggleRowExpansion,
 }: TanStackGridSheetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState<number>(0);
   const [columnSizes, setColumnSizes] = useState<Record<string, number>>({});
 
@@ -443,51 +440,18 @@ export function TanStackGridSheet({
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const tableRows = table.getRowModel().rows;
-
-  const rowVirtualizer = useVirtualizer({
-    count: tableRows.length,
-    getScrollElement: () => scrollContainerRef.current,
-    estimateSize: () => 52,
-    overscan: 8,
-    getItemKey: (index) => tableRows[index]?.id ?? index,
-    measureElement: (el) => el.getBoundingClientRect().height,
-  });
-
-  const virtualItems = rowVirtualizer.getVirtualItems();
-  const virtualRows = useMemo(() => virtualItems, [virtualItems]);
-  const virtualizerTotalSize = rowVirtualizer.getTotalSize();
-  const totalSize = useMemo(() => virtualizerTotalSize, [virtualizerTotalSize]);
-
-  useEffect(() => {
-    rowVirtualizer.setOptions((opts) => ({
-      ...opts,
-      count: tableRows.length,
-    }));
-  }, [rowVirtualizer, tableRows.length]);
-
-  const paddingTop = virtualRows.length > 0 ? virtualRows[0]?.start ?? 0 : 0;
-  const paddingBottom =
-    virtualRows.length > 0
-      ? Math.max(0, totalSize - (virtualRows[virtualRows.length - 1]?.end ?? 0))
-      : 0;
-
   return (
-    <div ref={containerRef} className="tanstack-grid h-full w-full flex flex-col">
-      <div
-        ref={scrollContainerRef}
-        className="flex-1 overflow-auto"
+    <div ref={containerRef} className="tanstack-grid h-full w-full">
+      <table
+        className="border-collapse"
+        style={{
+          width: `${tableWidth}px`,
+          minWidth: `${baseTableWidth}px`,
+          tableLayout: "fixed",
+        }}
       >
-        <table
-          className="border-collapse"
-          style={{
-            width: `${tableWidth}px`,
-            minWidth: `${baseTableWidth}px`,
-            tableLayout: "fixed",
-          }}
-        >
-          <thead>
-            {table.getHeaderGroups().map((headerGroup) => (
+        <thead>
+          {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id}>
               {headerGroup.headers.map((header) => {
                 const headerWidth = header.getSize();
@@ -539,92 +503,70 @@ export function TanStackGridSheet({
               })}
             </tr>
           ))}
-          </thead>
-          <tbody>
-            {tableRows.length === 0 ? (
-              <tr>
-                <td colSpan={columnDefs.length} className="tanstack-cell text-center py-8">
-                  <div className="empty-state">
-                    No extraction results yet. Upload documents to get started.
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              <>
-                {paddingTop > 0 && (
-                  <tr>
-                    <td colSpan={columnDefs.length} style={{ height: `${paddingTop}px` }} />
-                  </tr>
-                )}
-                {virtualRows.map((virtualRow) => {
-                  const row = tableRows[virtualRow.index];
-                  if (!row) {
-                    return null;
-                  }
-                  const isSelected = row.original.__job.id === selectedRowId;
-                  const isExpanded = row.original.__job.id === expandedRowId;
-                  return (
-                    <Fragment key={row.id}>
-                      <tr
-                        data-index={virtualRow.index}
-                        ref={(node) => {
-                          if (node) {
-                            virtualRow.measureElement?.(node);
-                          }
-                        }}
-                        onClick={() => handleRowClick(row.original)}
-                        onDoubleClick={() => handleRowDoubleClick(row.original)}
+        </thead>
+        <tbody>
+          {table.getRowModel().rows.length === 0 ? (
+            <tr>
+              <td colSpan={columnDefs.length} className="tanstack-cell text-center py-8">
+                <div className="empty-state">
+                  No extraction results yet. Upload documents to get started.
+                </div>
+              </td>
+            </tr>
+          ) : (
+            table.getRowModel().rows.map((row) => {
+              const isSelected = row.original.__job.id === selectedRowId;
+              const isExpanded = row.original.__job.id === expandedRowId;
+              return (
+                <>
+                  <tr
+                    key={row.id}
+                    onClick={() => handleRowClick(row.original)}
+                    onDoubleClick={() => handleRowDoubleClick(row.original)}
+                    className={cn(
+                      "cursor-pointer transition-colors hover:bg-muted/50",
+                      isSelected && "selected bg-primary/10"
+                    )}
+                  >
+                  {row.getVisibleCells().map((cell) => {
+                    const isPinnedRight = cell.column.id === "bb-add-field";
+                    const isFillerColumn = cell.column.id === "bb-spacer";
+                    const cellWidth = cell.column.getSize();
+                    const cellStyle: CSSProperties = {
+                      width: `${cellWidth}px`,
+                      ...(isPinnedRight && { position: 'sticky', right: 0, zIndex: 25 }),
+                    };
+                    
+                    return (
+                      <td
+                        key={cell.id}
+                        style={cellStyle}
                         className={cn(
-                          "cursor-pointer transition-colors hover:bg-muted/50",
-                          isSelected && "selected bg-primary/10"
+                          "tanstack-cell",
+                          cell.column.id === "row-index" && "pinned-left",
+                          isPinnedRight && "pinned-right",
+                          isFillerColumn && "filler-cell"
                         )}
                       >
-                        {row.getVisibleCells().map((cell) => {
-                          const isPinnedRight = cell.column.id === "bb-add-field";
-                          const isFillerColumn = cell.column.id === "bb-spacer";
-                          const cellWidth = cell.column.getSize();
-                          const cellStyle: CSSProperties = {
-                            width: `${cellWidth}px`,
-                            ...(isPinnedRight && { position: "sticky", right: 0, zIndex: 25 }),
-                          };
-
-                          return (
-                            <td
-                              key={cell.id}
-                              style={cellStyle}
-                              className={cn(
-                                "tanstack-cell",
-                                cell.column.id === "row-index" && "pinned-left",
-                                isPinnedRight && "pinned-right",
-                                isFillerColumn && "filler-cell"
-                              )}
-                            >
-                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                      {isExpanded && (
-                        <RowDetailPanel
-                          job={row.original.__job}
-                          columns={columns}
-                          visibleCells={row.getVisibleCells()}
-                          onUpdateCell={onUpdateCell}
-                        />
-                      )}
-                    </Fragment>
-                  );
-                })}
-                {paddingBottom > 0 && (
-                  <tr>
-                    <td colSpan={columnDefs.length} style={{ height: `${paddingBottom}px` }} />
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    );
+                  })}
                   </tr>
-                )}
-              </>
-            )}
-          </tbody>
-        </table>
-      </div>
+                  {isExpanded && (
+                    <RowDetailPanel
+                      job={row.original.__job}
+                      columns={columns}
+                      visibleCells={row.getVisibleCells()}
+                      onUpdateCell={onUpdateCell}
+                    />
+                  )}
+                </>
+              );
+            })
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }
