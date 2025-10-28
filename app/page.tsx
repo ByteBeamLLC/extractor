@@ -73,11 +73,10 @@ function StandaloneDataExtractor() {
           setTemplates([])
         }
       } else {
-        // Authenticated user - load from Supabase
+        // Authenticated user - load from Supabase (RLS handles domain filtering)
         const { data, error } = await supabase
           .from("schema_templates")
-          .select("id,name,description,agent_type,fields,created_at,updated_at,user_id")
-          .eq("user_id", session.user.id)
+          .select("id,name,description,agent_type,fields,allowed_domains,created_at,updated_at,user_id")
           .order("updated_at", { ascending: false })
 
         if (error) {
@@ -95,6 +94,7 @@ function StandaloneDataExtractor() {
             fields: cloneSchemaFields((Array.isArray(row.fields) ? row.fields : []) as any),
             ownerId: row.user_id,
             isCustom: true,
+            allowedDomains: row.allowed_domains,
             createdAt: row.created_at ? new Date(row.created_at) : undefined,
             updatedAt: row.updated_at ? new Date(row.updated_at) : undefined,
           })) ?? []
@@ -180,7 +180,7 @@ function StandaloneDataExtractor() {
       const { data, error } = await supabase
         .from("schema_templates")
         .insert(payload)
-        .select("id,name,description,agent_type,fields,created_at,updated_at,user_id")
+        .select("id,name,description,agent_type,fields,allowed_domains,created_at,updated_at,user_id")
         .single()
 
       if (error || !data) {
@@ -196,6 +196,7 @@ function StandaloneDataExtractor() {
         fields: cloneSchemaFields((Array.isArray(data.fields) ? data.fields : []) as any),
         ownerId: data.user_id,
         isCustom: true,
+        allowedDomains: data.allowed_domains,
         createdAt: data.created_at ? new Date(data.created_at) : undefined,
         updatedAt: data.updated_at ? new Date(data.updated_at) : undefined,
       }

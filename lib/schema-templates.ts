@@ -10,6 +10,7 @@ export interface SchemaTemplateDefinition {
   agentType: SchemaTemplateAgent
   ownerId?: string | null
   isCustom?: boolean
+  allowedDomains?: string[] | null
   createdAt?: Date
   updatedAt?: Date
 }
@@ -227,7 +228,7 @@ export const STATIC_SCHEMA_TEMPLATES: SchemaTemplateDefinition[] = [
         description: "Common side effects to surface online.",
       },
     ],
-  },
+  }
 ]
 
 export function getStaticSchemaTemplates(): SchemaTemplateDefinition[] {

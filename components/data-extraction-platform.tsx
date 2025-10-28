@@ -27,7 +27,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SetupBanner } from "./setup-banner"
-import { AgGridSheet } from "./ag-grid-sheet"
+// import { AgGridSheet } from "./ag-grid-sheet"
+import { TanStackGridSheet } from "./tanstack-grid/TanStackGridSheet"
+import { PrimitiveCell } from "./tanstack-grid/cells/PrimitiveCell"
+import { EditableObjectCell } from "./tanstack-grid/cells/EditableObjectCell"
+import { ListCell } from "./tanstack-grid/cells/ListCell"
+import { SingleSelectCell } from "./tanstack-grid/cells/SingleSelectCell"
+import { MultiSelectCell } from "./tanstack-grid/cells/MultiSelectCell"
 import { OCRDetailModal } from "@/components/OCRDetailModal"
 import { TransformBuilder } from "@/components/transform-builder"
 import { cn } from "@/lib/utils"
@@ -102,6 +108,8 @@ import {
   Save,
   Loader2,
   Sparkle,
+  CheckSquare,
+  ListChecks,
 } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
@@ -124,6 +132,8 @@ const dataTypeIcons: Record<DataType, any> = {
   phone: Phone,
   address: MapPin,
   richtext: FileText,
+  single_select: CheckSquare,
+  multi_select: ListChecks,
   list: List,
   object: Globe,
   table: List,
@@ -161,6 +171,8 @@ const simpleDataTypeOptions: Array<{ value: DataType; label: string }> = [
   { value: 'url', label: 'Link' },
   { value: 'address', label: 'Address' },
   { value: 'richtext', label: 'Rich Text' },
+  { value: 'single_select', label: 'Single Select (Choose one)' },
+  { value: 'multi_select', label: 'Multi Select (Choose many)' },
 ]
 
 const complexDataTypeOptions: Array<{ value: DataType; label: string }> = [
@@ -968,7 +980,7 @@ export function DataExtractionPlatform({
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number; y: number } | null>(null)
   // F&B translation collapsible state per job
   const [fnbCollapse, setFnbCollapse] = useState<Record<string, { en: boolean; ar: boolean }>>({})
-  const [expandedCells, setExpandedCells] = useState<Record<string, boolean>>({})
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null)
   // Table modal state
   const [tableModalOpen, setTableModalOpen] = useState(false)
   const [tableModalData, setTableModalData] = useState<{
@@ -1044,13 +1056,8 @@ export function DataExtractionPlatform({
     return dateFormatter.format(date)
   }
 
-  const cellKey = (jobId: string, columnId: string) => `${jobId}-${columnId}`
-
-  const isCellExpanded = (jobId: string, columnId: string) => !!expandedCells[cellKey(jobId, columnId)]
-
-  const toggleCellExpansion = (jobId: string, columnId: string) => {
-    const key = cellKey(jobId, columnId)
-    setExpandedCells((prev) => ({ ...prev, [key]: !prev[key] }))
+  const toggleRowExpansion = (jobId: string) => {
+    setExpandedRowId((prev) => (prev === jobId ? null : jobId))
   }
 
   const openTableModal = (
@@ -1146,6 +1153,20 @@ export function DataExtractionPlatform({
         item,
       } as ListField
     }
+    if (nextType === 'single_select' || nextType === 'multi_select') {
+      const leaf: LeafField = {
+        ...(prev as any),
+        type: nextType,
+        constraints: {
+          ...prev.constraints,
+          options: prev.constraints?.options || []
+        }
+      }
+      delete (leaf as any).children
+      delete (leaf as any).columns
+      delete (leaf as any).item
+      return leaf
+    }
     const leaf: LeafField = {
       ...(prev as any),
       type: nextType,
@@ -1214,6 +1235,52 @@ export function DataExtractionPlatform({
       const tableDraft = prev as TableField
       const columns = (tableDraft.columns || []).filter((col) => col.id !== columnId)
       return { ...tableDraft, columns }
+    })
+  }
+
+  const addSelectOption = () => {
+    setDraftColumn((prev) => {
+      if (!prev || (prev.type !== 'single_select' && prev.type !== 'multi_select')) return prev
+      const currentOptions = prev.constraints?.options || []
+      const newOption = `Option ${currentOptions.length + 1}`
+      return {
+        ...prev,
+        constraints: {
+          ...prev.constraints,
+          options: [...currentOptions, newOption]
+        }
+      }
+    })
+  }
+
+  const updateSelectOption = (index: number, newValue: string) => {
+    setDraftColumn((prev) => {
+      if (!prev || (prev.type !== 'single_select' && prev.type !== 'multi_select')) return prev
+      const currentOptions = prev.constraints?.options || []
+      const updatedOptions = [...currentOptions]
+      updatedOptions[index] = newValue
+      return {
+        ...prev,
+        constraints: {
+          ...prev.constraints,
+          options: updatedOptions
+        }
+      }
+    })
+  }
+
+  const removeSelectOption = (index: number) => {
+    setDraftColumn((prev) => {
+      if (!prev || (prev.type !== 'single_select' && prev.type !== 'multi_select')) return prev
+      const currentOptions = prev.constraints?.options || []
+      const updatedOptions = currentOptions.filter((_, i) => i !== index)
+      return {
+        ...prev,
+        constraints: {
+          ...prev.constraints,
+          options: updatedOptions
+        }
+      }
     })
   }
 
@@ -1351,6 +1418,8 @@ export function DataExtractionPlatform({
                         <SelectItem value="decimal">Decimal</SelectItem>
                         <SelectItem value="date">Date</SelectItem>
                         <SelectItem value="boolean">Yes / No</SelectItem>
+                        <SelectItem value="single_select">Single Select</SelectItem>
+                        <SelectItem value="multi_select">Multi Select</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1417,6 +1486,60 @@ export function DataExtractionPlatform({
       )
     }
 
+    if (draftColumn.type === 'single_select' || draftColumn.type === 'multi_select') {
+      const options = draftColumn.constraints?.options || []
+      return (
+        <div id="data-type-options" className="space-y-3 rounded-2xl border border-slate-200/70 bg-slate-50/70 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-slate-700">Select Options</p>
+              <p className="text-xs text-slate-500">Define the available choices for this field.</p>
+            </div>
+            <Button type="button" size="sm" variant="secondary" onClick={addSelectOption}>
+              <Plus className="mr-1 h-4 w-4" />
+              Add Option
+            </Button>
+          </div>
+          <div className="space-y-2">
+            {options.length === 0 ? (
+              <div className="rounded-xl bg-white px-4 py-3 text-sm text-slate-500 shadow-sm">
+                No options yet. Add at least one option to define the available choices.
+              </div>
+            ) : (
+              options.map((option, index) => (
+                <div key={index} className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 shadow-sm">
+                  <span
+                    className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide"
+                    style={{
+                      backgroundColor: `hsl(${(index * 137.5) % 360}, 50%, 90%)`,
+                      color: `hsl(${(index * 137.5) % 360}, 60%, 25%)`,
+                    }}
+                  >
+                    {option}
+                  </span>
+                  <Input
+                    value={option}
+                    onChange={(e) => updateSelectOption(index, e.target.value)}
+                    className="flex-1 border-0 shadow-none focus-visible:ring-0"
+                    placeholder="Option name"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeSelectOption(index)}
+                    className="h-6 w-6 text-slate-400 hover:text-slate-700"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )
+    }
+
     if (draftColumn.type === 'list') {
       const listDraft = draftColumn as ListField
       const itemType = listDraft.item?.type ?? 'string'
@@ -1435,6 +1558,8 @@ export function DataExtractionPlatform({
               <SelectItem value="number">Number</SelectItem>
               <SelectItem value="decimal">Decimal</SelectItem>
               <SelectItem value="date">Date</SelectItem>
+              <SelectItem value="single_select">Single Select</SelectItem>
+              <SelectItem value="multi_select">Multi Select</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -2839,7 +2964,17 @@ export function DataExtractionPlatform({
   const renderCellValue = (
     column: SchemaField,
     job: ExtractionJob,
-    opts?: { refreshRowHeight?: () => void; mode?: GridRenderMode },
+    opts?: { 
+      refreshRowHeight?: () => void; 
+      mode?: GridRenderMode;
+      onUpdateCell?: (jobId: string, columnId: string, value: unknown) => void;
+      onOpenTableModal?: (
+        column: SchemaField,
+        job: ExtractionJob,
+        rows: Record<string, any>[],
+        columnHeaders: Array<{ key: string; label: string }>
+      ) => void;
+    },
   ) => {
     const value = job.results?.[column.id]
     if (job.status === 'error') return <span className="text-sm text-destructive">—</span>
@@ -2852,6 +2987,45 @@ export function DataExtractionPlatform({
       value === null ||
       (typeof value === 'string' && value.trim().length === 0) ||
       (Array.isArray(value) && value.length === 0)
+
+    // Use new cell components if onUpdateCell is available
+    if (opts?.onUpdateCell && column.type !== 'object' && column.type !== 'table' && column.type !== 'list') {
+      const row: any = {
+        __job: job,
+        fileName: job.fileName,
+        status: job.status,
+        [column.id]: value,
+      };
+      
+      // Handle select types with special components
+      if (column.type === 'single_select') {
+        const options = column.constraints?.options || []
+        return (
+          <SingleSelectCell
+            value={value as string | null}
+            row={row}
+            columnId={column.id}
+            options={options}
+            onUpdateCell={opts.onUpdateCell}
+          />
+        )
+      }
+      
+      if (column.type === 'multi_select') {
+        const options = column.constraints?.options || []
+        return (
+          <MultiSelectCell
+            value={value as string[] | null}
+            row={row}
+            columnId={column.id}
+            options={options}
+            onUpdateCell={opts.onUpdateCell}
+          />
+        )
+      }
+      
+      return <PrimitiveCell value={value} row={row} columnId={column.id} columnType={column.type} columnMeta={column} onUpdateCell={opts.onUpdateCell} />;
+    }
 
     if (isEmptyValue) {
       return <span className="text-muted-foreground">—</span>
@@ -2897,7 +3071,7 @@ export function DataExtractionPlatform({
       meta: string | null,
       detail: React.ReactNode,
     ) => {
-      const expanded = mode === 'detail' ? true : isCellExpanded(job.id, column.id)
+      const expanded = mode === 'detail'
       const badge = (
         <span
           className={cn(
@@ -2948,32 +3122,10 @@ export function DataExtractionPlatform({
         )
       }
 
+      // For this legacy code path, just show the collapsed view
       return (
-        <div className="space-y-2">
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation()
-              toggleCellExpansion(job.id, column.id)
-              queueMicrotask(() => opts?.refreshRowHeight?.())
-            }}
-            className="w-full rounded-xl border border-[#2782ff]/20 bg-white/70 px-3 py-2 text-left shadow-sm transition-all hover:-translate-y-[1px] hover:border-[#2782ff]/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2782ff]/40"
-            aria-expanded={expanded}
-          >
-            {headerContent}
-          </button>
-          <div
-            className={cn(
-              'grid transition-all duration-300 ease-in-out',
-              expanded ? 'grid-rows-[1fr] opacity-100' : 'pointer-events-none grid-rows-[0fr] opacity-0',
-            )}
-          >
-            <div className="overflow-hidden">
-              <div className="rounded-xl border border-[#2782ff]/20 bg-[#e6f0ff]/60 p-3 text-sm shadow-inner dark:border-[#1a4b8f]/40 dark:bg-[#0b2547]/40">
-                {detail}
-              </div>
-            </div>
-          </div>
+        <div className="rounded-xl border border-[#2782ff]/10 bg-white/75 px-3 py-2 shadow-sm">
+          {headerContent}
         </div>
       )
     }
@@ -3589,11 +3741,18 @@ export function DataExtractionPlatform({
                 )}
                 {/* Schema template selector in header when schema fresh and standard agent */}
                 {!isEmbedded && isSchemaFresh(activeSchema) && selectedAgent === "standard" && (
-                  <Select onValueChange={(val) => applySchemaTemplate(val)}>
+                  <Select onValueChange={(val) => {
+                    if (val === "blank") {
+                      // Start from scratch - do nothing, just allow user to add fields
+                      return;
+                    }
+                    applySchemaTemplate(val);
+                  }}>
                     <SelectTrigger className="w-56">
-                      <SelectValue placeholder="Select a template" />
+                      <SelectValue placeholder="Choose starting point" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="blank">Start from scratch</SelectItem>
                       {combinedTemplates
                         .filter((t) => t.agentType === "standard")
                         .map((t) => (
@@ -4264,7 +4423,7 @@ export function DataExtractionPlatform({
               </div>
             ) : (
               <div className="p-4 h-full">
-                <AgGridSheet
+                <TanStackGridSheet
                   columns={displayColumns}
                   jobs={sortedJobs}
                   selectedRowId={selectedRowId}
@@ -4295,7 +4454,10 @@ export function DataExtractionPlatform({
                   onDeleteColumn={deleteColumn}
                   onUpdateReviewStatus={updateReviewStatus}
                   onColumnRightClick={handleColumnRightClick}
+                  onOpenTableModal={openTableModal}
                   visualGroups={activeSchema.visualGroups || []}
+                  expandedRowId={expandedRowId}
+                  onToggleRowExpansion={toggleRowExpansion}
                 />
               </div>
             )}

@@ -1,0 +1,231 @@
+/* TanStack Grid Custom Styles */
+
+.tanstack-grid {
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  overflow: auto;
+  position: relative;
+  display: block;
+}
+
+.tanstack-grid table {
+  border-collapse: collapse;
+  border: 1px solid var(--border);
+  position: relative;
+  display: table;
+  /* width is controlled via inline styles to support horizontal scrolling */
+  /* Don't set width: 100% - let it be controlled by column widths */
+}
+
+/* Header styling - Resizable headers */
+.tanstack-header {
+  padding: 12px 16px;
+  text-align: left;
+  background-color: hsl(var(--muted));
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  border: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  overflow: hidden;
+  box-sizing: border-box;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  user-select: none; /* Prevent text selection during resize */
+}
+
+/* Cell styling - Flexible width cells with content-based expansion */
+.tanstack-cell {
+  padding: 12px 16px;
+  text-align: left;
+  border: 1px solid var(--border);
+  vertical-align: top;
+  word-wrap: break-word;
+  word-break: break-word;
+  white-space: normal;
+  min-height: 48px;
+  overflow-wrap: break-word;
+  box-sizing: border-box;
+  /* Allow content to dictate width within min/max constraints */
+}
+
+/* Row styling */
+.tanstack-grid tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.tanstack-grid tbody tr:hover {
+  background-color: hsl(var(--muted) / 0.3);
+}
+
+.tanstack-grid tbody tr.selected {
+  background-color: hsl(var(--primary) / 0.1);
+}
+
+/* Zebra striping */
+.tanstack-grid tbody tr:nth-child(even) {
+  background-color: hsl(var(--muted) / 0.05);
+}
+
+.tanstack-grid tbody tr:nth-child(even):hover {
+  background-color: hsl(var(--muted) / 0.3);
+}
+
+.tanstack-grid tbody tr.selected:nth-child(even) {
+  background-color: hsl(var(--primary) / 0.1);
+}
+
+/* Pinned column styles */
+.pinned-left {
+  position: sticky !important;
+  left: 0 !important;
+  z-index: 5;
+  background-color: hsl(var(--background));
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
+}
+
+.pinned-right {
+  position: sticky !important;
+  right: 0 !important;
+  z-index: 25;
+  background-color: hsl(var(--muted));
+  box-shadow: -2px 0 4px rgba(0, 0, 0, 0.15);
+}
+
+.pinned-right.tanstack-header {
+  background-color: hsl(var(--muted)) !important;
+  z-index: 30 !important;
+  border-left: 2px solid hsl(var(--border));
+  position: sticky !important;
+  right: 0 !important;
+}
+
+.filler-header,
+.filler-cell {
+  background: transparent !important;
+  border: none !important;
+}
+
+.filler-cell {
+  pointer-events: none;
+}
+
+/* Column resize handle */
+.tanstack-resizer {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  width: 4px;
+  height: 100%;
+  cursor: col-resize;
+  user-select: none;
+  z-index: 2;
+  touch-action: none;
+}
+
+.tanstack-resizer:hover {
+  background-color: hsl(var(--primary) / 0.4);
+  width: 6px;
+  right: -3px;
+}
+
+.tanstack-resizer.is-resizing {
+  background-color: hsl(var(--primary));
+  width: 6px;
+  right: -3px;
+}
+
+/* Nested table styles */
+.nested-table {
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.5rem;
+  overflow: hidden;
+  font-size: 0.75rem;
+}
+
+.nested-table table {
+  font-size: inherit;
+}
+
+.nested-table th {
+  font-size: 0.6875rem;
+  padding: 6px 8px;
+}
+
+.nested-table td {
+  padding: 6px 8px;
+}
+
+/* Cell content styling */
+.tanstack-cell {
+  font-size: 0.875rem;
+}
+
+/* Right-align numbers */
+.tanstack-cell[style*="text-align: right"] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Expandable content cells */
+.expandable-cell {
+  cursor: pointer;
+}
+
+.expandable-cell:hover {
+  background-color: hsl(var(--muted) / 0.3);
+}
+
+/* Editable cells */
+.cell-editable {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.cell-editable:hover {
+  background-color: hsl(var(--muted) / 0.3);
+}
+
+.cell-editable-input {
+  width: 100%;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.375rem;
+  padding: 0.375rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+.cell-editable-input:focus {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+/* Empty state */
+.tanstack-grid .empty-state {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.875rem;
+}
+
+/* Focus styles for accessibility */
+.tanstack-cell:focus-within {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: -2px;
+}
+
+/* Smooth transitions */
+.tanstack-header,
+.tanstack-cell {
+  transition: background-color 0.15s ease;
+}
+
+/* Column group headers */
+.tanstack-header[colspan] {
+  background-color: hsl(var(--muted) / 0.8);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
