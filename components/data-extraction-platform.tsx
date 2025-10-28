@@ -27,7 +27,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SetupBanner } from "./setup-banner"
-import { AgGridSheet } from "./ag-grid-sheet"
+// import { AgGridSheet } from "./ag-grid-sheet"
+import { TanStackGridSheet } from "./tanstack-grid/TanStackGridSheet"
+import { PrimitiveCell } from "./tanstack-grid/cells/PrimitiveCell"
+import { EditableObjectCell } from "./tanstack-grid/cells/EditableObjectCell"
+import { ListCell } from "./tanstack-grid/cells/ListCell"
 import { OCRDetailModal } from "@/components/OCRDetailModal"
 import { TransformBuilder } from "@/components/transform-builder"
 import { cn } from "@/lib/utils"
@@ -968,7 +972,7 @@ export function DataExtractionPlatform({
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number; y: number } | null>(null)
   // F&B translation collapsible state per job
   const [fnbCollapse, setFnbCollapse] = useState<Record<string, { en: boolean; ar: boolean }>>({})
-  const [expandedCells, setExpandedCells] = useState<Record<string, boolean>>({})
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null)
   // Table modal state
   const [tableModalOpen, setTableModalOpen] = useState(false)
   const [tableModalData, setTableModalData] = useState<{
@@ -1044,13 +1048,8 @@ export function DataExtractionPlatform({
     return dateFormatter.format(date)
   }
 
-  const cellKey = (jobId: string, columnId: string) => `${jobId}-${columnId}`
-
-  const isCellExpanded = (jobId: string, columnId: string) => !!expandedCells[cellKey(jobId, columnId)]
-
-  const toggleCellExpansion = (jobId: string, columnId: string) => {
-    const key = cellKey(jobId, columnId)
-    setExpandedCells((prev) => ({ ...prev, [key]: !prev[key] }))
+  const toggleRowExpansion = (jobId: string) => {
+    setExpandedRowId((prev) => (prev === jobId ? null : jobId))
   }
 
   const openTableModal = (
@@ -2839,7 +2838,17 @@ export function DataExtractionPlatform({
   const renderCellValue = (
     column: SchemaField,
     job: ExtractionJob,
-    opts?: { refreshRowHeight?: () => void; mode?: GridRenderMode },
+    opts?: { 
+      refreshRowHeight?: () => void; 
+      mode?: GridRenderMode;
+      onUpdateCell?: (jobId: string, columnId: string, value: unknown) => void;
+      onOpenTableModal?: (
+        column: SchemaField,
+        job: ExtractionJob,
+        rows: Record<string, any>[],
+        columnHeaders: Array<{ key: string; label: string }>
+      ) => void;
+    },
   ) => {
     const value = job.results?.[column.id]
     if (job.status === 'error') return <span className="text-sm text-destructive">—</span>
@@ -2852,6 +2861,17 @@ export function DataExtractionPlatform({
       value === null ||
       (typeof value === 'string' && value.trim().length === 0) ||
       (Array.isArray(value) && value.length === 0)
+
+    // Use new cell components if onUpdateCell is available
+    if (opts?.onUpdateCell && column.type !== 'object' && column.type !== 'table' && column.type !== 'list') {
+      const row: any = {
+        __job: job,
+        fileName: job.fileName,
+        status: job.status,
+        [column.id]: value,
+      };
+      return <PrimitiveCell value={value} row={row} columnId={column.id} columnType={column.type} onUpdateCell={opts.onUpdateCell} />;
+    }
 
     if (isEmptyValue) {
       return <span className="text-muted-foreground">—</span>
@@ -2897,7 +2917,7 @@ export function DataExtractionPlatform({
       meta: string | null,
       detail: React.ReactNode,
     ) => {
-      const expanded = mode === 'detail' ? true : isCellExpanded(job.id, column.id)
+      const expanded = mode === 'detail'
       const badge = (
         <span
           className={cn(
@@ -2948,32 +2968,10 @@ export function DataExtractionPlatform({
         )
       }
 
+      // For this legacy code path, just show the collapsed view
       return (
-        <div className="space-y-2">
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation()
-              toggleCellExpansion(job.id, column.id)
-              queueMicrotask(() => opts?.refreshRowHeight?.())
-            }}
-            className="w-full rounded-xl border border-[#2782ff]/20 bg-white/70 px-3 py-2 text-left shadow-sm transition-all hover:-translate-y-[1px] hover:border-[#2782ff]/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2782ff]/40"
-            aria-expanded={expanded}
-          >
-            {headerContent}
-          </button>
-          <div
-            className={cn(
-              'grid transition-all duration-300 ease-in-out',
-              expanded ? 'grid-rows-[1fr] opacity-100' : 'pointer-events-none grid-rows-[0fr] opacity-0',
-            )}
-          >
-            <div className="overflow-hidden">
-              <div className="rounded-xl border border-[#2782ff]/20 bg-[#e6f0ff]/60 p-3 text-sm shadow-inner dark:border-[#1a4b8f]/40 dark:bg-[#0b2547]/40">
-                {detail}
-              </div>
-            </div>
-          </div>
+        <div className="rounded-xl border border-[#2782ff]/10 bg-white/75 px-3 py-2 shadow-sm">
+          {headerContent}
         </div>
       )
     }
@@ -4264,7 +4262,7 @@ export function DataExtractionPlatform({
               </div>
             ) : (
               <div className="p-4 h-full">
-                <AgGridSheet
+                <TanStackGridSheet
                   columns={displayColumns}
                   jobs={sortedJobs}
                   selectedRowId={selectedRowId}
@@ -4295,7 +4293,10 @@ export function DataExtractionPlatform({
                   onDeleteColumn={deleteColumn}
                   onUpdateReviewStatus={updateReviewStatus}
                   onColumnRightClick={handleColumnRightClick}
+                  onOpenTableModal={openTableModal}
                   visualGroups={activeSchema.visualGroups || []}
+                  expandedRowId={expandedRowId}
+                  onToggleRowExpansion={toggleRowExpansion}
                 />
               </div>
             )}
