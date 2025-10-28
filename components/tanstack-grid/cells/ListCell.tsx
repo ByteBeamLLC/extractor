@@ -59,11 +59,11 @@ export function ListCell({
   const badge = (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide",
-        "bg-[#e6f0ff] text-[#2782ff] dark:bg-[#0b2547] dark:text-[#8fbfff]"
+        "inline-flex shrink-0 items-center rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+        "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
       )}
     >
-      List
+      LIST
     </span>
   );
 
@@ -136,22 +136,25 @@ export function ListCell({
   );
 
   const headerContent = (
-    <div className="flex items-center gap-3">
-      {badge}
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-semibold text-foreground">
-          {summary}
+    <div className="flex items-center justify-between gap-2">
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        {badge}
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
+            {meta}
+          </div>
         </div>
-        <div className="truncate text-xs text-muted-foreground">{meta}</div>
       </div>
     </div>
   );
 
   if (mode === "detail") {
     return (
-      <div className="space-y-1.5">
+      <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/50">
         {headerContent}
-        <div className="space-y-1" onClick={(e) => e.stopPropagation()}>{expandedContent}</div>
+        <div className="border-t border-slate-200 pt-2 dark:border-slate-700" onClick={(e) => e.stopPropagation()}>
+          {expandedContent}
+        </div>
       </div>
     );
   }
@@ -160,7 +163,7 @@ export function ListCell({
   return (
     <>
       <div
-        className="cursor-pointer rounded-xl border border-[#2782ff]/10 bg-white/75 px-3 py-2 shadow-sm transition-colors hover:bg-white/90"
+        className="cursor-pointer rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 transition-all hover:border-slate-300 hover:bg-slate-100/50 hover:shadow-sm dark:border-slate-700 dark:bg-slate-800/50 dark:hover:border-slate-600 dark:hover:bg-slate-700/50"
         onClick={() => setIsModalOpen(true)}
       >
         {headerContent}
@@ -170,6 +173,7 @@ export function ListCell({
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
         title={`${columnId} • ${row.fileName}`}
+        contentType="list"
       >
         <NestedAdvancedField
           column={{} as any}

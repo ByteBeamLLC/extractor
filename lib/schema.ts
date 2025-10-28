@@ -11,6 +11,8 @@ export type DataPrimitive =
   | "phone"
   | "address"
   | "richtext"
+  | "single_select"
+  | "multi_select"
 
 export type CompoundType = "object" | "list" | "table"
 
@@ -47,6 +49,7 @@ export interface FieldConstraints {
   max?: number
   precision?: number
   format?: string
+  options?: string[] // For single_select and multi_select field types
 }
 
 export interface SchemaFieldBase {

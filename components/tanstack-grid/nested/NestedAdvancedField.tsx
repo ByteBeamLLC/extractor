@@ -92,6 +92,8 @@ export function NestedAdvancedField({ column, job, value, onUpdate }: NestedAdva
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
         title={`${column.name} • ${job.fileName}`}
+        contentType={column.type === "table" ? "table" : column.type === "list" ? "list" : "object"}
+        columnCount={column.type === "table" && column.columns ? column.columns.length : 0}
       >
         <div className="px-2">
           {renderGrid("60vh")}

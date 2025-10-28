@@ -819,6 +819,30 @@ export async function POST(request: NextRequest) {
         case "boolean":
           prop = z.boolean()
           break
+        case "single_select": {
+          // Constrain to predefined options only
+          const options = column.constraints?.options || []
+          if (options.length > 0) {
+            // Create enum with options + fallback value
+            prop = z.union([z.enum(options as [string, ...string[]]), z.literal("-")])
+          } else {
+            // No options defined, fallback to string
+            prop = z.string()
+          }
+          break
+        }
+        case "multi_select": {
+          // Constrain to array of predefined options only
+          const options = column.constraints?.options || []
+          if (options.length > 0) {
+            // Create array of enum values
+            prop = z.array(z.enum(options as [string, ...string[]]))
+          } else {
+            // No options defined, fallback to string array
+            prop = z.array(z.string())
+          }
+          break
+        }
         case "date": {
           const dateRegex = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
           prop = z.union([dateRegex, z.literal("-")])
@@ -905,7 +929,15 @@ export async function POST(request: NextRequest) {
           if (desc) prop = prop.describe(desc)
           shape[field.id] = prop
           const typeLabel = field.type
-          schemaLines.push(`- ${field.name} [${typeLabel}]${desc ? `: ${desc}` : ""}`)
+          
+          // Add options to schema summary for select fields
+          let optionsText = ""
+          if ((field.type === "single_select" || field.type === "multi_select") && field.constraints?.options?.length > 0) {
+            const optionsList = field.constraints.options.join(", ")
+            optionsText = ` (Options: ${optionsList})`
+          }
+          
+          schemaLines.push(`- ${field.name} [${typeLabel}]${optionsText}${desc ? `: ${desc}` : ""}`)
         }
       }
       const base = z.object(shape).strict()
@@ -939,7 +971,15 @@ export async function POST(request: NextRequest) {
         zodShape[key] = prop
         const typeLabel = type === "list" ? "list (array)" : type
         const name = column.name || key
-        schemaLines.push(`- ${name} [${typeLabel}]${desc ? `: ${desc}` : ""}`)
+        
+        // Add options to schema summary for select fields
+        let optionsText = ""
+        if ((column.type === "single_select" || column.type === "multi_select") && column.constraints?.options?.length > 0) {
+          const optionsList = column.constraints.options.join(", ")
+          optionsText = ` (Options: ${optionsList})`
+        }
+        
+        schemaLines.push(`- ${name} [${typeLabel}]${optionsText}${desc ? `: ${desc}` : ""}`)
       })
       zodSchema = z
         .object({
@@ -1113,6 +1153,8 @@ Contextual Extraction: Do not just match keywords. Understand the context of the
 No Hallucination: If a piece of information for a specific field cannot be found in the document, you must use "-" (a single hyphen) as the value for that field. Do not invent, infer, or guess information.
 
 Data Type Integrity: Ensure the extracted data conforms to the data type specified in the schema (e.g., number, string, boolean, array). Format dates according to ISO 8601 (YYYY-MM-DD) unless the schema specifies otherwise. Use "-" only when the information is truly unavailable.
+
+Select Field Constraints: For single_select and multi_select fields, you MUST only choose from the predefined options listed in parentheses. Do not create new values or variations - only use the exact options provided. If none of the options match the document, use "-".
 
 Confidence Reporting: You must include a confidence entry for every field listed in the schema. Use 1.0 only when you are highly certain the extracted value is correct. Use 0.0 when the value is "-" or when you are unsure. Do not omit any fields from the confidence array.
 

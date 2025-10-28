@@ -279,6 +279,8 @@ export function TableCell({
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
         title={`${column.name || columnId} • ${row.fileName}`}
+        contentType="table"
+        columnCount={column.columns?.length || 0}
       >
         <NestedTableGrid
           column={column as any}

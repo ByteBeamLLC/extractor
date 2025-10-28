@@ -69,6 +69,7 @@ export interface Database {
           description: string | null
           agent_type: "standard" | "pharma"
           fields: Json
+          allowed_domains: string[] | null
           created_at: string | null
           updated_at: string | null
         }
@@ -79,6 +80,7 @@ export interface Database {
           description?: string | null
           agent_type: "standard" | "pharma"
           fields?: Json
+          allowed_domains?: string[] | null
           created_at?: string | null
           updated_at?: string | null
         }
@@ -87,6 +89,7 @@ export interface Database {
           description?: string | null
           agent_type?: "standard" | "pharma"
           fields?: Json
+          allowed_domains?: string[] | null
           created_at?: string | null
           updated_at?: string | null
         }

@@ -43,44 +43,46 @@ export function NestedTableGrid({ column, rows, onUpdate, maxHeight = "14rem" }:
   }
 
   return (
-    <div className="overflow-auto rounded-lg" style={{ maxHeight }}>
-      <table className="min-w-full text-sm">
-        <thead className="bg-slate-100">
-          <tr>
-            <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-              #
-            </th>
-            {headers.map((header) => (
-              <th
-                key={header.id}
-                className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 min-w-[150px]"
-              >
-                {header.name}
+    <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700" style={{ maxHeight }}>
+      <div className="overflow-y-auto" style={{ maxHeight }}>
+        <table className="min-w-full text-sm border-collapse">
+          <thead className="sticky top-0 bg-slate-100 dark:bg-slate-800 z-10">
+            <tr>
+              <th className="border-b border-slate-200 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300 dark:border-slate-700 sticky left-0 bg-slate-100 dark:bg-slate-800 min-w-[50px]">
+                #
               </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {draft.map((row, index) => (
-            <tr key={index} className="hover:bg-slate-50">
-              <td className="border-b border-slate-200 px-3 py-2 text-xs font-semibold text-slate-500">
-                {index + 1}
-              </td>
               {headers.map((header) => (
-                <td key={header.id} className="border-b border-slate-200 px-3 py-2 align-top">
-                  <div className="min-w-0 w-full">
-                    <EditableValueInput
-                      value={row?.[header.id]}
-                      fieldType={header.type}
-                      onChange={(nextValue) => handleChange(index, header.id, nextValue)}
-                    />
-                  </div>
-                </td>
+                <th
+                  key={header.id}
+                  className="border-b border-slate-200 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300 dark:border-slate-700 min-w-[180px] whitespace-nowrap"
+                >
+                  {header.name}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="bg-white dark:bg-slate-900">
+            {draft.map((row, index) => (
+              <tr key={index} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                <td className="border-b border-slate-200 px-3 py-2.5 text-xs font-semibold text-slate-500 dark:text-slate-400 dark:border-slate-700 sticky left-0 bg-white dark:bg-slate-900">
+                  {index + 1}
+                </td>
+                {headers.map((header) => (
+                  <td key={header.id} className="border-b border-slate-200 px-3 py-2.5 align-top dark:border-slate-700">
+                    <div className="min-w-0 w-full">
+                      <EditableValueInput
+                        value={row?.[header.id]}
+                        fieldType={header.type}
+                        onChange={(nextValue) => handleChange(index, header.id, nextValue)}
+                      />
+                    </div>
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

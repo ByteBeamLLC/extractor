@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { GridRow, ColumnMeta } from "../types";
 import { formatNumericValue, formatDateValue } from "../utils/formatters";
 import { cn } from "@/lib/utils";
@@ -10,6 +12,7 @@ interface PrimitiveCellProps {
   row: GridRow;
   columnId: string;
   columnType: string;
+  columnMeta?: any; // For accessing field constraints like options
   onUpdateCell: (jobId: string, columnId: string, value: unknown) => void;
 }
 
@@ -18,6 +21,7 @@ export function PrimitiveCell({
   row,
   columnId,
   columnType,
+  columnMeta,
   onUpdateCell,
 }: PrimitiveCellProps) {
   const [isEditing, setIsEditing] = useState(false);
@@ -48,6 +52,74 @@ export function PrimitiveCell({
 
   // Edit mode UI
   if (isEditing) {
+    if (columnType === "single_select") {
+      const options = columnMeta?.constraints?.options || [];
+      return (
+        <Select
+          value={draft || ""}
+          onValueChange={(newValue) => {
+            onUpdateCell(job.id, columnId, newValue);
+            setIsEditing(false);
+          }}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select an option" />
+          </SelectTrigger>
+          <SelectContent>
+            {options.map((option: string) => (
+              <SelectItem key={option} value={option}>
+                {option}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      );
+    }
+
+    if (columnType === "multi_select") {
+      const options = columnMeta?.constraints?.options || [];
+      const selectedValues = Array.isArray(draft) ? draft : [];
+      
+      return (
+        <div className="space-y-2">
+          {options.map((option: string) => (
+            <div key={option} className="flex items-center space-x-2">
+              <Checkbox
+                id={`${columnId}-${option}`}
+                checked={selectedValues.includes(option)}
+                onCheckedChange={(checked) => {
+                  const newValues = checked
+                    ? [...selectedValues, option]
+                    : selectedValues.filter((v: string) => v !== option);
+                  setDraft(newValues);
+                }}
+              />
+              <label
+                htmlFor={`${columnId}-${option}`}
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                {option}
+              </label>
+            </div>
+          ))}
+          <div className="flex gap-2 pt-2">
+            <button
+              onClick={commitEdit}
+              className="px-2 py-1 text-xs bg-primary text-primary-foreground rounded hover:bg-primary/90"
+            >
+              Save
+            </button>
+            <button
+              onClick={cancelEdit}
+              className="px-2 py-1 text-xs bg-secondary text-secondary-foreground rounded hover:bg-secondary/90"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     if (columnType === "number" || columnType === "decimal") {
       return (
         <input

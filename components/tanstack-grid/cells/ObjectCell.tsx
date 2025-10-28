@@ -156,6 +156,7 @@ export function ObjectCell({
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
         title={`${column.name || columnId} • ${row.fileName}`}
+        contentType="object"
       >
         <NestedAdvancedField
           column={column as any}

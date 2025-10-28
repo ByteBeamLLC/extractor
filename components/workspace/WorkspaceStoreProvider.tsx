@@ -230,6 +230,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       fields: cloneSchemaFields((Array.isArray(row.fields) ? row.fields : []) as SchemaField[]),
       ownerId: row.user_id,
       isCustom: true,
+      allowedDomains: row.allowed_domains,
       createdAt: row.created_at ? new Date(row.created_at) : undefined,
       updatedAt: row.updated_at ? new Date(row.updated_at) : undefined,
     }),
@@ -296,10 +297,10 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     setIsLoadingTemplates(true)
     setLoadTemplatesError(null)
 
+    // Fetch templates - RLS policy will handle domain-based access
     const { data, error } = await supabase
       .from("schema_templates")
-      .select("id,name,description,agent_type,fields,created_at,updated_at,user_id")
-      .eq("user_id", session.user.id)
+      .select("id,name,description,agent_type,fields,allowed_domains,created_at,updated_at,user_id")
       .order("updated_at", { ascending: false })
 
     if (error) {
