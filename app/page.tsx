@@ -32,51 +32,80 @@ function StandaloneDataExtractor() {
   useEffect(() => {
     const loadTemplates = async () => {
       if (!session?.user?.id) {
-        // Guest user - load from localStorage
+        // Guest user - load public templates from Supabase + localStorage custom templates
+        const guestTemplates: SchemaTemplateDefinition[] = []
+        
+        // Load public templates from Supabase (no auth required)
+        try {
+          const { data, error } = await supabase
+            .from("schema_templates")
+            .select("id,name,description,agent_type,fields,is_public,created_at,updated_at")
+            .eq("is_public", true)
+            .order("updated_at", { ascending: false })
+          
+          if (!error && data) {
+            const publicTemplates = data.map((row) => ({
+              id: row.id,
+              name: row.name,
+              description: row.description,
+              agentType: row.agent_type === "pharma" ? "pharma" : "standard",
+              fields: cloneSchemaFields((Array.isArray(row.fields) ? row.fields : []) as any),
+              ownerId: null,
+              isCustom: false, // Public templates are not custom
+              allowedDomains: null,
+              createdAt: row.created_at ? new Date(row.created_at) : undefined,
+              updatedAt: row.updated_at ? new Date(row.updated_at) : undefined,
+            })) as SchemaTemplateDefinition[]
+            guestTemplates.push(...publicTemplates)
+          }
+        } catch (err) {
+          console.error("Failed to load public templates:", err)
+        }
+        
+        // Load custom templates from localStorage
         const LOCAL_TEMPLATE_STORAGE_KEY = "workspace_custom_templates_v1"
         try {
           const raw = typeof window !== "undefined" ? window.localStorage.getItem(LOCAL_TEMPLATE_STORAGE_KEY) : null
-          if (!raw) {
-            setTemplates([])
-            return
+          if (raw) {
+            const parsed = JSON.parse(raw)
+            if (Array.isArray(parsed)) {
+              const localTemplates: SchemaTemplateDefinition[] = parsed
+                .map((item: any) => {
+                  const candidateId =
+                    typeof item?.id === "string"
+                      ? item.id
+                      : typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+                        ? crypto.randomUUID()
+                        : `guest-template-${Date.now()}`
+                  const name = typeof item?.name === "string" ? item.name : "Untitled template"
+                  const fieldsValue = Array.isArray(item?.fields) ? (item.fields as SchemaField[]) : []
+                  return {
+                    id: candidateId,
+                    name,
+                    description: typeof item?.description === "string" ? item.description : null,
+                    agentType: item?.agentType === "pharma" ? "pharma" : "standard",
+                    fields: cloneSchemaFields(fieldsValue),
+                    isCustom: true,
+                    ownerId: null,
+                    createdAt: item?.createdAt ? new Date(item.createdAt) : undefined,
+                    updatedAt: item?.updatedAt ? new Date(item.updatedAt) : undefined,
+                  } as SchemaTemplateDefinition
+                })
+                .filter(Boolean)
+              guestTemplates.push(...localTemplates)
+            }
           }
-          const parsed = JSON.parse(raw)
-          if (!Array.isArray(parsed)) {
-            setTemplates([])
-            return
-          }
-          const loadedTemplates: SchemaTemplateDefinition[] = parsed
-            .map((item: any) => {
-              const candidateId =
-                typeof item?.id === "string"
-                  ? item.id
-                  : typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-                    ? crypto.randomUUID()
-                    : `guest-template-${Date.now()}`
-              const name = typeof item?.name === "string" ? item.name : "Untitled template"
-              const fieldsValue = Array.isArray(item?.fields) ? (item.fields as SchemaField[]) : []
-              return {
-                id: candidateId,
-                name,
-                description: typeof item?.description === "string" ? item.description : null,
-                agentType: item?.agentType === "pharma" ? "pharma" : "standard",
-                fields: cloneSchemaFields(fieldsValue),
-                isCustom: true,
-                ownerId: null,
-                createdAt: item?.createdAt ? new Date(item.createdAt) : undefined,
-                updatedAt: item?.updatedAt ? new Date(item.updatedAt) : undefined,
-              } as SchemaTemplateDefinition
-            })
-            .filter(Boolean)
-          setTemplates(loadedTemplates)
-        } catch {
-          setTemplates([])
+        } catch (err) {
+          console.error("Failed to load localStorage templates:", err)
         }
+        
+        console.log("[Templates Debug] Guest user - loaded templates:", guestTemplates.map(t => ({ id: t.id, name: t.name, agentType: t.agentType, fieldCount: t.fields.length, isCustom: t.isCustom })))
+        setTemplates(guestTemplates)
       } else {
         // Authenticated user - load from Supabase (RLS handles domain filtering)
         const { data, error } = await supabase
           .from("schema_templates")
-          .select("id,name,description,agent_type,fields,allowed_domains,created_at,updated_at,user_id")
+          .select("id,name,description,agent_type,fields,allowed_domains,is_public,created_at,updated_at,user_id")
           .order("updated_at", { ascending: false })
 
         if (error) {
@@ -93,11 +122,12 @@ function StandaloneDataExtractor() {
             agentType: row.agent_type === "pharma" ? "pharma" : "standard",
             fields: cloneSchemaFields((Array.isArray(row.fields) ? row.fields : []) as any),
             ownerId: row.user_id,
-            isCustom: true,
+            isCustom: !row.is_public, // Public templates are not custom, user-created templates are custom
             allowedDomains: row.allowed_domains,
             createdAt: row.created_at ? new Date(row.created_at) : undefined,
             updatedAt: row.updated_at ? new Date(row.updated_at) : undefined,
           })) ?? []
+        console.log("[Templates Debug] Authenticated user - loaded templates:", loadedTemplates.map(t => ({ id: t.id, name: t.name, agentType: t.agentType, fieldCount: t.fields.length, isCustom: t.isCustom })))
         setTemplates(loadedTemplates)
       }
     }

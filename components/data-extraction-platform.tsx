@@ -4424,6 +4424,7 @@ export function DataExtractionPlatform({
             ) : (
               <div className="p-4 h-full">
                 <TanStackGridSheet
+                  schemaId={activeSchemaId}
                   columns={displayColumns}
                   jobs={sortedJobs}
                   selectedRowId={selectedRowId}
