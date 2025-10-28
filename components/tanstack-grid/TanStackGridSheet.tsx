@@ -14,6 +14,7 @@ import {
   flexRender,
   type ColumnDef,
 } from "@tanstack/react-table";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import type { TanStackGridSheetProps, GridRow } from "./types";
 import { RowIndexCell } from "./cells/RowIndexCell";
 import { FileCellRenderer } from "./cells/FileCellRenderer";
@@ -117,6 +118,8 @@ export function TanStackGridSheet({
   onToggleRowExpansion,
 }: TanStackGridSheetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const headerTableRef = useRef<HTMLTableElement>(null);
   const [containerWidth, setContainerWidth] = useState<number>(0);
   const [columnSizes, setColumnSizes] = useState<Record<string, number>>({});
 
@@ -406,6 +409,20 @@ export function TanStackGridSheet({
     },
   });
 
+  const tableRows = table.getRowModel().rows;
+  const rowCount = tableRows.length;
+  const ROW_HEIGHT = 56;
+
+  const rowVirtualizer = useVirtualizer({
+    count: rowCount,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 8,
+  });
+
+  const virtualRows = rowVirtualizer.getVirtualItems();
+  const totalSize = rowVirtualizer.getTotalSize();
+
   // Handle row clicks
   const handleRowClick = useCallback(
     (row: GridRow) => {
@@ -440,118 +457,169 @@ export function TanStackGridSheet({
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  useEffect(() => {
+    const body = scrollContainerRef.current;
+    const headerTable = headerTableRef.current;
+    if (!body || !headerTable) return;
+
+    const handleScroll = () => {
+      headerTable.style.transform = `translateX(${-body.scrollLeft}px)`;
+    };
+
+    handleScroll();
+    body.addEventListener("scroll", handleScroll);
+
+    return () => {
+      headerTable.style.transform = "";
+      body.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+
   return (
     <div ref={containerRef} className="tanstack-grid h-full w-full">
-      <table
-        className="border-collapse"
-        style={{
-          width: `${tableWidth}px`,
-          minWidth: `${baseTableWidth}px`,
-          tableLayout: "fixed",
-        }}
-      >
-        <thead>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id}>
-              {headerGroup.headers.map((header) => {
-                const headerWidth = header.getSize();
-                const headerStyle: CSSProperties = {
-                  position: "relative",
-                  width: `${headerWidth}px`,
-                };
+      <div className="tanstack-grid-header">
+        <table
+          ref={headerTableRef}
+          className="border-collapse"
+          style={{
+            width: `${tableWidth}px`,
+            minWidth: `${baseTableWidth}px`,
+            tableLayout: "fixed",
+          }}
+        >
+          <thead>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  const headerWidth = header.getSize();
+                  const headerStyle: CSSProperties = {
+                    position: "relative",
+                    width: `${headerWidth}px`,
+                  };
 
-                const isPinnedRight = header.id === "bb-add-field";
-                const isFillerColumn = header.id === "bb-spacer";
-                const finalStyle = isPinnedRight 
-                  ? { ...headerStyle, position: 'sticky', right: 0, zIndex: 30 }
-                  : headerStyle;
-                
-                const canResize = header.colSpan === 1 && header.column.getCanResize();
+                  const isPinnedRight = header.id === "bb-add-field";
+                  const isFillerColumn = header.id === "bb-spacer";
+                  const finalStyle = isPinnedRight
+                    ? { ...headerStyle, position: "sticky", right: 0, zIndex: 30 }
+                    : headerStyle;
 
-                return (
-                  <th
-                    key={header.id}
-                    colSpan={header.colSpan}
-                    rowSpan={header.rowSpan}
-                    style={finalStyle}
-                    className={cn(
-                      "tanstack-header",
-                      header.id === "row-index" && "pinned-left",
-                      isPinnedRight && "pinned-right",
-                      isFillerColumn && "filler-header"
-                    )}
-                  >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                    {canResize && (
-                      <div
-                        onMouseDown={header.getResizeHandler()}
-                        onTouchStart={header.getResizeHandler()}
-                        className={cn(
-                          "tanstack-resizer",
-                          header.column.getIsResizing() && "is-resizing"
-                        )}
-                        title="Drag to resize column"
-                      />
-                    )}
-                  </th>
-                );
-              })}
-            </tr>
-          ))}
-        </thead>
-        <tbody>
-          {table.getRowModel().rows.length === 0 ? (
-            <tr>
-              <td colSpan={columnDefs.length} className="tanstack-cell text-center py-8">
-                <div className="empty-state">
-                  No extraction results yet. Upload documents to get started.
-                </div>
-              </td>
-            </tr>
+                  const canResize = header.colSpan === 1 && header.column.getCanResize();
+
+                  return (
+                    <th
+                      key={header.id}
+                      colSpan={header.colSpan}
+                      rowSpan={header.rowSpan}
+                      style={finalStyle}
+                      className={cn(
+                        "tanstack-header",
+                        header.id === "row-index" && "pinned-left",
+                        isPinnedRight && "pinned-right",
+                        isFillerColumn && "filler-header"
+                      )}
+                    >
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                      {canResize && (
+                        <div
+                          onMouseDown={header.getResizeHandler()}
+                          onTouchStart={header.getResizeHandler()}
+                          className={cn(
+                            "tanstack-resizer",
+                            header.column.getIsResizing() && "is-resizing"
+                          )}
+                          title="Drag to resize column"
+                        />
+                      )}
+                    </th>
+                  );
+                })}
+              </tr>
+            ))}
+          </thead>
+        </table>
+      </div>
+      <div ref={scrollContainerRef} className="tanstack-grid-body">
+        <table
+          className="border-collapse"
+          style={{
+            width: `${tableWidth}px`,
+            minWidth: `${baseTableWidth}px`,
+            tableLayout: "fixed",
+            position: rowCount > 0 ? "relative" : undefined,
+            height: rowCount > 0 ? `${totalSize}px` : undefined,
+          }}
+        >
+          {rowCount === 0 ? (
+            <tbody>
+              <tr>
+                <td colSpan={columnDefs.length} className="tanstack-cell text-center py-8">
+                  <div className="empty-state">
+                    No extraction results yet. Upload documents to get started.
+                  </div>
+                </td>
+              </tr>
+            </tbody>
           ) : (
-            table.getRowModel().rows.map((row) => {
+            virtualRows.map((virtualRow) => {
+              const row = tableRows[virtualRow.index];
               const isSelected = row.original.__job.id === selectedRowId;
+              const zebraClass = virtualRow.index % 2 === 1 ? "virtual-even" : undefined;
               const isExpanded = row.original.__job.id === expandedRowId;
+
               return (
-                <>
+                <tbody
+                  key={row.id}
+                  ref={(node) => {
+                    if (node) {
+                      virtualRow.measureElement(node);
+                    }
+                  }}
+                  style={{
+                    position: "absolute",
+                    transform: `translateY(${virtualRow.start}px)`,
+                    width: "100%",
+                  }}
+                >
                   <tr
-                    key={row.id}
                     onClick={() => handleRowClick(row.original)}
                     onDoubleClick={() => handleRowDoubleClick(row.original)}
                     className={cn(
                       "cursor-pointer transition-colors hover:bg-muted/50",
-                      isSelected && "selected bg-primary/10"
+                      isSelected && "selected bg-primary/10",
+                      zebraClass
                     )}
+                    style={{ height: `${ROW_HEIGHT}px` }}
                   >
-                  {row.getVisibleCells().map((cell) => {
-                    const isPinnedRight = cell.column.id === "bb-add-field";
-                    const isFillerColumn = cell.column.id === "bb-spacer";
-                    const cellWidth = cell.column.getSize();
-                    const cellStyle: CSSProperties = {
-                      width: `${cellWidth}px`,
-                      ...(isPinnedRight && { position: 'sticky', right: 0, zIndex: 25 }),
-                    };
-                    
-                    return (
-                      <td
-                        key={cell.id}
-                        style={cellStyle}
-                        className={cn(
-                          "tanstack-cell",
-                          cell.column.id === "row-index" && "pinned-left",
-                          isPinnedRight && "pinned-right",
-                          isFillerColumn && "filler-cell"
-                        )}
-                      >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    );
-                  })}
+                    {row.getVisibleCells().map((cell) => {
+                      const isPinnedRight = cell.column.id === "bb-add-field";
+                      const isFillerColumn = cell.column.id === "bb-spacer";
+                      const cellWidth = cell.column.getSize();
+                      const cellStyle: CSSProperties = {
+                        width: `${cellWidth}px`,
+                        ...(isPinnedRight && { position: "sticky", right: 0, zIndex: 25 }),
+                      };
+
+                      return (
+                        <td
+                          key={cell.id}
+                          style={cellStyle}
+                          className={cn(
+                            "tanstack-cell",
+                            cell.column.id === "row-index" && "pinned-left",
+                            isPinnedRight && "pinned-right",
+                            isFillerColumn && "filler-cell"
+                          )}
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      );
+                    })}
                   </tr>
                   {isExpanded && (
                     <RowDetailPanel
@@ -561,12 +629,12 @@ export function TanStackGridSheet({
                       onUpdateCell={onUpdateCell}
                     />
                   )}
-                </>
+                </tbody>
               );
             })
           )}
-        </tbody>
-      </table>
+        </table>
+      </div>
     </div>
   );
 }

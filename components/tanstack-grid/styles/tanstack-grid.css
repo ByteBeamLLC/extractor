@@ -4,9 +4,29 @@
   width: 100%;
   height: 100%;
   max-height: 100%;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.tanstack-grid-header {
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+.tanstack-grid-header table {
+  border-bottom: none;
+}
+
+.tanstack-grid-body {
+  flex: 1 1 auto;
   overflow: auto;
   position: relative;
-  display: block;
+}
+
+.tanstack-grid-body table {
+  border-top: none;
 }
 
 .tanstack-grid table {
@@ -66,15 +86,18 @@
 }
 
 /* Zebra striping */
-.tanstack-grid tbody tr:nth-child(even) {
+.tanstack-grid tbody tr:nth-child(even),
+.tanstack-grid tbody tr.virtual-even {
   background-color: hsl(var(--muted) / 0.05);
 }
 
-.tanstack-grid tbody tr:nth-child(even):hover {
+.tanstack-grid tbody tr:nth-child(even):hover,
+.tanstack-grid tbody tr.virtual-even:hover {
   background-color: hsl(var(--muted) / 0.3);
 }
 
-.tanstack-grid tbody tr.selected:nth-child(even) {
+.tanstack-grid tbody tr.selected:nth-child(even),
+.tanstack-grid tbody tr.virtual-even.selected {
   background-color: hsl(var(--primary) / 0.1);
 }
 
