@@ -11,16 +11,30 @@ import {
 import {
   useReactTable,
   getCoreRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
   flexRender,
   type ColumnDef,
+  type Row,
+  type SortingState,
+  type ColumnFiltersState,
+  type ColumnOrderState,
+  type VisibilityState,
+  type ColumnPinningState,
 } from "@tanstack/react-table";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { useSupabaseClient } from "@supabase/auth-helpers-react";
+import type { Database } from "@/lib/supabase/types";
 import type { TanStackGridSheetProps, GridRow } from "./types";
+import type { TableState } from "./utils/tableState";
+import { loadTableState, createDebouncedSave } from "@/lib/supabase/tableState";
 import { RowIndexCell } from "./cells/RowIndexCell";
 import { FileCellRenderer } from "./cells/FileCellRenderer";
 import { ReviewWrapper } from "./cells/ReviewWrapper";
 import { DataColumnHeader } from "./headers/DataColumnHeader";
 import { AddColumnHeader } from "./headers/AddColumnHeader";
 import { RowDetailPanel } from "./RowDetailPanel";
+import { TableToolbar } from "./headers/TableToolbar";
 import { cn } from "@/lib/utils";
 import { ChevronRight } from "lucide-react";
 import "./styles/tanstack-grid.css";
@@ -29,6 +43,19 @@ import "./styles/tanstack-grid.css";
 const DEFAULT_DATA_COL_WIDTH = 180; // Starting width for data columns
 const MIN_COL_WIDTH = 120; // Minimum width for readability
 const MAX_COL_WIDTH = 500; // Maximum width - prevent excessive expansion
+const EMPTY_SEARCH_RESULTS: string[] = [];
+
+type VirtualizedGridRow =
+  | {
+      key: string;
+      type: "row";
+      row: Row<GridRow>;
+    }
+  | {
+      key: string;
+      type: "detail";
+      row: Row<GridRow>;
+    };
 
 // Helper to calculate optimal column width based on content
 function calculateColumnWidth(
@@ -97,6 +124,7 @@ function calculateColumnWidth(
 }
 
 export function TanStackGridSheet({
+  schemaId,
   columns,
   jobs,
   selectedRowId,
@@ -115,10 +143,58 @@ export function TanStackGridSheet({
   visualGroups = [],
   expandedRowId,
   onToggleRowExpansion,
+  onTableStateChange,
 }: TanStackGridSheetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState<number>(0);
   const [columnSizes, setColumnSizes] = useState<Record<string, number>>({});
+  const supabase = useSupabaseClient<Database>();
+
+  // Table state management
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([]);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [columnPinning, setColumnPinning] = useState<ColumnPinningState>({
+    left: [],
+    right: [],
+  });
+  const [globalFilter, setGlobalFilter] = useState<string>("");
+  const debouncedSaveRef = useRef<((state: TableState) => void) | null>(null);
+  const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
+  const [searchStateBySchema, setSearchStateBySchema] = useState<
+    Record<string, { query: string; jobIds: string[] }>
+  >({});
+
+  const currentSearchState = schemaId ? searchStateBySchema[schemaId] : undefined;
+  const searchMatchingIds = currentSearchState?.jobIds ?? EMPTY_SEARCH_RESULTS;
+  const currentSearchQuery = currentSearchState?.query ?? "";
+
+  const handleSearchResults = useCallback(
+    ({ jobIds, query }: { jobIds: string[]; query: string }) => {
+      if (!schemaId) return;
+      setSearchStateBySchema((prev) => ({
+        ...prev,
+        [schemaId]: { jobIds, query },
+      }));
+      setGlobalFilter(query);
+    },
+    [schemaId]
+  );
+
+  // Debug logging for search state changes
+  useEffect(() => {
+    console.log(`[TanStackGridSheet] search state for schema ${schemaId}:`, {
+      query: currentSearchQuery,
+      matchCount: searchMatchingIds.length,
+    });
+    console.log(`[TanStackGridSheet] globalFilter:`, globalFilter);
+    console.log(`[TanStackGridSheet] Current table state:`, {
+      sorting: table?.getState?.()?.sorting,
+      columnFilters: table?.getState?.()?.columnFilters,
+      globalFilter: table?.getState?.()?.globalFilter,
+    });
+  }, [schemaId, searchMatchingIds, currentSearchQuery, globalFilter]);
 
   // Transform jobs to grid rows with stable reference
   const rowData = useMemo<GridRow[]>(() => {
@@ -135,6 +211,77 @@ export function TanStackGridSheet({
       };
     });
   }, [columns, jobs]);
+
+  const hasActiveSearch = currentSearchQuery.trim().length > 0;
+
+  const filteredRowData = useMemo<GridRow[]>(() => {
+    if (!hasActiveSearch) {
+      return rowData;
+    }
+
+    if (searchMatchingIds.length === 0) {
+      return [];
+    }
+
+    const matchSet = new Set(searchMatchingIds);
+    return rowData.filter((row) => matchSet.has(row.__job.id));
+  }, [rowData, searchMatchingIds, hasActiveSearch]);
+
+  // Load table state from Supabase when schema changes
+  useEffect(() => {
+    if (!schemaId) return;
+
+    const load = async () => {
+      const state = await loadTableState(supabase, schemaId);
+      if (state) {
+        if (state.sorting) setSorting(state.sorting);
+        if (state.columnFilters) setColumnFilters(state.columnFilters);
+        if (state.columnOrder) setColumnOrder(state.columnOrder);
+        if (state.columnVisibility) setColumnVisibility(state.columnVisibility);
+        if (state.columnPinning) setColumnPinning(state.columnPinning);
+        if (state.columnSizes) setColumnSizes(state.columnSizes);
+        setGlobalFilter(state.globalFilter ?? "");
+      }
+    };
+
+    void load();
+  }, [schemaId, supabase]);
+
+  // Initialize debounced save function
+  useEffect(() => {
+    if (!schemaId) return;
+    
+    debouncedSaveRef.current = createDebouncedSave(supabase, schemaId, 500);
+
+    return () => {
+      // Flush any pending saves on unmount
+      if (debouncedSaveRef.current && typeof (debouncedSaveRef.current as any).flush === 'function') {
+        (debouncedSaveRef.current as any).flush();
+      }
+    };
+  }, [schemaId, supabase]);
+
+  // Auto-save table state when it changes
+  useEffect(() => {
+    if (!debouncedSaveRef.current) return;
+
+    const state: TableState = {
+      sorting,
+      columnFilters,
+      columnOrder,
+      columnVisibility,
+      columnPinning,
+      columnSizes,
+      globalFilter,
+    };
+
+    debouncedSaveRef.current(state);
+
+    // Notify parent if callback provided
+    if (onTableStateChange) {
+      onTableStateChange(state);
+    }
+  }, [sorting, columnFilters, columnOrder, columnVisibility, columnPinning, columnSizes, globalFilter]);
 
   // Calculate optimal column widths when data changes
   useEffect(() => {
@@ -178,7 +325,7 @@ export function TanStackGridSheet({
         maxSize: 60,
         enableResizing: false,
         cell: ({ row }) => {
-          const rowIndex = rowData.findIndex(
+          const rowIndex = filteredRowData.findIndex(
             (r) => r.__job.id === row.original.__job.id
           );
           const isExpanded = row.original.__job.id === expandedRowId;
@@ -251,12 +398,22 @@ export function TanStackGridSheet({
       const children: ColumnDef<GridRow>[] = groupColumns.map((column) => ({
         id: column.id,
         header: ({ column: col }) => (
-          <DataColumnHeader
-            columnMeta={column}
-            onEditColumn={onEditColumn}
-            onDeleteColumn={onDeleteColumn}
-            onColumnRightClick={onColumnRightClick}
-          />
+          <div
+            draggable
+            onDragStart={(e) => handleColumnDragStart(column.id, e)}
+            onDragOver={handleColumnDragOver}
+            onDrop={(e) => handleColumnDrop(column.id, e)}
+            onDragEnd={handleColumnDragEnd}
+            className={cn(draggedColumn === column.id && "opacity-50")}
+          >
+            <DataColumnHeader
+              column={col}
+              columnMeta={column}
+              onEditColumn={onEditColumn}
+              onDeleteColumn={onDeleteColumn}
+              onColumnRightClick={onColumnRightClick}
+            />
+          </div>
         ),
         size: columnSizes[column.id] || DEFAULT_DATA_COL_WIDTH,
         minSize: MIN_COL_WIDTH,
@@ -307,13 +464,23 @@ export function TanStackGridSheet({
 
       defs.push({
         id: column.id,
-        header: () => (
-          <DataColumnHeader
-            columnMeta={column}
-            onEditColumn={onEditColumn}
-            onDeleteColumn={onDeleteColumn}
-            onColumnRightClick={onColumnRightClick}
-          />
+        header: ({ column: col }) => (
+          <div
+            draggable
+            onDragStart={(e) => handleColumnDragStart(column.id, e)}
+            onDragOver={handleColumnDragOver}
+            onDrop={(e) => handleColumnDrop(column.id, e)}
+            onDragEnd={handleColumnDragEnd}
+            className={cn(draggedColumn === column.id && "opacity-50")}
+          >
+            <DataColumnHeader
+              column={col}
+              columnMeta={column}
+              onEditColumn={onEditColumn}
+              onDeleteColumn={onDeleteColumn}
+              onColumnRightClick={onColumnRightClick}
+            />
+          </div>
         ),
         size: columnSizes[column.id] || DEFAULT_DATA_COL_WIDTH,
         minSize: MIN_COL_WIDTH,
@@ -374,7 +541,7 @@ export function TanStackGridSheet({
     columns,
     columnSizes,
     visualGroups,
-    rowData,
+    filteredRowData,
     onEditColumn,
     onDeleteColumn,
     onAddColumn,
@@ -390,14 +557,34 @@ export function TanStackGridSheet({
     onOpenTableModal,
   ]);
 
-
-  // Table instance with resizable columns
+  // Table instance with all features enabled
   const table = useReactTable({
-    data: rowData,
+    data: filteredRowData,
     columns: columnDefs,
     getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     getRowId: (row) => row.__job.id,
-    enableColumnResizing: true, // Enable manual column resizing
+    state: {
+      sorting,
+      columnFilters,
+      columnOrder,
+      columnVisibility,
+      columnPinning,
+      globalFilter,
+    },
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onColumnOrderChange: setColumnOrder,
+    onColumnVisibilityChange: setColumnVisibility,
+    onColumnPinningChange: setColumnPinning,
+    onGlobalFilterChange: setGlobalFilter,
+    enableColumnResizing: true,
+    enableSorting: true,
+    enableFilters: true,
+    enableColumnOrdering: true,
+    enableColumnPinning: true,
+    enableGlobalFilter: true,
     columnResizeMode: 'onChange',
     defaultColumn: {
       size: DEFAULT_DATA_COL_WIDTH,
@@ -405,6 +592,98 @@ export function TanStackGridSheet({
       maxSize: MAX_COL_WIDTH,
     },
   });
+
+  const tableRows = table.getRowModel().rows;
+
+  // Handle column drag and drop for reordering
+  const handleColumnDragStart = useCallback((columnId: string, e: React.DragEvent) => {
+    setDraggedColumn(columnId);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", columnId);
+  }, []);
+
+  const handleColumnDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  }, []);
+
+  const handleColumnDrop = useCallback((targetColumnId: string, e: React.DragEvent) => {
+    e.preventDefault();
+    const sourceColumnId = e.dataTransfer.getData("text/plain");
+    
+    if (!sourceColumnId || sourceColumnId === targetColumnId) {
+      setDraggedColumn(null);
+      return;
+    }
+
+    // Get current column order
+    const currentOrder = table.getState().columnOrder;
+    const allColumns = table.getAllLeafColumns().map(col => col.id);
+    const activeOrder = currentOrder.length > 0 ? currentOrder : allColumns;
+
+    // Find indices
+    const sourceIndex = activeOrder.indexOf(sourceColumnId);
+    const targetIndex = activeOrder.indexOf(targetColumnId);
+
+    if (sourceIndex === -1 || targetIndex === -1) {
+      setDraggedColumn(null);
+      return;
+    }
+
+    // Reorder
+    const newOrder = [...activeOrder];
+    newOrder.splice(sourceIndex, 1);
+    newOrder.splice(targetIndex, 0, sourceColumnId);
+
+    table.setColumnOrder(newOrder);
+    setDraggedColumn(null);
+  }, [table]);
+
+  const handleColumnDragEnd = useCallback(() => {
+    setDraggedColumn(null);
+  }, []);
+
+  const virtualizedRows = useMemo<VirtualizedGridRow[]>(() => {
+    const items: VirtualizedGridRow[] = [];
+
+    for (const row of tableRows) {
+      items.push({ key: row.id, type: "row", row });
+
+      if (row.original.__job.id === expandedRowId) {
+        items.push({ key: `${row.id}-detail`, type: "detail", row });
+      }
+    }
+
+    return items;
+  }, [tableRows, expandedRowId]);
+
+  const rowVirtualizer = useVirtualizer({
+    count: virtualizedRows.length,
+    getScrollElement: () => containerRef.current,
+    estimateSize: (index) =>
+      virtualizedRows[index]?.type === "detail" ? 320 : 64,
+    getItemKey: (index) => virtualizedRows[index]?.key ?? index,
+    overscan: 8,
+    measureElement: (element) =>
+      element instanceof HTMLElement
+        ? element.getBoundingClientRect().height
+        : 0,
+  });
+
+  useEffect(() => {
+    rowVirtualizer.measure();
+  }, [rowVirtualizer, columnSizes, containerWidth, expandedRowId]);
+
+  const virtualItems = rowVirtualizer.getVirtualItems();
+  const totalVirtualSize = rowVirtualizer.getTotalSize();
+  const paddingTop =
+    virtualItems.length > 0 ? virtualItems[0].start : 0;
+  const paddingBottom =
+    virtualItems.length > 0
+      ? totalVirtualSize - virtualItems[virtualItems.length - 1].end
+      : 0;
+  const hasRows = virtualizedRows.length > 0;
+  const leafColumnCount = Math.max(table.getAllLeafColumns().length, 1);
 
   // Handle row clicks
   const handleRowClick = useCallback(
@@ -441,8 +720,17 @@ export function TanStackGridSheet({
     return () => ro.disconnect();
   }, []);
   return (
-    <div ref={containerRef} className="tanstack-grid h-full w-full">
-      <table
+    <div className="tanstack-grid-wrapper flex h-full w-full flex-col">
+      {/* Table toolbar */}
+      <TableToolbar 
+        table={table} 
+        schemaId={schemaId} 
+        onSearchResults={handleSearchResults}
+      />
+      
+      {/* Grid container */}
+      <div ref={containerRef} className="tanstack-grid h-full w-full overflow-auto">
+        <table
         className="border-collapse"
         style={{
           width: `${tableWidth}px`,
@@ -505,68 +793,128 @@ export function TanStackGridSheet({
           ))}
         </thead>
         <tbody>
-          {table.getRowModel().rows.length === 0 ? (
+          {!hasRows ? (
             <tr>
-              <td colSpan={columnDefs.length} className="tanstack-cell text-center py-8">
+              <td
+                colSpan={leafColumnCount}
+                className="tanstack-cell text-center py-8"
+              >
                 <div className="empty-state">
-                  No extraction results yet. Upload documents to get started.
+                  {hasActiveSearch
+                    ? "No matching results for your search."
+                    : "No extraction results yet. Upload documents to get started."}
                 </div>
               </td>
             </tr>
           ) : (
-            table.getRowModel().rows.map((row) => {
-              const isSelected = row.original.__job.id === selectedRowId;
-              const isExpanded = row.original.__job.id === expandedRowId;
-              return (
-                <>
-                  <tr
-                    key={row.id}
-                    onClick={() => handleRowClick(row.original)}
-                    onDoubleClick={() => handleRowDoubleClick(row.original)}
-                    className={cn(
-                      "cursor-pointer transition-colors hover:bg-muted/50",
-                      isSelected && "selected bg-primary/10"
-                    )}
-                  >
-                  {row.getVisibleCells().map((cell) => {
-                    const isPinnedRight = cell.column.id === "bb-add-field";
-                    const isFillerColumn = cell.column.id === "bb-spacer";
-                    const cellWidth = cell.column.getSize();
-                    const cellStyle: CSSProperties = {
-                      width: `${cellWidth}px`,
-                      ...(isPinnedRight && { position: 'sticky', right: 0, zIndex: 25 }),
-                    };
-                    
-                    return (
-                      <td
-                        key={cell.id}
-                        style={cellStyle}
-                        className={cn(
-                          "tanstack-cell",
-                          cell.column.id === "row-index" && "pinned-left",
-                          isPinnedRight && "pinned-right",
-                          isFillerColumn && "filler-cell"
-                        )}
-                      >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    );
-                  })}
-                  </tr>
-                  {isExpanded && (
-                    <RowDetailPanel
-                      job={row.original.__job}
-                      columns={columns}
-                      visibleCells={row.getVisibleCells()}
-                      onUpdateCell={onUpdateCell}
-                    />
-                  )}
-                </>
-              );
-            })
+            <>
+              {paddingTop > 0 && (
+                <tr className="tanstack-virtual-padding" aria-hidden="true">
+                  <td
+                    colSpan={leafColumnCount}
+                    style={{
+                      height: `${paddingTop}px`,
+                      padding: 0,
+                      border: "none",
+                    }}
+                  />
+                </tr>
+              )}
+              {virtualItems.map((virtualRow) => {
+                const item = virtualizedRows[virtualRow.index];
+                if (!item) return null;
+
+                if (item.type === "row") {
+                  const { row } = item;
+                  const visibleCells = row.getVisibleCells();
+                  const isSelected = row.original.__job.id === selectedRowId;
+                  const isExpanded = row.original.__job.id === expandedRowId;
+                  const zebraClass =
+                    row.index % 2 === 1 ? "tanstack-data-row--striped" : undefined;
+
+                  return (
+                    <tr
+                      key={item.key}
+                      ref={rowVirtualizer.measureElement}
+                      data-index={virtualRow.index}
+                      aria-expanded={isExpanded}
+                      onClick={() => handleRowClick(row.original)}
+                      onDoubleClick={() =>
+                        handleRowDoubleClick(row.original)
+                      }
+                      className={cn(
+                        "tanstack-data-row cursor-pointer transition-colors hover:bg-muted/50",
+                        zebraClass,
+                        isSelected && "selected bg-primary/10"
+                      )}
+                    >
+                      {visibleCells.map((cell) => {
+                        const isPinnedRight = cell.column.id === "bb-add-field";
+                        const isFillerColumn = cell.column.id === "bb-spacer";
+                        const cellWidth = cell.column.getSize();
+                        const cellStyle: CSSProperties = {
+                          width: `${cellWidth}px`,
+                          ...(isPinnedRight && {
+                            position: "sticky",
+                            right: 0,
+                            zIndex: 25,
+                          }),
+                        };
+
+                        return (
+                          <td
+                            key={cell.id}
+                            style={cellStyle}
+                            className={cn(
+                              "tanstack-cell",
+                              cell.column.id === "row-index" && "pinned-left",
+                              isPinnedRight && "pinned-right",
+                              isFillerColumn && "filler-cell"
+                            )}
+                          >
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                }
+
+                const detailRow = item.row;
+
+                return (
+                  <RowDetailPanel
+                    key={item.key}
+                    ref={rowVirtualizer.measureElement}
+                    data-index={virtualRow.index}
+                    className="tanstack-detail-row"
+                    job={detailRow.original.__job}
+                    columns={columns}
+                    visibleCells={detailRow.getVisibleCells()}
+                    onUpdateCell={onUpdateCell}
+                  />
+                );
+              })}
+              {paddingBottom > 0 && (
+                <tr className="tanstack-virtual-padding" aria-hidden="true">
+                  <td
+                    colSpan={leafColumnCount}
+                    style={{
+                      height: `${paddingBottom}px`,
+                      padding: 0,
+                      border: "none",
+                    }}
+                  />
+                </tr>
+              )}
+            </>
           )}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

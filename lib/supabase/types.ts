@@ -39,6 +39,7 @@ export interface Database {
           fields: Json
           template_id: string | null
           visual_groups: Json | null
+          table_state: Json | null
           created_at: string | null
           updated_at: string | null
         }
@@ -49,6 +50,7 @@ export interface Database {
           fields?: Json
           template_id?: string | null
           visual_groups?: Json | null
+          table_state?: Json | null
           created_at?: string | null
           updated_at?: string | null
         }
@@ -57,6 +59,7 @@ export interface Database {
           fields?: Json
           template_id?: string | null
           visual_groups?: Json | null
+          table_state?: Json | null
           created_at?: string | null
           updated_at?: string | null
         }
@@ -70,6 +73,7 @@ export interface Database {
           agent_type: "standard" | "pharma"
           fields: Json
           allowed_domains: string[] | null
+          is_public: boolean | null
           created_at: string | null
           updated_at: string | null
         }
@@ -81,6 +85,7 @@ export interface Database {
           agent_type: "standard" | "pharma"
           fields?: Json
           allowed_domains?: string[] | null
+          is_public?: boolean | null
           created_at?: string | null
           updated_at?: string | null
         }
@@ -90,6 +95,7 @@ export interface Database {
           agent_type?: "standard" | "pharma"
           fields?: Json
           allowed_domains?: string[] | null
+          is_public?: boolean | null
           created_at?: string | null
           updated_at?: string | null
         }

@@ -48,6 +48,7 @@ export type GridRenderMode = "interactive" | "summary" | "detail";
 
 // Component props
 export interface TanStackGridSheetProps {
+  schemaId: string; // For loading/saving table state
   columns: FlatLeaf[];
   jobs: ExtractionJob[];
   selectedRowId: string | null;
@@ -83,6 +84,7 @@ export interface TanStackGridSheetProps {
   visualGroups?: VisualGroup[];
   expandedRowId: string | null;
   onToggleRowExpansion: (jobId: string) => void;
+  onTableStateChange?: (state: any) => void; // Callback for parent tracking
 }
 
 // Column grouping structure

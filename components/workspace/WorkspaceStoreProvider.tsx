@@ -229,7 +229,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       agentType: row.agent_type === "pharma" ? "pharma" : "standard",
       fields: cloneSchemaFields((Array.isArray(row.fields) ? row.fields : []) as SchemaField[]),
       ownerId: row.user_id,
-      isCustom: true,
+      isCustom: !(row.is_public ?? false), // Public templates are not custom, user-created templates are custom
       allowedDomains: row.allowed_domains,
       createdAt: row.created_at ? new Date(row.created_at) : undefined,
       updatedAt: row.updated_at ? new Date(row.updated_at) : undefined,

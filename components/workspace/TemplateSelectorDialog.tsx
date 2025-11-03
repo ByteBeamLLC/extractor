@@ -52,6 +52,13 @@ const TEMPLATE_LIBRARY: TemplateDescriptor[] = [
     agentType: "pharma",
     icon: Sparkle,
   },
+  {
+    id: "bcd36cc9-4a2c-4686-9c87-68de586fc4bc",
+    name: "Comprehensive Invoice Schema",
+    description: "Comprehensive schema for all procurement documents - Purchase Orders, Commercial Invoices, Goods Receipts, Purchase Requisitions, and PO Processing Reports",
+    agentType: "standard",
+    icon: FileText,
+  },
 ]
 
 interface TemplateSelectorDialogProps {
