@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 
 import type { SchemaField, TransformationType, VisualGroup } from "@/lib/schema"
 import { getFieldDependents } from "@/lib/dependency-resolver"
@@ -102,18 +103,69 @@ export function TransformBuilder(props: {
     }
   }, [selected.transformationType, onUpdate])
 
+  // Get selected tools from transformationConfig
+  const getSelectedTools = (): string[] => {
+    const config = selected.transformationConfig
+    if (typeof config === 'object' && config !== null && 'selectedTools' in config) {
+      return (config as any).selectedTools || []
+    }
+    return []
+  }
+
+  const selectedTools = getSelectedTools()
+  
+  const toggleTool = (tool: string) => {
+    const current = getSelectedTools()
+    const updated = current.includes(tool) 
+      ? current.filter(t => t !== tool)
+      : [...current, tool]
+    
+    // Preserve the prompt string if it exists
+    let promptString = ""
+    if (typeof selected.transformationConfig === 'object' && selected.transformationConfig !== null && 'prompt' in selected.transformationConfig) {
+      promptString = (selected.transformationConfig as any).prompt || ""
+    } else if (typeof selected.transformationConfig === 'string') {
+      promptString = selected.transformationConfig
+    }
+    
+    onUpdate({ 
+      transformationConfig: {
+        prompt: promptString,
+        selectedTools: updated
+      }
+    })
+  }
+
+  // Get prompt from config
+  const getPromptValue = () => {
+    const config = selected.transformationConfig
+    if (typeof config === 'object' && config !== null && 'prompt' in config) {
+      return String((config as any).prompt || "")
+    }
+    return String(config || "")
+  }
+
+  const setPromptValue = (value: string) => {
+    onUpdate({ 
+      transformationConfig: {
+        prompt: value,
+        selectedTools: getSelectedTools()
+      }
+    })
+  }
+
   return (
     <div className="space-y-4">
       <div>
         <Label>Gemini Prompt</Label>
         <MentionTextarea
-          value={String(selected.transformationConfig || "")}
-          onChange={(v) => onUpdate({ transformationConfig: v })}
+          value={getPromptValue()}
+          onChange={(v) => setPromptValue(v)}
           options={options}
           placeholder="Describe the transformation. Type @ to pick columns; it inserts {total amount}. Example: divide {total amount} by 3.25"
           registerInsertHandler={handleRegisterInsert}
         />
-        <ExpressionPreview text={String(selected.transformationConfig || "")} />
+        <ExpressionPreview text={getPromptValue()} />
         <div className="mt-2 flex flex-wrap gap-2">
           {visualGroups.map((g) => (
             <Button
@@ -141,8 +193,53 @@ export function TransformBuilder(props: {
             </Button>
           ))}
         </div>
-        <p className="text-xs text-muted-foreground mt-1">
-          AI will use a calculator when needed for math operations. Reference columns using @mention or {`{column name}`}.
+      </div>
+
+      <div className="space-y-2">
+        <Label>Available Tools</Label>
+        <div className="flex flex-col gap-2 rounded-md border border-border bg-muted/20 p-3">
+          <div className="flex items-center space-x-2">
+            <Checkbox 
+              id="tool-calculator"
+              checked={selectedTools.includes('calculator')}
+              onCheckedChange={() => toggleTool('calculator')}
+            />
+            <label
+              htmlFor="tool-calculator"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+            >
+              Calculator - Perform mathematical operations
+            </label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox 
+              id="tool-websearch"
+              checked={selectedTools.includes('webSearch')}
+              onCheckedChange={() => toggleTool('webSearch')}
+            />
+            <label
+              htmlFor="tool-websearch"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+            >
+              Web Search - Find current information, rates, prices
+            </label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox 
+              id="tool-webreader"
+              checked={selectedTools.includes('webReader')}
+              onCheckedChange={() => toggleTool('webReader')}
+            />
+            <label
+              htmlFor="tool-webreader"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+            >
+              Web Reader - Read and extract content from URLs
+            </label>
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Select which tools the AI can use. Only selected tools will be available during transformation.
         </p>
       </div>
     </div>

@@ -6,6 +6,8 @@ import type { MDXEditorMethods } from "@mdxeditor/editor"
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ExtractionResultsView } from "@/components/document-viewer/ExtractionResultsView"
 import type { ExtractionJob } from "@/lib/schema"
 import { cn } from "@/lib/utils"
 
@@ -36,10 +38,10 @@ export function OCRDetailModal({ job, open, onOpenChange, onMarkdownChange }: OC
 
   useEffect(() => {
     let active = true
-    ;(async () => {
-      const mod = await import("@mdxeditor/editor")
-      if (active) setEditorMod(mod)
-    })()
+      ; (async () => {
+        const mod = await import("@mdxeditor/editor")
+        if (active) setEditorMod(mod)
+      })()
     return () => {
       active = false
     }
@@ -107,8 +109,10 @@ export function OCRDetailModal({ job, open, onOpenChange, onMarkdownChange }: OC
   }, [markdown, job?.id])
 
   const isPdfFile = originalFileUrl.toLowerCase().includes('.pdf') || job?.fileName?.toLowerCase().endsWith('.pdf')
-  const isImageFile = originalFileUrl.toLowerCase().match(/\.(png|jpg|jpeg|gif|bmp|webp)$/) || 
+  const isImageFile = originalFileUrl.toLowerCase().match(/\.(png|jpg|jpeg|gif|bmp|webp)$/) ||
     job?.fileName?.toLowerCase().match(/\.(png|jpg|jpeg|gif|bmp|webp)$/)
+
+  const [activeTab, setActiveTab] = useState<"file" | "markdown">("file")
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -122,91 +126,106 @@ export function OCRDetailModal({ job, open, onOpenChange, onMarkdownChange }: OC
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-1 overflow-hidden min-h-0">
-          {/* Left Panel - Original File */}
+          {/* Left Panel - Original File / Markdown Toggle */}
           <div className="w-1/2 border-r flex flex-col">
-            <div className="p-4 border-b bg-muted/50">
-              <h3 className="font-medium text-sm">Original Document</h3>
+            <div className="p-2 border-b bg-muted/50 flex items-center justify-between">
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="file">Original File</TabsTrigger>
+                  <TabsTrigger value="markdown">Markdown Content</TabsTrigger>
+                </TabsList>
+              </Tabs>
             </div>
             <div className="flex-1 relative overflow-auto bg-gray-50">
-              {hasOriginalFile && !imageError ? (
+              {activeTab === "file" ? (
                 <>
-                  {!imageLoaded && !isPdfFile ? <Skeleton className="absolute inset-4 rounded-md" /> : null}
-                  {isPdfFile ? (
-                    <iframe
-                      src={originalFileUrl}
-                      className="w-full h-full border-0"
-                      title="PDF Document"
-                    />
-                  ) : isImageFile ? (
-                    <div className="flex items-center justify-center p-4 min-h-full">
-                      <img
-                        src={originalFileUrl}
-                        alt="Original Document"
-                        className={cn(
-                          "max-w-full max-h-full object-contain transition-opacity duration-200 shadow-lg",
-                          imageLoaded ? "opacity-100" : "opacity-0",
-                        )}
-                        onLoad={() => setImageLoaded(true)}
-                        onError={() => setImageError(true)}
-                      />
-                    </div>
+                  {hasOriginalFile && !imageError ? (
+                    <>
+                      {!imageLoaded && !isPdfFile ? <Skeleton className="absolute inset-4 rounded-md" /> : null}
+                      {isPdfFile ? (
+                        <iframe
+                          src={originalFileUrl}
+                          className="w-full h-full border-0"
+                          title="PDF Document"
+                        />
+                      ) : isImageFile ? (
+                        <div className="flex items-center justify-center p-4 min-h-full">
+                          <img
+                            src={originalFileUrl}
+                            alt="Original Document"
+                            className={cn(
+                              "max-w-full max-h-full object-contain transition-opacity duration-200 shadow-lg",
+                              imageLoaded ? "opacity-100" : "opacity-0",
+                            )}
+                            onLoad={() => setImageLoaded(true)}
+                            onError={() => setImageError(true)}
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center h-full p-4">
+                          <p className="text-sm text-muted-foreground">Unsupported file type for preview</p>
+                        </div>
+                      )}
+                    </>
                   ) : (
-                    <div className="flex items-center justify-center h-full p-4">
-                      <p className="text-sm text-muted-foreground">Unsupported file type for preview</p>
+                    <div className="flex flex-col items-center justify-center h-full p-6 text-center text-sm text-muted-foreground">
+                      <div className="rounded-full bg-muted-foreground/10 px-3 py-1 text-xs font-medium uppercase tracking-wide">
+                        {job ? job.status : "No Job"}
+                      </div>
+                      <p className="mt-2">
+                        {job ? "No original file is available for this job." : "Select a job to view its document."}
+                      </p>
                     </div>
                   )}
+                  {imageError ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/80 p-4 text-center text-sm text-destructive">
+                      <p>Failed to load original file.</p>
+                      <p className="text-xs text-muted-foreground">
+                        Check that the file is accessible and the format is supported.
+                      </p>
+                    </div>
+                  ) : null}
                 </>
               ) : (
-                <div className="flex flex-col items-center justify-center h-full p-6 text-center text-sm text-muted-foreground">
-                  <div className="rounded-full bg-muted-foreground/10 px-3 py-1 text-xs font-medium uppercase tracking-wide">
-                    {job ? job.status : "No Job"}
+                <div className="h-full min-h-0 overflow-y-auto overscroll-contain bg-background">
+                  <div className="p-6">
+                    <div className="mx-auto w-full max-w-[820px]">
+                      {EditorMod ? (
+                        <EditorMod.MDXEditor
+                          ref={editorRef}
+                          markdown={markdown}
+                          onChange={(value: string) => {
+                            if (!isUpdatingRef.current) {
+                              onMarkdownChange?.(value)
+                            }
+                          }}
+                          contentEditableClassName="prose prose-lg max-w-none dark:prose-invert flex-1 min-h-0 prose-headings:font-semibold prose-p:leading-relaxed prose-li:leading-relaxed prose-pre:overflow-x-auto prose-pre:max-w-full prose-img:max-h-[70vh] [&_table]:block [&_table]:min-w-max [&_table]:max-w-none [&_table]:overflow-x-auto [&_th]:whitespace-nowrap [&_td]:whitespace-nowrap"
+                          className="flex flex-col h-full min-h-0"
+                          plugins={editorPlugins}
+                        />
+                      ) : (
+                        <Skeleton className="w-full h-[60vh] rounded-md" />
+                      )}
+                    </div>
                   </div>
-                  <p className="mt-2">
-                    {job ? "No original file is available for this job." : "Select a job to view its document."}
-                  </p>
                 </div>
               )}
-              {imageError ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/80 p-4 text-center text-sm text-destructive">
-                  <p>Failed to load original file.</p>
-                  <p className="text-xs text-muted-foreground">
-                    Check that the file is accessible and the format is supported.
-                  </p>
-                </div>
-              ) : null}
             </div>
           </div>
 
-          {/* Right Panel - Markdown Editor */}
+          {/* Right Panel - Extraction Results */}
           <div className="w-1/2 flex flex-col min-h-0">
             <div className="p-4 border-b bg-muted/50 flex-shrink-0">
-              <h3 className="font-medium text-sm">Markdown Editor</h3>
+              <h3 className="font-medium text-sm">Extraction Results</h3>
             </div>
-            <div className="flex-1 overflow-hidden min-h-0">
-              <div className="h-full min-h-0 overflow-y-auto overscroll-contain">
-                <div className="p-6">
-                  <div className="mx-auto w-full max-w-[820px]">
-                    {EditorMod ? (
-                      <EditorMod.MDXEditor
-                        ref={editorRef}
-                        markdown={markdown}
-                        onChange={(value: string) => {
-                          // Only bubble changes up if we're not currently updating the editor programmatically
-                          if (!isUpdatingRef.current) {
-                            onMarkdownChange?.(value)
-                          }
-                        }}
-                        /* Make code blocks/tables scroll without shifting the whole editor */
-                        contentEditableClassName="prose prose-lg max-w-none dark:prose-invert flex-1 min-h-0 prose-headings:font-semibold prose-p:leading-relaxed prose-li:leading-relaxed prose-pre:overflow-x-auto prose-pre:max-w-full prose-img:max-h-[70vh] [&_table]:block [&_table]:min-w-max [&_table]:max-w-none [&_table]:overflow-x-auto [&_th]:whitespace-nowrap [&_td]:whitespace-nowrap"
-                        className="flex flex-col h-full min-h-0"
-                        plugins={editorPlugins}
-                      />
-                    ) : (
-                      <Skeleton className="w-full h-[60vh] rounded-md" />
-                    )}
-                  </div>
+            <div className="flex-1 overflow-hidden min-h-0 bg-background">
+              {job?.results ? (
+                <ExtractionResultsView results={job.results} />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full p-8 text-center text-muted-foreground">
+                  <p>No extraction results available yet.</p>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

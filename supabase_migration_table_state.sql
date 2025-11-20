@@ -10,3 +10,4 @@ COMMENT ON COLUMN schemas.table_state IS 'Stores table UI state including sortin
 -- Create index for faster JSON queries (optional but recommended)
 CREATE INDEX IF NOT EXISTS idx_schemas_table_state ON schemas USING gin (table_state);
 
+

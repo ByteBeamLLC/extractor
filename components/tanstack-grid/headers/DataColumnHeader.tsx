@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { 
-  Trash2, 
-  ArrowUp, 
-  ArrowDown, 
-  ArrowUpDown, 
-  Filter, 
+import {
+  Trash2,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+  Filter,
   X,
   Pin,
   PinOff,
@@ -98,12 +98,12 @@ export function DataColumnHeader({
               onEditColumn(columnMeta);
             }
           }}
-          className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-left text-sm font-semibold text-slate-700 transition-colors hover:text-primary focus:outline-none"
+          className="flex flex-1 items-center gap-1.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:text-primary focus:outline-none"
         >
-          <span className="truncate" title={columnMeta.name}>
+          <span className="line-clamp" title={columnMeta.name}>
             {columnMeta.name}
           </span>
-          
+
           {/* Sort indicator */}
           {canSort && (
             <span className="shrink-0 text-slate-400">
@@ -160,7 +160,7 @@ export function DataColumnHeader({
                 <DropdownMenuSeparator />
               </>
             )}
-            
+
             {canFilter && (
               <>
                 <DropdownMenuItem onClick={() => setShowFilter(!showFilter)}>
@@ -199,9 +199,9 @@ export function DataColumnHeader({
               <EyeOff className="mr-2 h-4 w-4" />
               Hide column
             </DropdownMenuItem>
-            
+
             <DropdownMenuSeparator />
-            
+
             <DropdownMenuItem
               onClick={(event) => {
                 event.preventDefault();

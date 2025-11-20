@@ -47,80 +47,93 @@ const EMPTY_SEARCH_RESULTS: string[] = [];
 
 type VirtualizedGridRow =
   | {
-      key: string;
-      type: "row";
-      row: Row<GridRow>;
-    }
+    key: string;
+    type: "row";
+    row: Row<GridRow>;
+  }
   | {
-      key: string;
-      type: "detail";
-      row: Row<GridRow>;
-    };
+    key: string;
+    type: "detail";
+    row: Row<GridRow>;
+  };
 
 // Helper to calculate optimal column width based on content
 function calculateColumnWidth(
   column: any,
   jobs: any[],
-  minWidth: number = MIN_COL_WIDTH,
+  minWidth: number = DEFAULT_DATA_COL_WIDTH,
   maxWidth: number = MAX_COL_WIDTH
 ): number {
-  // Base width on column name
+  // Calculate width needed for header text to be fully visible
   const headerLength = column.name?.length || 0;
-  const headerWidth = Math.max(minWidth, Math.min(headerLength * 9 + 70, maxWidth));
-  
-  // Calculate content width from actual data (sample first 10 rows for performance)
-  let maxContentWidth = headerWidth;
-  const sampleSize = Math.min(jobs.length, 10);
-  
-  for (let i = 0; i < sampleSize; i++) {
-    const job = jobs[i];
-    const value = job.results?.[column.id];
-    if (value == null || value === '-') continue;
-    
-    let contentLength = 0;
-    
-    if (column.type === 'object') {
-      // For objects, estimate based on field count and sample values
-      const obj = value as Record<string, any>;
-      const nonNullFields = Object.entries(obj).filter(([_, v]) => v != null && v !== '-');
-      const fieldCount = nonNullFields.length;
-      
-      // Estimate width: "N data" or field preview
-      if (fieldCount === 0) {
-        contentLength = 80;
+  // 8px per character is a safe estimate for typical UI fonts
+  const textWidth = headerLength * 8;
+  // Space for drag handle, sort icon, menu, padding. Increased to ensure full visibility.
+  const headerUIElements = 80;
+  const calculatedHeaderWidth = textWidth + headerUIElements;
+
+  // Ensure width is at least the default/min width, but allows expansion up to max
+  // The base width is determined by the header text or the minimum width, whichever is larger
+  let optimalWidth = Math.max(minWidth, Math.min(calculatedHeaderWidth, maxWidth));
+
+  // If we have data, we can check if content needs more space, but header readability is priority
+  if (jobs.length > 0) {
+    // Calculate content width from actual data (sample first 10 rows for performance)
+    let maxContentWidth = optimalWidth;
+    const sampleSize = Math.min(jobs.length, 10);
+
+    for (let i = 0; i < sampleSize; i++) {
+      const job = jobs[i];
+      const value = job.results?.[column.id];
+      if (value == null || value === '-') continue;
+
+      let contentLength = 0;
+
+      if (column.type === 'object') {
+        // For objects, estimate based on field count and sample values
+        const obj = value as Record<string, any>;
+        const nonNullFields = Object.entries(obj).filter(([_, v]) => v != null && v !== '-');
+        const fieldCount = nonNullFields.length;
+
+        // Estimate width: "N data" or field preview
+        if (fieldCount === 0) {
+          contentLength = 80;
+        } else {
+          // Sample first value to estimate
+          const sampleValue = nonNullFields[0]?.[1];
+          const sampleStr = sampleValue ? String(sampleValue).slice(0, 30) : '';
+          contentLength = Math.max(
+            fieldCount * 12 + 80, // "N data" + icon space
+            sampleStr.length * 7 + 100 // Sample content
+          );
+        }
+      } else if (column.type === 'list') {
+        // For lists, show item count
+        const items = Array.isArray(value) ? value : [];
+        contentLength = Math.max(100, items.length.toString().length * 8 + 100); // "N items"
+      } else if (column.type === 'table') {
+        // For tables, show row count
+        const rows = Array.isArray(value) ? value : [];
+        contentLength = Math.max(100, rows.length.toString().length * 8 + 100); // "N items"
+      } else if (column.type === 'single_select' || column.type === 'multi_select') {
+        // For select fields, base on option text length
+        const stringValue = Array.isArray(value) ? value.join(', ') : String(value);
+        contentLength = Math.min(stringValue.length * 8 + 60, maxWidth);
       } else {
-        // Sample first value to estimate
-        const sampleValue = nonNullFields[0]?.[1];
-        const sampleStr = sampleValue ? String(sampleValue).slice(0, 30) : '';
-        contentLength = Math.max(
-          fieldCount * 12 + 80, // "N data" + icon space
-          sampleStr.length * 7 + 100 // Sample content
-        );
+        // For primitives (string, number, date, etc), base on string length
+        const stringValue = String(value);
+        const displayLength = Math.min(stringValue.length, 80); // Cap at 80 chars for calculation
+        contentLength = displayLength * 8 + 50;
       }
-    } else if (column.type === 'list') {
-      // For lists, show item count
-      const items = Array.isArray(value) ? value : [];
-      contentLength = Math.max(100, items.length.toString().length * 8 + 100); // "N items"
-    } else if (column.type === 'table') {
-      // For tables, show row count
-      const rows = Array.isArray(value) ? value : [];
-      contentLength = Math.max(100, rows.length.toString().length * 8 + 100); // "N items"
-    } else if (column.type === 'single_select' || column.type === 'multi_select') {
-      // For select fields, base on option text length
-      const stringValue = Array.isArray(value) ? value.join(', ') : String(value);
-      contentLength = Math.min(stringValue.length * 8 + 60, maxWidth);
-    } else {
-      // For primitives (string, number, date, etc), base on string length
-      const stringValue = String(value);
-      const displayLength = Math.min(stringValue.length, 80); // Cap at 80 chars for calculation
-      contentLength = displayLength * 8 + 50;
+
+      maxContentWidth = Math.max(maxContentWidth, contentLength);
     }
-    
-    maxContentWidth = Math.max(maxContentWidth, contentLength);
+
+    // Use the larger of header width or content width, capped at max
+    optimalWidth = Math.max(optimalWidth, Math.min(Math.ceil(maxContentWidth + 40), maxWidth));
   }
-  
-  // Return width within constraints with padding
-  return Math.max(minWidth, Math.min(Math.ceil(maxContentWidth + 40), maxWidth));
+
+  return optimalWidth;
 }
 
 export function TanStackGridSheet({
@@ -250,7 +263,7 @@ export function TanStackGridSheet({
   // Initialize debounced save function
   useEffect(() => {
     if (!schemaId) return;
-    
+
     debouncedSaveRef.current = createDebouncedSave(supabase, schemaId, 500);
 
     return () => {
@@ -285,8 +298,9 @@ export function TanStackGridSheet({
 
   // Calculate optimal column widths when data changes
   useEffect(() => {
-    if (jobs.length === 0) return;
-    
+    // We calculate widths even if jobs is empty, to ensure headers are sized correctly
+    // based on their text length.
+
     const newSizes: Record<string, number> = {};
     for (const col of columns) {
       const calculatedWidth = calculateColumnWidth(col, jobs);
@@ -297,14 +311,14 @@ export function TanStackGridSheet({
 
   const pinnedColumnsWidth = 60 + 200; // row index + file columns
   const addColumnWidth = 56;
-  
+
   // Calculate total width of data columns using dynamic sizes
   const dataColumnsWidth = useMemo(() => {
     return columns.reduce((sum, col) => {
       return sum + (columnSizes[col.id] || DEFAULT_DATA_COL_WIDTH);
     }, 0);
   }, [columns, columnSizes]);
-  
+
   const baseTableWidth = pinnedColumnsWidth + dataColumnsWidth + addColumnWidth;
   const effectiveContainerWidth =
     containerWidth > 0 ? containerWidth : baseTableWidth;
@@ -332,7 +346,7 @@ export function TanStackGridSheet({
           const hasAdvancedFields = columns.some(
             (col) => col.type === "object" || col.type === "list" || col.type === "table"
           );
-          
+
           return (
             <div className="flex items-center justify-center gap-1">
               {hasAdvancedFields && (
@@ -439,8 +453,8 @@ export function TanStackGridSheet({
               }}
             >
               {renderCellValue(columnMeta, job, {
-                mode: columnMeta.type === 'object' || columnMeta.type === 'list' || columnMeta.type === 'table' 
-                  ? 'summary' 
+                mode: columnMeta.type === 'object' || columnMeta.type === 'list' || columnMeta.type === 'table'
+                  ? 'summary'
                   : 'interactive',
                 onUpdateCell,
                 onOpenTableModal,
@@ -498,8 +512,8 @@ export function TanStackGridSheet({
               onUpdateReviewStatus={onUpdateReviewStatus}
             >
               {renderCellValue(columnMeta, job, {
-                mode: columnMeta.type === 'object' || columnMeta.type === 'list' || columnMeta.type === 'table' 
-                  ? 'summary' 
+                mode: columnMeta.type === 'object' || columnMeta.type === 'list' || columnMeta.type === 'table'
+                  ? 'summary'
                   : 'interactive',
                 onUpdateCell,
                 onOpenTableModal,
@@ -610,7 +624,7 @@ export function TanStackGridSheet({
   const handleColumnDrop = useCallback((targetColumnId: string, e: React.DragEvent) => {
     e.preventDefault();
     const sourceColumnId = e.dataTransfer.getData("text/plain");
-    
+
     if (!sourceColumnId || sourceColumnId === targetColumnId) {
       setDraggedColumn(null);
       return;
@@ -722,198 +736,198 @@ export function TanStackGridSheet({
   return (
     <div className="tanstack-grid-wrapper flex h-full w-full flex-col">
       {/* Table toolbar */}
-      <TableToolbar 
-        table={table} 
-        schemaId={schemaId} 
+      <TableToolbar
+        table={table}
+        schemaId={schemaId}
         onSearchResults={handleSearchResults}
       />
-      
+
       {/* Grid container */}
       <div ref={containerRef} className="tanstack-grid h-full w-full overflow-auto">
         <table
-        className="border-collapse"
-        style={{
-          width: `${tableWidth}px`,
-          minWidth: `${baseTableWidth}px`,
-          tableLayout: "fixed",
-        }}
-      >
-        <thead>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id}>
-              {headerGroup.headers.map((header) => {
-                const headerWidth = header.getSize();
-                const headerStyle: CSSProperties = {
-                  position: "relative",
-                  width: `${headerWidth}px`,
-                };
+          className="border-collapse"
+          style={{
+            width: `${tableWidth}px`,
+            minWidth: `${baseTableWidth}px`,
+            tableLayout: "fixed",
+          }}
+        >
+          <thead>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  const headerWidth = header.getSize();
+                  const headerStyle: CSSProperties = {
+                    position: "relative",
+                    width: `${headerWidth}px`,
+                  };
 
-                const isPinnedRight = header.id === "bb-add-field";
-                const isFillerColumn = header.id === "bb-spacer";
-                const finalStyle = isPinnedRight 
-                  ? { ...headerStyle, position: 'sticky', right: 0, zIndex: 30 }
-                  : headerStyle;
-                
-                const canResize = header.colSpan === 1 && header.column.getCanResize();
+                  const isPinnedRight = header.id === "bb-add-field";
+                  const isFillerColumn = header.id === "bb-spacer";
+                  const finalStyle: CSSProperties = isPinnedRight
+                    ? { ...headerStyle, position: 'sticky' as const, right: 0, zIndex: 30 }
+                    : headerStyle;
 
-                return (
-                  <th
-                    key={header.id}
-                    colSpan={header.colSpan}
-                    rowSpan={header.rowSpan}
-                    style={finalStyle}
-                    className={cn(
-                      "tanstack-header",
-                      header.id === "row-index" && "pinned-left",
-                      isPinnedRight && "pinned-right",
-                      isFillerColumn && "filler-header"
-                    )}
-                  >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
+                  const canResize = header.colSpan === 1 && header.column.getCanResize();
+
+                  return (
+                    <th
+                      key={header.id}
+                      colSpan={header.colSpan}
+                      rowSpan={header.rowSpan}
+                      style={finalStyle}
+                      className={cn(
+                        "tanstack-header",
+                        header.id === "row-index" && "pinned-left",
+                        isPinnedRight && "pinned-right",
+                        isFillerColumn && "filler-header"
+                      )}
+                    >
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
                           header.column.columnDef.header,
                           header.getContext()
                         )}
-                    {canResize && (
-                      <div
-                        onMouseDown={header.getResizeHandler()}
-                        onTouchStart={header.getResizeHandler()}
-                        className={cn(
-                          "tanstack-resizer",
-                          header.column.getIsResizing() && "is-resizing"
-                        )}
-                        title="Drag to resize column"
-                      />
-                    )}
-                  </th>
-                );
-              })}
-            </tr>
-          ))}
-        </thead>
-        <tbody>
-          {!hasRows ? (
-            <tr>
-              <td
-                colSpan={leafColumnCount}
-                className="tanstack-cell text-center py-8"
-              >
-                <div className="empty-state">
-                  {hasActiveSearch
-                    ? "No matching results for your search."
-                    : "No extraction results yet. Upload documents to get started."}
-                </div>
-              </td>
-            </tr>
-          ) : (
-            <>
-              {paddingTop > 0 && (
-                <tr className="tanstack-virtual-padding" aria-hidden="true">
-                  <td
-                    colSpan={leafColumnCount}
-                    style={{
-                      height: `${paddingTop}px`,
-                      padding: 0,
-                      border: "none",
-                    }}
-                  />
-                </tr>
-              )}
-              {virtualItems.map((virtualRow) => {
-                const item = virtualizedRows[virtualRow.index];
-                if (!item) return null;
+                      {canResize && (
+                        <div
+                          onMouseDown={header.getResizeHandler()}
+                          onTouchStart={header.getResizeHandler()}
+                          className={cn(
+                            "tanstack-resizer",
+                            header.column.getIsResizing() && "is-resizing"
+                          )}
+                          title="Drag to resize column"
+                        />
+                      )}
+                    </th>
+                  );
+                })}
+              </tr>
+            ))}
+          </thead>
+          <tbody>
+            {!hasRows ? (
+              <tr>
+                <td
+                  colSpan={leafColumnCount}
+                  className="tanstack-cell text-center py-8"
+                >
+                  <div className="empty-state">
+                    {hasActiveSearch
+                      ? "No matching results for your search."
+                      : "No extraction results yet. Upload documents to get started."}
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              <>
+                {paddingTop > 0 && (
+                  <tr className="tanstack-virtual-padding" aria-hidden="true">
+                    <td
+                      colSpan={leafColumnCount}
+                      style={{
+                        height: `${paddingTop}px`,
+                        padding: 0,
+                        border: "none",
+                      }}
+                    />
+                  </tr>
+                )}
+                {virtualItems.map((virtualRow) => {
+                  const item = virtualizedRows[virtualRow.index];
+                  if (!item) return null;
 
-                if (item.type === "row") {
-                  const { row } = item;
-                  const visibleCells = row.getVisibleCells();
-                  const isSelected = row.original.__job.id === selectedRowId;
-                  const isExpanded = row.original.__job.id === expandedRowId;
-                  const zebraClass =
-                    row.index % 2 === 1 ? "tanstack-data-row--striped" : undefined;
+                  if (item.type === "row") {
+                    const { row } = item;
+                    const visibleCells = row.getVisibleCells();
+                    const isSelected = row.original.__job.id === selectedRowId;
+                    const isExpanded = row.original.__job.id === expandedRowId;
+                    const zebraClass =
+                      row.index % 2 === 1 ? "tanstack-data-row--striped" : undefined;
+
+                    return (
+                      <tr
+                        key={item.key}
+                        ref={rowVirtualizer.measureElement}
+                        data-index={virtualRow.index}
+                        aria-expanded={isExpanded}
+                        onClick={() => handleRowClick(row.original)}
+                        onDoubleClick={() =>
+                          handleRowDoubleClick(row.original)
+                        }
+                        className={cn(
+                          "tanstack-data-row cursor-pointer transition-colors hover:bg-muted/50",
+                          zebraClass,
+                          isSelected && "selected bg-primary/10"
+                        )}
+                      >
+                        {visibleCells.map((cell) => {
+                          const isPinnedRight = cell.column.id === "bb-add-field";
+                          const isFillerColumn = cell.column.id === "bb-spacer";
+                          const cellWidth = cell.column.getSize();
+                          const cellStyle: CSSProperties = {
+                            width: `${cellWidth}px`,
+                            ...(isPinnedRight && {
+                              position: "sticky",
+                              right: 0,
+                              zIndex: 25,
+                            }),
+                          };
+
+                          return (
+                            <td
+                              key={cell.id}
+                              style={cellStyle}
+                              className={cn(
+                                "tanstack-cell",
+                                cell.column.id === "row-index" && "pinned-left",
+                                isPinnedRight && "pinned-right",
+                                isFillerColumn && "filler-cell"
+                              )}
+                            >
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext()
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  }
+
+                  const detailRow = item.row;
 
                   return (
-                    <tr
+                    <RowDetailPanel
                       key={item.key}
                       ref={rowVirtualizer.measureElement}
                       data-index={virtualRow.index}
-                      aria-expanded={isExpanded}
-                      onClick={() => handleRowClick(row.original)}
-                      onDoubleClick={() =>
-                        handleRowDoubleClick(row.original)
-                      }
-                      className={cn(
-                        "tanstack-data-row cursor-pointer transition-colors hover:bg-muted/50",
-                        zebraClass,
-                        isSelected && "selected bg-primary/10"
-                      )}
-                    >
-                      {visibleCells.map((cell) => {
-                        const isPinnedRight = cell.column.id === "bb-add-field";
-                        const isFillerColumn = cell.column.id === "bb-spacer";
-                        const cellWidth = cell.column.getSize();
-                        const cellStyle: CSSProperties = {
-                          width: `${cellWidth}px`,
-                          ...(isPinnedRight && {
-                            position: "sticky",
-                            right: 0,
-                            zIndex: 25,
-                          }),
-                        };
-
-                        return (
-                          <td
-                            key={cell.id}
-                            style={cellStyle}
-                            className={cn(
-                              "tanstack-cell",
-                              cell.column.id === "row-index" && "pinned-left",
-                              isPinnedRight && "pinned-right",
-                              isFillerColumn && "filler-cell"
-                            )}
-                          >
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext()
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
+                      className="tanstack-detail-row"
+                      job={detailRow.original.__job}
+                      columns={columns}
+                      visibleCells={detailRow.getVisibleCells()}
+                      onUpdateCell={onUpdateCell}
+                    />
                   );
-                }
-
-                const detailRow = item.row;
-
-                return (
-                  <RowDetailPanel
-                    key={item.key}
-                    ref={rowVirtualizer.measureElement}
-                    data-index={virtualRow.index}
-                    className="tanstack-detail-row"
-                    job={detailRow.original.__job}
-                    columns={columns}
-                    visibleCells={detailRow.getVisibleCells()}
-                    onUpdateCell={onUpdateCell}
-                  />
-                );
-              })}
-              {paddingBottom > 0 && (
-                <tr className="tanstack-virtual-padding" aria-hidden="true">
-                  <td
-                    colSpan={leafColumnCount}
-                    style={{
-                      height: `${paddingBottom}px`,
-                      padding: 0,
-                      border: "none",
-                    }}
-                  />
-                </tr>
-              )}
-            </>
-          )}
-        </tbody>
-      </table>
+                })}
+                {paddingBottom > 0 && (
+                  <tr className="tanstack-virtual-padding" aria-hidden="true">
+                    <td
+                      colSpan={leafColumnCount}
+                      style={{
+                        height: `${paddingBottom}px`,
+                        padding: 0,
+                        border: "none",
+                      }}
+                    />
+                  </tr>
+                )}
+              </>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
