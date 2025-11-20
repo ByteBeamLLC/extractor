@@ -176,3 +176,6 @@ transformationConfig: {
 - [ ] Add retry mechanism as manual user action (not automatic)
 - [ ] Cache web search results to avoid duplicate lookups
 
+
+
+

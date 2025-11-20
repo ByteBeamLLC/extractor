@@ -11,3 +11,6 @@ COMMENT ON COLUMN schemas.table_state IS 'Stores table UI state including sortin
 CREATE INDEX IF NOT EXISTS idx_schemas_table_state ON schemas USING gin (table_state);
 
 
+
+
+
