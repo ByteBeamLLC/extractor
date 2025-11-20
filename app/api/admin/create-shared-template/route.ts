@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { templateId, userId, allowedDomains } = body;
+    const { templateId, userId, allowedDomains, allowedEmails } = body;
 
     if (!templateId || !userId) {
       return NextResponse.json(
@@ -62,11 +62,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Validate domains if provided
+    // Validate domains and emails if provided
     const domains = allowedDomains || ALLOWED_DOMAINS;
-    if (!Array.isArray(domains) || domains.length === 0) {
+    const emails = allowedEmails || null;
+
+    // At least one restriction method should be provided
+    if ((!Array.isArray(domains) || domains.length === 0) && (!Array.isArray(emails) || emails.length === 0)) {
       return NextResponse.json(
-        { error: "allowedDomains must be a non-empty array" },
+        { error: "Either allowedDomains or allowedEmails must be a non-empty array" },
         { status: 400 }
       );
     }
@@ -91,17 +94,18 @@ export async function POST(request: NextRequest) {
     // Create the shared template
     const now = new Date().toISOString();
     const payload: Database["public"]["Tables"]["schema_templates"]["Insert"] =
-      {
-        id: `shared-${templateId}-${Date.now()}`,
-        user_id: userId,
-        name: template.name,
-        description: template.description,
-        agent_type: template.agentType,
-        fields: template.fields as any,
-        allowed_domains: domains,
-        created_at: now,
-        updated_at: now,
-      };
+    {
+      id: `shared-${templateId}-${Date.now()}`,
+      user_id: userId,
+      name: template.name,
+      description: template.description,
+      agent_type: template.agentType,
+      fields: template.fields as any,
+      allowed_domains: domains,
+      allowed_emails: emails,
+      created_at: now,
+      updated_at: now,
+    };
 
     const { data, error } = await supabaseAdmin
       .from("schema_templates")
@@ -124,6 +128,7 @@ export async function POST(request: NextRequest) {
         id: data.id,
         name: data.name,
         allowed_domains: data.allowed_domains,
+        allowed_emails: data.allowed_emails,
         created_at: data.created_at,
       },
     });

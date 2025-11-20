@@ -11,6 +11,7 @@ export interface SchemaTemplateDefinition {
   ownerId?: string | null
   isCustom?: boolean
   allowedDomains?: string[] | null
+  allowedEmails?: string[] | null
   createdAt?: Date
   updatedAt?: Date
 }
@@ -234,6 +235,7 @@ export const STATIC_SCHEMA_TEMPLATES: SchemaTemplateDefinition[] = [
     name: "FMCG Localization",
     description: "Extract and translate food & beverage packaging data from OCR with multilingual support (English/Arabic).",
     agentType: "standard",
+    allowedEmails: ["bazerbachi.8@gmail.com"],
     fields: [
       // Extraction Fields - matching extraction.txt structure
       {
@@ -611,11 +613,63 @@ export const STATIC_SCHEMA_TEMPLATES: SchemaTemplateDefinition[] = [
   }
 ]
 
-export function getStaticSchemaTemplates(): SchemaTemplateDefinition[] {
-  return STATIC_SCHEMA_TEMPLATES.map((template) => ({
+/**
+ * Get static schema templates, optionally filtered by user email
+ * @param userEmail - The current user's email (optional)
+ * @returns Static templates, filtered if userEmail is provided
+ */
+export function getStaticSchemaTemplates(userEmail?: string | null): SchemaTemplateDefinition[] {
+  const allTemplates = STATIC_SCHEMA_TEMPLATES.map((template) => ({
     ...template,
     fields: cloneSchemaFields(template.fields),
     isCustom: false,
   }))
+
+  // If no user email provided, return all unrestricted templates
+  if (!userEmail) {
+    return allTemplates.filter((template) => {
+      return (!template.allowedDomains || template.allowedDomains.length === 0) &&
+             (!template.allowedEmails || template.allowedEmails.length === 0)
+    })
+  }
+
+  // Filter based on email and domain restrictions
+  const normalizedUserEmail = userEmail.toLowerCase()
+  return allTemplates.filter((template) => {
+    // If no restrictions, template is available to everyone
+    const hasNoRestrictions =
+      (!template.allowedDomains || template.allowedDomains.length === 0) &&
+      (!template.allowedEmails || template.allowedEmails.length === 0)
+    
+    if (hasNoRestrictions) {
+      return true
+    }
+
+    // Check email match
+    if (template.allowedEmails && template.allowedEmails.length > 0) {
+      const emailMatch = template.allowedEmails.some(
+        (allowedEmail) => allowedEmail.toLowerCase() === normalizedUserEmail
+      )
+      if (emailMatch) {
+        return true
+      }
+    }
+
+    // Check domain match
+    if (template.allowedDomains && template.allowedDomains.length > 0) {
+      const userDomain = normalizedUserEmail.split('@')[1]
+      if (userDomain) {
+        const domainMatch = template.allowedDomains.some(
+          (allowedDomain) => allowedDomain.toLowerCase() === userDomain
+        )
+        if (domainMatch) {
+          return true
+        }
+      }
+    }
+
+    // Restrictions set but user doesn't match
+    return false
+  })
 }
 

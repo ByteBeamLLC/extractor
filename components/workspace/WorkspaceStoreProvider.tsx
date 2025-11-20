@@ -80,7 +80,7 @@ function mapDefinitionToSummary(
     name,
     tabTitle: name,
     templateId: definition.templateId ?? undefined,
-     templateDisplayName: options?.templateDisplayName ?? undefined,
+    templateDisplayName: options?.templateDisplayName ?? undefined,
     agentType: agent,
     lastModified: definition.updatedAt ?? definition.createdAt,
     thumbnailUrl: undefined,
@@ -175,7 +175,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [customTemplates, setCustomTemplates] = useState<SchemaTemplateDefinition[]>([])
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false)
   const [loadTemplatesError, setLoadTemplatesError] = useState<string | null>(null)
-  const staticTemplates = useMemo(() => getStaticSchemaTemplates(), [])
+  const staticTemplates = useMemo(() => getStaticSchemaTemplates(session?.user?.email), [session?.user?.email])
   const templates = useMemo(
     () => {
       const seen = new Map<string, SchemaTemplateDefinition>()
@@ -231,6 +231,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       ownerId: row.user_id,
       isCustom: !(row.is_public ?? false), // Public templates are not custom, user-created templates are custom
       allowedDomains: row.allowed_domains,
+      allowedEmails: row.allowed_emails,
       createdAt: row.created_at ? new Date(row.created_at) : undefined,
       updatedAt: row.updated_at ? new Date(row.updated_at) : undefined,
     }),
@@ -297,17 +298,17 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     setIsLoadingTemplates(true)
     setLoadTemplatesError(null)
 
-    // Fetch templates - RLS policy will handle domain-based access
+    // Fetch templates - RLS policy will handle domain-based and email-based access
     const { data, error } = await supabase
       .from("schema_templates")
-      .select("id,name,description,agent_type,fields,allowed_domains,created_at,updated_at,user_id")
+      .select("id,name,description,agent_type,fields,allowed_domains,allowed_emails,is_public,created_at,updated_at,user_id")
       .order("updated_at", { ascending: false })
 
     if (error) {
       setLoadTemplatesError(error.message)
       setCustomTemplates([])
     } else {
-      const mapped = data?.map(mapTemplateRow) ?? []
+      const mapped = data?.map((row) => mapTemplateRow(row as any)) ?? []
       setCustomTemplates(mapped)
       setLoadTemplatesError(null)
     }
@@ -538,7 +539,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       const { data, error } = await supabase
         .from("schema_templates")
         .insert(payload)
-        .select("id,name,description,agent_type,fields,created_at,updated_at,user_id")
+        .select("id,name,description,agent_type,fields,allowed_domains,allowed_emails,is_public,created_at,updated_at,user_id")
         .single()
 
       setIsLoadingTemplates(false)
@@ -550,7 +551,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       }
 
       setLoadTemplatesError(null)
-      const template = mapTemplateRow(data)
+      const template = mapTemplateRow(data as any)
       setCustomTemplates((prev) => [template, ...prev])
       return { success: true, template }
     },

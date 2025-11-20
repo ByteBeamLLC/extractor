@@ -1565,7 +1565,7 @@ export function DataExtractionPlatform({
     return null
   }
 
-  const staticTemplates = useMemo(() => getStaticSchemaTemplates(), [])
+  const staticTemplates = useMemo(() => getStaticSchemaTemplates(session?.user?.email), [session?.user?.email])
   const combinedTemplates = useMemo(() => {
     const registry = new Map<string, SchemaTemplateDefinition>()
     for (const tpl of staticTemplates) {

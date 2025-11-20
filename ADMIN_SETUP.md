@@ -1,6 +1,6 @@
-# Admin Setup Guide - Domain-Restricted Templates
+# Admin Setup Guide - Domain and Email-Restricted Templates
 
-This guide explains how to set up domain-restricted schema templates and invite users for the comprehensive invoice schema.
+This guide explains how to set up domain-restricted and email-restricted schema templates and invite users for restricted access.
 
 ## Prerequisites
 
@@ -34,8 +34,9 @@ Execute the migration SQL in your Supabase SQL Editor:
 
 This will:
 - Add `allowed_domains` column to `schema_templates` table
-- Update RLS policies to check domain access
-- Allow domain-restricted template sharing
+- Add `allowed_emails` column to `schema_templates` table
+- Update RLS policies to check domain and email access
+- Allow domain-restricted and email-restricted template sharing
 
 ## Step 2: Invite Users
 
@@ -83,9 +84,9 @@ console.log(result);
 
 ## Step 3: Create Shared Template
 
-Create the comprehensive invoice template with domain restrictions.
+Create templates with domain or email restrictions.
 
-### Option A: Using the API
+### Option A: Using the API with Domain Restrictions
 
 ```bash
 curl -X POST http://localhost:3000/api/admin/create-shared-template \
@@ -98,12 +99,39 @@ curl -X POST http://localhost:3000/api/admin/create-shared-template \
   }'
 ```
 
-### Option B: Directly in Supabase SQL Editor
+### Option B: Using the API with Email Restrictions
+
+```bash
+curl -X POST http://localhost:3000/api/admin/create-shared-template \
+  -H "Content-Type: application/json" \
+  -H "x-admin-api-key: your-admin-api-key" \
+  -d '{
+    "templateId": "fmcg-localization",
+    "userId": "uuid-of-authorized-user",
+    "allowedEmails": ["bazerbachi.8@gmail.com"]
+  }'
+```
+
+### Option C: Using Both Domain and Email Restrictions
+
+```bash
+curl -X POST http://localhost:3000/api/admin/create-shared-template \
+  -H "Content-Type: application/json" \
+  -H "x-admin-api-key: your-admin-api-key" \
+  -d '{
+    "templateId": "comprehensive-invoice",
+    "userId": "uuid-of-authorized-user",
+    "allowedDomains": ["bytebeam.co"],
+    "allowedEmails": ["special.user@example.com"]
+  }'
+```
+
+### Option D: Directly in Supabase SQL Editor
 
 ```sql
--- First, get a user ID from one of the authorized domains
+-- First, get a user ID from one of the authorized domains or emails
 SELECT id, email FROM auth.users 
-WHERE email LIKE '%@bytebeam.co' OR email LIKE '%@mhaddad.com.jo'
+WHERE email LIKE '%@bytebeam.co' OR email = 'bazerbachi.8@gmail.com'
 LIMIT 1;
 
 -- Then insert the template (replace USER_ID with actual UUID)
@@ -115,6 +143,7 @@ INSERT INTO schema_templates (
   agent_type,
   fields,
   allowed_domains,
+  allowed_emails,
   created_at,
   updated_at
 ) VALUES (
@@ -124,45 +153,29 @@ INSERT INTO schema_templates (
   'Unified schema for all invoice/document types - Restricted Access',
   'standard',
   '[]'::jsonb, -- Fields will be populated from static template
-  ARRAY['bytebeam.co', 'mhaddad.com.jo'],
+  ARRAY['bytebeam.co', 'mhaddad.com.jo'], -- Domain restrictions
+  NULL, -- No email restrictions
   NOW(),
   NOW()
 );
 ```
 
-## Step 4: User Invitation Flow
+## Restriction Types
 
-When a user receives an invitation:
+### Domain-Based Restrictions
+- Use `allowedDomains` to restrict access to users from specific email domains
+- Example: `["bytebeam.co", "mhaddad.com.jo"]` allows anyone with `@bytebeam.co` or `@mhaddad.com.jo` email
+- Good for: Organization-wide access
 
-1. **Email Received**: User gets invitation email from Supabase
-2. **Click Link**: User clicks "Accept Invitation" link in email
-3. **Set Password**: User is redirected to set their password
-4. **Email Confirmed**: Email is automatically confirmed
-5. **Access Granted**: User can now log in and access domain-restricted templates
+### Email-Based Restrictions
+- Use `allowedEmails` to restrict access to specific email addresses
+- Example: `["bazerbachi.8@gmail.com"]` allows only that specific email
+- Good for: Individual user access, single-user templates
 
-## Step 5: Verify Access
-
-### Test Template Access:
-
-1. Log in as user from authorized domain (@bytebeam.co or @mhaddad.com.jo)
-2. Navigate to template selector
-3. Verify "Comprehensive Invoice Schema" appears
-4. Log in as user from different domain
-5. Verify template does NOT appear
-
-### SQL Query to Check:
-
-```sql
--- View all templates with their access restrictions
-SELECT 
-  st.id,
-  st.name,
-  st.allowed_domains,
-  u.email as owner_email
-FROM schema_templates st
-JOIN auth.users u ON st.user_id = u.id
-ORDER BY st.created_at DESC;
-```
+### Combined Restrictions
+- Use both `allowedDomains` AND `allowedEmails` together
+- Users matching EITHER restriction will have access (OR logic)
+- Good for: Organization access with specific exceptions
 
 ## Allowed Email Domains
 
@@ -170,7 +183,12 @@ Currently configured domains:
 - `bytebeam.co`
 - `mhaddad.com.jo`
 
-To add more domains, update the `allowed_domains` array in the database or when creating templates.
+## Allowed Specific Emails
+
+Currently configured emails:
+- `bazerbachi.8@gmail.com` (FMCG Localization template)
+
+To add more domains or emails, update the arrays when creating templates.
 
 ## Security Notes
 
