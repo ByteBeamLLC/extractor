@@ -135,7 +135,13 @@ function ResultItem({ label, value, level = 0 }: { label: string; value: any; le
                     <div className="p-3 border-t bg-background">
                         <div className="flex flex-wrap gap-2">
                             {value.map((item: any, i: number) => (
-                                <Badge key={i} variant="secondary">{String(item)}</Badge>
+                                <Badge
+                                    key={i}
+                                    variant="secondary"
+                                    className="whitespace-normal break-words max-w-md h-auto text-left justify-start leading-normal py-1 inline-block"
+                                >
+                                    {String(item)}
+                                </Badge>
                             ))}
                         </div>
                     </div>
@@ -146,12 +152,12 @@ function ResultItem({ label, value, level = 0 }: { label: string; value: any; le
 
     // Primitive values
     return (
-        <div className={cn("flex items-start justify-between py-2 border-b last:border-0", level > 0 && "ml-0")}>
-            <div className="flex items-center gap-2 min-w-[120px]">
+        <div className={cn("flex items-start justify-between gap-4 py-2 border-b last:border-0", level > 0 && "ml-0")}>
+            <div className="flex items-center gap-2 min-w-[120px] flex-shrink-0">
                 <span className="text-sm font-medium text-muted-foreground">{prettifyKey(label)}</span>
             </div>
             <div className="flex-1 text-right">
-                <span className="text-sm font-medium break-words">{String(value)}</span>
+                <span className="text-sm font-medium break-words whitespace-normal">{String(value)}</span>
             </div>
         </div>
     )
