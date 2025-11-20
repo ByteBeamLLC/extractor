@@ -33,7 +33,6 @@
   overflow: hidden;
   box-sizing: border-box;
   white-space: nowrap;
-  text-overflow: ellipsis;
   user-select: none; /* Prevent text selection during resize */
 }
 
@@ -49,7 +48,15 @@
   min-height: 48px;
   overflow-wrap: break-word;
   box-sizing: border-box;
+  overflow: hidden;
+  position: relative;
   /* Allow content to dictate width within min/max constraints */
+}
+
+/* Ensure cell content respects cell boundaries */
+.tanstack-cell > div {
+  max-width: 100%;
+  min-width: 0; /* Allow flex children to shrink below content size */
 }
 
 .tanstack-data-row {

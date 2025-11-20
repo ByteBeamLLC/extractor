@@ -189,3 +189,4 @@ CREATE INDEX IF NOT EXISTS idx_schemas_table_state ON schemas USING gin (table_s
 
 The TanStack grid now has enterprise-grade table intelligence features with full state persistence. Users can customize their table view exactly how they want it, and those preferences are automatically saved and restored across sessions.
 
+

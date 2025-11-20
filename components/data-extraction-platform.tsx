@@ -36,8 +36,9 @@ import { SingleSelectCell } from "./tanstack-grid/cells/SingleSelectCell"
 import { MultiSelectCell } from "./tanstack-grid/cells/MultiSelectCell"
 import { OCRDetailModal } from "@/components/OCRDetailModal"
 import { TransformBuilder } from "@/components/transform-builder"
+import { GalleryView } from "@/components/gallery-view/GalleryView"
 import { cn } from "@/lib/utils"
- 
+
 type AgentType = "standard" | "pharma"
 
 import {
@@ -62,7 +63,7 @@ import {
   addVisualGroup,
   removeVisualGroup,
 } from "@/lib/schema"
- 
+
 import {
   buildDependencyGraph,
   topologicalSort,
@@ -76,7 +77,7 @@ import {
   sanitizeResultsFromFlat,
   sanitizeResultsFromTree,
 } from "@/lib/extraction-results"
- 
+
 import {
   Upload,
   Plus,
@@ -110,6 +111,8 @@ import {
   Sparkle,
   CheckSquare,
   ListChecks,
+  LayoutGrid,
+  Grid,
 } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
@@ -374,9 +377,9 @@ function extractionJobToRow(job: ExtractionJob, schemaId: string, userId: string
     file_name: job.fileName,
     status: job.status,
     results: serializedResults,
-     ocr_markdown: job.ocrMarkdown ?? null,
-     ocr_annotated_image_url: job.ocrAnnotatedImageUrl ?? null,
-     original_file_url: job.originalFileUrl ?? null,
+    ocr_markdown: job.ocrMarkdown ?? null,
+    ocr_annotated_image_url: job.ocrAnnotatedImageUrl ?? null,
+    original_file_url: job.originalFileUrl ?? null,
     agent_type: job.agentType ?? null,
     created_at: job.createdAt?.toISOString() ?? new Date().toISOString(),
     completed_at: job.completedAt ? job.completedAt.toISOString() : null,
@@ -659,6 +662,9 @@ export function DataExtractionPlatform({
   const activeSchema = schemas.find((s) => s.id === activeSchemaId) || initialSchemaRef.current
   const isEmbedded = Boolean(externalActiveSchemaId)
   const [selectedAgent, setSelectedAgent] = useState<AgentType>("standard")
+  const [viewMode, setViewMode] = useState<'grid' | 'gallery'>('grid')
+  const [selectedJob, setSelectedJob] = useState<ExtractionJob | null>(null)
+  const [isDetailOpen, setIsDetailOpen] = useState(false)
   const fields = activeSchema.fields
   const jobs = activeSchema.jobs
   const displayColumns = useMemo(() => flattenFields(fields), [fields])
@@ -836,56 +842,56 @@ export function DataExtractionPlatform({
           return
         }
 
-    const remoteSchemas =
-      schemaData.length > 0
-        ? schemaData.map((row) => schemaRowToDefinition(row, jobData))
-        : [createInitialSchemaDefinition()]
+        const remoteSchemas =
+          schemaData.length > 0
+            ? schemaData.map((row) => schemaRowToDefinition(row, jobData))
+            : [createInitialSchemaDefinition()]
 
-    if (cancelled) return
+        if (cancelled) return
 
-    const localSchemasSnapshot = schemasRef.current
-    const localMap = new Map(localSchemasSnapshot.map((schema) => [schema.id, schema]))
-    const mergedSchemas: SchemaDefinition[] = remoteSchemas.map((remote) => {
-      const local = localMap.get(remote.id)
-      if (!local) return remote
-      const syncStatus = schemaSyncStateRef.current[remote.id]?.status
-      const localUpdatedAt = local.updatedAt?.getTime() ?? 0
-      const remoteUpdatedAt = remote.updatedAt?.getTime() ?? 0
-      if (syncStatus === 'saving' || localUpdatedAt > remoteUpdatedAt) {
-        return local
-      }
-      return remote
-    })
-
-    const remoteIds = new Set(remoteSchemas.map((schema) => schema.id))
-    localSchemasSnapshot.forEach((local) => {
-      if (!remoteIds.has(local.id)) {
-        mergedSchemas.push(local)
-      }
-    })
-
-    if (mergedSchemas.length === 0) {
-      mergedSchemas.push(createInitialSchemaDefinition())
-    }
-
-    setSchemas(mergedSchemas)
-    const nextActive = mergedSchemas.find((schema) => schema.id === activeSchemaId) ?? mergedSchemas[0]
-    setActiveSchemaId(nextActive.id)
-    setSchemaNameInput(nextActive.name)
-    guestSchemasRef.current = null
-    lastLoadedUserIdRef.current = userId
-    setSchemaSyncState((prev) => {
-      const nextState: Record<string, SchemaSyncInfo> = {}
-      mergedSchemas.forEach((schema) => {
-        const previous = prev[schema.id]
-        nextState[schema.id] =
-          previous ?? {
-            status: 'idle',
-            updatedAt: schema.updatedAt,
+        const localSchemasSnapshot = schemasRef.current
+        const localMap = new Map(localSchemasSnapshot.map((schema) => [schema.id, schema]))
+        const mergedSchemas: SchemaDefinition[] = remoteSchemas.map((remote) => {
+          const local = localMap.get(remote.id)
+          if (!local) return remote
+          const syncStatus = schemaSyncStateRef.current[remote.id]?.status
+          const localUpdatedAt = local.updatedAt?.getTime() ?? 0
+          const remoteUpdatedAt = remote.updatedAt?.getTime() ?? 0
+          if (syncStatus === 'saving' || localUpdatedAt > remoteUpdatedAt) {
+            return local
           }
-      })
-      return nextState
-    })
+          return remote
+        })
+
+        const remoteIds = new Set(remoteSchemas.map((schema) => schema.id))
+        localSchemasSnapshot.forEach((local) => {
+          if (!remoteIds.has(local.id)) {
+            mergedSchemas.push(local)
+          }
+        })
+
+        if (mergedSchemas.length === 0) {
+          mergedSchemas.push(createInitialSchemaDefinition())
+        }
+
+        setSchemas(mergedSchemas)
+        const nextActive = mergedSchemas.find((schema) => schema.id === activeSchemaId) ?? mergedSchemas[0]
+        setActiveSchemaId(nextActive.id)
+        setSchemaNameInput(nextActive.name)
+        guestSchemasRef.current = null
+        lastLoadedUserIdRef.current = userId
+        setSchemaSyncState((prev) => {
+          const nextState: Record<string, SchemaSyncInfo> = {}
+          mergedSchemas.forEach((schema) => {
+            const previous = prev[schema.id]
+            nextState[schema.id] =
+              previous ?? {
+                status: 'idle',
+                updatedAt: schema.updatedAt,
+              }
+          })
+          return nextState
+        })
         hasInitialLoadCompletedRef.current = true
       } catch (error) {
         if (!cancelled) {
@@ -968,7 +974,7 @@ export function DataExtractionPlatform({
 
   // UI state for modern grid behaviors
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null)
-  const [ocrModalJobId, setOcrModalJobId] = useState<string | null>(null)
+
   // Pharma agent editing state
   const [pharmaEditingSection, setPharmaEditingSection] = useState<string | null>(null)
   const [pharmaEditedValues, setPharmaEditedValues] = useState<Record<string, string>>({})
@@ -1012,16 +1018,7 @@ export function DataExtractionPlatform({
     [jobs],
   )
 
-  const ocrModalJob = useMemo(
-    () => (ocrModalJobId ? sortedJobs.find((job) => job.id === ocrModalJobId) ?? null : null),
-    [ocrModalJobId, sortedJobs],
-  )
 
-  useEffect(() => {
-    if (ocrModalJobId && !sortedJobs.some((job) => job.id === ocrModalJobId)) {
-      setOcrModalJobId(null)
-    }
-  }, [ocrModalJobId, sortedJobs])
   // Avoid referencing process.env in client runtime
   const { BOOKING_URL } = require("@/lib/publicEnv") as { BOOKING_URL: string }
   const isSchemaFresh = (s: SchemaDefinition) => (s.fields?.length ?? 0) === 0 && (s.jobs?.length ?? 0) === 0
@@ -1638,13 +1635,13 @@ export function DataExtractionPlatform({
           setRoiOpen(true)
         }
       }
-    } catch {}
+    } catch { }
   }
 
   const onCloseRoi = (open: boolean) => {
     setRoiOpen(open)
     if (!open) {
-      try { localStorage.setItem('bb_roi_last_shown', String(Date.now())) } catch {}
+      try { localStorage.setItem('bb_roi_last_shown', String(Date.now())) } catch { }
     }
   }
 
@@ -2122,9 +2119,10 @@ export function DataExtractionPlatform({
   const handleRowDoubleClick = useCallback(
     (job: ExtractionJob) => {
       if (!job) return
-      setOcrModalJobId(job.id)
+      setSelectedJob(job)
+      setIsDetailOpen(true)
     },
-    [setOcrModalJobId],
+    [],
   )
 
   const addSchema = () => {
@@ -2265,12 +2263,12 @@ export function DataExtractionPlatform({
       const next = { ...f, ...updates } as SchemaField
       if (updates.type && updates.type !== f.type) {
         if (updates.type === 'object') {
-          ;(next as any).children = Array.isArray((next as any).children) ? (next as any).children : []
+          ; (next as any).children = Array.isArray((next as any).children) ? (next as any).children : []
           delete (next as any).item
           delete (next as any).columns
         } else if (updates.type === 'list') {
           if (!(next as any).item) {
-            ;(next as any).item = {
+            ; (next as any).item = {
               id: `${next.id}_item`,
               name: 'item',
               type: 'string',
@@ -2282,7 +2280,7 @@ export function DataExtractionPlatform({
           delete (next as any).children
           delete (next as any).columns
         } else if (updates.type === 'table') {
-          ;(next as any).columns = Array.isArray((next as any).columns) ? (next as any).columns : []
+          ; (next as any).columns = Array.isArray((next as any).columns) ? (next as any).columns : []
           delete (next as any).children
           delete (next as any).item
         } else {
@@ -2295,7 +2293,7 @@ export function DataExtractionPlatform({
       return next
     }))
     if (selectedColumn?.id === columnId) setSelectedColumn({ ...selectedColumn, ...updates } as SchemaField)
-    
+
   }
 
   const deleteColumn = (columnId: string) => {
@@ -2500,12 +2498,12 @@ export function DataExtractionPlatform({
               prev.map((existing) =>
                 existing.id === job.id
                   ? {
-                      ...existing,
-                      status: 'completed',
-                      results: finalResults,
-                      completedAt,
-                      review: reviewMeta,
-                    }
+                    ...existing,
+                    status: 'completed',
+                    results: finalResults,
+                    completedAt,
+                    review: reviewMeta,
+                  }
                   : existing,
               ),
             )
@@ -2567,12 +2565,12 @@ export function DataExtractionPlatform({
               prev.map((existing) =>
                 existing.id === job.id
                   ? {
-                      ...existing,
-                      status: 'completed',
-                      results: finalResults,
-                      completedAt,
-                      review: reviewMeta,
-                    }
+                    ...existing,
+                    status: 'completed',
+                    results: finalResults,
+                    completedAt,
+                    review: reviewMeta,
+                  }
                   : existing,
               ),
             )
@@ -2762,12 +2760,40 @@ export function DataExtractionPlatform({
                   }
                 })
 
+                // Check if all dependency values are "-" (dash)
+                // If so, skip the transformation and set result to "-"
+                const allDependenciesAreDash = dependencies.size > 0 &&
+                  Array.from(dependencies).every((depId) => {
+                    const value = finalResults[depId]
+                    return value === "-" || value === "hyphen" || value === "شرطة"
+                  })
+
+                if (allDependenciesAreDash) {
+                  // Skip transformation, just set to "-"
+                  finalResults[tcol.id] = "-"
+                  fieldStatus.set(tcol.id, { status: 'success' })
+                  continue
+                }
+
+                // Extract prompt and selectedTools from transformationConfig
+                let promptString = ""
+                let selectedTools: string[] = []
+
+                if (typeof tcol.transformationConfig === 'object' && tcol.transformationConfig !== null) {
+                  const config = tcol.transformationConfig as any
+                  promptString = config.prompt || ""
+                  selectedTools = config.selectedTools || []
+                } else if (typeof tcol.transformationConfig === 'string') {
+                  promptString = tcol.transformationConfig
+                }
+
                 const promptPayload = {
-                  prompt: tcol.transformationConfig || "",
+                  prompt: promptString,
                   inputSource: source,
                   columnValues,
                   fieldType: tcol.type,
                   fieldSchema,
+                  selectedTools,
                 }
 
                 const response = await fetch("/api/transform", {
@@ -2858,24 +2884,24 @@ export function DataExtractionPlatform({
             prev.map((existing) =>
               existing.id === job.id
                 ? {
-                    ...existing,
-                    status: "completed",
-                    completedAt,
-                    results: finalResults,
-                    review: reviewMeta,
-                    ocrMarkdown:
-                      nextOcrMarkdown !== undefined
-                        ? nextOcrMarkdown
-                        : existing.ocrMarkdown ?? null,
-                    ocrAnnotatedImageUrl:
-                      nextOcrAnnotatedImageUrl !== undefined
-                        ? nextOcrAnnotatedImageUrl
-                        : existing.ocrAnnotatedImageUrl ?? null,
-                    originalFileUrl:
-                      nextOriginalFileUrl !== undefined
-                        ? nextOriginalFileUrl
-                        : existing.originalFileUrl ?? null,
-                  }
+                  ...existing,
+                  status: "completed",
+                  completedAt,
+                  results: finalResults,
+                  review: reviewMeta,
+                  ocrMarkdown:
+                    nextOcrMarkdown !== undefined
+                      ? nextOcrMarkdown
+                      : existing.ocrMarkdown ?? null,
+                  ocrAnnotatedImageUrl:
+                    nextOcrAnnotatedImageUrl !== undefined
+                      ? nextOcrAnnotatedImageUrl
+                      : existing.ocrAnnotatedImageUrl ?? null,
+                  originalFileUrl:
+                    nextOriginalFileUrl !== undefined
+                      ? nextOriginalFileUrl
+                      : existing.originalFileUrl ?? null,
+                }
                 : existing,
             ),
           )
@@ -2889,10 +2915,10 @@ export function DataExtractionPlatform({
           prev.map((existing) =>
             existing.id === job.id
               ? {
-                  ...existing,
-                  status: "error",
-                  completedAt: new Date(),
-                }
+                ...existing,
+                status: "error",
+                completedAt: new Date(),
+              }
               : existing,
           ),
         )
@@ -2964,8 +2990,8 @@ export function DataExtractionPlatform({
   const renderCellValue = (
     column: SchemaField,
     job: ExtractionJob,
-    opts?: { 
-      refreshRowHeight?: () => void; 
+    opts?: {
+      refreshRowHeight?: () => void;
       mode?: GridRenderMode;
       onUpdateCell?: (jobId: string, columnId: string, value: unknown) => void;
       onOpenTableModal?: (
@@ -2996,7 +3022,7 @@ export function DataExtractionPlatform({
         status: job.status,
         [column.id]: value,
       };
-      
+
       // Handle select types with special components
       if (column.type === 'single_select') {
         const options = column.constraints?.options || []
@@ -3010,7 +3036,7 @@ export function DataExtractionPlatform({
           />
         )
       }
-      
+
       if (column.type === 'multi_select') {
         const options = column.constraints?.options || []
         return (
@@ -3023,7 +3049,7 @@ export function DataExtractionPlatform({
           />
         )
       }
-      
+
       return <PrimitiveCell value={value} row={row} columnId={column.id} columnType={column.type} columnMeta={column} onUpdateCell={opts.onUpdateCell} />;
     }
 
@@ -3199,15 +3225,15 @@ export function DataExtractionPlatform({
       const columnHeaders =
         columnsForTable.length > 0
           ? columnsForTable.map((col) => ({
-              key: col.id ?? col.name,
-              label: col.name,
-            }))
+            key: col.id ?? col.name,
+            label: col.name,
+          }))
           : Array.from(
-              rows.reduce((set, row) => {
-                Object.keys(row || {}).forEach((key) => set.add(key))
-                return set
-              }, new Set<string>()),
-            ).map((key) => ({ key, label: prettifyKey(key) }))
+            rows.reduce((set, row) => {
+              Object.keys(row || {}).forEach((key) => set.add(key))
+              return set
+            }, new Set<string>()),
+          ).map((key) => ({ key, label: prettifyKey(key) }))
 
       const detail = rows.length === 0
         ? <span className="text-sm text-muted-foreground">No entries</span>
@@ -3382,7 +3408,7 @@ export function DataExtractionPlatform({
         const pharmaData = job.results?.pharma_data
         const drugInfo = pharmaData?.drugInfo
         const detailedInfo = pharmaData?.detailedInfo
-        
+
         return [
           job.fileName,
           job.status,
@@ -3605,12 +3631,43 @@ export function DataExtractionPlatform({
       w.document.close()
       w.focus()
       // Delay to ensure styles apply before print
-      setTimeout(() => { try { w.print() } catch {} }, 200)
+      setTimeout(() => { try { w.print() } catch { } }, 200)
     } catch (e) {
       console.error('print label error', e)
       alert('Failed to build printable label')
     }
   }
+
+  // New functions for TanStackGridSheet props
+  const handleUpdateCell = useCallback(
+    (jobId: string, columnId: string, value: unknown) => {
+      updateSchemaJobs(activeSchemaId, (prev) =>
+        prev.map((job) =>
+          job.id === jobId
+            ? { ...job, results: { ...(job.results || {}), [columnId]: value } }
+            : job,
+        ),
+      );
+      updateReviewStatus(jobId, columnId, "verified", {
+        reason: "Value edited by user",
+      });
+    },
+    [activeSchemaId, updateSchemaJobs, updateReviewStatus]
+  );
+
+  const handleUpdateReviewStatus = useCallback(
+    (jobId: string, columnId: string, status: "verified" | "needs_review", payload?: { reason?: string | null }) => {
+      updateReviewStatus(jobId, columnId, status, payload);
+    },
+    [updateReviewStatus]
+  );
+
+  const handleDeleteJob = useCallback(
+    (jobId: string) => {
+      updateSchemaJobs(activeSchemaId, (prev) => prev.filter((job) => job.id !== jobId));
+    },
+    [activeSchemaId, updateSchemaJobs]
+  );
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -3675,31 +3732,41 @@ export function DataExtractionPlatform({
 
         {/* Sidebar disabled on all screen sizes */}
 
-          {/* Main Content - Excel-style Table */}
-          <div className="flex-1 flex flex-col min-h-0 min-w-0">
+        {/* Main Content - Excel-style Table */}
+        <div className="flex-1 flex flex-col min-h-0 min-w-0">
           {/* Header */}
           <div className="bg-white border-b border-gray-200 p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {/* Sidebar toggle removed (sidebar disabled) */}
-                  {!editingSchemaName ? (
-                    <button
-                      type="button"
-                      className="text-2xl font-bold text-foreground hover:underline text-left"
-                      onClick={() => {
-                        setSchemaNameInput(activeSchema.name || 'Data Extraction Schema')
-                        setEditingSchemaName(true)
-                      }}
-                      title="Click to rename schema"
-                    >
-                      {activeSchema.name || 'Data Extraction Schema'}
-                    </button>
-                  ) : (
-                    <input
-                      value={schemaNameInput}
-                      onChange={(e) => setSchemaNameInput(e.target.value)}
-                      autoFocus
-                      onBlur={() => {
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {/* Sidebar toggle removed (sidebar disabled) */}
+                {!editingSchemaName ? (
+                  <button
+                    type="button"
+                    className="text-2xl font-bold text-foreground hover:underline text-left"
+                    onClick={() => {
+                      setSchemaNameInput(activeSchema.name || 'Data Extraction Schema')
+                      setEditingSchemaName(true)
+                    }}
+                    title="Click to rename schema"
+                  >
+                    {activeSchema.name || 'Data Extraction Schema'}
+                  </button>
+                ) : (
+                  <input
+                    value={schemaNameInput}
+                    onChange={(e) => setSchemaNameInput(e.target.value)}
+                    autoFocus
+                    onBlur={() => {
+                      const next = (schemaNameInput || 'Data Extraction Schema').trim()
+                      commitSchemaUpdate(activeSchemaId, (schema) => ({
+                        ...schema,
+                        name: next,
+                      }))
+                      setSchemaNameInput(next)
+                      setEditingSchemaName(false)
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
                         const next = (schemaNameInput || 'Data Extraction Schema').trim()
                         commitSchemaUpdate(activeSchemaId, (schema) => ({
                           ...schema,
@@ -3707,25 +3774,15 @@ export function DataExtractionPlatform({
                         }))
                         setSchemaNameInput(next)
                         setEditingSchemaName(false)
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          const next = (schemaNameInput || 'Data Extraction Schema').trim()
-                          commitSchemaUpdate(activeSchemaId, (schema) => ({
-                            ...schema,
-                            name: next,
-                          }))
-                          setSchemaNameInput(next)
-                          setEditingSchemaName(false)
-                        } else if (e.key === 'Escape') {
-                          setEditingSchemaName(false)
-                          setSchemaNameInput(activeSchema.name)
-                        }
-                      }}
-                      className="text-2xl font-bold text-foreground bg-transparent border-b border-border focus:outline-none focus:border-ring px-1"
-                    />
-                  )}
-                </div>
+                      } else if (e.key === 'Escape') {
+                        setEditingSchemaName(false)
+                        setSchemaNameInput(activeSchema.name)
+                      }
+                    }}
+                    className="text-2xl font-bold text-foreground bg-transparent border-b border-border focus:outline-none focus:border-ring px-1"
+                  />
+                )}
+              </div>
               <div className="flex flex-wrap items-center gap-2">
                 {/* Agent type selector */}
                 {!isEmbedded && isSchemaFresh(activeSchema) && (
@@ -3859,7 +3916,7 @@ export function DataExtractionPlatform({
                 ) : (
                   <div className="flex flex-col items-start gap-1">
                     {hasWorkspaceContent && (
-                      <span className="text-xs font-medium text-amber-600">
+                      <span className="text-sm font-medium text-amber-600">
                         Sign in to save your workspace before you leave.
                       </span>
                     )}
@@ -3874,7 +3931,27 @@ export function DataExtractionPlatform({
                     </Button>
                   </div>
                 )}
-                {/* Add Field button moved to grid area as a floating + */}
+                {/* View Mode Toggle */}
+                <div className="flex items-center gap-1 border rounded-md p-1">
+                  <Button
+                    size="sm"
+                    variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                    onClick={() => setViewMode('grid')}
+                    className="h-7 px-2"
+                    title="Grid View"
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={viewMode === 'gallery' ? 'default' : 'ghost'}
+                    onClick={() => setViewMode('gallery')}
+                    className="h-7 px-2"
+                    title="Gallery View"
+                  >
+                    <Grid className="h-4 w-4" />
+                  </Button>
+                </div>
                 {/* Upload button moved to header */}
                 <Button
                   size="sm"
@@ -3894,7 +3971,7 @@ export function DataExtractionPlatform({
                   className="hidden"
                 />
               </div>
-              </div>
+            </div>
             {(loadWorkspaceError || activeSchemaError) && (
               <div className="mt-2 space-y-1">
                 {loadWorkspaceError && (
@@ -3976,7 +4053,7 @@ export function DataExtractionPlatform({
                   const detailedInfo = pharmaData?.detailedInfo
                   const matchedDrugUrl = pharmaData?.matchedDrugUrl
                   const searchUrl = pharmaData?.searchUrl
-                  
+
                   const KV = (label: string, value: any) => (
                     value != null && value !== '' && value !== undefined ? (
                       <div className="flex justify-between gap-3 text-sm">
@@ -3985,7 +4062,7 @@ export function DataExtractionPlatform({
                       </div>
                     ) : null
                   )
-                  
+
                   const Section = (title: string, content: any) => (
                     content != null && content !== '' && content !== undefined ? (
                       <div className="space-y-2">
@@ -3994,7 +4071,7 @@ export function DataExtractionPlatform({
                       </div>
                     ) : null
                   )
-                  
+
                   return (
                     <div className="space-y-4">
                       <Card>
@@ -4030,9 +4107,9 @@ export function DataExtractionPlatform({
                               <span className="text-muted-foreground">Search Query: </span>
                               <span className="font-medium">{pharmaData?.searchQuery || 'N/A'}</span>
                             </div>
-                            <a 
-                              href={searchUrl} 
-                              target="_blank" 
+                            <a
+                              href={searchUrl}
+                              target="_blank"
                               rel="noopener noreferrer"
                               className="text-sm text-blue-600 hover:underline inline-flex items-center gap-1"
                             >
@@ -4051,9 +4128,9 @@ export function DataExtractionPlatform({
                               <span className="text-muted-foreground">Drug ID: </span>
                               <span className="font-medium">{pharmaData?.matchedDrugId || 'N/A'}</span>
                             </div>
-                            <a 
-                              href={matchedDrugUrl} 
-                              target="_blank" 
+                            <a
+                              href={matchedDrugUrl}
+                              target="_blank"
                               rel="noopener noreferrer"
                               className="text-sm text-blue-600 hover:underline inline-flex items-center gap-1"
                             >
@@ -4079,10 +4156,10 @@ export function DataExtractionPlatform({
                                 { key: 'storage', label: 'Storage', value: detailedInfo?.storage },
                               ].map(section => {
                                 if (!section.value || section.value === null) return null
-                                
+
                                 const isEditing = pharmaEditingSection === section.key
                                 const currentValue = pharmaEditedValues[section.key] ?? section.value
-                                
+
                                 const handleSave = () => {
                                   // Update the job results with the edited value
                                   const updatedJobs = jobs.map(j => {
@@ -4106,19 +4183,19 @@ export function DataExtractionPlatform({
                                   setJobs(updatedJobs)
                                   setPharmaEditingSection(null)
                                 }
-                                
+
                                 const handleEdit = () => {
                                   setPharmaEditedValues({ ...pharmaEditedValues, [section.key]: section.value })
                                   setPharmaEditingSection(section.key)
                                 }
-                                
+
                                 const handleCancel = () => {
                                   setPharmaEditingSection(null)
                                   const newValues = { ...pharmaEditedValues }
                                   delete newValues[section.key]
                                   setPharmaEditedValues(newValues)
                                 }
-                                
+
                                 return (
                                   <AccordionItem key={section.key} value={section.key}>
                                     <AccordionTrigger className="text-left hover:no-underline">
@@ -4182,7 +4259,7 @@ export function DataExtractionPlatform({
                           </CardContent>
                         </Card>
                       )}
-                      
+
                       {job.status === 'processing' && !pharmaData && (
                         <Card>
                           <CardContent className="p-4">
@@ -4334,39 +4411,39 @@ export function DataExtractionPlatform({
                                   </button>
                                 </div>
                                 {!collapseState.en && (
-                                <div className="space-y-2 rounded border p-2">
-                                  {KV('Barcode', translation?.english_product_info?.barcode)}
-                                  {KV('Product Name', translation?.english_product_info?.productName)}
-                                  <div className="space-y-1">
-                                    <div className="text-xs text-muted-foreground">Manufacturer</div>
+                                  <div className="space-y-2 rounded border p-2">
+                                    {KV('Barcode', translation?.english_product_info?.barcode)}
+                                    {KV('Product Name', translation?.english_product_info?.productName)}
+                                    <div className="space-y-1">
+                                      <div className="text-xs text-muted-foreground">Manufacturer</div>
+                                      <div className="space-y-1 rounded border p-2">
+                                        {KV('Name', translation?.english_product_info?.manufacturer?.name)}
+                                        {KV('Location', translation?.english_product_info?.manufacturer?.location)}
+                                        {KV('Additional Info', translation?.english_product_info?.manufacturer?.additionalInfo)}
+                                        {KV('Country', translation?.english_product_info?.manufacturer?.country)}
+                                      </div>
+                                    </div>
+                                    {KV('Product Description', translation?.english_product_info?.productDescription)}
+                                    {List('Ingredients', translation?.english_product_info?.ingredients)}
+                                    <div className="grid grid-cols-2 gap-2 rounded border p-2 text-sm">
+                                      {KV('Energy (kJ)', translation?.english_product_info?.nutritionalInformationPer100g?.energyPer100g?.kj)}
+                                      {KV('Energy (kcal)', translation?.english_product_info?.nutritionalInformationPer100g?.energyPer100g?.kcal)}
+                                      {KV('Fat', translation?.english_product_info?.nutritionalInformationPer100g?.fatPer100g)}
+                                      {KV('Saturates', translation?.english_product_info?.nutritionalInformationPer100g?.saturatesPer100g)}
+                                      {KV('Carbohydrate', translation?.english_product_info?.nutritionalInformationPer100g?.carbohydratePer100g)}
+                                      {KV('Sugars', translation?.english_product_info?.nutritionalInformationPer100g?.sugarsPer100g)}
+                                      {KV('Fibre', translation?.english_product_info?.nutritionalInformationPer100g?.fiberPer100g)}
+                                      {KV('Protein', translation?.english_product_info?.nutritionalInformationPer100g?.proteinPer100g)}
+                                      {KV('Salt', translation?.english_product_info?.nutritionalInformationPer100g?.saltPer100g)}
+                                    </div>
+                                    {KV('Storage Information', translation?.english_product_info?.storageInformation)}
+                                    {KV('Usage Information', translation?.english_product_info?.usageInformation)}
+                                    {List('Allergy Information', translation?.english_product_info?.allergyInformation)}
                                     <div className="space-y-1 rounded border p-2">
-                                      {KV('Name', translation?.english_product_info?.manufacturer?.name)}
-                                      {KV('Location', translation?.english_product_info?.manufacturer?.location)}
-                                      {KV('Additional Info', translation?.english_product_info?.manufacturer?.additionalInfo)}
-                                      {KV('Country', translation?.english_product_info?.manufacturer?.country)}
+                                      {KV('Net Weight', translation?.english_product_info?.weightInformation?.netWeight)}
+                                      {KV('Packaging Weight', translation?.english_product_info?.weightInformation?.packagingWeight)}
                                     </div>
                                   </div>
-                                  {KV('Product Description', translation?.english_product_info?.productDescription)}
-                                  {List('Ingredients', translation?.english_product_info?.ingredients)}
-                                  <div className="grid grid-cols-2 gap-2 rounded border p-2 text-sm">
-                                    {KV('Energy (kJ)', translation?.english_product_info?.nutritionalInformationPer100g?.energyPer100g?.kj)}
-                                    {KV('Energy (kcal)', translation?.english_product_info?.nutritionalInformationPer100g?.energyPer100g?.kcal)}
-                                    {KV('Fat', translation?.english_product_info?.nutritionalInformationPer100g?.fatPer100g)}
-                                    {KV('Saturates', translation?.english_product_info?.nutritionalInformationPer100g?.saturatesPer100g)}
-                                    {KV('Carbohydrate', translation?.english_product_info?.nutritionalInformationPer100g?.carbohydratePer100g)}
-                                    {KV('Sugars', translation?.english_product_info?.nutritionalInformationPer100g?.sugarsPer100g)}
-                                    {KV('Fibre', translation?.english_product_info?.nutritionalInformationPer100g?.fiberPer100g)}
-                                    {KV('Protein', translation?.english_product_info?.nutritionalInformationPer100g?.proteinPer100g)}
-                                    {KV('Salt', translation?.english_product_info?.nutritionalInformationPer100g?.saltPer100g)}
-                                  </div>
-                                  {KV('Storage Information', translation?.english_product_info?.storageInformation)}
-                                  {KV('Usage Information', translation?.english_product_info?.usageInformation)}
-                                  {List('Allergy Information', translation?.english_product_info?.allergyInformation)}
-                                  <div className="space-y-1 rounded border p-2">
-                                    {KV('Net Weight', translation?.english_product_info?.weightInformation?.netWeight)}
-                                    {KV('Packaging Weight', translation?.english_product_info?.weightInformation?.packagingWeight)}
-                                  </div>
-                                </div>
                                 )}
                               </div>
                               {/* Arabic */}
@@ -4378,39 +4455,39 @@ export function DataExtractionPlatform({
                                   </button>
                                 </div>
                                 {!collapseState.ar && (
-                                <div className="space-y-2 rounded border p-2">
-                                  {KV('Barcode', translation?.arabic_product_info?.barcode)}
-                                  {KV('Product Name', translation?.arabic_product_info?.productName)}
-                                  <div className="space-y-1">
-                                    <div className="text-xs text-muted-foreground">Manufacturer</div>
+                                  <div className="space-y-2 rounded border p-2">
+                                    {KV('Barcode', translation?.arabic_product_info?.barcode)}
+                                    {KV('Product Name', translation?.arabic_product_info?.productName)}
+                                    <div className="space-y-1">
+                                      <div className="text-xs text-muted-foreground">Manufacturer</div>
+                                      <div className="space-y-1 rounded border p-2">
+                                        {KV('Name', translation?.arabic_product_info?.manufacturer?.name)}
+                                        {KV('Location', translation?.arabic_product_info?.manufacturer?.location)}
+                                        {KV('Additional Info', translation?.arabic_product_info?.manufacturer?.additionalInfo)}
+                                        {KV('Country', translation?.arabic_product_info?.manufacturer?.country)}
+                                      </div>
+                                    </div>
+                                    {KV('Product Description', translation?.arabic_product_info?.productDescription)}
+                                    {List('Ingredients', translation?.arabic_product_info?.ingredients)}
+                                    <div className="grid grid-cols-2 gap-2 rounded border p-2 text-sm">
+                                      {KV('Energy (kJ)', translation?.arabic_product_info?.nutritionalInformationPer100g?.energyPer100g?.kj)}
+                                      {KV('Energy (kcal)', translation?.arabic_product_info?.nutritionalInformationPer100g?.energyPer100g?.kcal)}
+                                      {KV('Fat', translation?.arabic_product_info?.nutritionalInformationPer100g?.fatPer100g)}
+                                      {KV('Saturates', translation?.arabic_product_info?.nutritionalInformationPer100g?.saturatesPer100g)}
+                                      {KV('Carbohydrate', translation?.arabic_product_info?.nutritionalInformationPer100g?.carbohydratePer100g)}
+                                      {KV('Sugars', translation?.arabic_product_info?.nutritionalInformationPer100g?.sugarsPer100g)}
+                                      {KV('Fibre', translation?.arabic_product_info?.nutritionalInformationPer100g?.fiberPer100g)}
+                                      {KV('Protein', translation?.arabic_product_info?.nutritionalInformationPer100g?.proteinPer100g)}
+                                      {KV('Salt', translation?.arabic_product_info?.nutritionalInformationPer100g?.saltPer100g)}
+                                    </div>
+                                    {KV('Storage Information', translation?.arabic_product_info?.storageInformation)}
+                                    {KV('Usage Information', translation?.arabic_product_info?.usageInformation)}
+                                    {List('Allergy Information', translation?.arabic_product_info?.allergyInformation)}
                                     <div className="space-y-1 rounded border p-2">
-                                      {KV('Name', translation?.arabic_product_info?.manufacturer?.name)}
-                                      {KV('Location', translation?.arabic_product_info?.manufacturer?.location)}
-                                      {KV('Additional Info', translation?.arabic_product_info?.manufacturer?.additionalInfo)}
-                                      {KV('Country', translation?.arabic_product_info?.manufacturer?.country)}
+                                      {KV('Net Weight', translation?.arabic_product_info?.weightInformation?.netWeight)}
+                                      {KV('Packaging Weight', translation?.arabic_product_info?.weightInformation?.packagingWeight)}
                                     </div>
                                   </div>
-                                  {KV('Product Description', translation?.arabic_product_info?.productDescription)}
-                                  {List('Ingredients', translation?.arabic_product_info?.ingredients)}
-                                  <div className="grid grid-cols-2 gap-2 rounded border p-2 text-sm">
-                                    {KV('Energy (kJ)', translation?.arabic_product_info?.nutritionalInformationPer100g?.energyPer100g?.kj)}
-                                    {KV('Energy (kcal)', translation?.arabic_product_info?.nutritionalInformationPer100g?.energyPer100g?.kcal)}
-                                    {KV('Fat', translation?.arabic_product_info?.nutritionalInformationPer100g?.fatPer100g)}
-                                    {KV('Saturates', translation?.arabic_product_info?.nutritionalInformationPer100g?.saturatesPer100g)}
-                                    {KV('Carbohydrate', translation?.arabic_product_info?.nutritionalInformationPer100g?.carbohydratePer100g)}
-                                    {KV('Sugars', translation?.arabic_product_info?.nutritionalInformationPer100g?.sugarsPer100g)}
-                                    {KV('Fibre', translation?.arabic_product_info?.nutritionalInformationPer100g?.fiberPer100g)}
-                                    {KV('Protein', translation?.arabic_product_info?.nutritionalInformationPer100g?.proteinPer100g)}
-                                    {KV('Salt', translation?.arabic_product_info?.nutritionalInformationPer100g?.saltPer100g)}
-                                  </div>
-                                  {KV('Storage Information', translation?.arabic_product_info?.storageInformation)}
-                                  {KV('Usage Information', translation?.arabic_product_info?.usageInformation)}
-                                  {List('Allergy Information', translation?.arabic_product_info?.allergyInformation)}
-                                  <div className="space-y-1 rounded border p-2">
-                                    {KV('Net Weight', translation?.arabic_product_info?.weightInformation?.netWeight)}
-                                    {KV('Packaging Weight', translation?.arabic_product_info?.weightInformation?.packagingWeight)}
-                                  </div>
-                                </div>
                                 )}
                               </div>
                             </div>
@@ -4422,600 +4499,625 @@ export function DataExtractionPlatform({
                 })()}
               </div>
             ) : (
-              <div className="p-4 h-full">
-                <TanStackGridSheet
-                  schemaId={activeSchemaId}
-                  columns={displayColumns}
-                  jobs={sortedJobs}
-                  selectedRowId={selectedRowId}
-                  onSelectRow={(jobId) => setSelectedRowId(jobId)}
-                  onRowDoubleClick={handleRowDoubleClick}
-                  onAddColumn={() => addColumn()}
-                  renderCellValue={renderCellValue}
-                  getStatusIcon={getStatusIcon}
-                  renderStatusPill={renderStatusPill}
-                  onUpdateCell={(jobId, columnId, value) => {
-                    updateSchemaJobs(activeSchemaId, (prev) =>
-                      prev.map((job) =>
-                        job.id === jobId
-                          ? { ...job, results: { ...(job.results || {}), [columnId]: value } }
-                          : job,
-                      ),
-                    )
-                    updateReviewStatus(jobId, columnId, "verified", {
-                      reason: "Value edited by user",
-                    })
-                  }}
-                  onEditColumn={(column) => {
-                    setSelectedColumn(column)
-                    setDraftColumn(JSON.parse(JSON.stringify(column)))
-                    setColumnDialogMode('edit')
-                    setIsColumnDialogOpen(true)
-                  }}
-                  onDeleteColumn={deleteColumn}
-                  onUpdateReviewStatus={updateReviewStatus}
-                  onColumnRightClick={handleColumnRightClick}
-                  onOpenTableModal={openTableModal}
-                  visualGroups={activeSchema.visualGroups || []}
-                  expandedRowId={expandedRowId}
-                  onToggleRowExpansion={toggleRowExpansion}
-                />
+              <div className="flex-1 overflow-hidden min-h-0 relative">
+                {viewMode === 'grid' ? (
+                  <TanStackGridSheet
+                    schemaId={activeSchemaId}
+                    columns={displayColumns}
+                    jobs={sortedJobs}
+                    selectedRowId={selectedJob?.id ?? null}
+                    onSelectRow={(id) => {
+                      const job = sortedJobs.find((j) => j.id === id)
+                      if (job) setSelectedJob(job)
+                    }}
+                    onRowDoubleClick={(job) => {
+                      setSelectedJob(job)
+                      setIsDetailOpen(true)
+                    }}
+                    onAddColumn={() => {
+                      setColumnDialogMode('create')
+                      setDraftColumn(null)
+                      setIsColumnDialogOpen(true)
+                    }}
+                    renderCellValue={renderCellValue}
+                    getStatusIcon={getStatusIcon}
+                    renderStatusPill={renderStatusPill}
+                    onEditColumn={(col) => {
+                      setColumnDialogMode('edit')
+                      setDraftColumn(col)
+                      setIsColumnDialogOpen(true)
+                    }}
+                    onDeleteColumn={(colId) => {
+                      commitSchemaUpdate(activeSchemaId, (schema) => {
+                        const newFields = removeFieldById(schema.fields, colId)
+                        const updatedGroups = (schema.visualGroups || [])
+                          .map(group => ({
+                            ...group,
+                            fieldIds: group.fieldIds.filter(id => id !== colId)
+                          }))
+                          .filter(group => group.fieldIds.length > 0)
+                        return {
+                          ...schema,
+                          fields: newFields,
+                          visualGroups: updatedGroups,
+                        }
+                      })
+                    }}
+                    onUpdateCell={handleUpdateCell}
+                    onUpdateReviewStatus={handleUpdateReviewStatus}
+                    onColumnRightClick={handleColumnRightClick}
+                    onOpenTableModal={openTableModal}
+                    visualGroups={activeSchema.visualGroups}
+                    expandedRowId={expandedRowId}
+                    onToggleRowExpansion={toggleRowExpansion}
+                  />
+                ) : (
+                  <GalleryView
+                    jobs={sortedJobs}
+                    onSelectJob={(job) => {
+                      setSelectedJob(job)
+                      setIsDetailOpen(true)
+                    }}
+                    onDeleteJob={(jobId) => handleDeleteJob(jobId)}
+                  />
+                )}
               </div>
             )}
           </div>
-      </div>
+        </div>
 
-      {/* Column Configuration Modal (hidden for F&B fixed mode) */}
-      {activeSchema.templateId !== 'fnb-label-compliance' && (
-        <Dialog
-          open={isColumnDialogOpen}
-          onOpenChange={(open) => {
-            setIsColumnDialogOpen(open)
-            if (!open) {
-              setDraftColumn(null)
-              setColumnDialogMode('create')
-            }
-          }}
-        >
-          <DialogContent className="max-w-xl w-full max-h-[90vh] p-0 overflow-hidden flex flex-col">
-            <DialogHeader className="border-b border-slate-200/70 px-6 py-5">
-              <DialogTitle className="text-xl font-semibold">
-                {columnDialogMode === 'edit' ? 'Edit Field' : 'Add New Field'}
-              </DialogTitle>
-              <DialogDescription className="text-sm text-slate-600">
-                Configure how this data point is extracted and structured for your grid.
-              </DialogDescription>
-            </DialogHeader>
+        {/* Column Configuration Modal (hidden for F&B fixed mode) */}
+        {activeSchema.templateId !== 'fnb-label-compliance' && (
+          <Dialog
+            open={isColumnDialogOpen}
+            onOpenChange={(open) => {
+              setIsColumnDialogOpen(open)
+              if (!open) {
+                setDraftColumn(null)
+                setColumnDialogMode('create')
+              }
+            }}
+          >
+            <DialogContent className="max-w-xl w-full max-h-[90vh] p-0 overflow-hidden flex flex-col">
+              <DialogHeader className="border-b border-slate-200/70 px-6 py-5">
+                <DialogTitle className="text-xl font-semibold">
+                  {columnDialogMode === 'edit' ? 'Edit Field' : 'Add New Field'}
+                </DialogTitle>
+                <DialogDescription className="text-sm text-slate-600">
+                  Configure how this data point is extracted and structured for your grid.
+                </DialogDescription>
+              </DialogHeader>
 
-            {draftColumn && (
-              <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5 min-h-0">
-                <section className="space-y-3">
-                  <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Field Source</Label>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className={cn(
-                        'flex h-auto flex-col items-start gap-1 rounded-xl border-2 px-4 py-3 text-left shadow-none transition-all',
-                        !isDraftTransformation
-                          ? 'border-[#2782ff]/70 bg-[#e6f0ff]/70 text-[#2782ff] hover:bg-[#d9e9ff]'
-                          : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100',
-                      )}
-                      aria-pressed={!isDraftTransformation}
-                      onClick={() => handleDraftFieldTypeChange(false)}
-                    >
-                      <span className="flex items-center gap-2 text-sm font-semibold">
-                        <FileText className="h-4 w-4" />
-                        Extraction
-                      </span>
-                      <span className="text-xs text-slate-500">Extract directly from the document</span>
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className={cn(
-                        'flex h-auto flex-col items-start gap-1 rounded-xl border-2 px-4 py-3 text-left shadow-none transition-all',
-                        isDraftTransformation
-                          ? 'border-[#2782ff]/70 bg-[#e6f0ff]/70 text-[#2782ff] hover:bg-[#d9e9ff]'
-                          : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100',
-                      )}
-                      aria-pressed={isDraftTransformation}
-                      onClick={() => handleDraftFieldTypeChange(true)}
-                    >
-                      <span className="flex items-center gap-2 text-sm font-semibold">
-                        <Zap className="h-4 w-4" />
-                        Transformation
-                      </span>
-                      <span className="text-xs text-slate-500">Compute value from other fields</span>
-                    </Button>
+              {draftColumn && (
+                <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5 min-h-0">
+                  <section className="space-y-3">
+                    <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Field Source</Label>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className={cn(
+                          'flex h-auto flex-col items-start gap-1 rounded-xl border-2 px-4 py-3 text-left shadow-none transition-all',
+                          !isDraftTransformation
+                            ? 'border-[#2782ff]/70 bg-[#e6f0ff]/70 text-[#2782ff] hover:bg-[#d9e9ff]'
+                            : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100',
+                        )}
+                        aria-pressed={!isDraftTransformation}
+                        onClick={() => handleDraftFieldTypeChange(false)}
+                      >
+                        <span className="flex items-center gap-2 text-sm font-semibold">
+                          <FileText className="h-4 w-4" />
+                          Extraction
+                        </span>
+                        <span className="text-xs text-slate-500">Extract directly from the document</span>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className={cn(
+                          'flex h-auto flex-col items-start gap-1 rounded-xl border-2 px-4 py-3 text-left shadow-none transition-all',
+                          isDraftTransformation
+                            ? 'border-[#2782ff]/70 bg-[#e6f0ff]/70 text-[#2782ff] hover:bg-[#d9e9ff]'
+                            : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100',
+                        )}
+                        aria-pressed={isDraftTransformation}
+                        onClick={() => handleDraftFieldTypeChange(true)}
+                      >
+                        <span className="flex items-center gap-2 text-sm font-semibold">
+                          <Zap className="h-4 w-4" />
+                          Transformation
+                        </span>
+                        <span className="text-xs text-slate-500">Compute value from other fields</span>
+                      </Button>
+                    </div>
+                  </section>
+
+                  <div className="space-y-4 rounded-2xl border border-slate-200/70 bg-white px-4 py-5 shadow-sm">
+                    <div className="grid gap-4">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="column-name">Field Name</Label>
+                        <Input
+                          id="column-name"
+                          value={draftColumn.name}
+                          onChange={(event) => setDraftColumn({ ...draftColumn, name: event.target.value })}
+                          placeholder="e.g., Manufacturer"
+                        />
+                      </div>
+                      {/* Description has been merged with Extraction Guidance below */}
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="column-type">Data Type</Label>
+                        <Select value={draftColumn.type} onValueChange={(value: DataType) => changeDraftType(value)}>
+                          <SelectTrigger id="column-type">
+                            <SelectValue placeholder="Select a data type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectGroup>
+                              <SelectLabel>Simple Types</SelectLabel>
+                              {simpleDataTypeOptions.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
+                            <SelectSeparator />
+                            <SelectGroup>
+                              <SelectLabel>Structured Types</SelectLabel>
+                              {complexDataTypeOptions.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {renderStructuredConfig()}
+
+                      <div className="flex items-center gap-3 pt-1">
+                        <Checkbox
+                          id="column-required"
+                          checked={!!draftColumn.required}
+                          onCheckedChange={(checked) => setDraftColumn({ ...draftColumn, required: checked === true })}
+                        />
+                        <Label htmlFor="column-required" className="text-sm font-medium text-slate-600">
+                          Required field
+                        </Label>
+                      </div>
+                    </div>
                   </div>
-                </section>
 
-                <div className="space-y-4 rounded-2xl border border-slate-200/70 bg-white px-4 py-5 shadow-sm">
-                  <div className="grid gap-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="column-name">Field Name</Label>
-                      <Input
-                        id="column-name"
-                        value={draftColumn.name}
-                        onChange={(event) => setDraftColumn({ ...draftColumn, name: event.target.value })}
-                        placeholder="e.g., Manufacturer"
+                  <div className="space-y-3 rounded-2xl border border-slate-200/70 bg-white px-4 py-5 shadow-sm">
+                    <div className="space-y-1">
+                      <h3 className="text-sm font-semibold text-slate-700">Field Guidance</h3>
+                      <p className="text-xs text-slate-500">Describe this field and how to extract it. This text helps teammates and the AI.</p>
+                    </div>
+                    {isDraftTransformation ? (
+                      <TransformBuilder
+                        allColumns={displayColumns}
+                        selected={draftColumn}
+                        onUpdate={(updates) => setDraftColumn({ ...draftColumn, ...updates })}
+                        visualGroups={activeSchema.visualGroups}
                       />
-                    </div>
-                    {/* Description has been merged with Extraction Guidance below */}
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="column-type">Data Type</Label>
-                      <Select value={draftColumn.type} onValueChange={(value: DataType) => changeDraftType(value)}>
-                        <SelectTrigger id="column-type">
-                          <SelectValue placeholder="Select a data type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            <SelectLabel>Simple Types</SelectLabel>
-                            {simpleDataTypeOptions.map((option) => (
-                              <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                          <SelectSeparator />
-                          <SelectGroup>
-                            <SelectLabel>Structured Types</SelectLabel>
-                            {complexDataTypeOptions.map((option) => (
-                              <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {renderStructuredConfig()}
-
-                    <div className="flex items-center gap-3 pt-1">
-                      <Checkbox
-                        id="column-required"
-                        checked={!!draftColumn.required}
-                        onCheckedChange={(checked) => setDraftColumn({ ...draftColumn, required: checked === true })}
-                      />
-                      <Label htmlFor="column-required" className="text-sm font-medium text-slate-600">
-                        Required field
-                      </Label>
-                    </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="field-guidance">Field Guidance</Label>
+                        <Textarea
+                          id="field-guidance"
+                          value={draftColumn.extractionInstructions || draftColumn.description || ''}
+                          onChange={(event) => setDraftColumn({ ...draftColumn, description: event.target.value, extractionInstructions: event.target.value })}
+                          placeholder="Explain what this field is and how to extract it from the document."
+                          rows={5}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
+              )}
 
-                <div className="space-y-3 rounded-2xl border border-slate-200/70 bg-white px-4 py-5 shadow-sm">
-                  <div className="space-y-1">
-                    <h3 className="text-sm font-semibold text-slate-700">Field Guidance</h3>
-                    <p className="text-xs text-slate-500">Describe this field and how to extract it. This text helps teammates and the AI.</p>
-                  </div>
-                  {isDraftTransformation ? (
-                    <TransformBuilder
-                      allColumns={displayColumns}
-                      selected={draftColumn}
-                      onUpdate={(updates) => setDraftColumn({ ...draftColumn, ...updates })}
-                      visualGroups={activeSchema.visualGroups}
-                    />
-                  ) : (
-                    <div className="space-y-1.5">
-                      <Label htmlFor="field-guidance">Field Guidance</Label>
-                      <Textarea
-                        id="field-guidance"
-                        value={draftColumn.extractionInstructions || draftColumn.description || ''}
-                        onChange={(event) => setDraftColumn({ ...draftColumn, description: event.target.value, extractionInstructions: event.target.value })}
-                        placeholder="Explain what this field is and how to extract it from the document."
-                        rows={5}
-                      />
-                    </div>
-                  )}
+              <div className="border-t border-slate-200/70 bg-white/95 px-6 py-4">
+                <div className="flex w-full flex-col gap-3 sm:flex-row sm:justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setIsColumnDialogOpen(false)
+                      setDraftColumn(null)
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      if (!selectedColumn || !draftColumn) return
+                      const updates: Partial<SchemaField> = {
+                        name: draftColumn.name,
+                        type: draftColumn.type,
+                        description: draftColumn.description,
+                        required: !!draftColumn.required,
+                        extractionInstructions: draftColumn.extractionInstructions,
+                        // constraints removed from tool logic
+                        isTransformation: !!draftColumn.isTransformation,
+                        transformationType: draftColumn.transformationType,
+                        transformationConfig: draftColumn.transformationConfig,
+                        transformationSource: draftColumn.transformationSource,
+                        transformationSourceColumnId: draftColumn.transformationSourceColumnId,
+                      }
+                      if (draftColumn.type === 'object') {
+                        (updates as any).children = (draftColumn as ObjectField).children
+                      }
+                      if (draftColumn.type === 'table') {
+                        (updates as any).columns = (draftColumn as TableField).columns
+                      }
+                      if (draftColumn.type === 'list') {
+                        (updates as any).item = (draftColumn as ListField).item
+                      }
+                      updateColumn(selectedColumn.id, updates)
+                      setIsColumnDialogOpen(false)
+                      setDraftColumn(null)
+                    }}
+                  >
+                    Save Field
+                  </Button>
                 </div>
               </div>
-            )}
-
-            <div className="border-t border-slate-200/70 bg-white/95 px-6 py-4">
-              <div className="flex w-full flex-col gap-3 sm:flex-row sm:justify-end">
+            </DialogContent>
+          </Dialog>
+        )}
+        {onCreateTemplate ? (
+          <Dialog open={isTemplateDialogOpen} onOpenChange={(open) => {
+            if (isSavingTemplate) return
+            setIsTemplateDialogOpen(open)
+          }}>
+            <DialogContent className="sm:max-w-[480px]">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Sparkle className="h-4 w-4" />
+                  Save as template
+                </DialogTitle>
+                <DialogDescription>
+                  Capture the current schema fields and transformations so you can reuse them when creating a new project.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="template-name">Template name</Label>
+                  <Input
+                    id="template-name"
+                    value={templateNameInput}
+                    onChange={(event) => setTemplateNameInput(event.target.value)}
+                    placeholder="Invoice – net terms"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="template-description">Description (optional)</Label>
+                  <Textarea
+                    id="template-description"
+                    value={templateDescriptionInput}
+                    onChange={(event) => setTemplateDescriptionInput(event.target.value)}
+                    placeholder="What makes this schema unique or when it should be used?"
+                    rows={3}
+                  />
+                </div>
+                <div className="rounded-md border border-dashed border-muted-foreground/30 px-3 py-2 text-xs text-muted-foreground">
+                  {fields.length === 0
+                    ? "Templates save the schema layout. Add fields before saving."
+                    : `This template will include ${fields.length} ${fields.length === 1 ? "field" : "fields"} along with any transformation settings.`}
+                </div>
+              </div>
+              <DialogFooter className="gap-2">
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => {
-                    setIsColumnDialogOpen(false)
-                    setDraftColumn(null)
-                  }}
+                  onClick={() => setIsTemplateDialogOpen(false)}
+                  disabled={isSavingTemplate}
                 >
                   Cancel
                 </Button>
                 <Button
                   type="button"
-                  onClick={() => {
-                    if (!selectedColumn || !draftColumn) return
-                    const updates: Partial<SchemaField> = {
-                      name: draftColumn.name,
-                      type: draftColumn.type,
-                      description: draftColumn.description,
-                      required: !!draftColumn.required,
-                      extractionInstructions: draftColumn.extractionInstructions,
-                      // constraints removed from tool logic
-                      isTransformation: !!draftColumn.isTransformation,
-                      transformationType: draftColumn.transformationType,
-                      transformationConfig: draftColumn.transformationConfig,
-                      transformationSource: draftColumn.transformationSource,
-                      transformationSourceColumnId: draftColumn.transformationSourceColumnId,
-                    }
-                    if (draftColumn.type === 'object') {
-                      (updates as any).children = (draftColumn as ObjectField).children
-                    }
-                    if (draftColumn.type === 'table') {
-                      (updates as any).columns = (draftColumn as TableField).columns
-                    }
-                    if (draftColumn.type === 'list') {
-                      (updates as any).item = (draftColumn as ListField).item
-                    }
-                    updateColumn(selectedColumn.id, updates)
-                    setIsColumnDialogOpen(false)
-                    setDraftColumn(null)
-                  }}
+                  onClick={handleTemplateSave}
+                  disabled={isSavingTemplate || fields.length === 0 || templateNameInput.trim().length === 0}
                 >
-                  Save Field
+                  {isSavingTemplate ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkle className="mr-2 h-4 w-4" />}
+                  Save template
                 </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        ) : null}
+
+        <OCRDetailModal
+          open={isDetailOpen}
+          onOpenChange={(open) => {
+            setIsDetailOpen(open)
+            if (!open) {
+              setSelectedJob(null)
+            }
+          }}
+          job={selectedJob}
+        />
+
+        {/* Advanced Automation ROI Modal */}
+        <Dialog open={roiOpen} onOpenChange={onCloseRoi}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                {roiStage === 'calc'
+                  ? 'You just processed 1 document. What if you could automate the next 5 steps?'
+                  : 'Your estimated savings'}
+              </DialogTitle>
+              <DialogDescription>
+                {roiStage === 'calc'
+                  ? 'Estimate how much time and money full workflow automation could save each month.'
+                  : 'These savings are based on the numbers you entered in the calculator.'}
+              </DialogDescription>
+            </DialogHeader>
+
+            {roiStage === 'calc' ? (
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Simple data extraction is just the start. The real power of Bytebeam is in automating the entire, multi‑step process that follows—turning raw documents into decisions, actions, and results.
+                </p>
+                <p className="text-sm">Imagine a workflow that can:</p>
+                <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
+                  <li><span className="mr-1">✅</span><strong>Extract & Validate:</strong> Pull invoice data, then automatically validate it against purchase orders in your database and flag discrepancies.</li>
+                  <li><span className="mr-1">✅</span><strong>Analyze & Flag:</strong> Read a 50‑page legal contract, identify all non‑compliant clauses based on your custom rules, and generate a summary report.</li>
+                  <li><span className="mr-1">✅</span><strong>Route & Decide:</strong> Process an incoming trade compliance form, determine the correct regional office based on its contents, and forward it with a recommended action.</li>
+                </ul>
+
+                <div className="rounded-md border p-3" id="roi-calculator">
+                  <h3 className="font-medium">Find out the real cost of your <em>entire</em> manual workflow.</h3>
+                  <p className="text-sm text-muted-foreground">Enter your estimates below to see your potential savings.</p>
+                  <div className="mt-3 grid gap-3">
+                    <div>
+                      <Label>1. Documents processed per month</Label>
+                      <Input type="number" placeholder="e.g., 500" value={docsPerMonth} onChange={(e) => setDocsPerMonth(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label>2. Average time for the <em>full process</em> (in minutes)</Label>
+                      <Input type="number" placeholder="e.g., 15" value={timePerDoc} onChange={(e) => setTimePerDoc(e.target.value)} />
+                      <p className="text-[11px] text-muted-foreground">Note: Include all steps, not just data entry.</p>
+                    </div>
+                    <div>
+                      <Label>3. (Optional) Average hourly team cost ($)</Label>
+                      <Input type="number" placeholder="e.g., 35" value={hourlyCost} onChange={(e) => setHourlyCost(e.target.value)} />
+                    </div>
+                  </div>
+                  <div className="mt-3 flex justify-end">
+                    <Button id="calculate-btn" onClick={calculateSavings}>Calculate My Savings 📈</Button>
+                  </div>
+                </div>
               </div>
+            ) : (
+              <div className="space-y-3" id="roi-results">
+                <h2 className="text-lg">You could save an estimated <strong>{totalHoursSaved} hours</strong> every month.</h2>
+                {monthlyDollarSavings != null && annualDollarSavings != null && (
+                  <h3 className="text-base">That's around <strong>${monthlyDollarSavings.toLocaleString()}</strong> per month, or <strong>${annualDollarSavings.toLocaleString()}</strong> back in your budget every year.</h3>
+                )}
+                <p className="text-sm text-muted-foreground">Ready to claim that time back? Let's have a quick chat to map out the exact automation strategy to get you there.</p>
+                <div className="flex items-center gap-3">
+                  <Button asChild>
+                    <a href={BOOKING_URL} target="_blank" rel="noopener noreferrer" className="cta-button">Book a 15‑min Strategy Call</a>
+                  </Button>
+                  <small className="text-muted-foreground"><em>Your schedule is open to map this out</em></small>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Table Modal */}
+        <Dialog open={tableModalOpen} onOpenChange={setTableModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Eye className="h-5 w-5" />
+                Table: {tableModalData?.column.name}
+              </DialogTitle>
+              <DialogDescription>
+                Inspect the parsed rows for this table field. Scroll to review every value.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="overflow-auto max-h-[60vh]">
+              {tableModalData && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <span>{tableModalData.rows.length} {tableModalData.rows.length === 1 ? 'row' : 'rows'}</span>
+                    <span>{tableModalData.columnHeaders.length} columns</span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full border-separate border-spacing-y-2 text-sm">
+                      <thead>
+                        <tr className="text-xs uppercase tracking-wide text-muted-foreground">
+                          {tableModalData.columnHeaders.map((header) => (
+                            <th key={header.key} className="bg-slate-50 px-3 py-2 text-left font-medium first:rounded-l-md last:rounded-r-md border">
+                              {header.label}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {tableModalData.rows.map((row, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50/50">
+                            {tableModalData.columnHeaders.map((header) => {
+                              const cell = row?.[header.key as keyof typeof row]
+                              const formatted =
+                                typeof cell === 'number'
+                                  ? formatNumericValue(cell) ?? String(cell)
+                                  : typeof cell === 'boolean'
+                                    ? cell ? 'True' : 'False'
+                                    : typeof cell === 'object'
+                                      ? JSON.stringify(cell)
+                                      : cell ?? '—'
+                              return (
+                                <td key={header.key} className="px-3 py-2 text-left text-sm first:rounded-l-md last:rounded-r-md border">
+                                  <span className="block" title={String(formatted)}>
+                                    {String(formatted)}
+                                  </span>
+                                </td>
+                              )
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           </DialogContent>
         </Dialog>
-      )}
-      {onCreateTemplate ? (
-        <Dialog open={isTemplateDialogOpen} onOpenChange={(open) => {
-          if (isSavingTemplate) return
-          setIsTemplateDialogOpen(open)
+
+        {/* Column Right-Click Context Menu */}
+        {contextMenuPosition && (
+          <>
+            <div
+              className="fixed inset-0 z-40"
+              onClick={closeContextMenu}
+            />
+            <div
+              className="fixed z-50 bg-white border border-gray-200 rounded-md shadow-lg py-1 min-w-[160px]"
+              style={{
+                left: `${contextMenuPosition.x}px`,
+                top: `${contextMenuPosition.y}px`,
+              }}
+            >
+              <button
+                onClick={startGroupingFromContext}
+                className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+              >
+                <Layers className="h-4 w-4" />
+                Create Object
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* Group Fields Dialog */}
+        <Dialog open={isGroupDialogOpen} onOpenChange={(open) => {
+          setIsGroupDialogOpen(open)
+          if (!open) {
+            setSelectedColumnIds(new Set())
+            setGroupName('')
+          }
         }}>
-          <DialogContent className="sm:max-w-[480px]">
+          <DialogContent className="sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Sparkle className="h-4 w-4" />
-                Save as template
-              </DialogTitle>
+              <DialogTitle>Group Fields into Object</DialogTitle>
               <DialogDescription>
-                Capture the current schema fields and transformations so you can reuse them when creating a new project.
+                Select the fields to group together, then provide a name for the object.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="template-name">Template name</Label>
-                <Input
-                  id="template-name"
-                  value={templateNameInput}
-                  onChange={(event) => setTemplateNameInput(event.target.value)}
-                  placeholder="Invoice – net terms"
-                />
+              <div className="rounded-md border p-3 max-h-60 overflow-y-auto">
+                <p className="text-sm font-medium mb-3">Select fields to group:</p>
+                <div className="space-y-2">
+                  {fields.map((field) => (
+                    <label key={field.id} className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 p-2 rounded">
+                      <Checkbox
+                        checked={selectedColumnIds.has(field.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedColumnIds(prev => new Set([...prev, field.id]))
+                          } else {
+                            setSelectedColumnIds(prev => {
+                              const newSet = new Set(prev)
+                              newSet.delete(field.id)
+                              return newSet
+                            })
+                          }
+                        }}
+                      />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium">{field.name}</div>
+                        {field.type !== 'string' && (
+                          <div className="text-xs text-muted-foreground capitalize">{field.type}</div>
+                        )}
+                      </div>
+                    </label>
+                  ))}
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="template-description">Description (optional)</Label>
-                <Textarea
-                  id="template-description"
-                  value={templateDescriptionInput}
-                  onChange={(event) => setTemplateDescriptionInput(event.target.value)}
-                  placeholder="What makes this schema unique or when it should be used?"
-                  rows={3}
-                />
-              </div>
-              <div className="rounded-md border border-dashed border-muted-foreground/30 px-3 py-2 text-xs text-muted-foreground">
-                {fields.length === 0
-                  ? "Templates save the schema layout. Add fields before saving."
-                  : `This template will include ${fields.length} ${fields.length === 1 ? "field" : "fields"} along with any transformation settings.`}
-              </div>
+
+              {selectedColumnIds.size >= 2 && (
+                <div>
+                  <Label htmlFor="group-name">Object Name *</Label>
+                  <Input
+                    id="group-name"
+                    value={groupName}
+                    onChange={(e) => setGroupName(e.target.value)}
+                    placeholder="e.g., Invoice Details, Customer Info"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && groupName.trim() && selectedColumnIds.size >= 2) {
+                        createGroupedObject()
+                      }
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {selectedColumnIds.size} fields selected
+                  </p>
+                </div>
+              )}
+
+              {selectedColumnIds.size < 2 && (
+                <p className="text-sm text-muted-foreground">
+                  Select at least 2 fields to create a group.
+                </p>
+              )}
             </div>
-            <DialogFooter className="gap-2">
+            <div className="flex justify-end gap-2 mt-4">
               <Button
-                type="button"
                 variant="outline"
-                onClick={() => setIsTemplateDialogOpen(false)}
-                disabled={isSavingTemplate}
+                onClick={() => {
+                  setIsGroupDialogOpen(false)
+                  setSelectedColumnIds(new Set())
+                  setGroupName('')
+                }}
               >
                 Cancel
               </Button>
               <Button
-                type="button"
-                onClick={handleTemplateSave}
-                disabled={isSavingTemplate || fields.length === 0 || templateNameInput.trim().length === 0}
+                onClick={createGroupedObject}
+                disabled={!groupName.trim() || selectedColumnIds.size < 2}
               >
-                {isSavingTemplate ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkle className="mr-2 h-4 w-4" />}
-                Save template
+                Create Object
               </Button>
-            </DialogFooter>
+            </div>
           </DialogContent>
         </Dialog>
-      ) : null}
-
-      <OCRDetailModal
-        open={ocrModalJobId !== null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setOcrModalJobId(null)
-          }
-        }}
-        job={ocrModalJob}
-      />
-
-      {/* Advanced Automation ROI Modal */}
-      <Dialog open={roiOpen} onOpenChange={onCloseRoi}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              {roiStage === 'calc'
-                ? 'You just processed 1 document. What if you could automate the next 5 steps?'
-                : 'Your estimated savings'}
-            </DialogTitle>
-            <DialogDescription>
-              {roiStage === 'calc'
-                ? 'Estimate how much time and money full workflow automation could save each month.'
-                : 'These savings are based on the numbers you entered in the calculator.'}
-            </DialogDescription>
-          </DialogHeader>
-
-          {roiStage === 'calc' ? (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Simple data extraction is just the start. The real power of Bytebeam is in automating the entire, multi‑step process that follows—turning raw documents into decisions, actions, and results.
-              </p>
-              <p className="text-sm">Imagine a workflow that can:</p>
-              <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
-                <li><span className="mr-1">✅</span><strong>Extract & Validate:</strong> Pull invoice data, then automatically validate it against purchase orders in your database and flag discrepancies.</li>
-                <li><span className="mr-1">✅</span><strong>Analyze & Flag:</strong> Read a 50‑page legal contract, identify all non‑compliant clauses based on your custom rules, and generate a summary report.</li>
-                <li><span className="mr-1">✅</span><strong>Route & Decide:</strong> Process an incoming trade compliance form, determine the correct regional office based on its contents, and forward it with a recommended action.</li>
-              </ul>
-
-              <div className="rounded-md border p-3" id="roi-calculator">
-                <h3 className="font-medium">Find out the real cost of your <em>entire</em> manual workflow.</h3>
-                <p className="text-sm text-muted-foreground">Enter your estimates below to see your potential savings.</p>
-                <div className="mt-3 grid gap-3">
-                  <div>
-                    <Label>1. Documents processed per month</Label>
-                    <Input type="number" placeholder="e.g., 500" value={docsPerMonth} onChange={(e) => setDocsPerMonth(e.target.value)} />
-                  </div>
-                  <div>
-                    <Label>2. Average time for the <em>full process</em> (in minutes)</Label>
-                    <Input type="number" placeholder="e.g., 15" value={timePerDoc} onChange={(e) => setTimePerDoc(e.target.value)} />
-                    <p className="text-[11px] text-muted-foreground">Note: Include all steps, not just data entry.</p>
-                  </div>
-                  <div>
-                    <Label>3. (Optional) Average hourly team cost ($)</Label>
-                    <Input type="number" placeholder="e.g., 35" value={hourlyCost} onChange={(e) => setHourlyCost(e.target.value)} />
-                  </div>
-                </div>
-                <div className="mt-3 flex justify-end">
-                  <Button id="calculate-btn" onClick={calculateSavings}>Calculate My Savings 📈</Button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-3" id="roi-results">
-              <h2 className="text-lg">You could save an estimated <strong>{totalHoursSaved} hours</strong> every month.</h2>
-              {monthlyDollarSavings != null && annualDollarSavings != null && (
-                <h3 className="text-base">That's around <strong>${monthlyDollarSavings.toLocaleString()}</strong> per month, or <strong>${annualDollarSavings.toLocaleString()}</strong> back in your budget every year.</h3>
-              )}
-              <p className="text-sm text-muted-foreground">Ready to claim that time back? Let's have a quick chat to map out the exact automation strategy to get you there.</p>
-              <div className="flex items-center gap-3">
-                <Button asChild>
-                  <a href={BOOKING_URL} target="_blank" rel="noopener noreferrer" className="cta-button">Book a 15‑min Strategy Call</a>
-                </Button>
-                <small className="text-muted-foreground"><em>Your schedule is open to map this out</em></small>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Table Modal */}
-      <Dialog open={tableModalOpen} onOpenChange={setTableModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Eye className="h-5 w-5" />
-              Table: {tableModalData?.column.name}
-            </DialogTitle>
-            <DialogDescription>
-              Inspect the parsed rows for this table field. Scroll to review every value.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="overflow-auto max-h-[60vh]">
-            {tableModalData && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>{tableModalData.rows.length} {tableModalData.rows.length === 1 ? 'row' : 'rows'}</span>
-                  <span>{tableModalData.columnHeaders.length} columns</span>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full border-separate border-spacing-y-2 text-sm">
-                    <thead>
-                      <tr className="text-xs uppercase tracking-wide text-muted-foreground">
-                        {tableModalData.columnHeaders.map((header) => (
-                          <th key={header.key} className="bg-slate-50 px-3 py-2 text-left font-medium first:rounded-l-md last:rounded-r-md border">
-                            {header.label}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {tableModalData.rows.map((row, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50/50">
-                          {tableModalData.columnHeaders.map((header) => {
-                            const cell = row?.[header.key as keyof typeof row]
-                            const formatted =
-                              typeof cell === 'number'
-                                ? formatNumericValue(cell) ?? String(cell)
-                                : typeof cell === 'boolean'
-                                  ? cell ? 'True' : 'False'
-                                  : typeof cell === 'object'
-                                    ? JSON.stringify(cell)
-                                    : cell ?? '—'
-                            return (
-                              <td key={header.key} className="px-3 py-2 text-left text-sm first:rounded-l-md last:rounded-r-md border">
-                                <span className="block" title={String(formatted)}>
-                                  {String(formatted)}
-                                </span>
-                              </td>
-                            )
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Column Right-Click Context Menu */}
-      {contextMenuPosition && (
-        <>
-          <div 
-            className="fixed inset-0 z-40" 
-            onClick={closeContextMenu}
-          />
-          <div
-            className="fixed z-50 bg-white border border-gray-200 rounded-md shadow-lg py-1 min-w-[160px]"
-            style={{
-              left: `${contextMenuPosition.x}px`,
-              top: `${contextMenuPosition.y}px`,
-            }}
-          >
-            <button
-              onClick={startGroupingFromContext}
-              className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
-            >
-              <Layers className="h-4 w-4" />
-              Create Object
-            </button>
-          </div>
-        </>
-      )}
-
-      {/* Group Fields Dialog */}
-      <Dialog open={isGroupDialogOpen} onOpenChange={(open) => {
-        setIsGroupDialogOpen(open)
-        if (!open) {
-          setSelectedColumnIds(new Set())
-          setGroupName('')
-        }
-      }}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Group Fields into Object</DialogTitle>
-            <DialogDescription>
-              Select the fields to group together, then provide a name for the object.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="rounded-md border p-3 max-h-60 overflow-y-auto">
-              <p className="text-sm font-medium mb-3">Select fields to group:</p>
-              <div className="space-y-2">
-                {fields.map((field) => (
-                  <label key={field.id} className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 p-2 rounded">
-                    <Checkbox
-                      checked={selectedColumnIds.has(field.id)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedColumnIds(prev => new Set([...prev, field.id]))
-                        } else {
-                          setSelectedColumnIds(prev => {
-                            const newSet = new Set(prev)
-                            newSet.delete(field.id)
-                            return newSet
-                          })
-                        }
-                      }}
-                    />
-                    <div className="flex-1">
-                      <div className="text-sm font-medium">{field.name}</div>
-                      {field.type !== 'string' && (
-                        <div className="text-xs text-muted-foreground capitalize">{field.type}</div>
-                      )}
-                    </div>
-                  </label>
-                ))}
-              </div>
-            </div>
-            
-            {selectedColumnIds.size >= 2 && (
-              <div>
-                <Label htmlFor="group-name">Object Name *</Label>
-                <Input
-                  id="group-name"
-                  value={groupName}
-                  onChange={(e) => setGroupName(e.target.value)}
-                  placeholder="e.g., Invoice Details, Customer Info"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && groupName.trim() && selectedColumnIds.size >= 2) {
-                      createGroupedObject()
-                    }
-                  }}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  {selectedColumnIds.size} fields selected
+        <AlertDialog
+          open={!!schemaDeletionDialog}
+          onOpenChange={(open) => {
+            if (!open) handleCancelSchemaDeletion()
+          }}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete schema?</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <p>
+                  This will permanently remove "{schemaDeletionDialog?.name ?? "schema"}" and all associated jobs and
+                  results.
                 </p>
-              </div>
-            )}
-            
-            {selectedColumnIds.size < 2 && (
-              <p className="text-sm text-muted-foreground">
-                Select at least 2 fields to create a group.
-              </p>
-            )}
-          </div>
-          <div className="flex justify-end gap-2 mt-4">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsGroupDialogOpen(false)
-                setSelectedColumnIds(new Set())
-                setGroupName('')
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={createGroupedObject}
-              disabled={!groupName.trim() || selectedColumnIds.size < 2}
-            >
-              Create Object
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-      <AlertDialog
-        open={!!schemaDeletionDialog}
-        onOpenChange={(open) => {
-          if (!open) handleCancelSchemaDeletion()
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete schema?</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <p>
-                This will permanently remove "{schemaDeletionDialog?.name ?? "schema"}" and all associated jobs and
-                results.
-              </p>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleCancelSchemaDeletion}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={handleConfirmSchemaDeletion}
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={handleCancelSchemaDeletion}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={handleConfirmSchemaDeletion}
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
-    </div>
+    </div >
   )
 }
