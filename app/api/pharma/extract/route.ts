@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { google } from "@ai-sdk/google"
-import { generateText } from "ai"
+import { generateText } from "@/lib/openrouter"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import { createSupabaseServerClient } from "@/lib/supabase/server"
@@ -127,22 +126,21 @@ function tryParseJSON(text: string): any {
 
 async function extractDrugIdentifiers(imageBase64?: string, extractedText?: string) {
   const parts: any[] = []
-  
+
   if (extractedText) {
     parts.push({ type: "text", text: `Extracted text from document:\n${extractedText}` })
   }
-  
+
   if (imageBase64) {
     parts.push({
       type: "image",
       image: imageBase64,
     })
   }
-  
+
   parts.push({ type: "text", text: DRUG_IDENTIFICATION_PROMPT })
 
   const { text } = await generateText({
-    model: google("gemini-2.0-flash-exp"),
     messages: [{ role: "user", content: parts }],
     temperature: 0.1,
   })
@@ -152,7 +150,6 @@ async function extractDrugIdentifiers(imageBase64?: string, extractedText?: stri
 
 async function generateSearchQuery(drugInfo: any) {
   const { text } = await generateText({
-    model: google("gemini-2.0-flash-exp"),
     messages: [
       {
         role: "user",
@@ -161,34 +158,34 @@ async function generateSearchQuery(drugInfo: any) {
     ],
     temperature: 0.1,
   })
-  
+
   return text.trim()
 }
 
 async function searchSaudiFDA(query: string) {
   const searchUrl = `https://sdi.sfda.gov.sa/Home/DrugSearch?textFilter=${encodeURIComponent(query)}`
-  
+
   try {
     const response = await fetch(searchUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
       },
     })
-    
+
     if (!response.ok) {
       throw new Error(`Failed to fetch search results: ${response.status}`)
     }
-    
+
     const html = await response.text()
-    
+
     // Extract drug IDs from the HTML
     const drugIdMatches = html.matchAll(/data-drug-id="(\d+)"/g)
     const drugIds = Array.from(drugIdMatches).map(match => match[1])
-    
+
     // Pass the search results HTML to AI for structured extraction
     // This is more reliable than trying to parse the HTML structure ourselves
     const searchResultsHtml = html.length > 20000 ? html.substring(0, 20000) : html
-    
+
     return {
       searchUrl,
       drugIds: drugIds.slice(0, 10), // Limit to first 10 results
@@ -202,7 +199,7 @@ async function searchSaudiFDA(query: string) {
 
 async function fetchDrugDetails(drugId: string) {
   const detailUrl = `https://sdi.sfda.gov.sa/home/Result?drugId=${drugId}`
-  
+
   try {
     // Fetch the main detail page (Drug Data tab)
     const mainResponse = await fetch(detailUrl, {
@@ -210,13 +207,13 @@ async function fetchDrugDetails(drugId: string) {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
       },
     })
-    
+
     if (!mainResponse.ok) {
       throw new Error(`Failed to fetch drug details: ${mainResponse.status}`)
     }
-    
+
     const mainHtml = await mainResponse.text()
-    
+
     // Fetch Patient Information Leaflet (PIL) in English
     const pilEnUrl = `https://sdi.sfda.gov.sa/home/ResultPilEn?drugId=${drugId}`
     const pilEnResponse = await fetch(pilEnUrl, {
@@ -225,7 +222,7 @@ async function fetchDrugDetails(drugId: string) {
       },
     }).catch(() => null)
     const pilEnHtml = pilEnResponse?.ok ? await pilEnResponse.text() : ''
-    
+
     // Fetch Patient Information Leaflet (PIL) in Arabic
     const pilArUrl = `https://sdi.sfda.gov.sa/home/ResultPilAr?drugId=${drugId}`
     const pilArResponse = await fetch(pilArUrl, {
@@ -234,7 +231,7 @@ async function fetchDrugDetails(drugId: string) {
       },
     }).catch(() => null)
     const pilArHtml = pilArResponse?.ok ? await pilArResponse.text() : ''
-    
+
     // Fetch Summary of Product Characteristics (SPC)
     const spcUrl = `https://sdi.sfda.gov.sa/home/ResultSpc?drugId=${drugId}`
     const spcResponse = await fetch(spcUrl, {
@@ -243,7 +240,7 @@ async function fetchDrugDetails(drugId: string) {
       },
     }).catch(() => null)
     const spcHtml = spcResponse?.ok ? await spcResponse.text() : ''
-    
+
     // Combine all tab content
     const combinedContent = `
 === DRUG DATA TAB ===
@@ -258,9 +255,9 @@ ${pilArHtml}
 === SUMMARY OF PRODUCT CHARACTERISTICS (SPC) ===
 ${spcHtml}
     `.trim()
-    
+
     console.log(`[pharma] Fetched content from ${drugId}: Main=${mainHtml.length}b, PIL-EN=${pilEnHtml.length}b, PIL-AR=${pilArHtml.length}b, SPC=${spcHtml.length}b`)
-    
+
     return {
       detailUrl,
       html: combinedContent,
@@ -274,9 +271,8 @@ ${spcHtml}
 async function extractDrugDetails(html: string) {
   // Use more content since we have multiple tabs - Gemini 2.0 can handle large context
   const contentToAnalyze = html.substring(0, 50000)
-  
+
   const { text } = await generateText({
-    model: google("gemini-2.0-flash-exp"),
     messages: [
       {
         role: "user",
@@ -291,7 +287,6 @@ async function extractDrugDetails(html: string) {
 
 async function findBestMatch(originalDrugInfo: any, searchResultsHtml: string, drugIds: string[]) {
   const { text } = await generateText({
-    model: google("gemini-2.0-flash-exp"),
     messages: [
       {
         role: "user",
@@ -354,14 +349,14 @@ export async function POST(request: NextRequest) {
         userId = null
       }
     }
-    
+
     console.log("[pharma] Starting drug extraction")
-    
+
     const { imageBase64, extractedText, fileName } = body
     if (fileName && jobMeta) {
       jobMeta.fileName = fileName
     }
-    
+
     if (!imageBase64 && !extractedText) {
       const responsePayload = { success: false, error: "No image or text provided" }
       await syncJob({
@@ -375,7 +370,7 @@ export async function POST(request: NextRequest) {
     // Step 1: Extract drug identifiers from the uploaded file
     console.log("[pharma] Step 1: Extracting drug identifiers...")
     const drugInfo = await extractDrugIdentifiers(imageBase64, extractedText)
-    
+
     if (!drugInfo) {
       const responsePayload = { success: false, error: "Failed to extract drug information" }
       await syncJob({
@@ -385,7 +380,7 @@ export async function POST(request: NextRequest) {
       })
       return NextResponse.json(responsePayload, { status: 500 })
     }
-    
+
     console.log("[pharma] Extracted drug info:", drugInfo)
 
     // Step 2: Generate search query
@@ -416,16 +411,16 @@ export async function POST(request: NextRequest) {
 
     // Step 4: For each drug ID, fetch details and try to match
     console.log("[pharma] Step 4: Fetching drug details and matching...")
-    const drugDetailsPromises = searchResults.drugIds.slice(0, 5).map(id => 
+    const drugDetailsPromises = searchResults.drugIds.slice(0, 5).map(id =>
       fetchDrugDetails(id).catch(err => {
         console.error(`[pharma] Failed to fetch details for drug ${id}:`, err)
         return null
       })
     )
-    
+
     const allDrugDetails = await Promise.all(drugDetailsPromises)
     const validDrugDetails = allDrugDetails.filter(d => d !== null)
-    
+
     if (validDrugDetails.length === 0) {
       const responsePayload = {
         success: true,

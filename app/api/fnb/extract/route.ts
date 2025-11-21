@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { google } from "@ai-sdk/google"
-import { generateText } from "ai"
+import { generateText } from "@/lib/openrouter"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import { createSupabaseServerClient } from "@/lib/supabase/server"
@@ -184,12 +183,12 @@ JSON
 function tryParseJSON(text: string): any | null {
   try {
     return JSON.parse(text)
-  } catch {}
+  } catch { }
   const start = text.indexOf("{")
   const end = text.lastIndexOf("}")
   if (start >= 0 && end > start) {
     const slice = text.slice(start, end + 1)
-    try { return JSON.parse(slice) } catch {}
+    try { return JSON.parse(slice) } catch { }
   }
   return null
 }
@@ -268,19 +267,23 @@ export async function POST(request: NextRequest) {
       const base64 = Buffer.from(bytes).toString("base64")
       const mimeType = fileType || "image/png"
       const { text: out } = await generateText({
-        model: google("gemini-2.5-pro"),
         temperature: 0.2,
         messages: [
-          { role: "user", content: [ { type: "text", text: EXTRACTION_PROMPT }, { type: "image", image: `data:${mimeType};base64,${base64}` } ] },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: EXTRACTION_PROMPT },
+              { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64}` } },
+            ],
+          },
         ],
       })
       text = out
     } else {
       const docText = new TextDecoder().decode(bytes)
       const { text: out } = await generateText({
-        model: google("gemini-2.5-pro"),
         temperature: 0.2,
-        prompt: `${EXTRACTION_PROMPT}\n\nDocument:\n${docText}`,
+        messages: [{ role: "user", content: `${EXTRACTION_PROMPT}\n\nDocument:\n${docText}` }],
       })
       text = out
     }

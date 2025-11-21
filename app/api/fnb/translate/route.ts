@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { google } from "@ai-sdk/google"
-import { generateText } from "ai"
+import { generateText } from "@/lib/openrouter"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import { createSupabaseServerClient } from "@/lib/supabase/server"
@@ -167,12 +166,12 @@ JSON
 function tryParseJSON(text: string): any | null {
   try {
     return JSON.parse(text)
-  } catch {}
+  } catch { }
   const start = text.indexOf("{")
   const end = text.lastIndexOf("}")
   if (start >= 0 && end > start) {
     const slice = text.slice(start, end + 1)
-    try { return JSON.parse(slice) } catch {}
+    try { return JSON.parse(slice) } catch { }
   }
   return null
 }
@@ -232,9 +231,8 @@ export async function POST(request: NextRequest) {
     }
 
     const { text } = await generateText({
-      model: google("gemini-2.5-pro"),
       temperature: 0.2,
-      prompt: `${TRANSLATION_PROMPT}\n\nSource JSON:\n${sourceText}`,
+      messages: [{ role: "user", content: `${TRANSLATION_PROMPT}\n\nSource JSON:\n${sourceText}` }],
     })
 
     const parsed = tryParseJSON(text)

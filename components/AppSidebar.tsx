@@ -3,8 +3,6 @@
 import * as React from 'react'
 import {
     LayoutDashboard,
-    FileText,
-    Bot,
     Store,
     Library,
 } from 'lucide-react'
@@ -31,15 +29,15 @@ interface AppSidebarProps {
 export function AppSidebar({ onNavigate, activeView }: AppSidebarProps) {
     const navItems = [
         {
-            title: 'Dashboard',
+            title: 'Home',
             icon: LayoutDashboard,
-            value: 'dashboard',
+            value: 'home',
         },
 
         {
-            title: 'Knowledge Hubs',
+            title: 'Knowledge Hub',
             icon: Library,
-            value: 'knowledge-hub',
+            value: 'knowledge',
         },
     ]
 
@@ -68,7 +66,7 @@ export function AppSidebar({ onNavigate, activeView }: AppSidebarProps) {
             </SidebarContent>
             <SidebarFooter>
                 <div className="px-2 py-1 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
-                    Design Preview v1.0
+                    v1.0
                 </div>
             </SidebarFooter>
             <SidebarRail />

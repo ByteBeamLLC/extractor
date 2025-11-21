@@ -15,15 +15,15 @@ import { DataExtractionPlatform } from "@/components/data-extraction-platform"
 import type { SchemaDefinition } from "@/lib/schema"
 import type { SchemaTemplateDefinition } from "@/lib/schema-templates"
 
-export function WorkspaceApp() {
+export function WorkspaceApp({ isEmbedded = false }: { isEmbedded?: boolean } = {}) {
   return (
     <WorkspaceProvider>
-      <WorkspaceShell />
+      <WorkspaceShell isEmbedded={isEmbedded} />
     </WorkspaceProvider>
   )
 }
 
-function WorkspaceShell() {
+function WorkspaceShell({ isEmbedded = false }: { isEmbedded?: boolean }) {
   const {
     tabs,
     activeTabId,
@@ -60,7 +60,7 @@ function WorkspaceShell() {
   )
 
   return (
-    <div className="flex h-full min-h-screen flex-col bg-background">
+    <div className={cn("flex h-full flex-col bg-background", !isEmbedded && "min-h-screen")}>
       <div className="border-b border-border bg-muted/40">
         <ScrollArea className="w-full whitespace-nowrap">
           <div className="flex min-h-[3rem] items-stretch gap-1 px-4 py-1">
@@ -113,6 +113,7 @@ function WorkspaceShell() {
             clearPendingSchemaCreate={clearPendingSchemaCreate}
             templates={templates}
             onCreateTemplate={createTemplateFromSchema}
+            isEmbedded={isEmbedded}
           />
         )}
       </main>
@@ -141,6 +142,7 @@ interface SchemaEditorProps {
     schema: SchemaDefinition,
     input: { name: string; description?: string; agent: AgentType },
   ) => Promise<{ success: true; template: SchemaTemplateDefinition } | { success: false; error: string }>
+  isEmbedded?: boolean
 }
 
 function SchemaEditor({
@@ -150,6 +152,7 @@ function SchemaEditor({
   clearPendingSchemaCreate,
   templates,
   onCreateTemplate,
+  isEmbedded = false,
 }: SchemaEditorProps) {
   return (
     <div className="flex h-full flex-col">
@@ -160,6 +163,7 @@ function SchemaEditor({
         onPendingCreateConsumed={clearPendingSchemaCreate}
         templateLibrary={templates}
         onCreateTemplate={onCreateTemplate}
+        isEmbedded={isEmbedded}
       />
     </div>
   )

@@ -1,8 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { google } from "@ai-sdk/google"
-import { generateText, generateObject, tool } from "ai"
+import { generateText, generateObject } from "@/lib/openrouter"
 import { z } from "zod"
+import { getKnowledgeContentForTransformation, findKnowledgeItemByName } from "@/lib/knowledge-actions"
 
+// Note: 'tool' functionality from AI SDK is not directly used in OpenRouter
+// If tools are needed, they would be implemented differently
+
+/*
 const calculatorTool = tool({
   description: "A comprehensive calculator tool for performing arithmetic operations. Use this whenever you need to calculate mathematical expressions, including basic arithmetic, exponentiation, square roots, and more. The calculator supports: addition (+), subtraction (-), multiplication (*), division (/), exponentiation (^), square root (sqrt), parentheses for grouping, and follows proper order of operations.",
   inputSchema: z.object({
@@ -27,13 +31,13 @@ const webSearchTool = tool({
     try {
       const apiKey = process.env.JINA_API_KEY
       console.log("[bytebeam] Jina API Key check:", apiKey ? "Present" : "Missing")
-      
+
       if (!apiKey) {
         return { error: "JINA_API_KEY not configured. Please set the JINA_API_KEY environment variable to enable web search." }
       }
 
       console.log("[bytebeam] Calling Jina Search API with query:", query)
-      
+
       const response = await fetch(`https://s.jina.ai/${encodeURIComponent(query)}`, {
         method: 'GET',
         headers: {
@@ -42,12 +46,12 @@ const webSearchTool = tool({
           'X-Retain-Images': 'none',
         },
       })
-      
+
       if (!response.ok) {
         const errorText = await response.text().catch(() => response.statusText)
         throw new Error(`Jina API error: ${response.status} ${errorText}`)
       }
-      
+
       const data = await response.json()
       console.log("[bytebeam] Jina response received:", data)
 
@@ -79,7 +83,7 @@ const webReaderTool = tool({
     try {
       const apiKey = process.env.JINA_API_KEY
       console.log("[bytebeam] Jina Reader API - Reading URL:", url)
-      
+
       if (!apiKey) {
         return { error: "JINA_API_KEY not configured. Please set the JINA_API_KEY environment variable to enable web reading." }
       }
@@ -99,12 +103,12 @@ const webReaderTool = tool({
           'X-Return-Format': 'json',
         },
       })
-      
+
       if (!response.ok) {
         const errorText = await response.text().catch(() => response.statusText)
         throw new Error(`Jina Reader API error: ${response.status} ${errorText}`)
       }
-      
+
       const data = await response.json()
       console.log("[bytebeam] Jina Reader response received for:", url)
 
@@ -120,6 +124,7 @@ const webReaderTool = tool({
     }
   },
 })
+*/
 
 // ===== ONE-SHOT TRANSFORMATION WITH STRUCTURED OUTPUT =====
 // All transformation logic is now handled directly in the POST handler below
@@ -127,22 +132,22 @@ const webReaderTool = tool({
 
 function evaluateExpression(expr: string): number {
   expr = expr.trim().toLowerCase()
-  
+
   expr = expr.replace(/\s+/g, '')
-  
+
   expr = expr.replace(/sqrt\(([^)]+)\)/g, (_, inner) => {
     const val = evaluateExpression(inner)
     if (val < 0) throw new Error("Cannot take square root of negative number")
     return String(Math.sqrt(val))
   })
-  
+
   expr = expr.replace(/\^/g, '**')
-  
+
   const isValidExpression = /^[0-9+\-*/(). **]+$/.test(expr)
   if (!isValidExpression) {
     throw new Error("Invalid characters in expression")
   }
-  
+
   try {
     const result = Function('"use strict"; return (' + expr + ')')()
     if (typeof result !== 'number' || !isFinite(result)) {
@@ -157,8 +162,8 @@ function evaluateExpression(expr: string): number {
 // Schema builder utilities for type-aware transformations
 function makePrimitive(fieldSchema: any): z.ZodTypeAny {
   const type = fieldSchema.type === "decimal" ? "number" : fieldSchema.type
-  let prop: z.ZodTypeAny
-  
+  let prop: any
+
   switch (type) {
     case "number":
       prop = z.number()
@@ -193,7 +198,7 @@ function makePrimitive(fieldSchema: any): z.ZodTypeAny {
       if (fieldSchema.constraints?.maxLength !== undefined) prop = prop.max(fieldSchema.constraints.maxLength)
       break
   }
-  
+
   return prop
 }
 
@@ -201,27 +206,27 @@ function buildFieldSchema(fieldSchema: any): z.ZodTypeAny {
   if (!fieldSchema || !fieldSchema.type) {
     return z.string()
   }
-  
+
   const desc = `${fieldSchema.description || ""} ${fieldSchema.extractionInstructions || ""}`.trim()
-  
+
   if (fieldSchema.type === "object") {
     const shape: Record<string, z.ZodTypeAny> = {}
     const children = fieldSchema.children || []
-    
+
     for (const child of children) {
       const childSchema = buildFieldSchema(child)
       // Use id, name, or generate a key
       const key = child.id || child.name || `field_${Object.keys(shape).length}`
       shape[key] = childSchema
     }
-    
+
     let prop: z.ZodTypeAny = z.object(shape)
     if (desc) prop = prop.describe(desc)
     return prop
   } else if (fieldSchema.type === "list") {
     const item = fieldSchema.item
     let zItem: z.ZodTypeAny
-    
+
     if (item?.type === "object") {
       zItem = buildFieldSchema(item)
     } else if (item) {
@@ -229,21 +234,21 @@ function buildFieldSchema(fieldSchema: any): z.ZodTypeAny {
     } else {
       zItem = z.string()
     }
-    
+
     let prop: z.ZodTypeAny = z.array(zItem)
     if (desc) prop = prop.describe(desc)
     return prop
   } else if (fieldSchema.type === "table") {
     const shape: Record<string, z.ZodTypeAny> = {}
     const columns = fieldSchema.columns || []
-    
+
     for (const col of columns) {
       const colSchema = buildFieldSchema(col)
       // Use id, name, or generate a key
       const key = col.id || col.name || `col_${Object.keys(shape).length}`
       shape[key] = colSchema
     }
-    
+
     let prop: z.ZodTypeAny = z.array(z.object(shape))
     if (desc) prop = prop.describe(desc)
     return prop
@@ -257,7 +262,7 @@ function buildFieldSchema(fieldSchema: any): z.ZodTypeAny {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    
+
     console.log("[bytebeam] Transform API - Full request body:", JSON.stringify(body, null, 2))
 
     const inputSource: "document" | "column" = body.inputSource || "column"
@@ -272,36 +277,79 @@ export async function POST(request: NextRequest) {
       const columnValues: Record<string, any> = body.columnValues || {}
       const fieldType = body.fieldType
       const fieldSchema = body.fieldSchema
-      
+
       // Build a structured representation for the AI
       const columnContext: string[] = []
-      const substitutedPrompt = prompt.replace(/\{([^}]+)\}/g, (match, columnName) => {
+      const knowledgeContext: string[] = []
+      let totalTokens = 0
+
+      // 1. Handle Knowledge References {kb:name}
+      const knowledgeRegex = /\{kb:([^}]+)\}/g
+      let match
+      const knowledgeItems = new Set<string>()
+
+      while ((match = knowledgeRegex.exec(prompt)) !== null) {
+        knowledgeItems.add(match[1])
+      }
+
+      for (const kbName of knowledgeItems) {
+        console.log(`[bytebeam] Resolving knowledge item: ${kbName}`)
+        const item = await findKnowledgeItemByName(kbName)
+
+        if (item) {
+          const { content, tokenEstimate } = await getKnowledgeContentForTransformation(item)
+          if (content) {
+            knowledgeContext.push(content)
+            totalTokens += tokenEstimate
+            console.log(`[bytebeam] Added knowledge content for ${kbName} (~${tokenEstimate} tokens)`)
+          }
+        } else {
+          console.warn(`[bytebeam] Knowledge item not found: ${kbName}`)
+        }
+      }
+
+      // Check token limit (100k safety limit)
+      if (totalTokens > 100000) {
+        return NextResponse.json({
+          success: false,
+          error: `Knowledge content too large (~${totalTokens} tokens). Please use smaller documents or fewer references.`
+        }, { status: 400 })
+      }
+
+      // 2. Handle Column References {column}
+      // We replace {kb:name} with just the name for readability in the final prompt, 
+      // as the content is added to context
+      let substitutedPrompt = prompt.replace(/\{kb:([^}]+)\}/g, "$1")
+
+      substitutedPrompt = substitutedPrompt.replace(/\{([^}]+)\}/g, (match, columnName) => {
         const value = columnValues[columnName.trim()]
         if (value === undefined) return match
-        
+
         // If value is an object/structured type, provide it as JSON context
         if (typeof value === 'object' && value !== null) {
           const jsonValue = JSON.stringify(value, null, 2)
           columnContext.push(`${columnName.trim()}: ${jsonValue}`)
           return `{${columnName.trim()}}`
         }
-        
+
         // For primitive values, substitute directly
         return String(value)
       })
-      
+
       console.log("[bytebeam] Transform - Original prompt:", prompt)
       console.log("[bytebeam] Transform - Column values:", columnValues)
       console.log("[bytebeam] Transform - Substituted prompt:", substitutedPrompt)
       console.log("[bytebeam] Transform - Column context:", columnContext)
+      console.log("[bytebeam] Transform - Knowledge context size:", knowledgeContext.length)
       console.log("[bytebeam] Transform - Field type:", fieldType)
       console.log("[bytebeam] Transform - Field schema:", fieldSchema)
       console.log("[bytebeam] Transform - Selected tools:", selectedTools)
-      
+
       // ===== NEW ONE-SHOT STRUCTURED OUTPUT APPROACH =====
-      
+
       // Build the tool map based on selected tools
       const toolMap: Record<string, any> = {}
+      /*
       if (selectedTools.includes('calculator')) {
         toolMap.calculator = calculatorTool
       }
@@ -311,28 +359,35 @@ export async function POST(request: NextRequest) {
       if (selectedTools.includes('webReader')) {
         toolMap.webReader = webReaderTool
       }
-      
+      */
+
       console.log("[bytebeam] Transform - Available tools:", Object.keys(toolMap))
-      
+
       // Build context for the AI
-      const contextInfo = columnContext.length > 0 
-        ? `Available data:\n${columnContext.join('\n')}` 
-        : ''
-      
+      let contextInfo = ""
+
+      if (columnContext.length > 0) {
+        contextInfo += `Available data:\n${columnContext.join('\n')}\n\n`
+      }
+
+      if (knowledgeContext.length > 0) {
+        contextInfo += `Reference Knowledge:\n${knowledgeContext.join('\n\n')}\n\n`
+      }
+
       let finalResult: any = null
-      
+
       // Build Zod schema for structured output
       if (fieldType && fieldSchema) {
         console.log("[bytebeam] Transform - Using structured output for type:", fieldType)
-        
+
         try {
           let zodSchema = buildFieldSchema(fieldSchema)
-          
+
           // For complex types, make schema more flexible with partial
-            if (fieldType === 'object') {
-              zodSchema = (zodSchema as z.ZodObject<any>).partial()
+          if (fieldType === 'object') {
+            zodSchema = (zodSchema as z.ZodObject<any>).partial()
           }
-          
+
           // Build the comprehensive prompt for one-shot generation
           const fullPrompt = `${substitutedPrompt}
 
@@ -347,23 +402,21 @@ Instructions:
 - If you need to perform calculations, use the calculator tool
 - If you need to search for information, use the webSearch tool
 - Ensure data types match the schema (numbers as numbers, not strings)
-- If information is not available, use null for that field`
+- If information is not available, use null for that field
+- Use the provided Reference Knowledge to answer questions or perform tasks if applicable`
 
           // Use generateObject with tools for one-shot structured output
-            const structuredResult = await generateObject({
-              model: google("gemini-2.5-pro"),
-              temperature: 0.1,
-              schema: zodSchema,
-            prompt: fullPrompt,
-            ...(Object.keys(toolMap).length > 0 ? { 
-              tools: toolMap,
-              maxSteps: 5 
-            } : {})
-            })
-            
-            finalResult = structuredResult.object
-            console.log("[bytebeam] Transform - Structured result:", JSON.stringify(finalResult, null, 2))
-          
+          const structuredResult = await generateObject({
+            temperature: 0.1,
+            schema: zodSchema,
+            messages: [{ role: "user", content: fullPrompt }]
+            // Note: Tool support temporarily disabled during OpenRouter migration
+            // ...(Object.keys(toolMap).length > 0 ? { tools: toolMap, maxSteps: 5 } : {})
+          })
+
+          finalResult = structuredResult.object
+          console.log("[bytebeam] Transform - Structured result:", JSON.stringify(finalResult, null, 2))
+
         } catch (error) {
           console.error("[bytebeam] Transform - Structured output error:", error)
           throw error
@@ -371,7 +424,7 @@ Instructions:
       } else {
         // Fallback for fields without type information (backward compatibility)
         console.log("[bytebeam] Transform - Using text-based output (no type info)")
-        
+
         const fullPrompt = `${substitutedPrompt}
 
 ${contextInfo}
@@ -380,27 +433,25 @@ Instructions:
 - Perform the task described above
 - Return ONLY the final result, nothing else
 - If you need to perform calculations, use the calculator tool
-- If you need to search for information, use the webSearch tool`
+- If you need to search for information, use the webSearch tool
+- Use the provided Reference Knowledge to answer questions or perform tasks if applicable`
 
         const { text } = await generateText({
-          model: google("gemini-2.5-pro"),
           temperature: 0.1,
-          prompt: fullPrompt,
-          ...(Object.keys(toolMap).length > 0 ? { 
-            tools: toolMap,
-            maxSteps: 5 
-          } : {})
+          messages: [{ role: "user", content: fullPrompt }]
+          // Note: Tool support temporarily disabled during OpenRouter migration
+          // ...(Object.keys(toolMap).length > 0 ? { tools: toolMap, maxSteps: 5 } : {})
         })
-        
+
         finalResult = text
         console.log("[bytebeam] Transform - Text result:", finalResult)
       }
-      
+
       // Return the result (can be string, object, or array)
       // For objects and arrays, return them directly (don't stringify)
       // The UI will handle them properly
-      return NextResponse.json({ 
-        success: true, 
+      return NextResponse.json({
+        success: true,
         result: finalResult || "Error: No result"
       })
     }
@@ -408,7 +459,7 @@ Instructions:
     // inputSource === 'document'
     const file = body.file
     // selectedTools already declared at top of function
-    
+
     if (!file || !file.data) {
       return NextResponse.json({ success: false, error: "Missing file for document transformation" }, { status: 400 })
     }
@@ -422,6 +473,7 @@ Instructions:
 
     // Build the tool map based on selected tools
     const docToolMap: Record<string, any> = {}
+    /*
     if (selectedTools.includes('calculator')) {
       docToolMap.calculator = calculatorTool
     }
@@ -431,44 +483,42 @@ Instructions:
     if (selectedTools.includes('webReader')) {
       docToolMap.webReader = webReaderTool
     }
-    
+    */
+
     console.log("[bytebeam] Transform (document) - Available tools:", Object.keys(docToolMap))
 
     if (isImage) {
       const base64 = Buffer.from(bytes).toString("base64")
       const mimeType = fileType || "image/png"
-      
+
       const taskInstructions = `Task: ${prompt}
 
 Instructions:
 - Analyze the image and perform the requested task
 - Return ONLY the final result
 - Use tools if needed for calculations or information lookup`
-      
+
       const { text } = await generateText({
-        model: google("gemini-2.5-pro"),
         temperature: 0.1,
         messages: [
           {
             role: "user",
             content: [
               { type: "text", text: taskInstructions },
-              { type: "image", image: `data:${mimeType};base64,${base64}` },
+              { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64}` } },
             ],
           },
-        ],
-        ...(Object.keys(docToolMap).length > 0 ? { 
-        tools: docToolMap,
-          maxSteps: 5 
-        } : {})
+        ]
+        // Note: Tool support temporarily disabled during OpenRouter migration
+        // ...(Object.keys(docToolMap).length > 0 ? { tools: docToolMap, maxSteps: 5 } : {})
       })
-      
+
       return NextResponse.json({ success: true, result: text })
     }
 
     // Try to decode as UTF-8 text; if it's not text, the output may be garbled but still usable as context
     const docText = new TextDecoder().decode(bytes)
-    
+
     const docTaskPrompt = `Task: ${prompt}
 
 Document:
@@ -478,17 +528,14 @@ Instructions:
 - Analyze the document and perform the requested task
 - Return ONLY the final result
 - Use tools if needed for calculations or information lookup`
-    
+
     const { text } = await generateText({
-      model: google("gemini-2.5-pro"),
       temperature: 0.1,
-      prompt: docTaskPrompt,
-      ...(Object.keys(docToolMap).length > 0 ? { 
-      tools: docToolMap,
-        maxSteps: 5 
-      } : {})
+      messages: [{ role: "user", content: docTaskPrompt }]
+      // Note: Tool support temporarily disabled during OpenRouter migration
+      // ...(Object.keys(docToolMap).length > 0 ? { tools: docToolMap, maxSteps: 5 } : {})
     })
-    
+
     return NextResponse.json({ success: true, result: text })
   } catch (error) {
     console.error("[bytebeam] Transform error:", error)
@@ -498,3 +545,4 @@ Instructions:
     )
   }
 }
+

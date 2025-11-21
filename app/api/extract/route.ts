@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { generateObject } from "ai"
+import { generateObject } from "@/lib/openrouter"
 import { z } from "zod"
-import { google } from "@ai-sdk/google"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import { createSupabaseServerClient } from "@/lib/supabase/server"
@@ -586,7 +585,7 @@ async function generateMarkdownFromDocument(options: GenerateMarkdownOptions): P
     normalizedMime.startsWith("image/") ||
     normalizedMime === "application/pdf" ||
     /\.(png|jpg|jpeg|gif|bmp|webp|pdf)$/.test(`.${ext}`)
-  
+
   console.log("[bytebeam] File support check:", { normalizedMime, ext, isSupported })
   if (!isSupported) {
     console.log("[bytebeam] File type not supported for markdown generation")
@@ -634,12 +633,10 @@ Instructions:
 - Describe non-text elements briefly where relevant
 - Focus on readability and accuracy
 - Do not add interpretations or summaries, just convert the content
-
 Return only the markdown content, no explanations.`
 
     console.log("[bytebeam] Calling Gemini for markdown generation...")
     const result = await generateObject({
-      model: google("gemini-2.5-pro"),
       temperature: 0.1,
       messages: [
         {
@@ -777,32 +774,32 @@ export async function POST(request: NextRequest) {
 
     ocrPromise = shouldProcessDotsOcr
       ? processWithDotsOCR({
-          bytes,
-          fileName,
-          mimeType: originalMimeType || fileMimeType,
-          supabase,
-          userId,
-          jobMeta,
-        }).catch((error) => {
-          console.error("[bytebeam] dots.ocr promise failed:", error)
-          return null
-        })
+        bytes,
+        fileName,
+        mimeType: originalMimeType || fileMimeType,
+        supabase,
+        userId,
+        jobMeta,
+      }).catch((error) => {
+        console.error("[bytebeam] dots.ocr promise failed:", error)
+        return null
+      })
       : Promise.resolve<ProcessDotsOcrResult | null>(null)
 
     // Generate markdown and upload original file in parallel
     console.log("[bytebeam] Setting up markdown generation, shouldProcessDotsOcr:", shouldProcessDotsOcr)
     markdownPromise = shouldProcessDotsOcr
       ? generateMarkdownFromDocument({
-          bytes,
-          fileName,
-          mimeType: originalMimeType || fileMimeType,
-          supabase,
-          userId,
-          jobMeta,
-        }).catch((error) => {
-          console.error("[bytebeam] markdown generation promise failed:", error)
-          return null
-        })
+        bytes,
+        fileName,
+        mimeType: originalMimeType || fileMimeType,
+        supabase,
+        userId,
+        jobMeta,
+      }).catch((error) => {
+        console.error("[bytebeam] markdown generation promise failed:", error)
+        return null
+      })
       : Promise.resolve<GenerateMarkdownResult | null>(null)
 
     // Build Zod schema (nested or flat) for AI SDK
@@ -929,14 +926,14 @@ export async function POST(request: NextRequest) {
           if (desc) prop = prop.describe(desc)
           shape[field.id] = prop
           const typeLabel = field.type
-          
+
           // Add options to schema summary for select fields
           let optionsText = ""
           if ((field.type === "single_select" || field.type === "multi_select") && field.constraints?.options?.length > 0) {
             const optionsList = field.constraints.options.join(", ")
             optionsText = ` (Options: ${optionsList})`
           }
-          
+
           schemaLines.push(`- ${field.name} [${typeLabel}]${optionsText}${desc ? `: ${desc}` : ""}`)
         }
       }
@@ -971,14 +968,14 @@ export async function POST(request: NextRequest) {
         zodShape[key] = prop
         const typeLabel = type === "list" ? "list (array)" : type
         const name = column.name || key
-        
+
         // Add options to schema summary for select fields
         let optionsText = ""
         if ((column.type === "single_select" || column.type === "multi_select") && column.constraints?.options?.length > 0) {
           const optionsList = column.constraints.options.join(", ")
           optionsText = ` (Options: ${optionsList})`
         }
-        
+
         schemaLines.push(`- ${name} [${typeLabel}]${optionsText}${desc ? `: ${desc}` : ""}`)
       })
       zodSchema = z
@@ -1176,17 +1173,20 @@ Follow these steps:
 
     try {
       const result = await generateObject({
-        model: google("gemini-2.5-pro"),
         temperature: 0.2,
         messages: documentContent
           ? [
-              {
-                role: "user",
-                content: documentContent,
-              },
-            ]
-          : undefined,
-        prompt: documentContent ? undefined : extractionPrompt,
+            {
+              role: "user",
+              content: documentContent,
+            },
+          ]
+          : [
+            {
+              role: "user",
+              content: extractionPrompt,
+            },
+          ],
         schema: zodSchema,
       })
 
@@ -1202,12 +1202,12 @@ Follow these steps:
 
       const expectedFieldIds = schemaTree && Array.isArray(schemaTree)
         ? Array.from(
-            new Set(
-              flattenFields(schemaTree as any)
-                .map((field) => field?.id)
-                .filter((id): id is string => typeof id === "string" && !id.startsWith("__")),
-            ),
-          )
+          new Set(
+            flattenFields(schemaTree as any)
+              .map((field) => field?.id)
+              .filter((id): id is string => typeof id === "string" && !id.startsWith("__")),
+          ),
+        )
         : Object.keys((schema ?? result.schema ?? result.data?.schema ?? {})).filter((id) => !id.startsWith("__"))
 
       const reviewMeta = computeInitialReviewMeta(sanitizedResults, {

@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server"
+import { isOpenRouterConfigured } from "@/lib/openrouter"
 
 export async function GET() {
-  const hasGoogleApiKey = !!process.env.GOOGLE_GENERATIVE_AI_API_KEY
+  const isConfigured = isOpenRouterConfigured()
 
   return NextResponse.json({
-    hasGoogleApiKey,
-    message: hasGoogleApiKey ? "Setup complete" : "Google API key required",
+    isConfigured,
+    hasOpenRouterApiKey: !!process.env.OPENROUTER_API_KEY,
+    hasOpenRouterModel: !!process.env.OPENROUTER_MODEL,
+    message: isConfigured ? "OpenRouter setup complete" : "OpenRouter API key and model required",
   })
 }

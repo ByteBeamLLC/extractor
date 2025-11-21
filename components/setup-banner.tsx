@@ -9,12 +9,12 @@ export function SetupBanner() {
   const [showBanner, setShowBanner] = useState(false)
 
   useEffect(() => {
-    // Check if Google API key is available
+    // Check if OpenRouter API key is available
     const checkApiKey = async () => {
       try {
         const response = await fetch("/api/check-setup")
         const data = await response.json()
-        if (!data.hasGoogleApiKey) {
+        if (!data.isConfigured) {
           setShowBanner(true)
         }
       } catch (error) {
@@ -35,13 +35,13 @@ export function SetupBanner() {
           <div className="flex-1">
             <h3 className="font-semibold text-orange-900">Setup Required</h3>
             <p className="text-sm text-orange-800 mt-1">
-              To use AI-powered data extraction, you need to add your Google API key to the environment variables.
+              To use AI-powered data extraction, you need to add your OpenRouter API key to the environment variables.
             </p>
             <div className="mt-3 flex gap-2">
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => window.open("https://console.cloud.google.com/apis/credentials", "_blank")}
+                onClick={() => window.open("https://openrouter.ai/keys", "_blank")}
               >
                 <ExternalLink className="h-3 w-3 mr-1" />
                 Get API Key

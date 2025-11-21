@@ -8,6 +8,7 @@ export function MentionTextarea(props: {
   value: string
   onChange: (v: string) => void
   options: Option[]
+  knowledgeOptions?: Option[] // New prop for knowledge items
   placeholder?: string
   disabled?: boolean
   mentionTrigger?: string // default '@'
@@ -19,6 +20,7 @@ export function MentionTextarea(props: {
     value,
     onChange,
     options,
+    knowledgeOptions = [],
     placeholder,
     disabled,
     mentionTrigger = "@",
@@ -34,9 +36,16 @@ export function MentionTextarea(props: {
 
   const filtered = useMemo(() => {
     const q = (query || "").trim().toLowerCase()
-    if (!q) return options.slice(0, 8)
-    return options.filter((o) => o.label.toLowerCase().includes(q)).slice(0, 8)
-  }, [options, query])
+
+    // Combine options, prioritizing fields then knowledge
+    const allOptions = [
+      ...options.map(o => ({ ...o, type: 'field' })),
+      ...knowledgeOptions.map(o => ({ ...o, type: 'knowledge' }))
+    ]
+
+    if (!q) return allOptions.slice(0, 10)
+    return allOptions.filter((o) => o.label.toLowerCase().includes(q)).slice(0, 10)
+  }, [options, knowledgeOptions, query])
 
   const updateCaret = () => {
     const el = textareaRef.current
@@ -80,7 +89,7 @@ export function MentionTextarea(props: {
     })
   }
 
-  const replaceCurrentMention = (label: string) => {
+  const replaceCurrentMention = (label: string, type: string) => {
     const el = textareaRef.current
     if (!el) return
     const pos = el.selectionStart ?? caret
@@ -88,12 +97,20 @@ export function MentionTextarea(props: {
     const after = value.slice(pos)
     const re = new RegExp(`(.*)\\${mentionTrigger}([A-Za-z0-9 _-]{0,50})$`)
     const m = re.exec(before)
+
+    // Different wrapper for knowledge items if needed, but for now using same format
+    // We might want to use {kb:name} later as per plan, but sticking to simple names first
+    // or we can handle the prefix in the insertWrapper passed from parent
+
+    // Actually, let's use a specific format for knowledge items to distinguish them
+    const textToInsert = type === 'knowledge' ? `{kb:${label}}` : insertWrapper(label)
+
     if (!m) {
-      insertAtCaret(insertWrapper(label))
+      insertAtCaret(textToInsert)
       return
     }
     const prefix = m[1]
-    const replaced = prefix + insertWrapper(label)
+    const replaced = prefix + textToInsert
     const newVal = replaced + after
     onChange(newVal)
     requestAnimationFrame(() => {
@@ -122,18 +139,24 @@ export function MentionTextarea(props: {
         className={className || "w-full min-h-24 resize-y rounded-md border border-border bg-background p-2 text-sm"}
       />
       {open && filtered.length > 0 && (
-        <div className="absolute z-20 mt-2 w-full rounded-md border border-border bg-popover shadow-sm">
+        <div className="absolute z-20 mt-2 w-full rounded-md border border-border bg-popover shadow-sm max-h-60 overflow-y-auto">
           {filtered.map((o) => (
             <button
-              key={o.id}
+              key={`${o.type}-${o.id}`}
               type="button"
-              className="block w-full cursor-pointer px-3 py-2 text-left text-sm hover:bg-muted"
+              className="flex w-full items-center cursor-pointer px-3 py-2 text-left text-sm hover:bg-muted"
               onMouseDown={(e) => {
                 e.preventDefault()
-                replaceCurrentMention(o.label)
+                replaceCurrentMention(o.label, o.type)
               }}
             >
-              @{o.label}
+              <span className="mr-2 text-muted-foreground">
+                {o.type === 'knowledge' ? '📚' : '#'}
+              </span>
+              <span>{o.label}</span>
+              {o.type === 'knowledge' && (
+                <span className="ml-auto text-xs text-muted-foreground">Knowledge</span>
+              )}
             </button>
           ))}
         </div>
@@ -141,3 +164,4 @@ export function MentionTextarea(props: {
     </div>
   )
 }
+

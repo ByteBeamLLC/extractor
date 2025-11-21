@@ -642,6 +642,7 @@ interface DataExtractionPlatformProps {
     schema: SchemaDefinition,
     input: { name: string; description?: string; agent: AgentType },
   ) => Promise<{ success: true; template: SchemaTemplateDefinition } | { success: false; error: string }>
+  isEmbedded?: boolean
 }
 
 export function DataExtractionPlatform({
@@ -651,6 +652,7 @@ export function DataExtractionPlatform({
   onPendingCreateConsumed,
   templateLibrary,
   onCreateTemplate,
+  isEmbedded = false,
 }: DataExtractionPlatformProps = {}) {
   const initialSchemaRef = useRef<SchemaDefinition | null>(null)
   if (!initialSchemaRef.current) {
@@ -660,7 +662,7 @@ export function DataExtractionPlatform({
   const schemasRef = useRef<SchemaDefinition[]>([initialSchemaRef.current])
   const [activeSchemaId, setActiveSchemaId] = useState<string>(initialSchemaRef.current.id)
   const activeSchema = schemas.find((s) => s.id === activeSchemaId) || initialSchemaRef.current
-  const isEmbedded = Boolean(externalActiveSchemaId)
+  const isEmbeddedInWorkspace = Boolean(externalActiveSchemaId)
   const [selectedAgent, setSelectedAgent] = useState<AgentType>("standard")
   const [viewMode, setViewMode] = useState<'grid' | 'gallery'>('grid')
   const [selectedJob, setSelectedJob] = useState<ExtractionJob | null>(null)
@@ -700,7 +702,7 @@ export function DataExtractionPlatform({
     schemaSyncStateRef.current = schemaSyncState
   }, [schemaSyncState])
   useEffect(() => {
-    if (!isEmbedded) return
+    if (!isEmbeddedInWorkspace) return
     // Only re-run when the templateId actually changes
     const nextAgent = inferAgentTypeFromSchema(activeSchema)
     setSelectedAgent((prev) => {
@@ -1897,7 +1899,7 @@ export function DataExtractionPlatform({
   const activeSchemaTemplateId = activeSchema.templateId ?? null
   const activeSchemaIsFresh = isSchemaFresh(activeSchema)
   useEffect(() => {
-    if (!isEmbedded) return
+    if (!isEmbeddedInWorkspace) return
     if (!shouldAutoApplyTemplate(activeSchemaTemplateId)) return
     if (!activeSchemaIsFresh) return
     if (autoAppliedTemplatesRef.current.has(activeSchemaId)) return
@@ -2222,15 +2224,10 @@ export function DataExtractionPlatform({
       extractionInstructions: "",
       required: false,
     }
-    const updatedFields = [...fields, newColumn]
-    setFields(updatedFields)
     setColumnDialogMode('create')
-    // Open dialog after a short delay to ensure state is updated
-    setTimeout(() => {
-      setSelectedColumn(newColumn)
-      setDraftColumn(JSON.parse(JSON.stringify(newColumn)))
-      setIsColumnDialogOpen(true)
-    }, 100)
+    setDraftColumn(JSON.parse(JSON.stringify(newColumn)))
+    setSelectedColumn(null)
+    setIsColumnDialogOpen(true)
   }
 
   const handleDraftFieldTypeChange = (isTransformation: boolean) => {
@@ -2710,7 +2707,8 @@ export function DataExtractionPlatform({
               col.isTransformation && col.transformationType === 'gemini_api'
             )
 
-            for (const tcol of geminiFields) {
+            // Helper function to execute a single transformation
+            const executeTransformationField = async (tcol: SchemaField) => {
               const dependencies = graph.edges.get(tcol.id) || new Set<string>()
               const blockedBy: string[] = []
 
@@ -2723,104 +2721,123 @@ export function DataExtractionPlatform({
               })
 
               if (blockedBy.length > 0) {
-                fieldStatus.set(tcol.id, {
-                  status: 'blocked',
-                  error: `Blocked by failed dependencies: ${blockedBy.join(', ')}`,
-                })
-                finalResults[tcol.id] = `Error: Blocked by ${blockedBy.join(', ')}`
-                continue
+                throw new Error(`Blocked by failed dependencies: ${blockedBy.join(', ')}`)
               }
 
-              try {
-                const source = tcol.transformationSource || "column"
+              const source = tcol.transformationSource || "column"
 
-                const fieldSchema: any = {
-                  type: tcol.type,
-                  name: tcol.name,
-                  description: tcol.description,
-                  constraints: tcol.constraints,
-                }
-
-                if (tcol.type === 'object' && 'children' in tcol) {
-                  fieldSchema.children = tcol.children
-                } else if (tcol.type === 'list' && 'item' in tcol) {
-                  fieldSchema.item = tcol.item
-                } else if (tcol.type === 'table' && 'columns' in tcol) {
-                  fieldSchema.columns = tcol.columns
-                }
-
-                // Build columnValues from dependencies by mapping column names to their extracted values
-                const columnValues: Record<string, any> = {}
-                const dependencies = graph.edges.get(tcol.id) || new Set<string>()
-                dependencies.forEach((depId) => {
-                  const depField = displayColumnsSnapshot.find((c) => c.id === depId)
-                  if (depField) {
-                    // Use the field name as the key
-                    columnValues[depField.name] = finalResults[depId]
-                  }
-                })
-
-                // Check if all dependency values are "-" (dash)
-                // If so, skip the transformation and set result to "-"
-                const allDependenciesAreDash = dependencies.size > 0 &&
-                  Array.from(dependencies).every((depId) => {
-                    const value = finalResults[depId]
-                    return value === "-" || value === "hyphen" || value === "شرطة"
-                  })
-
-                if (allDependenciesAreDash) {
-                  // Skip transformation, just set to "-"
-                  finalResults[tcol.id] = "-"
-                  fieldStatus.set(tcol.id, { status: 'success' })
-                  continue
-                }
-
-                // Extract prompt and selectedTools from transformationConfig
-                let promptString = ""
-                let selectedTools: string[] = []
-
-                if (typeof tcol.transformationConfig === 'object' && tcol.transformationConfig !== null) {
-                  const config = tcol.transformationConfig as any
-                  promptString = config.prompt || ""
-                  selectedTools = config.selectedTools || []
-                } else if (typeof tcol.transformationConfig === 'string') {
-                  promptString = tcol.transformationConfig
-                }
-
-                const promptPayload = {
-                  prompt: promptString,
-                  inputSource: source,
-                  columnValues,
-                  fieldType: tcol.type,
-                  fieldSchema,
-                  selectedTools,
-                }
-
-                const response = await fetch("/api/transform", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify(promptPayload),
-                })
-
-                if (!response.ok) {
-                  const errText = await response.text().catch(() => `${response.status} ${response.statusText}`)
-                  throw new Error(`Gemini transformation failed: ${response.status} ${response.statusText} - ${errText}`)
-                }
-
-                const data = await response.json()
-                if (!data?.success) throw new Error(data?.error || 'Gemini transformation failed')
-
-                finalResults[tcol.id] = data.result?.value ?? data.result
-                fieldStatus.set(tcol.id, { status: 'success' })
-              } catch (e) {
-                console.error("Gemini transform error:", e)
-                const errorMsg = "Error: " + String(e)
-                finalResults[tcol.id] = errorMsg
-                fieldStatus.set(tcol.id, { status: 'error', error: errorMsg })
+              const fieldSchema: any = {
+                type: tcol.type,
+                name: tcol.name,
+                description: tcol.description,
+                constraints: tcol.constraints,
               }
+
+              if (tcol.type === 'object' && 'children' in tcol) {
+                fieldSchema.children = tcol.children
+              } else if (tcol.type === 'list' && 'item' in tcol) {
+                fieldSchema.item = tcol.item
+              } else if (tcol.type === 'table' && 'columns' in tcol) {
+                fieldSchema.columns = tcol.columns
+              }
+
+              // Build columnValues from dependencies
+              const columnValues: Record<string, any> = {}
+              dependencies.forEach((depId) => {
+                const depField = displayColumnsSnapshot.find((c) => c.id === depId)
+                if (depField) {
+                  columnValues[depField.name] = finalResults[depId]
+                  // Also add by ID for backward compatibility
+                  columnValues[depId] = finalResults[depId]
+                }
+              })
+
+              // Check if all dependency values are "-" (dash)
+              const allDependenciesAreDash = dependencies.size > 0 &&
+                Array.from(dependencies).every((depId) => {
+                  const value = finalResults[depId]
+                  return value === "-" || value === "hyphen" || value === "شرطة"
+                })
+
+              if (allDependenciesAreDash) {
+                // Skip transformation, return dash
+                return { fieldId: tcol.id, value: "-", skipped: true }
+              }
+
+              // Extract prompt and selectedTools from transformationConfig
+              let promptString = ""
+              let selectedTools: string[] = []
+
+              if (typeof tcol.transformationConfig === 'object' && tcol.transformationConfig !== null) {
+                const config = tcol.transformationConfig as any
+                promptString = config.prompt || ""
+                selectedTools = config.selectedTools || []
+              } else if (typeof tcol.transformationConfig === 'string') {
+                promptString = tcol.transformationConfig
+              }
+
+              const promptPayload = {
+                prompt: promptString,
+                inputSource: source,
+                columnValues,
+                fieldType: tcol.type,
+                fieldSchema,
+                selectedTools,
+              }
+
+              const response = await fetch("/api/transform", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify(promptPayload),
+              })
+
+              if (!response.ok) {
+                const errText = await response.text().catch(() => `${response.status} ${response.statusText}`)
+                throw new Error(`Gemini transformation failed: ${response.status} ${response.statusText} - ${errText}`)
+              }
+
+              const data = await response.json()
+              if (!data?.success) throw new Error(data?.error || 'Gemini transformation failed')
+
+              return { fieldId: tcol.id, value: data.result?.value ?? data.result }
             }
+
+            // Execute all transformations in this wave in parallel
+            const transformationPromises = geminiFields.map((tcol) =>
+              executeTransformationField(tcol)
+            )
+
+            const results = await Promise.allSettled(transformationPromises)
+
+            // Process results
+            results.forEach((result, index) => {
+              const tcol = geminiFields[index]
+
+              if (result.status === 'fulfilled') {
+                if (result.value.skipped) {
+                  finalResults[tcol.id] = result.value.value
+                  fieldStatus.set(tcol.id, { status: 'success' })
+                } else {
+                  finalResults[tcol.id] = result.value.value
+                  fieldStatus.set(tcol.id, { status: 'success' })
+                }
+              } else {
+                // Handle rejected promise
+                const errorMsg = result.reason?.message || String(result.reason)
+                console.error(`Transformation failed for ${tcol.name}:`, result.reason)
+
+                // Check if blocked by dependencies
+                if (errorMsg.includes('Blocked by failed dependencies')) {
+                  fieldStatus.set(tcol.id, { status: 'blocked', error: errorMsg })
+                  finalResults[tcol.id] = `${errorMsg}`
+                } else {
+                  fieldStatus.set(tcol.id, { status: 'error', error: errorMsg })
+                  finalResults[tcol.id] = `Error: ${errorMsg}`
+                }
+              }
+            })
           }
 
           const completedAt = new Date()
@@ -3670,11 +3687,11 @@ export function DataExtractionPlatform({
   );
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className={cn("flex flex-col bg-background", isEmbedded ? "h-full" : "h-screen")}>
       <SetupBanner />
 
       {/* Tabs */}
-      {!isEmbedded && (
+      {!isEmbeddedInWorkspace && (
         <div id="tab-bar" className="flex-shrink-0 bg-gray-100 pl-6 border-b border-gray-200 flex items-center">
           {/* Tab items container */}
           <div id="tab-container" className="relative flex-grow overflow-x-auto -mb-px tab-container">
@@ -3785,7 +3802,7 @@ export function DataExtractionPlatform({
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {/* Agent type selector */}
-                {!isEmbedded && isSchemaFresh(activeSchema) && (
+                {!isEmbeddedInWorkspace && isSchemaFresh(activeSchema) && (
                   <Select value={selectedAgent} onValueChange={(val) => setSelectedAgent(val as AgentType)}>
                     <SelectTrigger className="w-64">
                       <SelectValue />
@@ -3797,7 +3814,7 @@ export function DataExtractionPlatform({
                   </Select>
                 )}
                 {/* Schema template selector in header when schema fresh and standard agent */}
-                {!isEmbedded && isSchemaFresh(activeSchema) && selectedAgent === "standard" && (
+                {!isEmbeddedInWorkspace && isSchemaFresh(activeSchema) && selectedAgent === "standard" && (
                   <Select onValueChange={(val) => {
                     if (val === "blank") {
                       // Start from scratch - do nothing, just allow user to add fields
@@ -4514,11 +4531,7 @@ export function DataExtractionPlatform({
                       setSelectedJob(job)
                       setIsDetailOpen(true)
                     }}
-                    onAddColumn={() => {
-                      setColumnDialogMode('create')
-                      setDraftColumn(null)
-                      setIsColumnDialogOpen(true)
-                    }}
+                    onAddColumn={addColumn}
                     renderCellValue={renderCellValue}
                     getStatusIcon={getStatusIcon}
                     renderStatusPill={renderStatusPill}
@@ -4733,32 +4746,69 @@ export function DataExtractionPlatform({
                   <Button
                     type="button"
                     onClick={() => {
-                      if (!selectedColumn || !draftColumn) return
-                      const updates: Partial<SchemaField> = {
-                        name: draftColumn.name,
-                        type: draftColumn.type,
-                        description: draftColumn.description,
-                        required: !!draftColumn.required,
-                        extractionInstructions: draftColumn.extractionInstructions,
-                        // constraints removed from tool logic
-                        isTransformation: !!draftColumn.isTransformation,
-                        transformationType: draftColumn.transformationType,
-                        transformationConfig: draftColumn.transformationConfig,
-                        transformationSource: draftColumn.transformationSource,
-                        transformationSourceColumnId: draftColumn.transformationSourceColumnId,
+                      if (!draftColumn) return
+
+                      if (columnDialogMode === 'create') {
+                        // Adding a new field
+                        const newField = {
+                          id: `col_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                          name: draftColumn.name,
+                          type: draftColumn.type,
+                          description: draftColumn.description,
+                          required: !!draftColumn.required,
+                          extractionInstructions: draftColumn.extractionInstructions,
+                          isTransformation: !!draftColumn.isTransformation,
+                          transformationType: draftColumn.transformationType,
+                          transformationConfig: draftColumn.transformationConfig,
+                          transformationSource: draftColumn.transformationSource,
+                          transformationSourceColumnId: draftColumn.transformationSourceColumnId,
+                        } as SchemaField
+
+                        // Add type-specific fields
+                        if (draftColumn.type === 'object') {
+                          (newField as any).children = (draftColumn as ObjectField).children
+                        }
+                        if (draftColumn.type === 'table') {
+                          (newField as any).columns = (draftColumn as TableField).columns
+                        }
+                        if (draftColumn.type === 'list') {
+                          (newField as any).item = (draftColumn as ListField).item
+                        }
+
+                        commitSchemaUpdate(activeSchemaId, (schema) => ({
+                          ...schema,
+                          fields: [...schema.fields, newField]
+                        }))
+                      } else {
+                        // Editing an existing field
+                        if (!selectedColumn) return
+                        const updates: Partial<SchemaField> = {
+                          name: draftColumn.name,
+                          type: draftColumn.type,
+                          description: draftColumn.description,
+                          required: !!draftColumn.required,
+                          extractionInstructions: draftColumn.extractionInstructions,
+                          isTransformation: !!draftColumn.isTransformation,
+                          transformationType: draftColumn.transformationType,
+                          transformationConfig: draftColumn.transformationConfig,
+                          transformationSource: draftColumn.transformationSource,
+                          transformationSourceColumnId: draftColumn.transformationSourceColumnId,
+                        }
+                        if (draftColumn.type === 'object') {
+                          (updates as any).children = (draftColumn as ObjectField).children
+                        }
+                        if (draftColumn.type === 'table') {
+                          (updates as any).columns = (draftColumn as TableField).columns
+                        }
+                        if (draftColumn.type === 'list') {
+                          (updates as any).item = (draftColumn as ListField).item
+                        }
+                        updateColumn(selectedColumn.id, updates)
                       }
-                      if (draftColumn.type === 'object') {
-                        (updates as any).children = (draftColumn as ObjectField).children
-                      }
-                      if (draftColumn.type === 'table') {
-                        (updates as any).columns = (draftColumn as TableField).columns
-                      }
-                      if (draftColumn.type === 'list') {
-                        (updates as any).item = (draftColumn as ListField).item
-                      }
-                      updateColumn(selectedColumn.id, updates)
+
                       setIsColumnDialogOpen(false)
                       setDraftColumn(null)
+                      setSelectedColumn(null)
                     }}
                   >
                     Save Field
