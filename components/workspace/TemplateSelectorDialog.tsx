@@ -105,15 +105,15 @@ export function TemplateSelectorDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[720px]">
-        <DialogHeader className="space-y-1 text-left">
+      <DialogContent className="sm:max-w-[720px] max-h-[85vh] flex flex-col">
+        <DialogHeader className="space-y-1 text-left shrink-0">
           <DialogTitle className="text-2xl font-semibold">Create new schema</DialogTitle>
           <DialogDescription className="text-sm text-muted-foreground">
             Choose a template or start from scratch. You can always modify fields later.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-6">
+        <div className="grid gap-6 overflow-y-auto pr-2">
           <section className="space-y-2">
             <p className="text-xs font-medium uppercase text-muted-foreground">Schema details</p>
             <div className="flex flex-col gap-3 sm:flex-row">

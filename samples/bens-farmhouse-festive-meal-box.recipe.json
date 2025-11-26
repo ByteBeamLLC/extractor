@@ -1,0 +1,270 @@
+{
+  "label_data": {
+    "barcode": "6291234567906",
+    "productName": "Festive Meal Box for 4",
+    "brandName": "Ben's Farmhouse",
+    "productDescription": "Complete holiday meal for 4 guests. Includes herb-roasted turkey breast, honey-glazed ham, roasted vegetables, creamy mashed potatoes, cranberry sauce, and homemade gravy.",
+    "netWeight": 3200,
+    "netWeightUnit": "g",
+    "servingSize": 400,
+    "servingSizeUnit": "g",
+    "servingsPerContainer": 4,
+    "manufacturerName": "Ben's Farmhouse LLC",
+    "manufacturerAddress": "Dubai, United Arab Emirates",
+    "manufacturerCountry": "United Arab Emirates",
+    "importerName": "",
+    "importerAddress": "",
+    "importerCountry": "",
+    "countryOfOrigin": "United Arab Emirates",
+    "ingredients": [
+      {
+        "name": "Turkey Breast",
+        "quantity": 800,
+        "unit": "g",
+        "costPerUnit": 48,
+        "costUnit": "kg"
+      },
+      {
+        "name": "Smoked Ham",
+        "quantity": 500,
+        "unit": "g",
+        "costPerUnit": 65,
+        "costUnit": "kg"
+      },
+      {
+        "name": "Potatoes",
+        "quantity": 600,
+        "unit": "g",
+        "costPerUnit": 6,
+        "costUnit": "kg"
+      },
+      {
+        "name": "Heavy Cream",
+        "quantity": 150,
+        "unit": "ml",
+        "costPerUnit": 28,
+        "costUnit": "L"
+      },
+      {
+        "name": "Butter",
+        "quantity": 100,
+        "unit": "g",
+        "costPerUnit": 45,
+        "costUnit": "kg"
+      },
+      {
+        "name": "Brussels Sprouts",
+        "quantity": 300,
+        "unit": "g",
+        "costPerUnit": 35,
+        "costUnit": "kg"
+      },
+      {
+        "name": "Carrots",
+        "quantity": 200,
+        "unit": "g",
+        "costPerUnit": 10,
+        "costUnit": "kg"
+      },
+      {
+        "name": "Parsnips",
+        "quantity": 150,
+        "unit": "g",
+        "costPerUnit": 22,
+        "costUnit": "kg"
+      },
+      {
+        "name": "Fresh Cranberries",
+        "quantity": 150,
+        "unit": "g",
+        "costPerUnit": 85,
+        "costUnit": "kg"
+      },
+      {
+        "name": "Sugar",
+        "quantity": 60,
+        "unit": "g",
+        "costPerUnit": 8,
+        "costUnit": "kg"
+      },
+      {
+        "name": "Honey",
+        "quantity": 50,
+        "unit": "g",
+        "costPerUnit": 65,
+        "costUnit": "kg"
+      },
+      {
+        "name": "Chicken Stock",
+        "quantity": 300,
+        "unit": "ml",
+        "costPerUnit": 15,
+        "costUnit": "L"
+      },
+      {
+        "name": "Fresh Rosemary",
+        "quantity": 15,
+        "unit": "g",
+        "costPerUnit": 120,
+        "costUnit": "kg"
+      },
+      {
+        "name": "Fresh Thyme",
+        "quantity": 10,
+        "unit": "g",
+        "costPerUnit": 120,
+        "costUnit": "kg"
+      },
+      {
+        "name": "Garlic",
+        "quantity": 20,
+        "unit": "g",
+        "costPerUnit": 25,
+        "costUnit": "kg"
+      },
+      {
+        "name": "Olive Oil",
+        "quantity": 40,
+        "unit": "ml",
+        "costPerUnit": 40,
+        "costUnit": "L"
+      },
+      {
+        "name": "Sea Salt",
+        "quantity": 15,
+        "unit": "g",
+        "costPerUnit": 8,
+        "costUnit": "kg"
+      },
+      {
+        "name": "Black Pepper",
+        "quantity": 3,
+        "unit": "g",
+        "costPerUnit": 80,
+        "costUnit": "kg"
+      }
+    ],
+    "containsAllergens": [
+      "Milk"
+    ],
+    "mayContainAllergens": [
+      "Cereals containing gluten",
+      "Mustard"
+    ],
+    "nutritionFacts": [
+      {
+        "name": "Energy",
+        "per100g": 165,
+        "perServing": 660,
+        "unit": "kcal",
+        "dailyValue": 33
+      },
+      {
+        "name": "Energy",
+        "per100g": 690,
+        "perServing": 2760,
+        "unit": "kJ"
+      },
+      {
+        "name": "Total Fat",
+        "per100g": 7.2,
+        "perServing": 28.8,
+        "unit": "g",
+        "dailyValue": 44
+      },
+      {
+        "name": "Saturated Fat",
+        "per100g": 3.5,
+        "perServing": 14,
+        "unit": "g",
+        "dailyValue": 70,
+        "isSubItem": true
+      },
+      {
+        "name": "Trans Fat",
+        "per100g": 0,
+        "perServing": 0,
+        "unit": "g",
+        "isSubItem": true
+      },
+      {
+        "name": "Cholesterol",
+        "per100g": 55,
+        "perServing": 220,
+        "unit": "mg",
+        "dailyValue": 73
+      },
+      {
+        "name": "Sodium",
+        "per100g": 380,
+        "perServing": 1520,
+        "unit": "mg",
+        "dailyValue": 66
+      },
+      {
+        "name": "Total Carbohydrate",
+        "per100g": 12,
+        "perServing": 48,
+        "unit": "g",
+        "dailyValue": 17
+      },
+      {
+        "name": "Dietary Fiber",
+        "per100g": 2.5,
+        "perServing": 10,
+        "unit": "g",
+        "dailyValue": 36,
+        "isSubItem": true
+      },
+      {
+        "name": "Total Sugars",
+        "per100g": 5,
+        "perServing": 20,
+        "unit": "g",
+        "isSubItem": true
+      },
+      {
+        "name": "Added Sugars",
+        "per100g": 3,
+        "perServing": 12,
+        "unit": "g",
+        "dailyValue": 24,
+        "isSubItem": true
+      },
+      {
+        "name": "Protein",
+        "per100g": 16,
+        "perServing": 64,
+        "unit": "g",
+        "dailyValue": 64
+      }
+    ],
+    "storageInstructions": "Keep refrigerated at 0-4°C. Consume within 2 days of delivery. Components can be frozen separately for up to 2 weeks.",
+    "usageInstructions": "Preheat oven to 175°C. Transfer contents to oven-safe dishes. Heat for 25-35 minutes until hot throughout. Turkey and ham should reach 75°C internal temperature.",
+    "productionDate": "2024-12-22",
+    "expiryDate": "2024-12-25",
+    "batchNumber": "BF-FEST-2024-042",
+    "halalCertified": true,
+    "halalCertifier": "Emirates Authority for Standardization and Metrology (ESMA)",
+    "costing": {
+      "laborCost": 0,
+      "laborHours": 2.5,
+      "hourlyRate": 35,
+      "packagingCost": 35,
+      "overheadPercent": 20,
+      "targetMarginPercent": 35
+    }
+  },
+  "costing_data": {
+    "laborCost": 0,
+    "laborHours": 2.5,
+    "hourlyRate": 35,
+    "packagingCost": 35,
+    "overheadPercent": 20,
+    "targetMarginPercent": 35
+  },
+  "category": "Meal Boxes",
+  "tags": ["meal-box", "festive", "family", "halal", "complete-meal", "heat-and-serve"],
+  "notes": "Complete Festive Meal Box serving 4 people. Part of Ben's Farmhouse Festive Menu lineup starting at AED 399. Available from Thanksgiving through December 30th with delivery in Dubai (AED 50 delivery fee). 48-hour notice required."
+}
+

@@ -43,6 +43,8 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog'
 import { SchemaFieldEditor } from './SchemaFieldEditor'
+import { ExtractionDetailDialog } from './ExtractionDetailDialog'
+import { ManualRecordDialog } from './ManualRecordDialog'
 
 interface JobDetailViewProps {
     jobName: string
@@ -69,8 +71,10 @@ export function JobDetailView({ jobName, schemaId }: JobDetailViewProps) {
     const [viewMode, setViewMode] = useState<'grid' | 'gallery'>('grid')
     const [expandedRowId, setExpandedRowId] = useState<string | null>(null)
     const [selectedRowId, setSelectedRowId] = useState<string | null>(null)
+    const [selectedJob, setSelectedJob] = useState<ExtractionJob | null>(null)
     const [isColumnEditorOpen, setIsColumnEditorOpen] = useState(false)
     const [editingColumn, setEditingColumn] = useState<SchemaField | undefined>(undefined)
+    const [isManualRecordOpen, setIsManualRecordOpen] = useState(false)
 
     useEffect(() => {
         if (!schemaId) return
@@ -96,6 +100,11 @@ export function JobDetailView({ jobName, schemaId }: JobDetailViewProps) {
                     createdAt: schemaData.created_at ? new Date(schemaData.created_at) : undefined,
                     updatedAt: schemaData.updated_at ? new Date(schemaData.updated_at) : undefined,
                 })
+
+                // Set default view mode based on schema template
+                if (schemaData.template_id === 'gcc-food-label' || schemaData.name.toLowerCase().includes('gcc')) {
+                    setViewMode('gallery')
+                }
             }
 
             // Fetch Jobs
@@ -253,15 +262,9 @@ export function JobDetailView({ jobName, schemaId }: JobDetailViewProps) {
     }
 
     const handleEditColumn = (column: any) => {
-        // TanStackGridSheet passes the column object (FlatLeaf)
-        // We need to find the original field in the schema to edit it properly
-        // (FlatLeaf is a flattened version, but for editing we want the source field if possible,
-        // though for leaf fields they are mostly the same)
         if (!schema) return
         const field = schema.fields.find(f => f.id === column.id)
 
-        // If it's a nested field, we might need to handle it differently or just edit the leaf constraints
-        // For now, let's support top-level fields or simple editing
         if (field) {
             setEditingColumn(field)
             setIsColumnEditorOpen(true)
@@ -292,7 +295,6 @@ export function JobDetailView({ jobName, schemaId }: JobDetailViewProps) {
 
         if (error) {
             toast.error('Failed to save column')
-            // Revert (optional)
         } else {
             toast.success('Column saved')
         }
@@ -322,6 +324,56 @@ export function JobDetailView({ jobName, schemaId }: JobDetailViewProps) {
             document.body.appendChild(link)
             link.click()
             document.body.removeChild(link)
+        }
+    }
+
+    const handleOpenJob = (job: ExtractionJob) => {
+        setSelectedJob(job)
+    }
+
+    const handleSaveManualRecord = async (recordName: string, data: Record<string, any>) => {
+        if (!schema) return
+
+        // Create a new extraction job with manually entered data
+        const { data: newJob, error } = await supabase
+            .from('extraction_jobs')
+            .insert({
+                schema_id: schema.id,
+                file_name: recordName,
+                status: 'completed',
+                results: data,
+                agent_type: 'manual', // Mark as manually created
+            })
+            .select()
+            .single()
+
+        if (error) {
+            toast.error('Failed to create record: ' + error.message)
+            throw error
+        }
+
+        // Add to local state
+        if (newJob) {
+            const parsedJob: ExtractionJob = {
+                id: newJob.id,
+                fileName: newJob.file_name,
+                status: newJob.status,
+                results: newJob.results as Record<string, any>,
+                createdAt: new Date(newJob.created_at),
+                agentType: 'manual' as any,
+            }
+            setExtractionJobs(prev => [parsedJob, ...prev])
+            setJobs(prev => [{
+                id: parsedJob.id,
+                filename: parsedJob.fileName,
+                title: parsedJob.fileName,
+                status: parsedJob.status,
+                createdAt: 'just now',
+                type: 'image',
+                originalJob: parsedJob
+            }, ...prev])
+            
+            toast.success('Record created successfully')
         }
     }
 
@@ -365,9 +417,13 @@ export function JobDetailView({ jobName, schemaId }: JobDetailViewProps) {
                         <Download className="h-3.5 w-3.5 mr-2" />
                         Export
                     </Button>
-                    <Button size="sm" className="h-9">
+                    <Button variant="outline" size="sm" className="h-9" onClick={() => setIsManualRecordOpen(true)}>
                         <Plus className="h-3.5 w-3.5 mr-2" />
-                        Upload
+                        Create Record
+                    </Button>
+                    <Button size="sm" className="h-9">
+                        <FileText className="h-3.5 w-3.5 mr-2" />
+                        Upload File
                     </Button>
                 </div>
             </div>
@@ -391,7 +447,7 @@ export function JobDetailView({ jobName, schemaId }: JobDetailViewProps) {
                             jobs={extractionJobs}
                             selectedRowId={selectedRowId}
                             onSelectRow={setSelectedRowId}
-                            onRowDoubleClick={(job) => setSelectedRowId(job.id)}
+                            onRowDoubleClick={(job) => handleOpenJob(job)}
                             onAddColumn={handleAddColumn}
                             renderCellValue={(col, job) => {
                                 const val = job.results?.[col.id]
@@ -404,7 +460,7 @@ export function JobDetailView({ jobName, schemaId }: JobDetailViewProps) {
                             onUpdateCell={handleUpdateCell}
                             onUpdateReviewStatus={handleUpdateReviewStatus}
                             onColumnRightClick={() => { }}
-                            onOpenTableModal={() => { }}
+                            onOpenTableModal={(job) => handleOpenJob(job)}
                             visualGroups={schema.visualGroups || []}
                             expandedRowId={expandedRowId}
                             onToggleRowExpansion={(id) => setExpandedRowId(prev => prev === id ? null : id)}
@@ -414,7 +470,9 @@ export function JobDetailView({ jobName, schemaId }: JobDetailViewProps) {
                     <div className="h-full overflow-y-auto p-6">
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                             {jobs.map((item) => (
-                                <JobResultCard key={item.id} item={item} />
+                                <div key={item.id} onClick={() => handleOpenJob(item.originalJob)}>
+                                    <JobResultCard item={item} />
+                                </div>
                             ))}
                         </div>
                     </div>
@@ -433,6 +491,21 @@ export function JobDetailView({ jobName, schemaId }: JobDetailViewProps) {
                     />
                 </DialogContent>
             </Dialog>
+
+            {/* Detail Modal */}
+            <ExtractionDetailDialog 
+                job={selectedJob} 
+                schema={schema} 
+                onClose={() => setSelectedJob(null)} 
+            />
+
+            {/* Manual Record Dialog */}
+            <ManualRecordDialog
+                open={isManualRecordOpen}
+                onOpenChange={setIsManualRecordOpen}
+                schema={schema}
+                onSave={handleSaveManualRecord}
+            />
         </div>
     )
 }

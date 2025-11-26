@@ -7,6 +7,7 @@ import {
     Bot,
     Store,
     Library,
+    Sparkles,
 } from 'lucide-react'
 
 import {
@@ -35,11 +36,15 @@ export function AppSidebar({ onNavigate, activeView }: AppSidebarProps) {
             icon: LayoutDashboard,
             value: 'dashboard',
         },
-
         {
             title: 'Knowledge Hubs',
             icon: Library,
             value: 'knowledge-hub',
+        },
+        {
+            title: 'Co-pilot',
+            icon: Sparkles,
+            value: 'co-pilot',
         },
     ]
 

@@ -37,7 +37,20 @@ import { MultiSelectCell } from "./tanstack-grid/cells/MultiSelectCell"
 import { OCRDetailModal } from "@/components/OCRDetailModal"
 import { TransformBuilder } from "@/components/transform-builder"
 import { GalleryView } from "@/components/gallery-view/GalleryView"
+import { JobGalleryView } from "@/components/data-extraction/JobGalleryView"
+import { TemplateSelectorDialog } from "@/components/workspace/TemplateSelectorDialog"
+import { ManualRecordDialog } from "@/components/design-preview/views/dashboard/ManualRecordDialog"
+import { ExtractionDetailDialog } from "@/components/design-preview/views/dashboard/ExtractionDetailDialog"
+import { LabelData, DEFAULT_LABEL_DATA, labelDataToResults } from "@/components/label-maker"
 import { cn } from "@/lib/utils"
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb'
 
 type AgentType = "standard" | "pharma"
 
@@ -474,158 +487,7 @@ function upsertJobInList(list: ExtractionJob[], job: ExtractionJob): ExtractionJ
 
 //
 
-/* Handsontable wrapper omitted (using custom grid) */
 
-/* function HandsontableWrapper() {
-  const hotTableRef = useRef<any>(null)
-  // no-op placeholder to keep file stable; grid below is the source of truth
-  const tableData = []
-
-  // Column configuration
-  const columnConfig = useMemo(() => {
-    const config: any[] = [
-      { 
-        data: 0, 
-        type: 'numeric',
-        width: 50,
-        readOnly: true,
-        className: 'htCenter htMiddle'
-      },
-      { 
-        data: 1, 
-        type: 'text',
-        width: 200,
-        readOnly: true
-      }
-    ]
-    
-    const columns: any[] = []
-    columns.forEach((column, index) => {
-      config.push({
-        data: index + 2,
-        type: column.type === 'number' || column.type === 'decimal' ? 'numeric' : 'text',
-        width: 150,
-        readOnly: true
-      })
-    })
-    
-    return config
-  }, [columns])
-
-  // Custom column headers with enhanced display
-  const nestedHeaders = undefined
-  
-  // Force re-render when columns or data change
-  useEffect(() => {}, [])
-
-  // Handle column header clicks
-  const afterOnCellMouseDown = (event: MouseEvent, coords: any, TD: HTMLTableCellElement) => {
-    // Only handle header clicks
-    if (coords.row !== -1) return
-    
-    const col = coords.col
-    if (col < 2) return // Skip row number and file columns
-    
-    const columnIndex = col - 2
-    if (columnIndex >= 0 && columnIndex < columns.length) {
-      const column = columns[columnIndex]
-      
-      // Check if it's a right-click for delete
-      if (event.button === 2) {
-        event.preventDefault()
-        event.stopPropagation()
-        const confirmDelete = window.confirm(`Delete column "${column.name}"?`)
-        if (confirmDelete) {
-          onColumnDelete(column.id)
-        }
-      } else if (event.button === 0) {
-        // Left click for configuration
-        setTimeout(() => {
-          onColumnClick(column)
-        }, 0)
-      }
-    }
-  }
-
-  const hotSettings: any = {
-    data: tableData,
-    colHeaders: true,
-    nestedHeaders: nestedHeaders,
-    columns: columnConfig,
-    rowHeaders: false,
-    width: '100%',
-    height: '100%',
-    stretchH: 'all' as const,
-    autoWrapRow: true,
-    autoWrapCol: true,
-    licenseKey: 'non-commercial-and-evaluation',
-    afterOnCellMouseDown: afterOnCellMouseDown,
-    manualColumnResize: true,
-    manualRowResize: false,
-    contextMenu: {
-      items: {
-        'copy': {
-          name: 'Copy'
-        },
-        'sep1': '---------',
-        'export_csv': {
-          name: 'Export to CSV',
-          callback: () => {
-            onExportCSV()
-          }
-        }
-      }
-    },
-    filters: true,
-    dropdownMenu: ['filter_by_condition', 'filter_by_value', 'filter_action_bar'],
-    columnSorting: true,
-    sortIndicator: true,
-    autoColumnSize: false,
-    wordWrap: true,
-    renderAllRows: false,
-    fragmentSelection: true,
-    disableVisualSelection: false,
-    selectionMode: 'multiple',
-    outsideClickDeselects: false,
-    fillHandle: false, // Disable fill handle since data is read-only
-    readOnly: true,
-    trimWhitespace: true,
-    search: true,
-    className: 'htMiddle',
-    cell: jobs.map((job, rowIndex) => {
-      const cells = []
-      // Style the file name column based on status
-      cells.push({
-        row: rowIndex,
-        col: 1,
-        className: job.status === 'error' ? 'status-error' : 
-                   job.status === 'processing' ? 'status-processing' : 
-                   job.status === 'completed' ? 'status-completed' : 'status-pending'
-      })
-      return cells
-    }).flat()
-  }
-
-  return (
-    <div className="w-full h-full bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-      {columns.length === 0 ? (
-        <div className="flex items-center justify-center h-full text-gray-500">
-          <div className="text-center">
-            <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg font-medium mb-2">No schema defined yet</p>
-            <p className="text-sm">Start by adding columns to define your data extraction schema.</p>
-          </div>
-        </div>
-      ) : (
-        <HotTable
-          ref={hotTableRef}
-          settings={hotSettings}
-          key={`hot-${columns.length}-${jobs.length}`}
-        />
-      )}
-    </div>
-  )
-} */
 
 interface DataExtractionPlatformProps {
   externalActiveSchemaId?: string
@@ -665,6 +527,7 @@ export function DataExtractionPlatform({
   const isEmbeddedInWorkspace = Boolean(externalActiveSchemaId)
   const [selectedAgent, setSelectedAgent] = useState<AgentType>("standard")
   const [viewMode, setViewMode] = useState<'grid' | 'gallery'>('grid')
+  const [showGallery, setShowGallery] = useState(true)
   const [selectedJob, setSelectedJob] = useState<ExtractionJob | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const fields = activeSchema.fields
@@ -682,6 +545,10 @@ export function DataExtractionPlatform({
   const guestSchemasRef = useRef<SchemaDefinition[] | null>(null)
   const guestPromptShownRef = useRef(false)
   const [schemaDeletionDialog, setSchemaDeletionDialog] = useState<SchemaDefinition | null>(null)
+  const [isTemplateSelectorOpen, setIsTemplateSelectorOpen] = useState(false)
+  const [isManualRecordOpen, setIsManualRecordOpen] = useState(false)
+  const [labelMakerJob, setLabelMakerJob] = useState<ExtractionJob | null>(null)
+  const [isLabelMakerNewRecord, setIsLabelMakerNewRecord] = useState(false)
   const hasInitialLoadCompletedRef = useRef(false)
   const autoAppliedTemplatesRef = useRef<Set<string>>(new Set())
   useEffect(() => {
@@ -792,6 +659,9 @@ export function DataExtractionPlatform({
       setSchemaSyncState({})
       setLoadWorkspaceError(null)
       hasInitialLoadCompletedRef.current = true
+      // If no user, we might want to show the gallery if there are multiple local schemas
+      // For now, default to gallery if we have schemas, or detail if it's a fresh start
+      setShowGallery(true)
       return
     }
 
@@ -2127,13 +1997,24 @@ export function DataExtractionPlatform({
     [],
   )
 
-  const addSchema = () => {
+  const addSchema = useCallback((options?: { name?: string; templateId?: string | null; agent?: AgentType }) => {
     const nextIndex = schemas.length + 1
+    const schemaName = options?.name?.trim() || `Schema ${nextIndex}`
+    const templateId = options?.templateId || null
+
+    // Get template fields if templateId is provided
+    let fields: SchemaField[] = []
+    if (templateId && templateMap.has(templateId)) {
+      const template = templateMap.get(templateId)!
+      fields = cloneSchemaFields(template.fields ?? [])
+    }
+
     const newSchema: SchemaDefinition = {
       id: generateUuid(),
-      name: `Schema ${nextIndex}`,
-      fields: [],
+      name: schemaName,
+      fields,
       jobs: [],
+      templateId,
       createdAt: new Date(),
       updatedAt: new Date(),
     }
@@ -2142,6 +2023,7 @@ export function DataExtractionPlatform({
     setSchemaNameInput(newSchema.name)
     setSelectedColumn(null)
     setIsColumnDialogOpen(false)
+    setShowGallery(false)
     if (session?.user?.id) {
       setSchemaSyncState((prev) => ({
         ...prev,
@@ -2149,7 +2031,7 @@ export function DataExtractionPlatform({
       }))
       void syncSchema(newSchema)
     }
-  }
+  }, [schemas.length, session?.user?.id, templateMap])
 
   const removeSchema = (id: string) => {
     const fallback = createInitialSchemaDefinition()
@@ -2948,6 +2830,196 @@ export function DataExtractionPlatform({
       fileInputRef.current.value = ""
     }
   }
+
+  const handleSaveManualRecord = async (recordName: string, data: Record<string, any>) => {
+    const targetSchemaId = activeSchemaId
+
+    // Create a new job with manually entered data
+    const newJob: ExtractionJob = {
+      id: generateUuid(),
+      fileName: recordName,
+      status: "completed" as ExtractionJob["status"],
+      results: data,
+      createdAt: new Date(),
+      completedAt: new Date(),
+      agentType: "manual" as any,
+      review: {},
+      ocrMarkdown: null,
+      ocrAnnotatedImageUrl: null,
+      originalFileUrl: null,
+    }
+
+    // Add to local state
+    updateSchemaJobs(targetSchemaId, (prev) => [newJob, ...prev])
+    setSelectedRowId(newJob.id)
+
+    // Persist to Supabase if user is logged in
+    if (session?.user?.id) {
+      try {
+        const { error } = await supabase
+          .from('extraction_jobs')
+          .insert({
+            id: newJob.id,
+            schema_id: targetSchemaId,
+            file_name: recordName,
+            status: 'completed',
+            results: data,
+            agent_type: 'manual',
+            created_at: newJob.createdAt.toISOString(),
+            completed_at: newJob.completedAt?.toISOString(),
+          })
+
+        if (error) {
+          console.error('Failed to save manual record:', error)
+          toast({
+            title: "Error",
+            description: "Failed to save record to database",
+            variant: "destructive"
+          })
+        } else {
+          toast({
+            title: "Success",
+            description: "Record created successfully",
+          })
+        }
+      } catch (err) {
+        console.error('Error saving manual record:', err)
+      }
+    } else {
+      toast({
+        title: "Success",
+        description: "Record created (sign in to save to cloud)",
+      })
+    }
+  }
+
+  // Create a new empty record and open Label Maker for GCC Food Label
+  const handleCreateLabelRecord = async () => {
+    const targetSchemaId = activeSchemaId
+    const recordName = `New Label - ${new Date().toLocaleString()}`
+
+    // Create an empty job
+    const newJob: ExtractionJob = {
+      id: generateUuid(),
+      fileName: recordName,
+      status: "completed" as ExtractionJob["status"],
+      results: labelDataToResults(DEFAULT_LABEL_DATA),
+      createdAt: new Date(),
+      completedAt: new Date(),
+      agentType: "manual" as any,
+      review: {},
+      ocrMarkdown: null,
+      ocrAnnotatedImageUrl: null,
+      originalFileUrl: null,
+    }
+
+    // Add to local state
+    updateSchemaJobs(targetSchemaId, (prev) => [newJob, ...prev])
+    setSelectedRowId(newJob.id)
+
+    // Persist to Supabase if user is logged in
+    if (session?.user?.id) {
+      try {
+        const { error } = await supabase
+          .from('extraction_jobs')
+          .insert({
+            id: newJob.id,
+            schema_id: targetSchemaId,
+            file_name: recordName,
+            status: 'completed',
+            results: newJob.results,
+            agent_type: 'manual',
+            created_at: newJob.createdAt.toISOString(),
+            completed_at: newJob.completedAt?.toISOString(),
+          })
+
+        if (error) {
+          console.error('Failed to save new label record:', error)
+        }
+      } catch (err) {
+        console.error('Error saving new label record:', err)
+      }
+    }
+
+    // Open the Label Maker dialog
+    setLabelMakerJob(newJob)
+    setIsLabelMakerNewRecord(true)
+  }
+
+  // Save label data back to job
+  const handleSaveLabelData = async (jobId: string, labelData: LabelData) => {
+    const targetSchemaId = activeSchemaId
+    const results = labelDataToResults(labelData)
+    const fileName = labelData.productName || `Label - ${new Date().toLocaleString()}`
+
+    // Update local state
+    updateSchemaJobs(targetSchemaId, (prev) =>
+      prev.map((job) =>
+        job.id === jobId
+          ? { ...job, results, fileName }
+          : job
+      )
+    )
+
+    // Persist to Supabase if user is logged in
+    if (session?.user?.id) {
+      try {
+        // Check if job exists in DB
+        const { data: existingJob } = await supabase
+          .from('extraction_jobs')
+          .select('id')
+          .eq('id', jobId)
+          .single()
+
+        if (existingJob) {
+          // Update existing
+          const { error } = await supabase
+            .from('extraction_jobs')
+            .update({
+              file_name: fileName,
+              results: results,
+            })
+            .eq('id', jobId)
+
+          if (error) throw error
+        } else {
+          // Insert new
+          const { error } = await supabase
+            .from('extraction_jobs')
+            .insert({
+              id: jobId,
+              schema_id: targetSchemaId,
+              file_name: fileName,
+              status: 'completed',
+              results: results,
+              agent_type: 'manual',
+              created_at: new Date().toISOString(),
+              completed_at: new Date().toISOString(),
+            })
+
+          if (error) throw error
+        }
+
+        toast({
+          title: "Saved",
+          description: "Label saved successfully",
+        })
+      } catch (err) {
+        console.error('Error saving label:', err)
+        toast({
+          title: "Error",
+          description: "Failed to save label to database",
+          variant: "destructive"
+        })
+      }
+    } else {
+      toast({
+        title: "Saved locally",
+        description: "Sign in to save to cloud",
+      })
+    }
+  }
+
   const getStatusIcon = (status: ExtractionJob["status"]) => {
     const iconSizing = "h-3.5 w-3.5"
     switch (status) {
@@ -3686,1488 +3758,1389 @@ export function DataExtractionPlatform({
     [activeSchemaId, updateSchemaJobs]
   );
 
+  const handleCreateNewSchema = useCallback(() => {
+    setIsTemplateSelectorOpen(true);
+  }, []);
+
+  const handleChooseTemplate = useCallback((templateId: string, options: { name: string; agent: AgentType }) => {
+    addSchema({ name: options.name, templateId, agent: options.agent });
+  }, [addSchema]);
+
+  const handleCreateBlank = useCallback((options: { name: string; agent: AgentType; templateId: string }) => {
+    addSchema({ name: options.name, templateId: options.templateId, agent: options.agent });
+  }, [addSchema]);
+
+  const handleSchemaNameSave = useCallback(() => {
+    const trimmedName = schemaNameInput.trim();
+    if (!trimmedName) {
+      setSchemaNameInput(activeSchema.name);
+      setEditingSchemaName(false);
+      return;
+    }
+
+    commitSchemaUpdate(activeSchemaId, (schema) => ({
+      ...schema,
+      name: trimmedName,
+    }));
+
+    setEditingSchemaName(false);
+  }, [schemaNameInput, activeSchema.name, activeSchemaId, commitSchemaUpdate]);
+
   return (
     <div className={cn("flex flex-col bg-background", isEmbedded ? "h-full" : "h-screen")}>
+      {/* Hidden file input for Upload Files button */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        multiple
+        accept="image/*,.pdf,.doc,.docx,.txt,.csv,.json,.xml,.md"
+        onChange={handleFileUpload}
+      />
       <SetupBanner />
 
-      {/* Tabs */}
-      {!isEmbeddedInWorkspace && (
-        <div id="tab-bar" className="flex-shrink-0 bg-gray-100 pl-6 border-b border-gray-200 flex items-center">
-          {/* Tab items container */}
-          <div id="tab-container" className="relative flex-grow overflow-x-auto -mb-px tab-container">
-            <div className="flex items-center whitespace-nowrap pr-2">
-              {schemas.map((s) => {
-                const isActive = s.id === activeSchemaId
-                return (
-                  <button
-                    key={s.id}
-                    type="button"
-                    className={cn(
-                      'group relative inline-flex items-center max-w-xs mr-1 px-3 py-2 text-sm rounded-t-md border-b-2',
-                      isActive
-                        ? 'bg-white text-indigo-600 border-indigo-500'
-                        : 'bg-transparent text-gray-500 border-transparent hover:bg-gray-200',
-                    )}
-                    onClick={() => {
-                      setActiveSchemaId(s.id)
-                      setSelectedColumn(null)
-                      setIsColumnDialogOpen(false)
-                    }}
-                    title={s.name}
-                  >
-                    <span className="truncate max-w-[10rem] pr-1">{s.name}</span>
-                    <span
-                      className={cn(
-                        'ml-1 opacity-0 group-hover:opacity-100 transition-opacity',
-                        isActive ? 'text-indigo-600' : 'text-gray-500 hover:text-gray-700',
-                      )}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        closeSchema(s.id)
-                      }}
-                      aria-label="Close schema tab"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </span>
-                  </button>
-                )
-              })}
-              {/* Add New Tab Button: sits after last tab; sticks to right on overflow */}
-              <button
-                onClick={() => addSchema()}
-                className="ml-2 p-2 rounded-md hover:bg-gray-200 text-gray-500 hover:text-gray-700 sticky right-0 bg-gray-100"
-                title="New schema"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
+      {/* Header / Navigation */}
+      <div className="flex h-14 items-center justify-between border-b bg-background px-4 shrink-0">
+        <div className="flex items-center gap-4">
+          {showGallery ? (
+            <div className="flex items-center gap-2 font-semibold">
+              <LayoutGrid className="h-5 w-5" />
+              <span>Dashboard</span>
             </div>
+          ) : (
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink href="#" onClick={(e) => {
+                    e.preventDefault()
+                    setShowGallery(true)
+                  }}>
+                    Dashboard
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>
+                    {editingSchemaName ? (
+                      <Input
+                        value={schemaNameInput}
+                        onChange={(e) => setSchemaNameInput(e.target.value)}
+                        onBlur={handleSchemaNameSave}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleSchemaNameSave()
+                          if (e.key === "Escape") {
+                            setSchemaNameInput(activeSchema.name)
+                            setEditingSchemaName(false)
+                          }
+                        }}
+                        className="h-6 w-[200px] px-1 py-0 text-sm font-medium"
+                        autoFocus
+                      />
+                    ) : (
+                      <div
+                        className="flex items-center gap-2 cursor-pointer hover:text-foreground transition-colors"
+                        onClick={() => {
+                          setSchemaNameInput(activeSchema.name)
+                          setEditingSchemaName(true)
+                        }}
+                      >
+                        <span>{activeSchema.name}</span>
+                        <Edit className="h-3 w-3 opacity-50" />
+                      </div>
+                    )}
+                  </BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {!showGallery && (
+            <>
+              <div className="flex items-center bg-muted/50 rounded-lg p-1 mr-2">
+                <Button
+                  variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  className="h-7 px-2"
+                  onClick={() => setViewMode('grid')}
+                >
+                  <Grid className="h-3.5 w-3.5 mr-1.5" />
+                  Grid
+                </Button>
+                <Button
+                  variant={viewMode === 'gallery' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  className="h-7 px-2"
+                  onClick={() => setViewMode('gallery')}
+                >
+                  <LayoutGrid className="h-3.5 w-3.5 mr-1.5" />
+                  Gallery
+                </Button>
+              </div>
+
+              <Button variant="outline" size="sm" onClick={() => setIsColumnDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Column
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  // For GCC Food Label, open Label Maker directly
+                  if (activeSchema.templateId === 'gcc-food-label' || activeSchema.name.toLowerCase().includes('gcc')) {
+                    handleCreateLabelRecord()
+                  } else {
+                    setIsManualRecordOpen(true)
+                  }
+                }}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Create Record
+              </Button>
+              <Button variant="default" size="sm" onClick={() => fileInputRef.current?.click()}>
+                <Upload className="mr-2 h-4 w-4" />
+                Upload Files
+              </Button>
+            </>
+          )}
+
+          <div className="flex items-center gap-1">
+            {session?.user && (
+              <div className="flex items-center gap-2 ml-2">
+                <div className={cn(
+                  "h-2 w-2 rounded-full",
+                  Object.values(schemaSyncState).some(s => s.status === 'saving') ? "bg-yellow-500 animate-pulse" :
+                    Object.values(schemaSyncState).some(s => s.status === 'error') ? "bg-red-500" :
+                      "bg-emerald-500"
+                )} />
+                <span className="text-xs text-muted-foreground">
+                  {Object.values(schemaSyncState).some(s => s.status === 'saving') ? "Saving..." :
+                    Object.values(schemaSyncState).some(s => s.status === 'error') ? "Error saving" :
+                      "Saved"}
+                </span>
+              </div>
+            )}
           </div>
         </div>
-      )}
+      </div>
 
       <div className="flex flex-1 min-h-0 min-w-0">
+        {showGallery ? (
+          <JobGalleryView
+            schemas={schemas}
+            isLoading={isWorkspaceLoading}
+            onSelectSchema={(schema) => {
+              setActiveSchemaId(schema.id)
+              setShowGallery(false)
+            }}
+            onCreateSchema={handleCreateNewSchema}
+            onDeleteSchema={(schema) => setSchemaDeletionDialog(schema)}
+            onRenameSchema={(schema) => {
+              setActiveSchemaId(schema.id)
+              setSchemaNameInput(schema.name)
+              setEditingSchemaName(true)
+              setShowGallery(false)
+            }}
+          />
+        ) : (
+          <div className="flex flex-1 flex-col min-h-0 min-w-0">
 
-        {/* Sidebar disabled on all screen sizes */}
+            {/* Sidebar disabled on all screen sizes */}
 
-        {/* Main Content - Excel-style Table */}
-        <div className="flex-1 flex flex-col min-h-0 min-w-0">
-          {/* Header */}
-          <div className="bg-white border-b border-gray-200 p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {/* Sidebar toggle removed (sidebar disabled) */}
-                {!editingSchemaName ? (
-                  <button
-                    type="button"
-                    className="text-2xl font-bold text-foreground hover:underline text-left"
-                    onClick={() => {
-                      setSchemaNameInput(activeSchema.name || 'Data Extraction Schema')
-                      setEditingSchemaName(true)
-                    }}
-                    title="Click to rename schema"
-                  >
-                    {activeSchema.name || 'Data Extraction Schema'}
-                  </button>
-                ) : (
-                  <input
-                    value={schemaNameInput}
-                    onChange={(e) => setSchemaNameInput(e.target.value)}
-                    autoFocus
-                    onBlur={() => {
-                      const next = (schemaNameInput || 'Data Extraction Schema').trim()
-                      commitSchemaUpdate(activeSchemaId, (schema) => ({
-                        ...schema,
-                        name: next,
-                      }))
-                      setSchemaNameInput(next)
-                      setEditingSchemaName(false)
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        const next = (schemaNameInput || 'Data Extraction Schema').trim()
-                        commitSchemaUpdate(activeSchemaId, (schema) => ({
-                          ...schema,
-                          name: next,
-                        }))
-                        setSchemaNameInput(next)
-                        setEditingSchemaName(false)
-                      } else if (e.key === 'Escape') {
-                        setEditingSchemaName(false)
-                        setSchemaNameInput(activeSchema.name)
-                      }
-                    }}
-                    className="text-2xl font-bold text-foreground bg-transparent border-b border-border focus:outline-none focus:border-ring px-1"
-                  />
-                )}
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {/* Agent type selector */}
-                {!isEmbeddedInWorkspace && isSchemaFresh(activeSchema) && (
-                  <Select value={selectedAgent} onValueChange={(val) => setSelectedAgent(val as AgentType)}>
-                    <SelectTrigger className="w-64">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="standard">Standard Extraction</SelectItem>
-                      <SelectItem value="pharma">Pharma E-Commerce Content Generation</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-                {/* Schema template selector in header when schema fresh and standard agent */}
-                {!isEmbeddedInWorkspace && isSchemaFresh(activeSchema) && selectedAgent === "standard" && (
-                  <Select onValueChange={(val) => {
-                    if (val === "blank") {
-                      // Start from scratch - do nothing, just allow user to add fields
-                      return;
-                    }
-                    applySchemaTemplate(val);
-                  }}>
-                    <SelectTrigger className="w-56">
-                      <SelectValue placeholder="Choose starting point" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="blank">Start from scratch</SelectItem>
-                      {combinedTemplates
-                        .filter((t) => t.agentType === "standard")
-                        .map((t) => (
-                          <SelectItem key={t.id} value={t.id}>
-                            {t.name}
-                            {t.isCustom ? " (Custom)" : ""}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                )}
-                {onCreateTemplate ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={fields.length === 0 || isSavingTemplate}
-                    onClick={() => {
-                      setTemplateNameInput(activeSchema.name || "New template")
-                      setTemplateDescriptionInput("")
-                      setIsTemplateDialogOpen(true)
-                    }}
-                    title={
-                      fields.length === 0
-                        ? "Add at least one field before saving this schema as a template."
-                        : "Save the current schema structure as a reusable template."
-                    }
-                    className="gap-2"
-                  >
-                    {isSavingTemplate ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkle className="h-4 w-4" />}
-                    Save template
-                  </Button>
-                ) : null}
-                {/* Export / Print: show Export always (non-F&B), Print gated on completion (F&B) */}
-                {activeSchema.templateId === 'fnb-label-compliance' ? (
-                  jobs.some((j) => j.status === 'completed') ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={printLocalizedLabel}
-                      title="Print Localized Label"
-                    >
-                      <Download className="h-4 w-4 mr-1" />
-                      Print Localized Label
-                    </Button>
-                  ) : null
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => exportToCSV()}
-                    title="Export to CSV"
-                  >
-                    <Download className="h-4 w-4 mr-1" />
-                    Export CSV
-                  </Button>
-                )}
-                {/* Group Fields button */}
-                {selectedColumnIds.size >= 2 && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={openGroupDialog}
-                    title="Group selected fields into an object"
-                  >
-                    <Layers className="h-4 w-4 mr-1" />
-                    Group Fields ({selectedColumnIds.size})
-                  </Button>
-                )}
-                {session?.user ? (
-                  <div className="flex items-center gap-3">
-                    {isWorkspaceLoading ? (
-                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Syncing…
-                      </span>
-                    ) : activeSchemaStatus === 'saving' ? (
-                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Saving…
-                      </span>
-                    ) : activeSchemaStatus === 'error' ? (
-                      <span className="flex items-center gap-1 text-xs text-destructive">
-                        <AlertCircle className="h-4 w-4" />
-                        Save failed
-                      </span>
-                    ) : activeSchemaUpdatedAt ? (
-                      <span className="text-xs text-muted-foreground">
-                        Saved {formatDistanceToNow(activeSchemaUpdatedAt, { addSuffix: true })}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">All changes saved</span>
-                    )}
-                    {activeSchemaStatus === 'error' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={retryActiveSchema}
-                        disabled={isWorkspaceLoading || activeSchemaStatus === 'saving'}
-                      >
-                        Retry
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-start gap-1">
-                    {hasWorkspaceContent && (
-                      <span className="text-sm font-medium text-amber-600">
-                        Sign in to save your workspace before you leave.
-                      </span>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openAuthDialog("sign-in")}
-                      className="gap-2"
-                    >
-                      <Save className="h-4 w-4" />
-                      Save workspace
-                    </Button>
-                  </div>
-                )}
-                {/* View Mode Toggle */}
-                <div className="flex items-center gap-1 border rounded-md p-1">
-                  <Button
-                    size="sm"
-                    variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                    onClick={() => setViewMode('grid')}
-                    className="h-7 px-2"
-                    title="Grid View"
-                  >
-                    <LayoutGrid className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={viewMode === 'gallery' ? 'default' : 'ghost'}
-                    onClick={() => setViewMode('gallery')}
-                    className="h-7 px-2"
-                    title="Gallery View"
-                  >
-                    <Grid className="h-4 w-4" />
-                  </Button>
-                </div>
-                {/* Upload button moved to header */}
-                <Button
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={fields.length === 0 && activeSchema.templateId !== 'fnb-label-compliance' && selectedAgent !== 'pharma'}
-                  title="Upload Documents"
-                >
-                  <Upload className="h-4 w-4 mr-1" />
-                  Upload
-                </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-              </div>
-            </div>
-            {(loadWorkspaceError || activeSchemaError) && (
-              <div className="mt-2 space-y-1">
-                {loadWorkspaceError && (
-                  <p className="text-sm text-destructive">
-                    {loadWorkspaceError}
-                  </p>
-                )}
-                {activeSchemaError && (
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm text-destructive">
-                      {activeSchemaError}
-                    </p>
-                    {session?.user && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={retryActiveSchema}
-                        disabled={isWorkspaceLoading || activeSchemaStatus === 'saving'}
-                      >
-                        Retry
-                      </Button>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-            {fields.length === 0 && selectedAgent !== 'pharma' && (
-              <div className="mt-4 p-3 bg-muted rounded-lg">
-                <p className="text-sm text-muted-foreground">
-                  Start by defining your data extraction schema. Add columns for each piece of information you want to
-                  extract from your documents.
-                </p>
-              </div>
-            )}
-            {fields.length === 0 && selectedAgent === 'pharma' && (
-              <div className="mt-4 p-3 bg-muted rounded-lg">
-                <p className="text-sm text-muted-foreground">
-                  Upload a pharmaceutical product image or document to extract drug information and match it with the Saudi FDA database.
-                </p>
-              </div>
-            )}
-          </div>
-          {/* Main Body */}
-          <div className="flex-1 overflow-auto min-h-0 min-w-0 relative">
-            {(() => {
-              // Determine display mode based on job agent types or selected agent
-              const selectedJob = sortedJobs.find((j) => j.id === selectedRowId) || sortedJobs[sortedJobs.length - 1]
-              const displayMode = selectedJob?.agentType || selectedAgent
-              return displayMode
-            })() === 'pharma' ? (
-              <div className="p-4 space-y-4">
-                {/* Simple job selector */}
-                {sortedJobs.length > 0 && (
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm text-muted-foreground">Jobs:</span>
-                    {sortedJobs.map((job, idx) => (
-                      <button
-                        key={job.id}
-                        onClick={() => setSelectedRowId(job.id)}
-                        className={`px-2 py-1 rounded border text-xs ${selectedRowId === job.id ? 'bg-accent text-accent-foreground' : 'bg-muted text-foreground'}`}
-                      >
-                        {idx + 1}. {job.fileName}
-                      </button>
-                    ))}
-                  </div>
-                )}
+            {/* Main Content - Excel-style Table */}
+            <div className="flex-1 flex flex-col min-h-0 min-w-0">
+              {/* Header */}
 
-                {/* Selected job panels */}
+              {/* Main Body */}
+              <div className="flex-1 overflow-auto min-h-0 min-w-0 relative">
                 {(() => {
-                  const job = sortedJobs.find((j) => j.id === selectedRowId) || sortedJobs[sortedJobs.length - 1]
-                  if (!job) return (
-                    <div className="text-center py-12 text-muted-foreground">
-                      <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>No results yet. Upload a drug label image or document to get started.</p>
-                    </div>
-                  )
-                  const pharmaData = job.results?.pharma_data
-                  const drugInfo = pharmaData?.drugInfo
-                  const detailedInfo = pharmaData?.detailedInfo
-                  const matchedDrugUrl = pharmaData?.matchedDrugUrl
-                  const searchUrl = pharmaData?.searchUrl
-
-                  const KV = (label: string, value: any) => (
-                    value != null && value !== '' && value !== undefined ? (
-                      <div className="flex justify-between gap-3 text-sm">
-                        <span className="text-muted-foreground font-medium">{label}:</span>
-                        <span className="text-right break-words">{String(value)}</span>
+                  // Determine display mode based on job agent types or selected agent
+                  const selectedJob = sortedJobs.find((j) => j.id === selectedRowId) || sortedJobs[sortedJobs.length - 1]
+                  const displayMode = selectedJob?.agentType || selectedAgent
+                  return displayMode
+                })() === 'pharma' ? (
+                  <div className="p-4 space-y-4">
+                    {/* Simple job selector */}
+                    {sortedJobs.length > 0 && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm text-muted-foreground">Jobs:</span>
+                        {sortedJobs.map((job, idx) => (
+                          <button
+                            key={job.id}
+                            onClick={() => setSelectedRowId(job.id)}
+                            className={`px-2 py-1 rounded border text-xs ${selectedRowId === job.id ? 'bg-accent text-accent-foreground' : 'bg-muted text-foreground'}`}
+                          >
+                            {idx + 1}. {job.fileName}
+                          </button>
+                        ))}
                       </div>
-                    ) : null
-                  )
+                    )}
 
-                  const Section = (title: string, content: any) => (
-                    content != null && content !== '' && content !== undefined ? (
-                      <div className="space-y-2">
-                        <div className="text-sm font-semibold text-foreground">{title}</div>
-                        <div className="text-sm whitespace-pre-wrap">{String(content)}</div>
-                      </div>
-                    ) : null
-                  )
+                    {/* Selected job panels */}
+                    {(() => {
+                      const job = sortedJobs.find((j) => j.id === selectedRowId) || sortedJobs[sortedJobs.length - 1]
+                      if (!job) return (
+                        <div className="text-center py-12 text-muted-foreground">
+                          <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p>No results yet. Upload a drug label image or document to get started.</p>
+                        </div>
+                      )
+                      const pharmaData = job.results?.pharma_data
+                      const drugInfo = pharmaData?.drugInfo
+                      const detailedInfo = pharmaData?.detailedInfo
+                      const matchedDrugUrl = pharmaData?.matchedDrugUrl
+                      const searchUrl = pharmaData?.searchUrl
 
-                  return (
-                    <div className="space-y-4">
-                      <Card>
-                        <CardContent className="p-4 space-y-3">
-                          <div className="flex items-center justify-between">
-                            <h3 className="font-semibold text-lg">Drug Information Extracted from File</h3>
-                            {getStatusIcon(job.status)}
+                      const KV = (label: string, value: any) => (
+                        value != null && value !== '' && value !== undefined ? (
+                          <div className="flex justify-between gap-3 text-sm">
+                            <span className="text-muted-foreground font-medium">{label}:</span>
+                            <span className="text-right break-words">{String(value)}</span>
                           </div>
-                          {!drugInfo ? (
-                            <div className="text-sm text-muted-foreground">No drug information extracted</div>
-                          ) : (
-                            <div className="space-y-2">
-                              {KV('Drug Name', drugInfo?.drugName)}
-                              {KV('Generic Name', drugInfo?.genericName)}
-                              {KV('Manufacturer', drugInfo?.manufacturer)}
-                              {KV('Active Ingredients', drugInfo?.activeIngredients)}
-                              {KV('Dosage', drugInfo?.dosage)}
-                              {KV('Dosage Form', drugInfo?.dosageForm)}
-                              {KV('Pack Size', drugInfo?.packSize)}
-                              {KV('Batch Number', drugInfo?.batchNumber)}
-                              {KV('Expiry Date', drugInfo?.expiryDate)}
-                              {KV('Other Identifiers', drugInfo?.otherIdentifiers)}
-                            </div>
+                        ) : null
+                      )
+
+                      const Section = (title: string, content: any) => (
+                        content != null && content !== '' && content !== undefined ? (
+                          <div className="space-y-2">
+                            <div className="text-sm font-semibold text-foreground">{title}</div>
+                            <div className="text-sm whitespace-pre-wrap">{String(content)}</div>
+                          </div>
+                        ) : null
+                      )
+
+                      return (
+                        <div className="space-y-4">
+                          <Card>
+                            <CardContent className="p-4 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <h3 className="font-semibold text-lg">Drug Information Extracted from File</h3>
+                                {getStatusIcon(job.status)}
+                              </div>
+                              {!drugInfo ? (
+                                <div className="text-sm text-muted-foreground">No drug information extracted</div>
+                              ) : (
+                                <div className="space-y-2">
+                                  {KV('Drug Name', drugInfo?.drugName)}
+                                  {KV('Generic Name', drugInfo?.genericName)}
+                                  {KV('Manufacturer', drugInfo?.manufacturer)}
+                                  {KV('Active Ingredients', drugInfo?.activeIngredients)}
+                                  {KV('Dosage', drugInfo?.dosage)}
+                                  {KV('Dosage Form', drugInfo?.dosageForm)}
+                                  {KV('Pack Size', drugInfo?.packSize)}
+                                  {KV('Batch Number', drugInfo?.batchNumber)}
+                                  {KV('Expiry Date', drugInfo?.expiryDate)}
+                                  {KV('Other Identifiers', drugInfo?.otherIdentifiers)}
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+
+                          {searchUrl && (
+                            <Card>
+                              <CardContent className="p-4 space-y-2">
+                                <h3 className="font-semibold text-lg">Saudi FDA Database Search</h3>
+                                <div className="text-sm">
+                                  <span className="text-muted-foreground">Search Query: </span>
+                                  <span className="font-medium">{pharmaData?.searchQuery || 'N/A'}</span>
+                                </div>
+                                <a
+                                  href={searchUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sm text-blue-600 hover:underline inline-flex items-center gap-1"
+                                >
+                                  View Search Results
+                                  <Globe className="h-3 w-3" />
+                                </a>
+                              </CardContent>
+                            </Card>
                           )}
-                        </CardContent>
-                      </Card>
 
-                      {searchUrl && (
-                        <Card>
-                          <CardContent className="p-4 space-y-2">
-                            <h3 className="font-semibold text-lg">Saudi FDA Database Search</h3>
-                            <div className="text-sm">
-                              <span className="text-muted-foreground">Search Query: </span>
-                              <span className="font-medium">{pharmaData?.searchQuery || 'N/A'}</span>
-                            </div>
-                            <a
-                              href={searchUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm text-blue-600 hover:underline inline-flex items-center gap-1"
-                            >
-                              View Search Results
-                              <Globe className="h-3 w-3" />
-                            </a>
-                          </CardContent>
-                        </Card>
-                      )}
+                          {matchedDrugUrl && (
+                            <Card>
+                              <CardContent className="p-4 space-y-2">
+                                <h3 className="font-semibold text-lg">Matched Drug</h3>
+                                <div className="text-sm">
+                                  <span className="text-muted-foreground">Drug ID: </span>
+                                  <span className="font-medium">{pharmaData?.matchedDrugId || 'N/A'}</span>
+                                </div>
+                                <a
+                                  href={matchedDrugUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sm text-blue-600 hover:underline inline-flex items-center gap-1"
+                                >
+                                  View Drug Details on Saudi FDA
+                                  <Globe className="h-3 w-3" />
+                                </a>
+                              </CardContent>
+                            </Card>
+                          )}
 
-                      {matchedDrugUrl && (
-                        <Card>
-                          <CardContent className="p-4 space-y-2">
-                            <h3 className="font-semibold text-lg">Matched Drug</h3>
-                            <div className="text-sm">
-                              <span className="text-muted-foreground">Drug ID: </span>
-                              <span className="font-medium">{pharmaData?.matchedDrugId || 'N/A'}</span>
-                            </div>
-                            <a
-                              href={matchedDrugUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm text-blue-600 hover:underline inline-flex items-center gap-1"
-                            >
-                              View Drug Details on Saudi FDA
-                              <Globe className="h-3 w-3" />
-                            </a>
-                          </CardContent>
-                        </Card>
-                      )}
+                          {detailedInfo && (
+                            <Card>
+                              <CardContent className="p-4 space-y-4">
+                                <h3 className="font-semibold text-lg">Detailed Drug Information</h3>
+                                <Accordion type="multiple" className="w-full">
+                                  {[
+                                    { key: 'description', label: 'Description', value: detailedInfo?.description },
+                                    { key: 'composition', label: 'Composition', value: detailedInfo?.composition },
+                                    { key: 'howToUse', label: 'How To Use', value: detailedInfo?.howToUse },
+                                    { key: 'indication', label: 'Indication', value: detailedInfo?.indication },
+                                    { key: 'possibleSideEffects', label: 'Possible Side Effects', value: detailedInfo?.possibleSideEffects },
+                                    { key: 'properties', label: 'Properties', value: detailedInfo?.properties },
+                                    { key: 'storage', label: 'Storage', value: detailedInfo?.storage },
+                                  ].map(section => {
+                                    if (!section.value || section.value === null) return null
 
-                      {detailedInfo && (
-                        <Card>
-                          <CardContent className="p-4 space-y-4">
-                            <h3 className="font-semibold text-lg">Detailed Drug Information</h3>
-                            <Accordion type="multiple" className="w-full">
-                              {[
-                                { key: 'description', label: 'Description', value: detailedInfo?.description },
-                                { key: 'composition', label: 'Composition', value: detailedInfo?.composition },
-                                { key: 'howToUse', label: 'How To Use', value: detailedInfo?.howToUse },
-                                { key: 'indication', label: 'Indication', value: detailedInfo?.indication },
-                                { key: 'possibleSideEffects', label: 'Possible Side Effects', value: detailedInfo?.possibleSideEffects },
-                                { key: 'properties', label: 'Properties', value: detailedInfo?.properties },
-                                { key: 'storage', label: 'Storage', value: detailedInfo?.storage },
-                              ].map(section => {
-                                if (!section.value || section.value === null) return null
+                                    const isEditing = pharmaEditingSection === section.key
+                                    const currentValue = pharmaEditedValues[section.key] ?? section.value
 
-                                const isEditing = pharmaEditingSection === section.key
-                                const currentValue = pharmaEditedValues[section.key] ?? section.value
-
-                                const handleSave = () => {
-                                  // Update the job results with the edited value
-                                  const updatedJobs = jobs.map(j => {
-                                    if (j.id === job.id && j.results) {
-                                      return {
-                                        ...j,
-                                        results: {
-                                          ...j.results,
-                                          pharma_data: {
-                                            ...j.results.pharma_data,
-                                            detailedInfo: {
-                                              ...j.results.pharma_data?.detailedInfo,
-                                              [section.key]: currentValue
+                                    const handleSave = () => {
+                                      // Update the job results with the edited value
+                                      const updatedJobs = jobs.map(j => {
+                                        if (j.id === job.id && j.results) {
+                                          return {
+                                            ...j,
+                                            results: {
+                                              ...j.results,
+                                              pharma_data: {
+                                                ...j.results.pharma_data,
+                                                detailedInfo: {
+                                                  ...j.results.pharma_data?.detailedInfo,
+                                                  [section.key]: currentValue
+                                                }
+                                              }
                                             }
                                           }
                                         }
-                                      }
+                                        return j
+                                      })
+                                      setJobs(updatedJobs)
+                                      setPharmaEditingSection(null)
                                     }
-                                    return j
-                                  })
-                                  setJobs(updatedJobs)
-                                  setPharmaEditingSection(null)
-                                }
 
-                                const handleEdit = () => {
-                                  setPharmaEditedValues({ ...pharmaEditedValues, [section.key]: section.value })
-                                  setPharmaEditingSection(section.key)
-                                }
+                                    const handleEdit = () => {
+                                      setPharmaEditedValues({ ...pharmaEditedValues, [section.key]: section.value })
+                                      setPharmaEditingSection(section.key)
+                                    }
 
-                                const handleCancel = () => {
-                                  setPharmaEditingSection(null)
-                                  const newValues = { ...pharmaEditedValues }
-                                  delete newValues[section.key]
-                                  setPharmaEditedValues(newValues)
-                                }
+                                    const handleCancel = () => {
+                                      setPharmaEditingSection(null)
+                                      const newValues = { ...pharmaEditedValues }
+                                      delete newValues[section.key]
+                                      setPharmaEditedValues(newValues)
+                                    }
 
-                                return (
-                                  <AccordionItem key={section.key} value={section.key}>
-                                    <AccordionTrigger className="text-left hover:no-underline">
-                                      <div className="flex items-center justify-between w-full pr-4">
-                                        <span className="font-semibold">{section.label}</span>
-                                      </div>
-                                    </AccordionTrigger>
-                                    <AccordionContent>
-                                      <div className="space-y-2 pt-2">
-                                        {isEditing ? (
-                                          <div className="space-y-2">
-                                            <Textarea
-                                              value={currentValue}
-                                              onChange={(e) => setPharmaEditedValues({ ...pharmaEditedValues, [section.key]: e.target.value })}
-                                              className="min-h-[200px] font-normal"
-                                            />
-                                            <div className="flex gap-2">
-                                              <Button size="sm" onClick={handleSave}>
-                                                <Save className="h-3 w-3 mr-1" />
-                                                Save
-                                              </Button>
-                                              <Button size="sm" variant="outline" onClick={handleCancel}>
-                                                Cancel
-                                              </Button>
-                                            </div>
+                                    return (
+                                      <AccordionItem key={section.key} value={section.key}>
+                                        <AccordionTrigger className="text-left hover:no-underline">
+                                          <div className="flex items-center justify-between w-full pr-4">
+                                            <span className="font-semibold">{section.label}</span>
                                           </div>
-                                        ) : (
-                                          <div className="space-y-2">
-                                            <div className="text-sm whitespace-pre-wrap">{currentValue}</div>
-                                            <Button size="sm" variant="outline" onClick={handleEdit}>
-                                              <Edit className="h-3 w-3 mr-1" />
-                                              Edit
-                                            </Button>
+                                        </AccordionTrigger>
+                                        <AccordionContent>
+                                          <div className="space-y-2 pt-2">
+                                            {isEditing ? (
+                                              <div className="space-y-2">
+                                                <Textarea
+                                                  value={currentValue}
+                                                  onChange={(e) => setPharmaEditedValues({ ...pharmaEditedValues, [section.key]: e.target.value })}
+                                                  className="min-h-[200px] font-normal"
+                                                />
+                                                <div className="flex gap-2">
+                                                  <Button size="sm" onClick={handleSave}>
+                                                    <Save className="h-3 w-3 mr-1" />
+                                                    Save
+                                                  </Button>
+                                                  <Button size="sm" variant="outline" onClick={handleCancel}>
+                                                    Cancel
+                                                  </Button>
+                                                </div>
+                                              </div>
+                                            ) : (
+                                              <div className="space-y-2">
+                                                <div className="text-sm whitespace-pre-wrap">{currentValue}</div>
+                                                <Button size="sm" variant="outline" onClick={handleEdit}>
+                                                  <Edit className="h-3 w-3 mr-1" />
+                                                  Edit
+                                                </Button>
+                                              </div>
+                                            )}
                                           </div>
-                                        )}
-                                      </div>
-                                    </AccordionContent>
-                                  </AccordionItem>
-                                )
-                              })}
-                            </Accordion>
-                          </CardContent>
-                        </Card>
-                      )}
-
-                      {pharmaData?.message && (
-                        <Card>
-                          <CardContent className="p-4">
-                            <div className="text-sm text-muted-foreground">{pharmaData.message}</div>
-                          </CardContent>
-                        </Card>
-                      )}
-
-                      {job.status === 'error' && (
-                        <Card className="border-destructive">
-                          <CardContent className="p-4 space-y-2">
-                            <div className="font-semibold text-destructive">Error</div>
-                            <div className="text-sm text-destructive">
-                              {pharmaData?.error || 'An error occurred during drug information extraction. Please try again with a clearer image or document.'}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
-
-                      {job.status === 'processing' && !pharmaData && (
-                        <Card>
-                          <CardContent className="p-4">
-                            <div className="text-sm text-muted-foreground animate-pulse">
-                              Processing drug information extraction and Saudi FDA database search...
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
-                    </div>
-                  )
-                })()}
-              </div>
-            ) : activeSchema.templateId === 'fnb-label-compliance' ? (
-              <div className="p-4 space-y-4">
-                {/* Simple job selector */}
-                {sortedJobs.length > 0 && (
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm text-muted-foreground">Jobs:</span>
-                    {sortedJobs.map((job, idx) => (
-                      <button
-                        key={job.id}
-                        onClick={() => setSelectedRowId(job.id)}
-                        className={`px-2 py-1 rounded border text-xs ${selectedRowId === job.id ? 'bg-accent text-accent-foreground' : 'bg-muted text-foreground'}`}
-                      >
-                        {idx + 1}. {job.fileName}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {/* Selected job panels */}
-                {(() => {
-                  const job = sortedJobs.find((j) => j.id === selectedRowId) || sortedJobs[sortedJobs.length - 1]
-                  if (!job) return (
-                    <div className="text-center py-12 text-muted-foreground">
-                      <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>No results yet. Upload a label image to get started.</p>
-                    </div>
-                  )
-                  const extraction = job.results?.fnb_extraction?.product_initial_language || job.results?.fnb_extraction
-                  const translation = job.results?.fnb_translation
-                  const collapseState = fnbCollapse[job.id] || { en: false, ar: false }
-                  const toggleEN = () => setFnbCollapse((prev) => ({ ...prev, [job.id]: { ...collapseState, en: !collapseState.en } }))
-                  const toggleAR = () => setFnbCollapse((prev) => ({ ...prev, [job.id]: { ...collapseState, ar: !collapseState.ar } }))
-                  const KV = (label: string, value: any) => (
-                    value != null && value !== '' && value !== undefined ? (
-                      <div className="flex justify-between gap-3 text-sm">
-                        <span className="text-muted-foreground">{label}</span>
-                        <span className="text-right break-words">{String(value)}</span>
-                      </div>
-                    ) : null
-                  )
-                  const List = (label: string, arr: any[]) => (
-                    Array.isArray(arr) && arr.length > 0 ? (
-                      <div className="space-y-1">
-                        <div className="text-sm text-muted-foreground">{label}</div>
-                        <ul className="list-disc pl-5 text-sm space-y-0.5">
-                          {arr.map((it, i) => (
-                            <li key={i}>{String(it)}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    ) : null
-                  )
-                  return (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Card>
-                        <CardContent className="p-4 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <h3 className="font-semibold">Extraction Result (Primary Language)</h3>
-                            {getStatusIcon(job.status)}
-                          </div>
-                          {!extraction ? (
-                            <div className="text-sm text-muted-foreground">No extraction data</div>
-                          ) : (
-                            <div className="space-y-3">
-                              {KV('Barcode', extraction?.barcode)}
-                              {KV('Product Name', extraction?.productName)}
-                              <div className="space-y-1">
-                                <div className="text-sm font-medium">Manufacturer</div>
-                                <div className="space-y-1 rounded border p-2">
-                                  {KV('Name', extraction?.manufacturer?.name)}
-                                  {KV('Location', extraction?.manufacturer?.location)}
-                                  {KV('Additional Info', extraction?.manufacturer?.additionalInfo)}
-                                  {KV('Country', extraction?.manufacturer?.country)}
-                                </div>
-                              </div>
-                              {KV('Product Description', extraction?.productDescription)}
-                              {List('Ingredients', extraction?.ingredients)}
-                              <div className="space-y-1">
-                                <div className="text-sm font-medium">Serving Size Information</div>
-                                <div className="space-y-1 rounded border p-2">
-                                  {KV('Serving Size', extraction?.servingSizeInformation?.servingSize)}
-                                  {KV('Unit', extraction?.servingSizeInformation?.servingSizeUnit)}
-                                  {KV('Servings / Container', extraction?.servingSizeInformation?.servingsPerContainer)}
-                                </div>
-                              </div>
-                              <div className="space-y-1">
-                                <div className="text-sm font-medium">Nutritional Information (per 100g)</div>
-                                <div className="grid grid-cols-2 gap-2 rounded border p-2 text-sm">
-                                  {KV('Energy (kJ)', extraction?.nutritionalInformationPer100g?.energyPer100g?.kj)}
-                                  {KV('Energy (kcal)', extraction?.nutritionalInformationPer100g?.energyPer100g?.kcal)}
-                                  {KV('Fat', extraction?.nutritionalInformationPer100g?.fatPer100g)}
-                                  {KV('Saturates', extraction?.nutritionalInformationPer100g?.saturatesPer100g)}
-                                  {KV('Carbohydrate', extraction?.nutritionalInformationPer100g?.carbohydratePer100g)}
-                                  {KV('Sugars', extraction?.nutritionalInformationPer100g?.sugarsPer100g)}
-                                  {KV('Fibre', extraction?.nutritionalInformationPer100g?.fiberPer100g)}
-                                  {KV('Protein', extraction?.nutritionalInformationPer100g?.proteinPer100g)}
-                                  {KV('Salt', extraction?.nutritionalInformationPer100g?.saltPer100g)}
-                                  {KV('Sodium', extraction?.nutritionalInformationPer100g?.sodiumPer100g)}
-                                  {KV('Cholesterol', extraction?.nutritionalInformationPer100g?.cholesterolPer100g)}
-                                  {KV('Trans Fat', extraction?.nutritionalInformationPer100g?.transFatPer100g)}
-                                  {KV('Added Sugar', extraction?.nutritionalInformationPer100g?.includesAddedSugarPer100g)}
-                                </div>
-                              </div>
-                              {KV('Storage Information', extraction?.storageInformation)}
-                              {KV('Usage Information', extraction?.usageInformation)}
-                              {List('Allergy Information', extraction?.allergyInformation)}
-                              <div className="space-y-1">
-                                <div className="text-sm font-medium">Weight Information</div>
-                                <div className="space-y-1 rounded border p-2">
-                                  {KV('Net Weight', extraction?.weightInformation?.netWeight)}
-                                  {KV('Packaging Weight', extraction?.weightInformation?.packagingWeight)}
-                                </div>
-                              </div>
-                              {KV('Product Status', extraction?.productStatus)}
-                              {KV('Status Reason', extraction?.productStatusReason)}
-                            </div>
+                                        </AccordionContent>
+                                      </AccordionItem>
+                                    )
+                                  })}
+                                </Accordion>
+                              </CardContent>
+                            </Card>
                           )}
-                        </CardContent>
-                      </Card>
-                      <Card>
-                        <CardContent className="p-4 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <h3 className="font-semibold">Translations (EN / AR)</h3>
-                            {getStatusIcon(job.status)}
-                          </div>
-                          {!translation ? (
-                            <div className="text-sm text-muted-foreground">No translation data</div>
-                          ) : (
-                            <div className="grid grid-cols-1 gap-3">
-                              {/* English */}
-                              <div className="space-y-1">
-                                <div className="flex items-center justify-between">
-                                  <div className="text-sm font-medium">English</div>
-                                  <button className="text-xs text-muted-foreground underline" onClick={toggleEN}>
-                                    {collapseState.en ? 'Expand' : 'Collapse'}
-                                  </button>
-                                </div>
-                                {!collapseState.en && (
-                                  <div className="space-y-2 rounded border p-2">
-                                    {KV('Barcode', translation?.english_product_info?.barcode)}
-                                    {KV('Product Name', translation?.english_product_info?.productName)}
-                                    <div className="space-y-1">
-                                      <div className="text-xs text-muted-foreground">Manufacturer</div>
-                                      <div className="space-y-1 rounded border p-2">
-                                        {KV('Name', translation?.english_product_info?.manufacturer?.name)}
-                                        {KV('Location', translation?.english_product_info?.manufacturer?.location)}
-                                        {KV('Additional Info', translation?.english_product_info?.manufacturer?.additionalInfo)}
-                                        {KV('Country', translation?.english_product_info?.manufacturer?.country)}
-                                      </div>
-                                    </div>
-                                    {KV('Product Description', translation?.english_product_info?.productDescription)}
-                                    {List('Ingredients', translation?.english_product_info?.ingredients)}
-                                    <div className="grid grid-cols-2 gap-2 rounded border p-2 text-sm">
-                                      {KV('Energy (kJ)', translation?.english_product_info?.nutritionalInformationPer100g?.energyPer100g?.kj)}
-                                      {KV('Energy (kcal)', translation?.english_product_info?.nutritionalInformationPer100g?.energyPer100g?.kcal)}
-                                      {KV('Fat', translation?.english_product_info?.nutritionalInformationPer100g?.fatPer100g)}
-                                      {KV('Saturates', translation?.english_product_info?.nutritionalInformationPer100g?.saturatesPer100g)}
-                                      {KV('Carbohydrate', translation?.english_product_info?.nutritionalInformationPer100g?.carbohydratePer100g)}
-                                      {KV('Sugars', translation?.english_product_info?.nutritionalInformationPer100g?.sugarsPer100g)}
-                                      {KV('Fibre', translation?.english_product_info?.nutritionalInformationPer100g?.fiberPer100g)}
-                                      {KV('Protein', translation?.english_product_info?.nutritionalInformationPer100g?.proteinPer100g)}
-                                      {KV('Salt', translation?.english_product_info?.nutritionalInformationPer100g?.saltPer100g)}
-                                    </div>
-                                    {KV('Storage Information', translation?.english_product_info?.storageInformation)}
-                                    {KV('Usage Information', translation?.english_product_info?.usageInformation)}
-                                    {List('Allergy Information', translation?.english_product_info?.allergyInformation)}
-                                    <div className="space-y-1 rounded border p-2">
-                                      {KV('Net Weight', translation?.english_product_info?.weightInformation?.netWeight)}
-                                      {KV('Packaging Weight', translation?.english_product_info?.weightInformation?.packagingWeight)}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                              {/* Arabic */}
-                              <div className="space-y-1">
-                                <div className="flex items-center justify-between">
-                                  <div className="text-sm font-medium">Arabic</div>
-                                  <button className="text-xs text-muted-foreground underline" onClick={toggleAR}>
-                                    {collapseState.ar ? 'Expand' : 'Collapse'}
-                                  </button>
-                                </div>
-                                {!collapseState.ar && (
-                                  <div className="space-y-2 rounded border p-2">
-                                    {KV('Barcode', translation?.arabic_product_info?.barcode)}
-                                    {KV('Product Name', translation?.arabic_product_info?.productName)}
-                                    <div className="space-y-1">
-                                      <div className="text-xs text-muted-foreground">Manufacturer</div>
-                                      <div className="space-y-1 rounded border p-2">
-                                        {KV('Name', translation?.arabic_product_info?.manufacturer?.name)}
-                                        {KV('Location', translation?.arabic_product_info?.manufacturer?.location)}
-                                        {KV('Additional Info', translation?.arabic_product_info?.manufacturer?.additionalInfo)}
-                                        {KV('Country', translation?.arabic_product_info?.manufacturer?.country)}
-                                      </div>
-                                    </div>
-                                    {KV('Product Description', translation?.arabic_product_info?.productDescription)}
-                                    {List('Ingredients', translation?.arabic_product_info?.ingredients)}
-                                    <div className="grid grid-cols-2 gap-2 rounded border p-2 text-sm">
-                                      {KV('Energy (kJ)', translation?.arabic_product_info?.nutritionalInformationPer100g?.energyPer100g?.kj)}
-                                      {KV('Energy (kcal)', translation?.arabic_product_info?.nutritionalInformationPer100g?.energyPer100g?.kcal)}
-                                      {KV('Fat', translation?.arabic_product_info?.nutritionalInformationPer100g?.fatPer100g)}
-                                      {KV('Saturates', translation?.arabic_product_info?.nutritionalInformationPer100g?.saturatesPer100g)}
-                                      {KV('Carbohydrate', translation?.arabic_product_info?.nutritionalInformationPer100g?.carbohydratePer100g)}
-                                      {KV('Sugars', translation?.arabic_product_info?.nutritionalInformationPer100g?.sugarsPer100g)}
-                                      {KV('Fibre', translation?.arabic_product_info?.nutritionalInformationPer100g?.fiberPer100g)}
-                                      {KV('Protein', translation?.arabic_product_info?.nutritionalInformationPer100g?.proteinPer100g)}
-                                      {KV('Salt', translation?.arabic_product_info?.nutritionalInformationPer100g?.saltPer100g)}
-                                    </div>
-                                    {KV('Storage Information', translation?.arabic_product_info?.storageInformation)}
-                                    {KV('Usage Information', translation?.arabic_product_info?.usageInformation)}
-                                    {List('Allergy Information', translation?.arabic_product_info?.allergyInformation)}
-                                    <div className="space-y-1 rounded border p-2">
-                                      {KV('Net Weight', translation?.arabic_product_info?.weightInformation?.netWeight)}
-                                      {KV('Packaging Weight', translation?.arabic_product_info?.weightInformation?.packagingWeight)}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
+                          {pharmaData?.message && (
+                            <Card>
+                              <CardContent>
+                                <div className="text-sm text-muted-foreground">{pharmaData.message}</div>
+                              </CardContent>
+                            </Card>
                           )}
-                        </CardContent>
-                      </Card>
-                    </div>
-                  )
-                })()}
-              </div>
-            ) : (
-              <div className="flex-1 overflow-hidden min-h-0 relative">
-                {viewMode === 'grid' ? (
-                  <TanStackGridSheet
-                    schemaId={activeSchemaId}
-                    columns={displayColumns}
-                    jobs={sortedJobs}
-                    selectedRowId={selectedJob?.id ?? null}
-                    onSelectRow={(id) => {
-                      const job = sortedJobs.find((j) => j.id === id)
-                      if (job) setSelectedJob(job)
-                    }}
-                    onRowDoubleClick={(job) => {
-                      setSelectedJob(job)
-                      setIsDetailOpen(true)
-                    }}
-                    onAddColumn={addColumn}
-                    renderCellValue={renderCellValue}
-                    getStatusIcon={getStatusIcon}
-                    renderStatusPill={renderStatusPill}
-                    onEditColumn={(col) => {
-                      setColumnDialogMode('edit')
-                      setDraftColumn(col)
-                      setIsColumnDialogOpen(true)
-                    }}
-                    onDeleteColumn={(colId) => {
-                      commitSchemaUpdate(activeSchemaId, (schema) => {
-                        const newFields = removeFieldById(schema.fields, colId)
-                        const updatedGroups = (schema.visualGroups || [])
-                          .map(group => ({
-                            ...group,
-                            fieldIds: group.fieldIds.filter(id => id !== colId)
-                          }))
-                          .filter(group => group.fieldIds.length > 0)
-                        return {
-                          ...schema,
-                          fields: newFields,
-                          visualGroups: updatedGroups,
-                        }
-                      })
-                    }}
-                    onUpdateCell={handleUpdateCell}
-                    onUpdateReviewStatus={handleUpdateReviewStatus}
-                    onColumnRightClick={handleColumnRightClick}
-                    onOpenTableModal={openTableModal}
-                    visualGroups={activeSchema.visualGroups}
-                    expandedRowId={expandedRowId}
-                    onToggleRowExpansion={toggleRowExpansion}
-                  />
-                ) : (
-                  <GalleryView
-                    jobs={sortedJobs}
-                    onSelectJob={(job) => {
-                      setSelectedJob(job)
-                      setIsDetailOpen(true)
-                    }}
-                    onDeleteJob={(jobId) => handleDeleteJob(jobId)}
-                  />
-                )}
-              </div>
-            )}
-          </div>
-        </div>
 
-        {/* Column Configuration Modal (hidden for F&B fixed mode) */}
-        {activeSchema.templateId !== 'fnb-label-compliance' && (
-          <Dialog
-            open={isColumnDialogOpen}
-            onOpenChange={(open) => {
-              setIsColumnDialogOpen(open)
-              if (!open) {
-                setDraftColumn(null)
-                setColumnDialogMode('create')
-              }
-            }}
-          >
-            <DialogContent className="max-w-xl w-full max-h-[90vh] p-0 overflow-hidden flex flex-col">
-              <DialogHeader className="border-b border-slate-200/70 px-6 py-5">
-                <DialogTitle className="text-xl font-semibold">
-                  {columnDialogMode === 'edit' ? 'Edit Field' : 'Add New Field'}
-                </DialogTitle>
-                <DialogDescription className="text-sm text-slate-600">
-                  Configure how this data point is extracted and structured for your grid.
-                </DialogDescription>
-              </DialogHeader>
+                          {job.status === 'error' && (
+                            <Card className="border-destructive">
+                              <CardContent className="p-4 space-y-2">
+                                <div className="font-semibold text-destructive">Error</div>
+                                <div className="text-sm text-destructive">
+                                  {pharmaData?.error || 'An error occurred during drug information extraction. Please try again with a clearer image or document.'}
+                                </div>
+                              </CardContent>
+                            </Card>
+                          )}
 
-              {draftColumn && (
-                <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5 min-h-0">
-                  <section className="space-y-3">
-                    <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Field Source</Label>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className={cn(
-                          'flex h-auto flex-col items-start gap-1 rounded-xl border-2 px-4 py-3 text-left shadow-none transition-all',
-                          !isDraftTransformation
-                            ? 'border-[#2782ff]/70 bg-[#e6f0ff]/70 text-[#2782ff] hover:bg-[#d9e9ff]'
-                            : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100',
-                        )}
-                        aria-pressed={!isDraftTransformation}
-                        onClick={() => handleDraftFieldTypeChange(false)}
-                      >
-                        <span className="flex items-center gap-2 text-sm font-semibold">
-                          <FileText className="h-4 w-4" />
-                          Extraction
-                        </span>
-                        <span className="text-xs text-slate-500">Extract directly from the document</span>
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className={cn(
-                          'flex h-auto flex-col items-start gap-1 rounded-xl border-2 px-4 py-3 text-left shadow-none transition-all',
-                          isDraftTransformation
-                            ? 'border-[#2782ff]/70 bg-[#e6f0ff]/70 text-[#2782ff] hover:bg-[#d9e9ff]'
-                            : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100',
-                        )}
-                        aria-pressed={isDraftTransformation}
-                        onClick={() => handleDraftFieldTypeChange(true)}
-                      >
-                        <span className="flex items-center gap-2 text-sm font-semibold">
-                          <Zap className="h-4 w-4" />
-                          Transformation
-                        </span>
-                        <span className="text-xs text-slate-500">Compute value from other fields</span>
-                      </Button>
-                    </div>
-                  </section>
-
-                  <div className="space-y-4 rounded-2xl border border-slate-200/70 bg-white px-4 py-5 shadow-sm">
-                    <div className="grid gap-4">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="column-name">Field Name</Label>
-                        <Input
-                          id="column-name"
-                          value={draftColumn.name}
-                          onChange={(event) => setDraftColumn({ ...draftColumn, name: event.target.value })}
-                          placeholder="e.g., Manufacturer"
-                        />
-                      </div>
-                      {/* Description has been merged with Extraction Guidance below */}
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="column-type">Data Type</Label>
-                        <Select value={draftColumn.type} onValueChange={(value: DataType) => changeDraftType(value)}>
-                          <SelectTrigger id="column-type">
-                            <SelectValue placeholder="Select a data type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectGroup>
-                              <SelectLabel>Simple Types</SelectLabel>
-                              {simpleDataTypeOptions.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
-                                  {option.label}
-                                </SelectItem>
-                              ))}
-                            </SelectGroup>
-                            <SelectSeparator />
-                            <SelectGroup>
-                              <SelectLabel>Structured Types</SelectLabel>
-                              {complexDataTypeOptions.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
-                                  {option.label}
-                                </SelectItem>
-                              ))}
-                            </SelectGroup>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {renderStructuredConfig()}
-
-                      <div className="flex items-center gap-3 pt-1">
-                        <Checkbox
-                          id="column-required"
-                          checked={!!draftColumn.required}
-                          onCheckedChange={(checked) => setDraftColumn({ ...draftColumn, required: checked === true })}
-                        />
-                        <Label htmlFor="column-required" className="text-sm font-medium text-slate-600">
-                          Required field
-                        </Label>
-                      </div>
-                    </div>
+                          {job.status === 'processing' && !pharmaData && (
+                            <Card>
+                              <CardContent className="p-4">
+                                <div className="text-sm text-muted-foreground animate-pulse">
+                                  Processing drug information extraction and Saudi FDA database search...
+                                </div>
+                              </CardContent>
+                            </Card>
+                          )}
+                        </div>
+                      )
+                    })()}
                   </div>
-
-                  <div className="space-y-3 rounded-2xl border border-slate-200/70 bg-white px-4 py-5 shadow-sm">
-                    <div className="space-y-1">
-                      <h3 className="text-sm font-semibold text-slate-700">Field Guidance</h3>
-                      <p className="text-xs text-slate-500">Describe this field and how to extract it. This text helps teammates and the AI.</p>
-                    </div>
-                    {isDraftTransformation ? (
-                      <TransformBuilder
-                        allColumns={displayColumns}
-                        selected={draftColumn}
-                        onUpdate={(updates) => setDraftColumn({ ...draftColumn, ...updates })}
-                        visualGroups={activeSchema.visualGroups}
-                      />
-                    ) : (
-                      <div className="space-y-1.5">
-                        <Label htmlFor="field-guidance">Field Guidance</Label>
-                        <Textarea
-                          id="field-guidance"
-                          value={draftColumn.extractionInstructions || draftColumn.description || ''}
-                          onChange={(event) => setDraftColumn({ ...draftColumn, description: event.target.value, extractionInstructions: event.target.value })}
-                          placeholder="Explain what this field is and how to extract it from the document."
-                          rows={5}
-                        />
+                ) : activeSchema.templateId === 'fnb-label-compliance' ? (
+                  <div className="p-4 space-y-4">
+                    {/* Simple job selector */}
+                    {sortedJobs.length > 0 && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm text-muted-foreground">Jobs:</span>
+                        {sortedJobs.map((job, idx) => (
+                          <button
+                            key={job.id}
+                            onClick={() => setSelectedRowId(job.id)}
+                            className={`px-2 py-1 rounded border text-xs ${selectedRowId === job.id ? 'bg-accent text-accent-foreground' : 'bg-muted text-foreground'}`}
+                          >
+                            {idx + 1}. {job.fileName}
+                          </button>
+                        ))}
                       </div>
                     )}
-                  </div>
-                </div>
-              )}
 
-              <div className="border-t border-slate-200/70 bg-white/95 px-6 py-4">
-                <div className="flex w-full flex-col gap-3 sm:flex-row sm:justify-end">
+                    {/* Selected job panels */}
+                    {(() => {
+                      const job = sortedJobs.find((j) => j.id === selectedRowId) || sortedJobs[sortedJobs.length - 1]
+                      if (!job) return (
+                        <div className="text-center py-12 text-muted-foreground">
+                          <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p>No results yet. Upload a label image to get started.</p>
+                        </div>
+                      )
+                      const extraction = job.results?.fnb_extraction?.product_initial_language || job.results?.fnb_extraction
+                      const translation = job.results?.fnb_translation
+                      const collapseState = fnbCollapse[job.id] || { en: false, ar: false }
+                      const toggleEN = () => setFnbCollapse((prev) => ({ ...prev, [job.id]: { ...collapseState, en: !collapseState.en } }))
+                      const toggleAR = () => setFnbCollapse((prev) => ({ ...prev, [job.id]: { ...collapseState, ar: !collapseState.ar } }))
+                      const KV = (label: string, value: any) => (
+                        value != null && value !== '' && value !== undefined ? (
+                          <div className="flex justify-between gap-3 text-sm">
+                            <span className="text-muted-foreground">{label}</span>
+                            <span className="text-right break-words">{String(value)}</span>
+                          </div>
+                        ) : null
+                      )
+                      const List = (label: string, arr: any[]) => (
+                        Array.isArray(arr) && arr.length > 0 ? (
+                          <div className="space-y-1">
+                            <div className="text-sm text-muted-foreground">{label}</div>
+                            <ul className="list-disc pl-5 text-sm space-y-0.5">
+                              {arr.map((it, i) => (
+                                <li key={i}>{String(it)}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : null
+                      )
+                      return (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <Card>
+                            <CardContent className="p-4 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <h3 className="font-semibold">Extraction Result (Primary Language)</h3>
+                                {getStatusIcon(job.status)}
+                              </div>
+                              {!extraction ? (
+                                <div className="text-sm text-muted-foreground">No extraction data</div>
+                              ) : (
+                                <div className="space-y-3">
+                                  {KV('Barcode', extraction?.barcode)}
+                                  {KV('Product Name', extraction?.productName)}
+                                  <div className="space-y-1">
+                                    <div className="text-sm font-medium">Manufacturer</div>
+                                    <div className="space-y-1 rounded border p-2">
+                                      {KV('Name', extraction?.manufacturer?.name)}
+                                      {KV('Location', extraction?.manufacturer?.location)}
+                                      {KV('Additional Info', extraction?.manufacturer?.additionalInfo)}
+                                      {KV('Country', extraction?.manufacturer?.country)}
+                                    </div>
+                                  </div>
+                                  {KV('Product Description', extraction?.productDescription)}
+                                  {List('Ingredients', extraction?.ingredients)}
+                                  <div className="space-y-1">
+                                    <div className="text-sm font-medium">Serving Size Information</div>
+                                    <div className="space-y-1 rounded border p-2">
+                                      {KV('Serving Size', extraction?.servingSizeInformation?.servingSize)}
+                                      {KV('Unit', extraction?.servingSizeInformation?.servingSizeUnit)}
+                                      {KV('Servings / Container', extraction?.servingSizeInformation?.servingsPerContainer)}
+                                    </div>
+                                  </div>
+                                  <div className="space-y-1">
+                                    <div className="text-sm font-medium">Nutritional Information (per 100g)</div>
+                                    <div className="grid grid-cols-2 gap-2 rounded border p-2 text-sm">
+                                      {KV('Energy (kJ)', extraction?.nutritionalInformationPer100g?.energyPer100g?.kj)}
+                                      {KV('Energy (kcal)', extraction?.nutritionalInformationPer100g?.energyPer100g?.kcal)}
+                                      {KV('Fat', extraction?.nutritionalInformationPer100g?.fatPer100g)}
+                                      {KV('Saturates', extraction?.nutritionalInformationPer100g?.saturatesPer100g)}
+                                      {KV('Carbohydrate', extraction?.nutritionalInformationPer100g?.carbohydratePer100g)}
+                                      {KV('Sugars', extraction?.nutritionalInformationPer100g?.sugarsPer100g)}
+                                      {KV('Fibre', extraction?.nutritionalInformationPer100g?.fiberPer100g)}
+                                      {KV('Protein', extraction?.nutritionalInformationPer100g?.proteinPer100g)}
+                                      {KV('Salt', extraction?.nutritionalInformationPer100g?.saltPer100g)}
+                                      {KV('Sodium', extraction?.nutritionalInformationPer100g?.sodiumPer100g)}
+                                      {KV('Cholesterol', extraction?.nutritionalInformationPer100g?.cholesterolPer100g)}
+                                      {KV('Trans Fat', extraction?.nutritionalInformationPer100g?.transFatPer100g)}
+                                      {KV('Added Sugar', extraction?.nutritionalInformationPer100g?.includesAddedSugarPer100g)}
+                                    </div>
+                                  </div>
+                                  {KV('Storage Information', extraction?.storageInformation)}
+                                  {KV('Usage Information', extraction?.usageInformation)}
+                                  {List('Allergy Information', extraction?.allergyInformation)}
+                                  <div className="space-y-1">
+                                    <div className="text-sm font-medium">Weight Information</div>
+                                    <div className="space-y-1 rounded border p-2">
+                                      {KV('Net Weight', extraction?.weightInformation?.netWeight)}
+                                      {KV('Packaging Weight', extraction?.weightInformation?.packagingWeight)}
+                                    </div>
+                                  </div>
+                                  {KV('Product Status', extraction?.productStatus)}
+                                  {KV('Status Reason', extraction?.productStatusReason)}
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                          <Card>
+                            <CardContent className="p-4 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <h3 className="font-semibold">Translations (EN / AR)</h3>
+                                {getStatusIcon(job.status)}
+                              </div>
+                              {!translation ? (
+                                <div className="text-sm text-muted-foreground">No translation data</div>
+                              ) : (
+                                <div className="grid grid-cols-1 gap-3">
+                                  {/* English */}
+                                  <div className="space-y-1">
+                                    <div className="flex items-center justify-between">
+                                      <div className="text-sm font-medium">English</div>
+                                      <button className="text-xs text-muted-foreground underline" onClick={toggleEN}>
+                                        {collapseState.en ? 'Expand' : 'Collapse'}
+                                      </button>
+                                    </div>
+                                    {!collapseState.en && (
+                                      <div className="space-y-2 rounded border p-2">
+                                        {KV('Barcode', translation?.english_product_info?.barcode)}
+                                        {KV('Product Name', translation?.english_product_info?.productName)}
+                                        <div className="space-y-1">
+                                          <div className="text-xs text-muted-foreground">Manufacturer</div>
+                                          <div className="space-y-1 rounded border p-2">
+                                            {KV('Name', translation?.english_product_info?.manufacturer?.name)}
+                                            {KV('Location', translation?.english_product_info?.manufacturer?.location)}
+                                            {KV('Additional Info', translation?.english_product_info?.manufacturer?.additionalInfo)}
+                                            {KV('Country', translation?.english_product_info?.manufacturer?.country)}
+                                          </div>
+                                        </div>
+                                        {KV('Product Description', translation?.english_product_info?.productDescription)}
+                                        {List('Ingredients', translation?.english_product_info?.ingredients)}
+                                        <div className="grid grid-cols-2 gap-2 rounded border p-2 text-sm">
+                                          {KV('Energy (kJ)', translation?.english_product_info?.nutritionalInformationPer100g?.energyPer100g?.kj)}
+                                          {KV('Energy (kcal)', translation?.english_product_info?.nutritionalInformationPer100g?.energyPer100g?.kcal)}
+                                          {KV('Fat', translation?.english_product_info?.nutritionalInformationPer100g?.fatPer100g)}
+                                          {KV('Saturates', translation?.english_product_info?.nutritionalInformationPer100g?.saturatesPer100g)}
+                                          {KV('Carbohydrate', translation?.english_product_info?.nutritionalInformationPer100g?.carbohydratePer100g)}
+                                          {KV('Sugars', translation?.english_product_info?.nutritionalInformationPer100g?.sugarsPer100g)}
+                                          {KV('Fibre', translation?.english_product_info?.nutritionalInformationPer100g?.fiberPer100g)}
+                                          {KV('Protein', translation?.english_product_info?.nutritionalInformationPer100g?.proteinPer100g)}
+                                          {KV('Salt', translation?.english_product_info?.nutritionalInformationPer100g?.saltPer100g)}
+                                        </div>
+                                        {KV('Storage Information', translation?.english_product_info?.storageInformation)}
+                                        {KV('Usage Information', translation?.english_product_info?.usageInformation)}
+                                        {List('Allergy Information', translation?.english_product_info?.allergyInformation)}
+                                        <div className="space-y-1 rounded border p-2">
+                                          {KV('Net Weight', translation?.english_product_info?.weightInformation?.netWeight)}
+                                          {KV('Packaging Weight', translation?.english_product_info?.weightInformation?.packagingWeight)}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                  {/* Arabic */}
+                                  <div className="space-y-1">
+                                    <div className="flex items-center justify-between">
+                                      <div className="text-sm font-medium">Arabic</div>
+                                      <button className="text-xs text-muted-foreground underline" onClick={toggleAR}>
+                                        {collapseState.ar ? 'Expand' : 'Collapse'}
+                                      </button>
+                                    </div>
+                                    {!collapseState.ar && (
+                                      <div className="space-y-2 rounded border p-2">
+                                        {KV('Barcode', translation?.arabic_product_info?.barcode)}
+                                        {KV('Product Name', translation?.arabic_product_info?.productName)}
+                                        <div className="space-y-1">
+                                          <div className="text-xs text-muted-foreground">Manufacturer</div>
+                                          <div className="space-y-1 rounded border p-2">
+                                            {KV('Name', translation?.arabic_product_info?.manufacturer?.name)}
+                                            {KV('Location', translation?.arabic_product_info?.manufacturer?.location)}
+                                            {KV('Additional Info', translation?.arabic_product_info?.manufacturer?.additionalInfo)}
+                                            {KV('Country', translation?.arabic_product_info?.manufacturer?.country)}
+                                          </div>
+                                        </div>
+                                        {KV('Product Description', translation?.arabic_product_info?.productDescription)}
+                                        {List('Ingredients', translation?.arabic_product_info?.ingredients)}
+                                        <div className="grid grid-cols-2 gap-2 rounded border p-2 text-sm">
+                                          {KV('Energy (kJ)', translation?.arabic_product_info?.nutritionalInformationPer100g?.energyPer100g?.kj)}
+                                          {KV('Energy (kcal)', translation?.arabic_product_info?.nutritionalInformationPer100g?.energyPer100g?.kcal)}
+                                          {KV('Fat', translation?.arabic_product_info?.nutritionalInformationPer100g?.fatPer100g)}
+                                          {KV('Saturates', translation?.arabic_product_info?.nutritionalInformationPer100g?.saturatesPer100g)}
+                                          {KV('Carbohydrate', translation?.arabic_product_info?.nutritionalInformationPer100g?.carbohydratePer100g)}
+                                          {KV('Sugars', translation?.arabic_product_info?.nutritionalInformationPer100g?.sugarsPer100g)}
+                                          {KV('Fibre', translation?.arabic_product_info?.nutritionalInformationPer100g?.fiberPer100g)}
+                                          {KV('Protein', translation?.arabic_product_info?.nutritionalInformationPer100g?.proteinPer100g)}
+                                          {KV('Salt', translation?.arabic_product_info?.nutritionalInformationPer100g?.saltPer100g)}
+                                        </div>
+                                        {KV('Storage Information', translation?.arabic_product_info?.storageInformation)}
+                                        {KV('Usage Information', translation?.arabic_product_info?.usageInformation)}
+                                        {List('Allergy Information', translation?.arabic_product_info?.allergyInformation)}
+                                        <div className="space-y-1 rounded border p-2">
+                                          {KV('Net Weight', translation?.arabic_product_info?.weightInformation?.netWeight)}
+                                          {KV('Packaging Weight', translation?.arabic_product_info?.weightInformation?.packagingWeight)}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        </div>
+                      )
+                    })()}
+                  </div>
+                ) : (
+                  <div className="flex-1 overflow-hidden min-h-0 relative">
+                    {viewMode === 'grid' ? (
+                      <TanStackGridSheet
+                        schemaId={activeSchemaId}
+                        columns={displayColumns}
+                        jobs={sortedJobs}
+                        selectedRowId={selectedJob?.id ?? null}
+                        onSelectRow={(id) => {
+                          const job = sortedJobs.find((j) => j.id === id)
+                          if (job) setSelectedJob(job)
+                        }}
+                        onRowDoubleClick={(job) => {
+                          // For GCC Food Label, use ExtractionDetailDialog with Label Maker
+                          if (activeSchema.templateId === 'gcc-food-label' || activeSchema.name.toLowerCase().includes('gcc')) {
+                            setLabelMakerJob(job)
+                            setIsLabelMakerNewRecord(false)
+                          } else {
+                            setSelectedJob(job)
+                            setIsDetailOpen(true)
+                          }
+                        }}
+                        onAddColumn={addColumn}
+                        renderCellValue={renderCellValue}
+                        getStatusIcon={getStatusIcon}
+                        renderStatusPill={renderStatusPill}
+                        onEditColumn={(col) => {
+                          setColumnDialogMode('edit')
+                          setDraftColumn(col)
+                          setIsColumnDialogOpen(true)
+                        }}
+                        onDeleteColumn={(colId) => {
+                          commitSchemaUpdate(activeSchemaId, (schema) => {
+                            const newFields = removeFieldById(schema.fields, colId)
+                            const updatedGroups = (schema.visualGroups || [])
+                              .map(group => ({
+                                ...group,
+                                fieldIds: group.fieldIds.filter(id => id !== colId)
+                              }))
+                              .filter(group => group.fieldIds.length > 0)
+                            return {
+                              ...schema,
+                              fields: newFields,
+                              visualGroups: updatedGroups,
+                            }
+                          })
+                        }}
+                        onUpdateCell={handleUpdateCell}
+                        onUpdateReviewStatus={handleUpdateReviewStatus}
+                        onColumnRightClick={handleColumnRightClick}
+                        onOpenTableModal={openTableModal}
+                        visualGroups={activeSchema.visualGroups}
+                        expandedRowId={expandedRowId}
+                        onToggleRowExpansion={toggleRowExpansion}
+                      />
+                    ) : (
+                      <GalleryView
+                        jobs={sortedJobs}
+                        onSelectJob={(job) => {
+                          // For GCC Food Label, use ExtractionDetailDialog with Label Maker
+                          if (activeSchema.templateId === 'gcc-food-label' || activeSchema.name.toLowerCase().includes('gcc')) {
+                            setLabelMakerJob(job)
+                            setIsLabelMakerNewRecord(false) // Not a new record
+                          } else {
+                            setSelectedJob(job)
+                            setIsDetailOpen(true)
+                          }
+                        }}
+                        onDeleteJob={(jobId) => handleDeleteJob(jobId)}
+                      />
+                    )}
+                  </div>
+                )
+                }
+              </div>
+            </div>
+
+            {/* Column Configuration Modal (hidden for F&B fixed mode) */}
+            {
+              activeSchema.templateId !== 'fnb-label-compliance' && (
+                <Dialog
+                  open={isColumnDialogOpen}
+                  onOpenChange={(open) => {
+                    setIsColumnDialogOpen(open)
+                    if (!open) {
+                      setDraftColumn(null)
+                      setColumnDialogMode('create')
+                    }
+                  }}
+                >
+                  <DialogContent className="max-w-xl w-full max-h-[90vh] p-0 overflow-hidden flex flex-col">
+                    <DialogHeader className="border-b border-slate-200/70 px-6 py-5">
+                      <DialogTitle className="text-xl font-semibold">
+                        {columnDialogMode === 'edit' ? 'Edit Field' : 'Add New Field'}
+                      </DialogTitle>
+                      <DialogDescription className="text-sm text-slate-600">
+                        Configure how this data point is extracted and structured for your grid.
+                      </DialogDescription>
+                    </DialogHeader>
+
+                    {draftColumn && (
+                      <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5 min-h-0">
+                        <section className="space-y-3">
+                          <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Field Source</Label>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className={cn(
+                                'flex h-auto flex-col items-start gap-1 rounded-xl border-2 px-4 py-3 text-left shadow-none transition-all',
+                                !isDraftTransformation
+                                  ? 'border-[#2782ff]/70 bg-[#e6f0ff]/70 text-[#2782ff] hover:bg-[#d9e9ff]'
+                                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100',
+                              )}
+                              aria-pressed={!isDraftTransformation}
+                              onClick={() => handleDraftFieldTypeChange(false)}
+                            >
+                              <span className="flex items-center gap-2 text-sm font-semibold">
+                                <FileText className="h-4 w-4" />
+                                Extraction
+                              </span>
+                              <span className="text-xs text-slate-500">Extract directly from the document</span>
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className={cn(
+                                'flex h-auto flex-col items-start gap-1 rounded-xl border-2 px-4 py-3 text-left shadow-none transition-all',
+                                isDraftTransformation
+                                  ? 'border-[#2782ff]/70 bg-[#e6f0ff]/70 text-[#2782ff] hover:bg-[#d9e9ff]'
+                                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100',
+                              )}
+                              aria-pressed={isDraftTransformation}
+                              onClick={() => handleDraftFieldTypeChange(true)}
+                            >
+                              <span className="flex items-center gap-2 text-sm font-semibold">
+                                <Zap className="h-4 w-4" />
+                                Transformation
+                              </span>
+                              <span className="text-xs text-slate-500">Compute value from other fields</span>
+                            </Button>
+                          </div>
+                        </section>
+
+                        <div className="space-y-4 rounded-2xl border border-slate-200/70 bg-white px-4 py-5 shadow-sm">
+                          <div className="grid gap-4">
+                            <div className="space-y-1.5">
+                              <Label htmlFor="column-name">Field Name</Label>
+                              <Input
+                                id="column-name"
+                                value={draftColumn.name}
+                                onChange={(event) => setDraftColumn({ ...draftColumn, name: event.target.value })}
+                                placeholder="e.g., Manufacturer"
+                              />
+                            </div>
+                            {/* Description has been merged with Extraction Guidance below */}
+                          </div>
+
+                          <div className="space-y-3">
+                            <div className="space-y-1.5">
+                              <Label htmlFor="column-type">Data Type</Label>
+                              <Select value={draftColumn.type} onValueChange={(value: DataType) => changeDraftType(value)}>
+                                <SelectTrigger id="column-type">
+                                  <SelectValue placeholder="Select a data type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectGroup>
+                                    <SelectLabel>Simple Types</SelectLabel>
+                                    {simpleDataTypeOptions.map((option) => (
+                                      <SelectItem key={option.value} value={option.value}>
+                                        {option.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectGroup>
+                                  <SelectSeparator />
+                                  <SelectGroup>
+                                    <SelectLabel>Structured Types</SelectLabel>
+                                    {complexDataTypeOptions.map((option) => (
+                                      <SelectItem key={option.value} value={option.value}>
+                                        {option.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectGroup>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {renderStructuredConfig()}
+
+                            <div className="flex items-center gap-3 pt-1">
+                              <Checkbox
+                                id="column-required"
+                                checked={!!draftColumn.required}
+                                onCheckedChange={(checked) => setDraftColumn({ ...draftColumn, required: checked === true })}
+                              />
+                              <Label htmlFor="column-required" className="text-sm font-medium text-slate-600">
+                                Required field
+                              </Label>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3 rounded-2xl border border-slate-200/70 bg-white px-4 py-5 shadow-sm">
+                          <div className="space-y-1">
+                            <h3 className="text-sm font-semibold text-slate-700">Field Guidance</h3>
+                            <p className="text-xs text-slate-500">Describe this field and how to extract it. This text helps teammates and the AI.</p>
+                          </div>
+                          {isDraftTransformation ? (
+                            <TransformBuilder
+                              allColumns={displayColumns}
+                              selected={draftColumn}
+                              onUpdate={(updates) => setDraftColumn({ ...draftColumn, ...updates })}
+                              visualGroups={activeSchema.visualGroups}
+                            />
+                          ) : (
+                            <div className="space-y-1.5">
+                              <Label htmlFor="field-guidance">Field Guidance</Label>
+                              <Textarea
+                                id="field-guidance"
+                                value={draftColumn.extractionInstructions || draftColumn.description || ''}
+                                onChange={(event) => setDraftColumn({ ...draftColumn, description: event.target.value, extractionInstructions: event.target.value })}
+                                placeholder="Explain what this field is and how to extract it from the document."
+                                rows={5}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="border-t border-slate-200/70 bg-white/95 px-6 py-4">
+                      <div className="flex w-full flex-col gap-3 sm:flex-row sm:justify-end">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setIsColumnDialogOpen(false)
+                            setDraftColumn(null)
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            if (!draftColumn) return
+
+                            if (columnDialogMode === 'create') {
+                              // Adding a new field
+                              const newField = {
+                                id: `col_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                                name: draftColumn.name,
+                                type: draftColumn.type,
+                                description: draftColumn.description,
+                                required: !!draftColumn.required,
+                                extractionInstructions: draftColumn.extractionInstructions,
+                                isTransformation: !!draftColumn.isTransformation,
+                                transformationType: draftColumn.transformationType,
+                                transformationConfig: draftColumn.transformationConfig,
+                                transformationSource: draftColumn.transformationSource,
+                                transformationSourceColumnId: draftColumn.transformationSourceColumnId,
+                              } as SchemaField
+
+                              // Add type-specific fields
+                              if (draftColumn.type === 'object') {
+                                (newField as any).children = (draftColumn as ObjectField).children
+                              }
+                              if (draftColumn.type === 'table') {
+                                (newField as any).columns = (draftColumn as TableField).columns
+                              }
+                              if (draftColumn.type === 'list') {
+                                (newField as any).item = (draftColumn as ListField).item
+                              }
+
+                              commitSchemaUpdate(activeSchemaId, (schema) => ({
+                                ...schema,
+                                fields: [...schema.fields, newField]
+                              }))
+                            } else {
+                              // Editing an existing field
+                              if (!selectedColumn) return
+                              const updates: Partial<SchemaField> = {
+                                name: draftColumn.name,
+                                type: draftColumn.type,
+                                description: draftColumn.description,
+                                required: !!draftColumn.required,
+                                extractionInstructions: draftColumn.extractionInstructions,
+                                isTransformation: !!draftColumn.isTransformation,
+                                transformationType: draftColumn.transformationType,
+                                transformationConfig: draftColumn.transformationConfig,
+                                transformationSource: draftColumn.transformationSource,
+                                transformationSourceColumnId: draftColumn.transformationSourceColumnId,
+                              }
+                              if (draftColumn.type === 'object') {
+                                (updates as any).children = (draftColumn as ObjectField).children
+                              }
+                              if (draftColumn.type === 'table') {
+                                (updates as any).columns = (draftColumn as TableField).columns
+                              }
+                              if (draftColumn.type === 'list') {
+                                (updates as any).item = (draftColumn as ListField).item
+                              }
+                              updateColumn(selectedColumn.id, updates)
+                            }
+
+                            setIsColumnDialogOpen(false)
+                            setDraftColumn(null)
+                            setSelectedColumn(null)
+                          }}
+                        >
+                          Save Field
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )
+            }
+            {
+              onCreateTemplate ? (
+                <Dialog open={isTemplateDialogOpen} onOpenChange={(open) => {
+                  if (isSavingTemplate) return
+                  setIsTemplateDialogOpen(open)
+                }}>
+                  <DialogContent className="sm:max-w-[480px]">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <Sparkle className="h-4 w-4" />
+                        Save as template
+                      </DialogTitle>
+                      <DialogDescription>
+                        Capture the current schema fields and transformations so you can reuse them when creating a new project.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="template-name">Template name</Label>
+                        <Input
+                          id="template-name"
+                          value={templateNameInput}
+                          onChange={(event) => setTemplateNameInput(event.target.value)}
+                          placeholder="Invoice – net terms"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="template-description">Description (optional)</Label>
+                        <Textarea
+                          id="template-description"
+                          value={templateDescriptionInput}
+                          onChange={(event) => setTemplateDescriptionInput(event.target.value)}
+                          placeholder="What makes this schema unique or when it should be used?"
+                          rows={3}
+                        />
+                      </div>
+                      <div className="rounded-md border border-dashed border-muted-foreground/30 px-3 py-2 text-xs text-muted-foreground">
+                        {fields.length === 0
+                          ? "Templates save the schema layout. Add fields before saving."
+                          : `This template will include ${fields.length} ${fields.length === 1 ? "field" : "fields"} along with any transformation settings.`}
+                      </div>
+                    </div>
+                    <DialogFooter className="gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setIsTemplateDialogOpen(false)}
+                        disabled={isSavingTemplate}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={handleTemplateSave}
+                        disabled={isSavingTemplate || fields.length === 0 || templateNameInput.trim().length === 0}
+                      >
+                        {isSavingTemplate ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkle className="mr-2 h-4 w-4" />}
+                        Save template
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              ) : null
+            }
+
+            <OCRDetailModal
+              open={isDetailOpen}
+              onOpenChange={(open) => {
+                setIsDetailOpen(open)
+                if (!open) {
+                  setSelectedJob(null)
+                }
+              }}
+              job={selectedJob}
+            />
+
+            {/* Advanced Automation ROI Modal */}
+            <Dialog open={roiOpen} onOpenChange={onCloseRoi}>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>
+                    {roiStage === 'calc'
+                      ? 'You just processed 1 document. What if you could automate the next 5 steps?'
+                      : 'Your estimated savings'}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {roiStage === 'calc'
+                      ? 'Estimate how much time and money full workflow automation could save each month.'
+                      : 'These savings are based on the numbers you entered in the calculator.'}
+                  </DialogDescription>
+                </DialogHeader>
+
+                {roiStage === 'calc' ? (
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Simple data extraction is just the start. The real power of Bytebeam is in automating the entire, multi‑step process that follows—turning raw documents into decisions, actions, and results.
+                    </p>
+                    <p className="text-sm">Imagine a workflow that can:</p>
+                    <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
+                      <li><span className="mr-1">✅</span><strong>Extract & Validate:</strong> Pull invoice data, then automatically validate it against purchase orders in your database and flag discrepancies.</li>
+                      <li><span className="mr-1">✅</span><strong>Analyze & Flag:</strong> Read a 50‑page legal contract, identify all non‑compliant clauses based on your custom rules, and generate a summary report.</li>
+                      <li><span className="mr-1">✅</span><strong>Route & Decide:</strong> Process an incoming trade compliance form, determine the correct regional office based on its contents, and forward it with a recommended action.</li>
+                    </ul>
+
+                    <div className="rounded-md border p-3" id="roi-calculator">
+                      <h3 className="font-medium">Find out the real cost of your <em>entire</em> manual workflow.</h3>
+                      <p className="text-sm text-muted-foreground">Enter your estimates below to see your potential savings.</p>
+                      <div className="mt-3 grid gap-3">
+                        <div>
+                          <Label>1. Documents processed per month</Label>
+                          <Input type="number" placeholder="e.g., 500" value={docsPerMonth} onChange={(e) => setDocsPerMonth(e.target.value)} />
+                        </div>
+                        <div>
+                          <Label>2. Average time for the <em>full process</em> (in minutes)</Label>
+                          <Input type="number" placeholder="e.g., 15" value={timePerDoc} onChange={(e) => setTimePerDoc(e.target.value)} />
+                          <p className="text-[11px] text-muted-foreground">Note: Include all steps, not just data entry.</p>
+                        </div>
+                        <div>
+                          <Label>3. (Optional) Average hourly team cost ($)</Label>
+                          <Input type="number" placeholder="e.g., 35" value={hourlyCost} onChange={(e) => setHourlyCost(e.target.value)} />
+                        </div>
+                      </div>
+                      <div className="mt-3 flex justify-end">
+                        <Button id="calculate-btn" onClick={calculateSavings}>Calculate My Savings 📈</Button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3" id="roi-results">
+                    <h2 className="text-lg">You could save an estimated <strong>{totalHoursSaved} hours</strong> every month.</h2>
+                    {monthlyDollarSavings != null && annualDollarSavings != null && (
+                      <h3 className="text-base">That's around <strong>${monthlyDollarSavings.toLocaleString()}</strong> per month, or <strong>${annualDollarSavings.toLocaleString()}</strong> back in your budget every year.</h3>
+                    )}
+                    <p className="text-sm text-muted-foreground">Ready to claim that time back? Let's have a quick chat to map out the exact automation strategy to get you there.</p>
+                    <div className="flex items-center gap-3">
+                      <Button asChild>
+                        <a href={BOOKING_URL} target="_blank" rel="noopener noreferrer" className="cta-button">Book a 15‑min Strategy Call</a>
+                      </Button>
+                      <small className="text-muted-foreground"><em>Your schedule is open to map this out</em></small>
+                    </div>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+
+            {/* Table Modal */}
+            <Dialog open={tableModalOpen} onOpenChange={setTableModalOpen}>
+              <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Eye className="h-5 w-5" />
+                    Table: {tableModalData?.column.name}
+                  </DialogTitle>
+                  <DialogDescription>
+                    Inspect the parsed rows for this table field. Scroll to review every value.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="overflow-auto max-h-[60vh]">
+                  {tableModalData && (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between text-sm text-muted-foreground">
+                        <span>{tableModalData.rows.length} {tableModalData.rows.length === 1 ? 'row' : 'rows'}</span>
+                        <span>{tableModalData.columnHeaders.length} columns</span>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full border-separate border-spacing-y-2 text-sm">
+                          <thead>
+                            <tr className="text-xs uppercase tracking-wide text-muted-foreground">
+                              {tableModalData.columnHeaders.map((header) => (
+                                <th key={header.key} className="bg-slate-50 px-3 py-2 text-left font-medium first:rounded-l-md last:rounded-r-md border">
+                                  {header.label}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {tableModalData.rows.map((row, idx) => (
+                              <tr key={idx} className="hover:bg-slate-50/50">
+                                {tableModalData.columnHeaders.map((header) => {
+                                  const cell = row?.[header.key as keyof typeof row]
+                                  const formatted =
+                                    typeof cell === 'number'
+                                      ? formatNumericValue(cell) ?? String(cell)
+                                      : typeof cell === 'boolean'
+                                        ? cell ? 'True' : 'False'
+                                        : typeof cell === 'object'
+                                          ? JSON.stringify(cell)
+                                          : cell ?? '—'
+                                  return (
+                                    <td key={header.key} className="px-3 py-2 text-left text-sm first:rounded-l-md last:rounded-r-md border">
+                                      <span className="block" title={String(formatted)}>
+                                        {String(formatted)}
+                                      </span>
+                                    </td>
+                                  )
+                                })}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Column Right-Click Context Menu */}
+            {
+              contextMenuPosition && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={closeContextMenu}
+                  />
+                  <div
+                    className="fixed z-50 bg-white border border-gray-200 rounded-md shadow-lg py-1 min-w-[160px]"
+                    style={{
+                      left: `${contextMenuPosition.x}px`,
+                      top: `${contextMenuPosition.y}px`,
+                    }}
+                  >
+                    <button
+                      onClick={startGroupingFromContext}
+                      className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                    >
+                      <Layers className="h-4 w-4" />
+                      Create Object
+                    </button>
+                  </div>
+                </>
+              )
+            }
+
+            {/* Group Fields Dialog */}
+            <Dialog open={isGroupDialogOpen} onOpenChange={(open) => {
+              setIsGroupDialogOpen(open)
+              if (!open) {
+                setSelectedColumnIds(new Set())
+                setGroupName('')
+              }
+            }}>
+              <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Group Fields into Object</DialogTitle>
+                  <DialogDescription>
+                    Select the fields to group together, then provide a name for the object.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="rounded-md border p-3 max-h-60 overflow-y-auto">
+                    <p className="text-sm font-medium mb-3">Select fields to group:</p>
+                    <div className="space-y-2">
+                      {fields.map((field) => (
+                        <label key={field.id} className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 p-2 rounded">
+                          <Checkbox
+                            checked={selectedColumnIds.has(field.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedColumnIds(prev => new Set([...prev, field.id]))
+                              } else {
+                                setSelectedColumnIds(prev => {
+                                  const newSet = new Set(prev)
+                                  newSet.delete(field.id)
+                                  return newSet
+                                })
+                              }
+                            }}
+                          />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium">{field.name}</div>
+                            {field.type !== 'string' && (
+                              <div className="text-xs text-muted-foreground capitalize">{field.type}</div>
+                            )}
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {selectedColumnIds.size >= 2 && (
+                    <div>
+                      <Label htmlFor="group-name">Object Name *</Label>
+                      <Input
+                        id="group-name"
+                        value={groupName}
+                        onChange={(e) => setGroupName(e.target.value)}
+                        placeholder="e.g., Invoice Details, Customer Info"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && groupName.trim() && selectedColumnIds.size >= 2) {
+                            createGroupedObject()
+                          }
+                        }}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {selectedColumnIds.size} fields selected
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedColumnIds.size < 2 && (
+                    <p className="text-sm text-muted-foreground">
+                      Select at least 2 fields to create a group.
+                    </p>
+                  )}
+                </div>
+                <div className="flex justify-end gap-2 mt-4">
                   <Button
-                    type="button"
                     variant="outline"
                     onClick={() => {
-                      setIsColumnDialogOpen(false)
-                      setDraftColumn(null)
+                      setIsGroupDialogOpen(false)
+                      setSelectedColumnIds(new Set())
+                      setGroupName('')
                     }}
                   >
                     Cancel
                   </Button>
                   <Button
-                    type="button"
-                    onClick={() => {
-                      if (!draftColumn) return
-
-                      if (columnDialogMode === 'create') {
-                        // Adding a new field
-                        const newField = {
-                          id: `col_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                          name: draftColumn.name,
-                          type: draftColumn.type,
-                          description: draftColumn.description,
-                          required: !!draftColumn.required,
-                          extractionInstructions: draftColumn.extractionInstructions,
-                          isTransformation: !!draftColumn.isTransformation,
-                          transformationType: draftColumn.transformationType,
-                          transformationConfig: draftColumn.transformationConfig,
-                          transformationSource: draftColumn.transformationSource,
-                          transformationSourceColumnId: draftColumn.transformationSourceColumnId,
-                        } as SchemaField
-
-                        // Add type-specific fields
-                        if (draftColumn.type === 'object') {
-                          (newField as any).children = (draftColumn as ObjectField).children
-                        }
-                        if (draftColumn.type === 'table') {
-                          (newField as any).columns = (draftColumn as TableField).columns
-                        }
-                        if (draftColumn.type === 'list') {
-                          (newField as any).item = (draftColumn as ListField).item
-                        }
-
-                        commitSchemaUpdate(activeSchemaId, (schema) => ({
-                          ...schema,
-                          fields: [...schema.fields, newField]
-                        }))
-                      } else {
-                        // Editing an existing field
-                        if (!selectedColumn) return
-                        const updates: Partial<SchemaField> = {
-                          name: draftColumn.name,
-                          type: draftColumn.type,
-                          description: draftColumn.description,
-                          required: !!draftColumn.required,
-                          extractionInstructions: draftColumn.extractionInstructions,
-                          isTransformation: !!draftColumn.isTransformation,
-                          transformationType: draftColumn.transformationType,
-                          transformationConfig: draftColumn.transformationConfig,
-                          transformationSource: draftColumn.transformationSource,
-                          transformationSourceColumnId: draftColumn.transformationSourceColumnId,
-                        }
-                        if (draftColumn.type === 'object') {
-                          (updates as any).children = (draftColumn as ObjectField).children
-                        }
-                        if (draftColumn.type === 'table') {
-                          (updates as any).columns = (draftColumn as TableField).columns
-                        }
-                        if (draftColumn.type === 'list') {
-                          (updates as any).item = (draftColumn as ListField).item
-                        }
-                        updateColumn(selectedColumn.id, updates)
-                      }
-
-                      setIsColumnDialogOpen(false)
-                      setDraftColumn(null)
-                      setSelectedColumn(null)
-                    }}
+                    onClick={createGroupedObject}
+                    disabled={!groupName.trim() || selectedColumnIds.size < 2}
                   >
-                    Save Field
+                    Create Object
                   </Button>
                 </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
-        {onCreateTemplate ? (
-          <Dialog open={isTemplateDialogOpen} onOpenChange={(open) => {
-            if (isSavingTemplate) return
-            setIsTemplateDialogOpen(open)
-          }}>
-            <DialogContent className="sm:max-w-[480px]">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <Sparkle className="h-4 w-4" />
-                  Save as template
-                </DialogTitle>
-                <DialogDescription>
-                  Capture the current schema fields and transformations so you can reuse them when creating a new project.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="template-name">Template name</Label>
-                  <Input
-                    id="template-name"
-                    value={templateNameInput}
-                    onChange={(event) => setTemplateNameInput(event.target.value)}
-                    placeholder="Invoice – net terms"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="template-description">Description (optional)</Label>
-                  <Textarea
-                    id="template-description"
-                    value={templateDescriptionInput}
-                    onChange={(event) => setTemplateDescriptionInput(event.target.value)}
-                    placeholder="What makes this schema unique or when it should be used?"
-                    rows={3}
-                  />
-                </div>
-                <div className="rounded-md border border-dashed border-muted-foreground/30 px-3 py-2 text-xs text-muted-foreground">
-                  {fields.length === 0
-                    ? "Templates save the schema layout. Add fields before saving."
-                    : `This template will include ${fields.length} ${fields.length === 1 ? "field" : "fields"} along with any transformation settings.`}
-                </div>
-              </div>
-              <DialogFooter className="gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsTemplateDialogOpen(false)}
-                  disabled={isSavingTemplate}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handleTemplateSave}
-                  disabled={isSavingTemplate || fields.length === 0 || templateNameInput.trim().length === 0}
-                >
-                  {isSavingTemplate ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkle className="mr-2 h-4 w-4" />}
-                  Save template
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        ) : null}
-
-        <OCRDetailModal
-          open={isDetailOpen}
-          onOpenChange={(open) => {
-            setIsDetailOpen(open)
-            if (!open) {
-              setSelectedJob(null)
-            }
-          }}
-          job={selectedJob}
-        />
-
-        {/* Advanced Automation ROI Modal */}
-        <Dialog open={roiOpen} onOpenChange={onCloseRoi}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>
-                {roiStage === 'calc'
-                  ? 'You just processed 1 document. What if you could automate the next 5 steps?'
-                  : 'Your estimated savings'}
-              </DialogTitle>
-              <DialogDescription>
-                {roiStage === 'calc'
-                  ? 'Estimate how much time and money full workflow automation could save each month.'
-                  : 'These savings are based on the numbers you entered in the calculator.'}
-              </DialogDescription>
-            </DialogHeader>
-
-            {roiStage === 'calc' ? (
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Simple data extraction is just the start. The real power of Bytebeam is in automating the entire, multi‑step process that follows—turning raw documents into decisions, actions, and results.
-                </p>
-                <p className="text-sm">Imagine a workflow that can:</p>
-                <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
-                  <li><span className="mr-1">✅</span><strong>Extract & Validate:</strong> Pull invoice data, then automatically validate it against purchase orders in your database and flag discrepancies.</li>
-                  <li><span className="mr-1">✅</span><strong>Analyze & Flag:</strong> Read a 50‑page legal contract, identify all non‑compliant clauses based on your custom rules, and generate a summary report.</li>
-                  <li><span className="mr-1">✅</span><strong>Route & Decide:</strong> Process an incoming trade compliance form, determine the correct regional office based on its contents, and forward it with a recommended action.</li>
-                </ul>
-
-                <div className="rounded-md border p-3" id="roi-calculator">
-                  <h3 className="font-medium">Find out the real cost of your <em>entire</em> manual workflow.</h3>
-                  <p className="text-sm text-muted-foreground">Enter your estimates below to see your potential savings.</p>
-                  <div className="mt-3 grid gap-3">
-                    <div>
-                      <Label>1. Documents processed per month</Label>
-                      <Input type="number" placeholder="e.g., 500" value={docsPerMonth} onChange={(e) => setDocsPerMonth(e.target.value)} />
-                    </div>
-                    <div>
-                      <Label>2. Average time for the <em>full process</em> (in minutes)</Label>
-                      <Input type="number" placeholder="e.g., 15" value={timePerDoc} onChange={(e) => setTimePerDoc(e.target.value)} />
-                      <p className="text-[11px] text-muted-foreground">Note: Include all steps, not just data entry.</p>
-                    </div>
-                    <div>
-                      <Label>3. (Optional) Average hourly team cost ($)</Label>
-                      <Input type="number" placeholder="e.g., 35" value={hourlyCost} onChange={(e) => setHourlyCost(e.target.value)} />
-                    </div>
-                  </div>
-                  <div className="mt-3 flex justify-end">
-                    <Button id="calculate-btn" onClick={calculateSavings}>Calculate My Savings 📈</Button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3" id="roi-results">
-                <h2 className="text-lg">You could save an estimated <strong>{totalHoursSaved} hours</strong> every month.</h2>
-                {monthlyDollarSavings != null && annualDollarSavings != null && (
-                  <h3 className="text-base">That's around <strong>${monthlyDollarSavings.toLocaleString()}</strong> per month, or <strong>${annualDollarSavings.toLocaleString()}</strong> back in your budget every year.</h3>
-                )}
-                <p className="text-sm text-muted-foreground">Ready to claim that time back? Let's have a quick chat to map out the exact automation strategy to get you there.</p>
-                <div className="flex items-center gap-3">
-                  <Button asChild>
-                    <a href={BOOKING_URL} target="_blank" rel="noopener noreferrer" className="cta-button">Book a 15‑min Strategy Call</a>
-                  </Button>
-                  <small className="text-muted-foreground"><em>Your schedule is open to map this out</em></small>
-                </div>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
-
-        {/* Table Modal */}
-        <Dialog open={tableModalOpen} onOpenChange={setTableModalOpen}>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Eye className="h-5 w-5" />
-                Table: {tableModalData?.column.name}
-              </DialogTitle>
-              <DialogDescription>
-                Inspect the parsed rows for this table field. Scroll to review every value.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="overflow-auto max-h-[60vh]">
-              {tableModalData && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span>{tableModalData.rows.length} {tableModalData.rows.length === 1 ? 'row' : 'rows'}</span>
-                    <span>{tableModalData.columnHeaders.length} columns</span>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full border-separate border-spacing-y-2 text-sm">
-                      <thead>
-                        <tr className="text-xs uppercase tracking-wide text-muted-foreground">
-                          {tableModalData.columnHeaders.map((header) => (
-                            <th key={header.key} className="bg-slate-50 px-3 py-2 text-left font-medium first:rounded-l-md last:rounded-r-md border">
-                              {header.label}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {tableModalData.rows.map((row, idx) => (
-                          <tr key={idx} className="hover:bg-slate-50/50">
-                            {tableModalData.columnHeaders.map((header) => {
-                              const cell = row?.[header.key as keyof typeof row]
-                              const formatted =
-                                typeof cell === 'number'
-                                  ? formatNumericValue(cell) ?? String(cell)
-                                  : typeof cell === 'boolean'
-                                    ? cell ? 'True' : 'False'
-                                    : typeof cell === 'object'
-                                      ? JSON.stringify(cell)
-                                      : cell ?? '—'
-                              return (
-                                <td key={header.key} className="px-3 py-2 text-left text-sm first:rounded-l-md last:rounded-r-md border">
-                                  <span className="block" title={String(formatted)}>
-                                    {String(formatted)}
-                                  </span>
-                                </td>
-                              )
-                            })}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Column Right-Click Context Menu */}
-        {contextMenuPosition && (
-          <>
-            <div
-              className="fixed inset-0 z-40"
-              onClick={closeContextMenu}
-            />
-            <div
-              className="fixed z-50 bg-white border border-gray-200 rounded-md shadow-lg py-1 min-w-[160px]"
-              style={{
-                left: `${contextMenuPosition.x}px`,
-                top: `${contextMenuPosition.y}px`,
+              </DialogContent>
+            </Dialog>
+            <AlertDialog
+              open={!!schemaDeletionDialog}
+              onOpenChange={(open) => {
+                if (!open) handleCancelSchemaDeletion()
               }}
             >
-              <button
-                onClick={startGroupingFromContext}
-                className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
-              >
-                <Layers className="h-4 w-4" />
-                Create Object
-              </button>
-            </div>
-          </>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete schema?</AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <p>
+                      This will permanently remove "{schemaDeletionDialog?.name ?? "schema"}" and all associated jobs and
+                      results.
+                    </p>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel onClick={handleCancelSchemaDeletion}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={handleConfirmSchemaDeletion}
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         )}
-
-        {/* Group Fields Dialog */}
-        <Dialog open={isGroupDialogOpen} onOpenChange={(open) => {
-          setIsGroupDialogOpen(open)
-          if (!open) {
-            setSelectedColumnIds(new Set())
-            setGroupName('')
-          }
-        }}>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Group Fields into Object</DialogTitle>
-              <DialogDescription>
-                Select the fields to group together, then provide a name for the object.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="rounded-md border p-3 max-h-60 overflow-y-auto">
-                <p className="text-sm font-medium mb-3">Select fields to group:</p>
-                <div className="space-y-2">
-                  {fields.map((field) => (
-                    <label key={field.id} className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 p-2 rounded">
-                      <Checkbox
-                        checked={selectedColumnIds.has(field.id)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedColumnIds(prev => new Set([...prev, field.id]))
-                          } else {
-                            setSelectedColumnIds(prev => {
-                              const newSet = new Set(prev)
-                              newSet.delete(field.id)
-                              return newSet
-                            })
-                          }
-                        }}
-                      />
-                      <div className="flex-1">
-                        <div className="text-sm font-medium">{field.name}</div>
-                        {field.type !== 'string' && (
-                          <div className="text-xs text-muted-foreground capitalize">{field.type}</div>
-                        )}
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {selectedColumnIds.size >= 2 && (
-                <div>
-                  <Label htmlFor="group-name">Object Name *</Label>
-                  <Input
-                    id="group-name"
-                    value={groupName}
-                    onChange={(e) => setGroupName(e.target.value)}
-                    placeholder="e.g., Invoice Details, Customer Info"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && groupName.trim() && selectedColumnIds.size >= 2) {
-                        createGroupedObject()
-                      }
-                    }}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {selectedColumnIds.size} fields selected
-                  </p>
-                </div>
-              )}
-
-              {selectedColumnIds.size < 2 && (
-                <p className="text-sm text-muted-foreground">
-                  Select at least 2 fields to create a group.
-                </p>
-              )}
-            </div>
-            <div className="flex justify-end gap-2 mt-4">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setIsGroupDialogOpen(false)
-                  setSelectedColumnIds(new Set())
-                  setGroupName('')
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={createGroupedObject}
-                disabled={!groupName.trim() || selectedColumnIds.size < 2}
-              >
-                Create Object
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-        <AlertDialog
-          open={!!schemaDeletionDialog}
-          onOpenChange={(open) => {
-            if (!open) handleCancelSchemaDeletion()
-          }}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete schema?</AlertDialogTitle>
-              <AlertDialogDescription asChild>
-                <p>
-                  This will permanently remove "{schemaDeletionDialog?.name ?? "schema"}" and all associated jobs and
-                  results.
-                </p>
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={handleCancelSchemaDeletion}>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                onClick={handleConfirmSchemaDeletion}
-              >
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </div>
+
+      {/* Template Selector Dialog */}
+      <TemplateSelectorDialog
+        open={isTemplateSelectorOpen}
+        onOpenChange={setIsTemplateSelectorOpen}
+        templates={combinedTemplates}
+        isLoading={false}
+        loadError={null}
+        onRefreshTemplates={async () => { }}
+        onChooseTemplate={handleChooseTemplate}
+        onCreateBlank={handleCreateBlank}
+      />
+
+      {/* Manual Record Dialog */}
+      <ManualRecordDialog
+        open={isManualRecordOpen}
+        onOpenChange={setIsManualRecordOpen}
+        schema={activeSchema}
+        onSave={handleSaveManualRecord}
+      />
+
+      {/* Label Maker Dialog for GCC Food Label */}
+      <ExtractionDetailDialog
+        job={labelMakerJob}
+        schema={activeSchema}
+        onClose={() => {
+          setLabelMakerJob(null)
+          setIsLabelMakerNewRecord(false)
+        }}
+        defaultToLabelMaker={isLabelMakerNewRecord}
+        onSaveLabelData={handleSaveLabelData}
+      />
     </div >
   )
 }

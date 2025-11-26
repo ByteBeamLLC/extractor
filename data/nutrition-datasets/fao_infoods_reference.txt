@@ -1,0 +1,18 @@
+
+FAO/INFOODS
+===========
+
+Description: ~15,000+ foods - UN FAO International tables (manual download required)
+
+Download URL: https://www.fao.org/infoods/infoods/tables-and-databases/en/
+
+Instructions:
+1. Visit the URL above
+2. Download the dataset files
+3. Place them in this directory: /Users/talalbazerbachi/Documents/GitHub/extractor/data/nutrition-datasets
+
+Expected files:
+- For FAO/INFOODS: Multiple regional CSV/Excel files
+- For ANZ NUTTAB: Excel files from the download page
+
+After downloading, run the ETL scripts to process the data.

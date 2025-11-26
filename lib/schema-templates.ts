@@ -610,6 +610,530 @@ export const STATIC_SCHEMA_TEMPLATES: SchemaTemplateDefinition[] = [
         },
       },
     ],
+  },
+  {
+    id: "gcc-food-label",
+    name: "GCC Food Label",
+    description: "Generate Saudi/GCC-compliant food labels following SFDA and GSO 9 standards with bilingual (English/Arabic) support.",
+    agentType: "standard",
+    allowedEmails: ["bazerbachi.8@gmail.com"],
+    fields: [
+      // ═══════════════════════════════════════════════════════════════════════
+      // SECTION 1: PRODUCT IDENTITY
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "barcode",
+        name: "barcode",
+        type: "string",
+        description: "Product barcode (GTIN/EAN-13)",
+        extractionInstructions: "Enter the 13-digit EAN barcode. Ensure only numeric digits.",
+        required: true,
+      },
+      {
+        id: "product_name_en",
+        name: "product_name_en",
+        type: "string",
+        description: "Product name in English",
+        extractionInstructions: "Enter the official product name in English as it will appear on the label.",
+        required: true,
+      },
+      {
+        id: "product_name_ar",
+        name: "product_name_ar",
+        type: "string",
+        description: "Product name in Arabic",
+        isTransformation: true,
+        transformationType: "gemini_api",
+        transformationSource: "column",
+        transformationConfig: {
+          prompt: "Translate '{product_name_en}' to Arabic. Create a descriptive and appealing name that is fluent and natural-sounding in Arabic, suitable for a consumer food product. Use Western Arabic numerals (1,2,3) not Eastern Arabic numerals. Output ONLY the translated text, nothing else.",
+          sourceFields: ["product_name_en"],
+          selectedTools: [],
+        },
+      },
+      {
+        id: "brand_name",
+        name: "brand_name",
+        type: "string",
+        description: "Brand name",
+        required: true,
+      },
+      {
+        id: "product_description_en",
+        name: "product_description_en",
+        type: "string",
+        description: "Product description in English",
+        extractionInstructions: "Brief product description for the label (e.g., 'Crunchy Corn Flakes Breakfast Cereal').",
+      },
+      {
+        id: "product_description_ar",
+        name: "product_description_ar",
+        type: "string",
+        description: "Product description in Arabic",
+        isTransformation: true,
+        transformationType: "gemini_api",
+        transformationSource: "column",
+        transformationConfig: {
+          prompt: "Translate '{product_description_en}' to Arabic. Create a natural, fluent Arabic description suitable for a food product label. Use Western Arabic numerals. Output ONLY the translated text.",
+          sourceFields: ["product_description_en"],
+          selectedTools: [],
+        },
+      },
+      {
+        id: "net_content",
+        name: "net_content",
+        type: "object",
+        description: "Net weight or volume",
+        children: [
+          { id: "net_content_value", name: "value", type: "number", description: "Numeric value", required: true },
+          { id: "net_content_unit", name: "unit", type: "string", description: "Unit (g, kg, ml, L)", required: true },
+        ],
+      },
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // SECTION 2: MANUFACTURER / IMPORTER DETAILS
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "manufacturer",
+        name: "manufacturer",
+        type: "object",
+        description: "Manufacturer details",
+        children: [
+          { id: "manufacturer_name_en", name: "name_en", type: "string", description: "Manufacturer name in English", required: true },
+          { id: "manufacturer_name_ar", name: "name_ar", type: "string", description: "Manufacturer name in Arabic" },
+          { id: "manufacturer_address", name: "address", type: "string", description: "Full manufacturer address" },
+          { id: "manufacturer_country", name: "country", type: "string", description: "Country of manufacture", required: true },
+        ],
+      },
+      {
+        id: "importer",
+        name: "importer",
+        type: "object",
+        description: "Importer details (required for imported products)",
+        children: [
+          { id: "importer_name", name: "name", type: "string", description: "Importer company name" },
+          { id: "importer_address", name: "address", type: "string", description: "Importer address in Saudi Arabia" },
+          { id: "importer_contact", name: "contact", type: "string", description: "Contact number or email" },
+        ],
+      },
+      {
+        id: "country_of_origin",
+        name: "country_of_origin",
+        type: "string",
+        description: "Country of origin",
+        required: true,
+      },
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // SECTION 3: INGREDIENTS LIST
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "ingredients_en",
+        name: "ingredients_en",
+        type: "list",
+        description: "Ingredients list in English (in descending order by weight)",
+        extractionInstructions: "List all ingredients in descending order of weight. Mark allergens in CAPS or note them separately.",
+        required: true,
+        item: {
+          id: "ingredient_en_item",
+          name: "ingredient",
+          type: "string",
+          description: "Individual ingredient in English",
+        },
+      },
+      {
+        id: "ingredients_ar",
+        name: "ingredients_ar",
+        type: "list",
+        description: "Ingredients list in Arabic",
+        isTransformation: true,
+        transformationType: "gemini_api",
+        transformationSource: "column",
+        transformationConfig: {
+          prompt: "Translate every ingredient in {ingredients_en} to Arabic. Maintain the same order. Use standard Arabic food terminology. Use Western Arabic numerals (1,2,3). Return ONLY an array of strings.",
+          sourceFields: ["ingredients_en"],
+          selectedTools: [],
+        },
+        item: {
+          id: "ingredient_ar_item",
+          name: "ingredient",
+          type: "string",
+          description: "Individual ingredient in Arabic",
+        },
+      },
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // SECTION 4: ALLERGEN DECLARATION (GSO 14 Major Allergens)
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "allergens",
+        name: "allergens",
+        type: "object",
+        description: "Allergen declaration per GSO requirements",
+        children: [
+          {
+            id: "contains_allergens",
+            name: "contains",
+            type: "list",
+            description: "Allergens contained in the product",
+            item: {
+              id: "allergen_item",
+              name: "allergen",
+              type: "single_select",
+              description: "Allergen type",
+              constraints: {
+                options: [
+                  "Cereals containing gluten",
+                  "Crustaceans",
+                  "Eggs",
+                  "Fish",
+                  "Peanuts",
+                  "Soybeans",
+                  "Milk",
+                  "Tree nuts",
+                  "Celery",
+                  "Mustard",
+                  "Sesame seeds",
+                  "Sulphites",
+                  "Lupin",
+                  "Molluscs"
+                ],
+              },
+            },
+          },
+          {
+            id: "may_contain_allergens",
+            name: "may_contain",
+            type: "list",
+            description: "Potential cross-contamination allergens ('May contain traces of...')",
+            item: {
+              id: "may_contain_item",
+              name: "allergen",
+              type: "string",
+              description: "Potential trace allergen",
+            },
+          },
+        ],
+      },
+      {
+        id: "allergen_statement_en",
+        name: "allergen_statement_en",
+        type: "string",
+        description: "Full allergen statement in English",
+        isTransformation: true,
+        transformationType: "gemini_api",
+        transformationSource: "column",
+        transformationConfig: {
+          prompt: "Generate a compliant allergen statement in English based on: Contains: {allergens.contains}, May contain: {allergens.may_contain}. Format: 'Contains: [list]. May contain traces of: [list].' If either list is empty, omit that part. Output ONLY the statement.",
+          sourceFields: ["allergens"],
+          selectedTools: [],
+        },
+      },
+      {
+        id: "allergen_statement_ar",
+        name: "allergen_statement_ar",
+        type: "string",
+        description: "Full allergen statement in Arabic",
+        isTransformation: true,
+        transformationType: "gemini_api",
+        transformationSource: "column",
+        transformationConfig: {
+          prompt: "Translate this allergen statement to Arabic: '{allergen_statement_en}'. Use proper Arabic food labeling terminology. Format: 'يحتوي على: [قائمة]. قد يحتوي على آثار: [قائمة].' Output ONLY the Arabic statement.",
+          sourceFields: ["allergen_statement_en"],
+          selectedTools: [],
+        },
+      },
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // SECTION 5: NUTRITION FACTS PANEL
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "serving_info",
+        name: "serving_info",
+        type: "object",
+        description: "Serving size information",
+        children: [
+          { id: "serving_size", name: "serving_size", type: "string", description: "Serving size (e.g., '30g', '250ml')", required: true },
+          { id: "servings_per_package", name: "servings_per_package", type: "number", description: "Number of servings per package" },
+        ],
+      },
+      {
+        id: "nutrition_per_100",
+        name: "nutrition_per_100",
+        type: "object",
+        description: "Nutritional information per 100g/100ml (mandatory per GSO)",
+        required: true,
+        children: [
+          {
+            id: "energy_per_100",
+            name: "energy",
+            type: "object",
+            description: "Energy values",
+            children: [
+              { id: "energy_kj_100", name: "kj", type: "number", description: "Energy in kJ per 100g/ml", required: true },
+              { id: "energy_kcal_100", name: "kcal", type: "number", description: "Energy in kcal per 100g/ml", required: true },
+            ],
+          },
+          { id: "total_fat_100", name: "total_fat", type: "number", description: "Total fat (g) per 100g/ml", required: true },
+          { id: "saturated_fat_100", name: "saturated_fat", type: "number", description: "Saturated fat (g) per 100g/ml", required: true },
+          { id: "trans_fat_100", name: "trans_fat", type: "number", description: "Trans fat (g) per 100g/ml", required: true },
+          { id: "cholesterol_100", name: "cholesterol", type: "number", description: "Cholesterol (mg) per 100g/ml" },
+          { id: "total_carbs_100", name: "total_carbohydrates", type: "number", description: "Total carbohydrates (g) per 100g/ml", required: true },
+          { id: "sugars_100", name: "sugars", type: "number", description: "Sugars (g) per 100g/ml", required: true },
+          { id: "added_sugars_100", name: "added_sugars", type: "number", description: "Added sugars (g) per 100g/ml" },
+          { id: "fiber_100", name: "fiber", type: "number", description: "Dietary fiber (g) per 100g/ml" },
+          { id: "protein_100", name: "protein", type: "number", description: "Protein (g) per 100g/ml", required: true },
+          { id: "sodium_100", name: "sodium", type: "number", description: "Sodium (mg) per 100g/ml", required: true },
+          { id: "salt_100", name: "salt", type: "number", description: "Salt (g) per 100g/ml (sodium × 2.5)" },
+        ],
+      },
+      {
+        id: "nutrition_per_serving",
+        name: "nutrition_per_serving",
+        type: "object",
+        description: "Nutritional information per serving (optional but recommended)",
+        children: [
+          {
+            id: "energy_per_serving",
+            name: "energy",
+            type: "object",
+            description: "Energy values per serving",
+            children: [
+              { id: "energy_kj_srv", name: "kj", type: "number", description: "Energy in kJ per serving" },
+              { id: "energy_kcal_srv", name: "kcal", type: "number", description: "Energy in kcal per serving" },
+            ],
+          },
+          { id: "total_fat_srv", name: "total_fat", type: "number", description: "Total fat (g) per serving" },
+          { id: "saturated_fat_srv", name: "saturated_fat", type: "number", description: "Saturated fat (g) per serving" },
+          { id: "trans_fat_srv", name: "trans_fat", type: "number", description: "Trans fat (g) per serving" },
+          { id: "cholesterol_srv", name: "cholesterol", type: "number", description: "Cholesterol (mg) per serving" },
+          { id: "total_carbs_srv", name: "total_carbohydrates", type: "number", description: "Total carbohydrates (g) per serving" },
+          { id: "sugars_srv", name: "sugars", type: "number", description: "Sugars (g) per serving" },
+          { id: "added_sugars_srv", name: "added_sugars", type: "number", description: "Added sugars (g) per serving" },
+          { id: "fiber_srv", name: "fiber", type: "number", description: "Dietary fiber (g) per serving" },
+          { id: "protein_srv", name: "protein", type: "number", description: "Protein (g) per serving" },
+          { id: "sodium_srv", name: "sodium", type: "number", description: "Sodium (mg) per serving" },
+          { id: "salt_srv", name: "salt", type: "number", description: "Salt (g) per serving" },
+        ],
+      },
+      {
+        id: "vitamins_minerals",
+        name: "vitamins_minerals",
+        type: "list",
+        description: "Vitamins and minerals (if fortified or significant amounts)",
+        item: {
+          id: "vitamin_mineral_item",
+          name: "nutrient",
+          type: "object",
+          children: [
+            { id: "vm_name", name: "name", type: "string", description: "Nutrient name (e.g., Vitamin A, Iron)" },
+            { id: "vm_amount_100", name: "amount_per_100", type: "string", description: "Amount per 100g/ml with unit" },
+            { id: "vm_daily_value", name: "daily_value_percent", type: "number", description: "% Daily Value (NRV)" },
+          ],
+        },
+      },
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // SECTION 6: TRAFFIC LIGHT INDICATORS (UAE/Optional)
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "traffic_light",
+        name: "traffic_light",
+        type: "object",
+        description: "Traffic light nutrition indicators (front-of-pack labeling)",
+        children: [
+          {
+            id: "fat_indicator",
+            name: "fat",
+            type: "single_select",
+            description: "Fat level indicator",
+            constraints: { options: ["green", "amber", "red"] },
+          },
+          {
+            id: "saturated_fat_indicator",
+            name: "saturated_fat",
+            type: "single_select",
+            description: "Saturated fat level indicator",
+            constraints: { options: ["green", "amber", "red"] },
+          },
+          {
+            id: "sugar_indicator",
+            name: "sugar",
+            type: "single_select",
+            description: "Sugar level indicator",
+            constraints: { options: ["green", "amber", "red"] },
+          },
+          {
+            id: "salt_indicator",
+            name: "salt",
+            type: "single_select",
+            description: "Salt level indicator",
+            constraints: { options: ["green", "amber", "red"] },
+          },
+        ],
+      },
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // SECTION 7: STORAGE & USAGE INSTRUCTIONS
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "storage_instructions_en",
+        name: "storage_instructions_en",
+        type: "string",
+        description: "Storage instructions in English",
+        extractionInstructions: "E.g., 'Store in a cool, dry place. Refrigerate after opening.'",
+      },
+      {
+        id: "storage_instructions_ar",
+        name: "storage_instructions_ar",
+        type: "string",
+        description: "Storage instructions in Arabic",
+        isTransformation: true,
+        transformationType: "gemini_api",
+        transformationSource: "column",
+        transformationConfig: {
+          prompt: "Translate '{storage_instructions_en}' to Arabic using standard food storage terminology. Output ONLY the translated text.",
+          sourceFields: ["storage_instructions_en"],
+          selectedTools: [],
+        },
+      },
+      {
+        id: "usage_instructions_en",
+        name: "usage_instructions_en",
+        type: "string",
+        description: "Usage/Preparation instructions in English",
+      },
+      {
+        id: "usage_instructions_ar",
+        name: "usage_instructions_ar",
+        type: "string",
+        description: "Usage/Preparation instructions in Arabic",
+        isTransformation: true,
+        transformationType: "gemini_api",
+        transformationSource: "column",
+        transformationConfig: {
+          prompt: "Translate '{usage_instructions_en}' to Arabic. Use natural Arabic phrasing for food preparation instructions. Output ONLY the translated text.",
+          sourceFields: ["usage_instructions_en"],
+          selectedTools: [],
+        },
+      },
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // SECTION 8: DATE MARKING & BATCH INFO
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "batch_number",
+        name: "batch_number",
+        type: "string",
+        description: "Batch/Lot number",
+      },
+      {
+        id: "production_date",
+        name: "production_date",
+        type: "date",
+        description: "Production/Manufacturing date",
+      },
+      {
+        id: "expiry_date",
+        name: "expiry_date",
+        type: "date",
+        description: "Expiry date / Best before date",
+        required: true,
+      },
+      {
+        id: "date_format_note",
+        name: "date_format_note",
+        type: "string",
+        description: "Date format declaration (e.g., 'DD/MM/YYYY')",
+        extractionInstructions: "Specify the date format used on the label per GSO requirements.",
+      },
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // SECTION 9: CERTIFICATIONS & COMPLIANCE
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "halal_status",
+        name: "halal_status",
+        type: "single_select",
+        description: "Halal certification status",
+        constraints: {
+          options: ["Halal Certified", "Halal (Self-declared)", "Not Applicable", "Pending Certification"],
+        },
+      },
+      {
+        id: "halal_certifier",
+        name: "halal_certifier",
+        type: "string",
+        description: "Halal certification body name",
+      },
+      {
+        id: "sfda_registration",
+        name: "sfda_registration",
+        type: "string",
+        description: "SFDA product registration number (if applicable)",
+      },
+      {
+        id: "gso_standards",
+        name: "gso_standards",
+        type: "list",
+        description: "Applicable GSO standards",
+        item: {
+          id: "gso_standard_item",
+          name: "standard",
+          type: "string",
+          description: "GSO standard reference (e.g., 'GSO 9', 'GSO 2233')",
+        },
+      },
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // SECTION 10: ADDITIONAL CLAIMS & STATEMENTS
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "nutrition_claims",
+        name: "nutrition_claims",
+        type: "list",
+        description: "Nutrition claims (e.g., 'Low Fat', 'High Fiber', 'Sugar Free')",
+        item: {
+          id: "nutrition_claim_item",
+          name: "claim",
+          type: "string",
+          description: "Individual nutrition claim",
+        },
+      },
+      {
+        id: "health_claims",
+        name: "health_claims",
+        type: "list",
+        description: "Approved health claims",
+        item: {
+          id: "health_claim_item",
+          name: "claim",
+          type: "string",
+          description: "Individual health claim",
+        },
+      },
+      {
+        id: "special_dietary",
+        name: "special_dietary",
+        type: "multi_select",
+        description: "Special dietary suitability",
+        constraints: {
+          options: ["Gluten-Free", "Lactose-Free", "Vegan", "Vegetarian", "Organic", "Non-GMO", "Kosher", "Suitable for Diabetics"],
+        },
+      },
+      {
+        id: "warnings",
+        name: "warnings",
+        type: "list",
+        description: "Warning statements",
+        item: {
+          id: "warning_item",
+          name: "warning",
+          type: "string",
+          description: "Warning statement (e.g., 'Not suitable for children under 3 years')",
+        },
+      },
+    ],
   }
 ]
 

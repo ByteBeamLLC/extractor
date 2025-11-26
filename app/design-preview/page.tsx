@@ -19,6 +19,7 @@ import { AppSidebar } from '@/components/design-preview/AppSidebar'
 import { DashboardView } from '@/components/design-preview/views/DashboardView'
 import { AgentMarketplace } from '@/components/design-preview/views/AgentMarketplace'
 import { KnowledgeHub } from '@/components/design-preview/views/KnowledgeHub'
+import { CopilotView } from '@/components/design-preview/views/CopilotView'
 import { WorkspaceProvider } from '@/components/workspace/WorkspaceStoreProvider'
 
 export default function DesignPreviewPage() {
@@ -44,6 +45,7 @@ export default function DesignPreviewPage() {
                                             {activeView === 'dashboard' && 'Dashboard'}
                                             {activeView === 'agent-hub' && 'Agent Hub'}
                                             {activeView === 'knowledge-hub' && 'Knowledge Hubs'}
+                                            {activeView === 'co-pilot' && 'Co-pilot'}
                                         </BreadcrumbPage>
                                     </BreadcrumbItem>
                                 </BreadcrumbList>
@@ -55,6 +57,7 @@ export default function DesignPreviewPage() {
                         {activeView === "dashboard" && <DashboardView />}
                         {activeView === "agent-hub" && <AgentMarketplace />}
                         {activeView === "knowledge-hub" && <KnowledgeHub />}
+                        {activeView === "co-pilot" && <CopilotView />}
                     </div>
                 </SidebarInset>
             </SidebarProvider>

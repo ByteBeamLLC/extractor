@@ -1,0 +1,235 @@
+{
+  "label_data": {
+    "barcode": "6291234567890",
+    "productName": "Traditional Roasted Turkey",
+    "brandName": "Ben's Farmhouse",
+    "productDescription": "Slow-roasted, farm-fresh whole turkey with aromatic herb butter, served with traditional gravy. Perfect for your holiday celebration.",
+    "netWeight": 5000,
+    "netWeightUnit": "g",
+    "servingSize": 200,
+    "servingSizeUnit": "g",
+    "servingsPerContainer": 8,
+    "manufacturerName": "Ben's Farmhouse LLC",
+    "manufacturerAddress": "Dubai, United Arab Emirates",
+    "manufacturerCountry": "United Arab Emirates",
+    "importerName": "",
+    "importerAddress": "",
+    "importerCountry": "",
+    "countryOfOrigin": "United Arab Emirates",
+    "ingredients": [
+      {
+        "name": "Whole Turkey",
+        "quantity": 5000,
+        "unit": "g",
+        "costPerUnit": 28,
+        "costUnit": "kg"
+      },
+      {
+        "name": "Butter",
+        "quantity": 200,
+        "unit": "g",
+        "costPerUnit": 45,
+        "costUnit": "kg"
+      },
+      {
+        "name": "Fresh Rosemary",
+        "quantity": 30,
+        "unit": "g",
+        "costPerUnit": 120,
+        "costUnit": "kg"
+      },
+      {
+        "name": "Fresh Thyme",
+        "quantity": 20,
+        "unit": "g",
+        "costPerUnit": 120,
+        "costUnit": "kg"
+      },
+      {
+        "name": "Fresh Sage",
+        "quantity": 15,
+        "unit": "g",
+        "costPerUnit": 130,
+        "costUnit": "kg"
+      },
+      {
+        "name": "Garlic",
+        "quantity": 40,
+        "unit": "g",
+        "costPerUnit": 25,
+        "costUnit": "kg"
+      },
+      {
+        "name": "Onion",
+        "quantity": 150,
+        "unit": "g",
+        "costPerUnit": 8,
+        "costUnit": "kg"
+      },
+      {
+        "name": "Celery",
+        "quantity": 100,
+        "unit": "g",
+        "costPerUnit": 12,
+        "costUnit": "kg"
+      },
+      {
+        "name": "Carrots",
+        "quantity": 100,
+        "unit": "g",
+        "costPerUnit": 10,
+        "costUnit": "kg"
+      },
+      {
+        "name": "Chicken Stock",
+        "quantity": 500,
+        "unit": "ml",
+        "costPerUnit": 15,
+        "costUnit": "L"
+      },
+      {
+        "name": "Sea Salt",
+        "quantity": 25,
+        "unit": "g",
+        "costPerUnit": 8,
+        "costUnit": "kg"
+      },
+      {
+        "name": "Black Pepper",
+        "quantity": 5,
+        "unit": "g",
+        "costPerUnit": 80,
+        "costUnit": "kg"
+      },
+      {
+        "name": "Olive Oil",
+        "quantity": 50,
+        "unit": "ml",
+        "costPerUnit": 40,
+        "costUnit": "L"
+      }
+    ],
+    "containsAllergens": [
+      "Milk",
+      "Celery"
+    ],
+    "mayContainAllergens": [
+      "Cereals containing gluten"
+    ],
+    "nutritionFacts": [
+      {
+        "name": "Energy",
+        "per100g": 189,
+        "perServing": 378,
+        "unit": "kcal",
+        "dailyValue": 19
+      },
+      {
+        "name": "Energy",
+        "per100g": 791,
+        "perServing": 1582,
+        "unit": "kJ"
+      },
+      {
+        "name": "Total Fat",
+        "per100g": 8.5,
+        "perServing": 17,
+        "unit": "g",
+        "dailyValue": 26
+      },
+      {
+        "name": "Saturated Fat",
+        "per100g": 3.2,
+        "perServing": 6.4,
+        "unit": "g",
+        "dailyValue": 32,
+        "isSubItem": true
+      },
+      {
+        "name": "Trans Fat",
+        "per100g": 0,
+        "perServing": 0,
+        "unit": "g",
+        "isSubItem": true
+      },
+      {
+        "name": "Cholesterol",
+        "per100g": 85,
+        "perServing": 170,
+        "unit": "mg",
+        "dailyValue": 57
+      },
+      {
+        "name": "Sodium",
+        "per100g": 320,
+        "perServing": 640,
+        "unit": "mg",
+        "dailyValue": 28
+      },
+      {
+        "name": "Total Carbohydrate",
+        "per100g": 0.5,
+        "perServing": 1,
+        "unit": "g",
+        "dailyValue": 0
+      },
+      {
+        "name": "Dietary Fiber",
+        "per100g": 0,
+        "perServing": 0,
+        "unit": "g",
+        "dailyValue": 0,
+        "isSubItem": true
+      },
+      {
+        "name": "Total Sugars",
+        "per100g": 0,
+        "perServing": 0,
+        "unit": "g",
+        "isSubItem": true
+      },
+      {
+        "name": "Added Sugars",
+        "per100g": 0,
+        "perServing": 0,
+        "unit": "g",
+        "dailyValue": 0,
+        "isSubItem": true
+      },
+      {
+        "name": "Protein",
+        "per100g": 28,
+        "perServing": 56,
+        "unit": "g",
+        "dailyValue": 56
+      }
+    ],
+    "storageInstructions": "Keep refrigerated at 0-4°C. Consume within 3 days of delivery. Can be frozen for up to 1 month.",
+    "usageInstructions": "Preheat oven to 180°C. Remove from packaging, place in roasting pan. Heat for 45-60 minutes until internal temperature reaches 75°C. Let rest 10 minutes before carving.",
+    "productionDate": "2024-12-23",
+    "expiryDate": "2024-12-27",
+    "batchNumber": "BF-XMAS-2024-001",
+    "halalCertified": true,
+    "halalCertifier": "Emirates Authority for Standardization and Metrology (ESMA)",
+    "costing": {
+      "laborCost": 0,
+      "laborHours": 3,
+      "hourlyRate": 35,
+      "packagingCost": 25,
+      "overheadPercent": 20,
+      "targetMarginPercent": 35
+    }
+  },
+  "costing_data": {
+    "laborCost": 0,
+    "laborHours": 3,
+    "hourlyRate": 35,
+    "packagingCost": 25,
+    "overheadPercent": 20,
+    "targetMarginPercent": 35
+  },
+  "category": "Festive Menu",
+  "tags": ["turkey", "christmas", "thanksgiving", "halal", "main-course", "heat-and-serve"],
+  "notes": "Ben's Farmhouse signature Traditional Roasted Turkey - the centerpiece of our Festive and Christmas menus. Serves 6-8 guests. Available for delivery in Dubai only during the festive season (Thanksgiving through December 30th)."
+}
+

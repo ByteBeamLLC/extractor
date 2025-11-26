@@ -5,6 +5,8 @@ import {
     LayoutDashboard,
     Store,
     Library,
+    Sparkles,
+    Tag,
 } from 'lucide-react'
 
 import {
@@ -33,7 +35,16 @@ export function AppSidebar({ onNavigate, activeView }: AppSidebarProps) {
             icon: LayoutDashboard,
             value: 'home',
         },
-
+        {
+            title: 'Label Maker',
+            icon: Tag,
+            value: 'label-maker',
+        },
+        {
+            title: 'Co-pilot',
+            icon: Sparkles,
+            value: 'copilot',
+        },
         {
             title: 'Knowledge Hub',
             icon: Library,
