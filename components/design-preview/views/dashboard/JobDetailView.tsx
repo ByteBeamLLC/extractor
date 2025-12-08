@@ -13,7 +13,8 @@ import {
     Loader2,
     LayoutGrid,
     List as ListIcon,
-    Table as TableIcon
+    Table as TableIcon,
+    Gauge
 } from 'lucide-react'
 import {
     DropdownMenu,
@@ -372,7 +373,7 @@ export function JobDetailView({ jobName, schemaId }: JobDetailViewProps) {
                 type: 'image',
                 originalJob: parsedJob
             }, ...prev])
-            
+
             toast.success('Record created successfully')
         }
     }
@@ -493,10 +494,10 @@ export function JobDetailView({ jobName, schemaId }: JobDetailViewProps) {
             </Dialog>
 
             {/* Detail Modal */}
-            <ExtractionDetailDialog 
-                job={selectedJob} 
-                schema={schema} 
-                onClose={() => setSelectedJob(null)} 
+            <ExtractionDetailDialog
+                job={selectedJob}
+                schema={schema}
+                onClose={() => setSelectedJob(null)}
             />
 
             {/* Manual Record Dialog */}

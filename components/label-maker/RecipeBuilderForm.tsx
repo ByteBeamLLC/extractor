@@ -560,7 +560,7 @@ export function RecipeBuilderForm({ initialData, onChange }: RecipeBuilderFormPr
                                 <span className="text-xs text-muted-foreground">or</span>
                                 <div className="flex-1 h-px bg-border" />
                             </div>
-                            
+
                             <Button
                                 variant="outline"
                                 size="sm"

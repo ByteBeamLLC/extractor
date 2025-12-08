@@ -124,6 +124,44 @@ const webReaderTool = tool({
     }
   },
 })
+
+const brailleTool = tool({
+  description: "Convert text to Braille format. Use this tool when you need to translate regular text into Braille characters. This tool takes any text string and returns its Braille representation.",
+  inputSchema: z.object({
+    text: z.string().describe("The text to convert to Braille. Can be any string of text that needs to be translated to Braille format."),
+  }),
+  execute: async ({ text }) => {
+    try {
+      console.log("[bytebeam] Braille API - Converting text to Braille:", text)
+
+      const response = await fetch('http://localhost:5001/api/translate/text-to-braille', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ text }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => response.statusText)
+        throw new Error(`Braille API error: ${response.status} ${errorText}`)
+      }
+
+      const data = await response.json()
+      console.log("[bytebeam] Braille API response received")
+
+      return {
+        text,
+        braille: data.braille || data.result || data.text || '',
+        original: text,
+      }
+    } catch (error) {
+      console.error("[bytebeam] Braille API error:", error)
+      return { error: error instanceof Error ? error.message : "Braille conversion failed", text }
+    }
+  },
+})
 */
 
 // ===== ONE-SHOT TRANSFORMATION WITH STRUCTURED OUTPUT =====
@@ -268,6 +306,9 @@ export async function POST(request: NextRequest) {
     const inputSource: "document" | "column" = body.inputSource || "column"
     const prompt: string = String(body.prompt || "")
     const selectedTools: string[] = body.selectedTools || [] // New: manual tool selection
+    const inputDocuments: Array<{ fieldId?: string; name?: string; type?: string; data?: string }> = Array.isArray(body.inputDocuments)
+      ? body.inputDocuments
+      : []
 
     if (!prompt) {
       return NextResponse.json({ success: false, error: "Missing prompt" }, { status: 400 })
@@ -344,8 +385,38 @@ export async function POST(request: NextRequest) {
       console.log("[bytebeam] Transform - Field type:", fieldType)
       console.log("[bytebeam] Transform - Field schema:", fieldSchema)
       console.log("[bytebeam] Transform - Selected tools:", selectedTools)
+      if (inputDocuments.length > 0) {
+        console.log("[bytebeam] Transform - Attached input documents:", inputDocuments.length)
+      }
 
       // ===== NEW ONE-SHOT STRUCTURED OUTPUT APPROACH =====
+
+      // Helper function to convert text to braille
+      const convertToBraille = async (text: string): Promise<string> => {
+        try {
+          console.log("[bytebeam] Braille API - Converting text to Braille:", text)
+          const response = await fetch('http://localhost:5001/api/translate/text-to-braille', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: JSON.stringify({ text }),
+          })
+
+          if (!response.ok) {
+            const errorText = await response.text().catch(() => response.statusText)
+            throw new Error(`Braille API error: ${response.status} ${errorText}`)
+          }
+
+          const data = await response.json()
+          console.log("[bytebeam] Braille API response received")
+          return data.braille || data.result || data.text || text
+        } catch (error) {
+          console.error("[bytebeam] Braille API error:", error)
+          throw error
+        }
+      }
 
       // Build the tool map based on selected tools
       const toolMap: Record<string, any> = {}
@@ -358,6 +429,9 @@ export async function POST(request: NextRequest) {
       }
       if (selectedTools.includes('webReader')) {
         toolMap.webReader = webReaderTool
+      }
+      if (selectedTools.includes('braille')) {
+        toolMap.braille = brailleTool
       }
       */
 
@@ -388,10 +462,17 @@ export async function POST(request: NextRequest) {
             zodSchema = (zodSchema as z.ZodObject<any>).partial()
           }
 
+          const attachmentNote =
+            inputDocuments.length > 0
+              ? `\nAttached documents: ${inputDocuments
+                .map((doc) => doc.name || doc.fieldId || "document")
+                .join(", ")}. Use them when they match referenced input fields.`
+              : ""
+
           // Build the comprehensive prompt for one-shot generation
           const fullPrompt = `${substitutedPrompt}
 
-${contextInfo}
+${contextInfo}${attachmentNote}
 
 Instructions:
 - Perform the task described above
@@ -401,15 +482,39 @@ Instructions:
 - For primitive types: Return the single value
 - If you need to perform calculations, use the calculator tool
 - If you need to search for information, use the webSearch tool
+- If you need to convert text to Braille, use the braille tool
 - Ensure data types match the schema (numbers as numbers, not strings)
 - If information is not available, use null for that field
 - Use the provided Reference Knowledge to answer questions or perform tasks if applicable`
+
+          // Build user message content; if input docs are attached, include them as images after the prompt text
+          const userMessageContent =
+            inputDocuments.length > 0
+              ? [
+                { type: "text", text: fullPrompt },
+                ...inputDocuments.flatMap((doc) => {
+                  if (!doc?.data) return []
+                  const mimeType = doc.type || "application/octet-stream"
+                  return [
+                    {
+                      type: "text",
+                      text: `Document "${doc.name || doc.fieldId || "input document"}"${doc.fieldId ? ` (input id: ${doc.fieldId})` : ""
+                        }`,
+                    },
+                    {
+                      type: "image",
+                      image: `data:${mimeType};base64,${doc.data}`,
+                    },
+                  ]
+                }),
+              ]
+              : fullPrompt
 
           // Use generateObject with tools for one-shot structured output
           const structuredResult = await generateObject({
             temperature: 0.1,
             schema: zodSchema,
-            messages: [{ role: "user", content: fullPrompt }]
+            messages: [{ role: "user", content: userMessageContent }]
             // Note: Tool support temporarily disabled during OpenRouter migration
             // ...(Object.keys(toolMap).length > 0 ? { tools: toolMap, maxSteps: 5 } : {})
           })
@@ -434,11 +539,34 @@ Instructions:
 - Return ONLY the final result, nothing else
 - If you need to perform calculations, use the calculator tool
 - If you need to search for information, use the webSearch tool
+- If you need to convert text to Braille, use the braille tool
 - Use the provided Reference Knowledge to answer questions or perform tasks if applicable`
+
+        const userMessageContent =
+          inputDocuments.length > 0
+            ? [
+              { type: "text", text: fullPrompt },
+              ...inputDocuments.flatMap((doc) => {
+                if (!doc?.data) return []
+                const mimeType = doc.type || "application/octet-stream"
+                return [
+                  {
+                    type: "text",
+                    text: `Document "${doc.name || doc.fieldId || "input document"}"${doc.fieldId ? ` (input id: ${doc.fieldId})` : ""
+                      }`,
+                  },
+                  {
+                    type: "image",
+                    image: `data:${mimeType};base64,${doc.data}`,
+                  },
+                ]
+              }),
+            ]
+            : fullPrompt
 
         const { text } = await generateText({
           temperature: 0.1,
-          messages: [{ role: "user", content: fullPrompt }]
+          messages: [{ role: "user", content: userMessageContent }]
           // Note: Tool support temporarily disabled during OpenRouter migration
           // ...(Object.keys(toolMap).length > 0 ? { tools: toolMap, maxSteps: 5 } : {})
         })
@@ -545,4 +673,3 @@ Instructions:
     )
   }
 }
-

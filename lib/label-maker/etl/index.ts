@@ -11,6 +11,7 @@ import * as path from 'path';
 import { UnifiedFoundationFood, ParserResult, DataSource } from './types.js';
 import { parseUSDA_SRLegacy, parseUSDA_SRLegacyJSON } from './parsers/usda-sr-legacy.js';
 import { parseUSDAFoundation, parseUSDAFoundationJSON } from './parsers/usda-foundation.js';
+import { parseUSDA_FNDDS } from './parsers/usda-fndds.js';
 import { parseUKCoFID, parseUKCoFIDCSV } from './parsers/uk-cofid.js';
 import { parseCanadaCNF, parseCanadaCNFJSON } from './parsers/canada-cnf.js';
 import { bulkInsertFoods, getCountBySource, getTotalCount } from './loaders/bulk-insert.js';
@@ -119,6 +120,27 @@ async function parseAllDatasets(): Promise<Map<DataSource, UnifiedFoundationFood
     }
   } else {
     console.log('⏭️  USDA Foundation Foods: Not found');
+  }
+
+  // --- USDA FNDDS (Survey Foods) ---
+  const fnddsDir = path.join(DATA_DIR, 'usda_fndds');
+  
+  if (fs.existsSync(fnddsDir) && fs.existsSync(path.join(fnddsDir, 'food.csv'))) {
+    try {
+      const result = await parseUSDA_FNDDS(fnddsDir);
+      allFoods.set('usda_fndds', result.foods);
+      results.push({
+        source: 'usda_fndds',
+        parsed: result.stats.totalParsed,
+        inserted: 0,
+        errors: result.stats.errors,
+        warnings: result.stats.warnings,
+      });
+    } catch (err) {
+      console.error(`❌ Error parsing USDA FNDDS: ${err}`);
+    }
+  } else {
+    console.log('⏭️  USDA FNDDS: Not found (extract to usda_fndds/ folder)');
   }
 
   // --- UK CoFID ---

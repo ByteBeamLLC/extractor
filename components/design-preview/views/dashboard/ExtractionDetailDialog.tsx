@@ -11,8 +11,9 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ExtractionJob, SchemaDefinition } from '@/lib/schema'
 import { ExtractionResultsView } from '@/components/document-viewer/ExtractionResultsView'
+import { DocumentMissionControl } from '@/components/mission-control/DocumentMissionControl'
 import { LabelMakerView, LabelData, DEFAULT_LABEL_DATA, NutritionRow } from '@/components/label-maker'
-import { FileText, Tag, Image as ImageIcon } from 'lucide-react'
+import { FileText, Tag, Image as ImageIcon, Gauge } from 'lucide-react'
 
 interface ExtractionDetailDialogProps {
     job: ExtractionJob | null
@@ -26,7 +27,7 @@ interface ExtractionDetailDialogProps {
 
 export function ExtractionDetailDialog({ job, schema, onClose, defaultToLabelMaker, onSaveLabelData }: ExtractionDetailDialogProps) {
     const [activeTab, setActiveTab] = useState(defaultToLabelMaker ? "label-maker" : "data")
-    
+
     // Reset tab when job changes
     useEffect(() => {
         if (job) {
@@ -45,7 +46,7 @@ export function ExtractionDetailDialog({ job, schema, onClose, defaultToLabelMak
         // Helper to safely get string/number
         const getStr = (key: string) => String(r[key] || "")
         const getNum = (key: string) => parseFloat(r[key]) || 0
-        
+
         // Helper for nested objects (e.g., net_content.value)
         const getNested = (parent: string, key: string) => r[parent]?.[key]
 
@@ -58,7 +59,7 @@ export function ExtractionDetailDialog({ job, schema, onClose, defaultToLabelMak
         // Energy
         if (n.energy_kcal_100) nutritionMap.push({ name: "Energy", per100g: parseFloat(n.energy_kcal_100) || 0, perServing: 0, unit: "kcal" })
         if (n.energy_kj_100) nutritionMap.push({ name: "Energy", per100g: parseFloat(n.energy_kj_100) || 0, perServing: 0, unit: "kJ" })
-        
+
         // Macros
         if (n.total_fat_100) nutritionMap.push({ name: "Total Fat", per100g: parseFloat(n.total_fat_100) || 0, perServing: 0, unit: "g", dailyValue: 0 })
         if (n.saturated_fat_100) nutritionMap.push({ name: "Saturated Fat", per100g: parseFloat(n.saturated_fat_100) || 0, perServing: 0, unit: "g", isSubItem: true })
@@ -79,32 +80,32 @@ export function ExtractionDetailDialog({ job, schema, onClose, defaultToLabelMak
             productDescription: getStr("product_description_en"),
             netWeight: parseFloat(getNested("net_content", "value")) || 0,
             netWeightUnit: getNested("net_content", "unit") || "g",
-            
+
             // Manufacturer
             manufacturerName: getNested("manufacturer", "name_en") || getNested("manufacturer", "name"),
             manufacturerAddress: getNested("manufacturer", "address"),
             manufacturerCountry: getNested("manufacturer", "country"),
-            
+
             // Origin
             countryOfOrigin: getStr("country_of_origin"),
-            
+
             // Lists
             ingredients: Array.isArray(r.ingredients_en) ? r.ingredients_en : [],
             containsAllergens: r.allergens?.contains || [],
             mayContainAllergens: r.allergens?.may_contain || [],
-            
+
             // Nutrition
             nutritionFacts: nutritionMap.length > 0 ? nutritionMap : DEFAULT_LABEL_DATA.nutritionFacts,
-            
+
             // Instructions
             storageInstructions: getStr("storage_instructions_en"),
             usageInstructions: getStr("usage_instructions_en"),
-            
+
             // Dates
             batchNumber: getStr("batch_number"),
             productionDate: getStr("production_date"),
             expiryDate: getStr("expiry_date"),
-            
+
             // Certs
             halalCertified: getStr("halal_status") === "Halal Certified",
             halalCertifier: getStr("halal_certifier")
@@ -130,23 +131,30 @@ export function ExtractionDetailDialog({ job, schema, onClose, defaultToLabelMak
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
                     <div className="px-4 border-b shrink-0">
                         <TabsList className="bg-transparent h-12 p-0 space-x-2">
-                            <TabsTrigger 
-                                value="data" 
+                            <TabsTrigger
+                                value="data"
                                 className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4"
                             >
                                 <FileText className="w-4 h-4 mr-2" />
                                 Extraction Data
                             </TabsTrigger>
-                            <TabsTrigger 
-                                value="file" 
+                            <TabsTrigger
+                                value="file"
                                 className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4"
                             >
                                 <ImageIcon className="w-4 h-4 mr-2" />
                                 Original File
                             </TabsTrigger>
+                            <TabsTrigger
+                                value="mission-control"
+                                className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4"
+                            >
+                                <Gauge className="w-4 h-4 mr-2" />
+                                Mission Control
+                            </TabsTrigger>
                             {isGCCLabelSchema && (
-                                <TabsTrigger 
-                                    value="label-maker" 
+                                <TabsTrigger
+                                    value="label-maker"
                                     className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-emerald-500 data-[state=active]:text-emerald-600 data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4"
                                 >
                                     <Tag className="w-4 h-4 mr-2" />
@@ -160,7 +168,7 @@ export function ExtractionDetailDialog({ job, schema, onClose, defaultToLabelMak
                         <TabsContent value="data" className="h-full m-0 p-0">
                             <ExtractionResultsView results={job.results || {}} />
                         </TabsContent>
-                        
+
                         <TabsContent value="file" className="h-full m-0 p-0 flex items-center justify-center">
                             {job.ocrAnnotatedImageUrl ? (
                                 <div className="h-full w-full overflow-auto flex items-center justify-center p-4">
@@ -174,10 +182,17 @@ export function ExtractionDetailDialog({ job, schema, onClose, defaultToLabelMak
                             )}
                         </TabsContent>
 
+                        <TabsContent value="mission-control" className="h-full m-0 p-0">
+                            <DocumentMissionControl
+                                job={job}
+                                schema={schema}
+                            />
+                        </TabsContent>
+
                         {isGCCLabelSchema && (
                             <TabsContent value="label-maker" className="h-full m-0 p-0">
-                                <LabelMakerView 
-                                    initialData={labelData} 
+                                <LabelMakerView
+                                    initialData={labelData}
                                     onSave={onSaveLabelData ? async (data) => {
                                         if (job) {
                                             await onSaveLabelData(job.id, data)

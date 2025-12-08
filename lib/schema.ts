@@ -16,7 +16,9 @@ export type DataPrimitive =
 
 export type CompoundType = "object" | "list" | "table"
 
-export type DataType = DataPrimitive | CompoundType
+export type InputType = "input"
+
+export type DataType = DataPrimitive | CompoundType | InputType
 
 export type TransformationType =
   | "currency_conversion"
@@ -93,7 +95,40 @@ export interface LeafField extends SchemaFieldBase {
   type: DataPrimitive
 }
 
-export type SchemaField = LeafField | ObjectField | ListField | TableField
+// Input field: document inputs for multi-document workflows
+export interface InputFieldConstraints {
+  allowedTypes?: string[] // e.g., ["pdf", "image", "jpg", "png"]
+  maxSize?: number // in bytes
+}
+
+export interface InputField {
+  id: string
+  name: string
+  type: "input"
+  inputType: "document" // extensible for future: "text", "url", etc.
+  description?: string
+  fileConstraints?: InputFieldConstraints
+  required?: boolean
+}
+
+export type SchemaField = LeafField | ObjectField | ListField | TableField | InputField
+
+// Type for extraction-related fields only (excludes InputField)
+export type ExtractionField = LeafField | ObjectField | ListField | TableField
+
+// Type guard to check if a field is an extraction field (not input)
+export function isExtractionField(field: SchemaField): field is ExtractionField {
+  return field.type !== "input"
+}
+
+// Input document: represents a document uploaded for an input field
+export interface InputDocument {
+  fieldId: string
+  fileName: string
+  fileUrl: string
+  previewUrl?: string | null // For annotated/OCR preview
+  uploadedAt: Date
+}
 
 export interface ExtractionJob {
   id: string
@@ -107,6 +142,9 @@ export interface ExtractionJob {
   ocrMarkdown?: string | null
   ocrAnnotatedImageUrl?: string | null
   originalFileUrl?: string | null
+  // Multi-document support: keyed by input field ID
+  // For backward compatibility: if undefined, treat originalFileUrl as implicit default input
+  inputDocuments?: Record<string, InputDocument>
 }
 
 export interface VisualGroup {
@@ -129,7 +167,16 @@ export interface SchemaDefinition {
 // Helpers
 
 export function isLeaf(field: SchemaField): field is LeafField {
-  return field.type !== "object" && field.type !== "list" && field.type !== "table"
+  return field.type !== "object" && field.type !== "list" && field.type !== "table" && field.type !== "input"
+}
+
+export function isInputField(field: SchemaField): field is InputField {
+  return field.type === "input"
+}
+
+// Get all input fields from a schema
+export function getInputFields(fields: SchemaField[]): InputField[] {
+  return fields.filter(isInputField)
 }
 
 // Flatten fields to leaf fields, keeping a path for display
@@ -138,7 +185,10 @@ export type FlatLeaf = SchemaField & { path: string[]; visualGroupId?: string }
 export function flattenFields(fields: SchemaField[] = [], parentPath: string[] = []): FlatLeaf[] {
   const out: FlatLeaf[] = []
   for (const f of fields) {
-    if (isLeaf(f)) {
+    if (isInputField(f)) {
+      // Input fields are treated as special fields in the flat list
+      out.push({ ...(f as any), path: [...parentPath, f.name] })
+    } else if (isLeaf(f)) {
       out.push({ ...(f as LeafField), path: [...parentPath, f.name] })
     } else if (f.type === "object") {
       // Keep object fields as unified entities in the grid, don't flatten their children
@@ -209,6 +259,10 @@ export function flattenResultsById(fields: SchemaField[], nested: any): Record<s
     for (const f of fs) {
       if (node == null) continue
       const v = node[f.id]
+      // Input fields don't have extracted values - skip them
+      if (isInputField(f)) {
+        continue
+      }
       if (isLeaf(f)) {
         out[f.id] = v ?? null
       } else if (f.type === "object") {

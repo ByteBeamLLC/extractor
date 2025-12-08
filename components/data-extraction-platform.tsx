@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { MentionTextarea } from "@/components/ui/mention-textarea"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -40,8 +41,12 @@ import { GalleryView } from "@/components/gallery-view/GalleryView"
 import { JobGalleryView } from "@/components/data-extraction/JobGalleryView"
 import { TemplateSelectorDialog } from "@/components/workspace/TemplateSelectorDialog"
 import { ManualRecordDialog } from "@/components/design-preview/views/dashboard/ManualRecordDialog"
+import { MultiDocumentUpload } from "@/components/features/extraction/MultiDocumentUpload"
 import { ExtractionDetailDialog } from "@/components/design-preview/views/dashboard/ExtractionDetailDialog"
 import { LabelData, DEFAULT_LABEL_DATA, labelDataToResults } from "@/components/label-maker"
+import { PharmaResultsView } from "@/components/features/extraction/components/PharmaResultsView"
+import { FnBResultsView } from "@/components/features/extraction/components/FnBResultsView"
+import { StandardResultsView } from "@/components/features/extraction/components/StandardResultsView"
 import { cn } from "@/lib/utils"
 import {
   Breadcrumb,
@@ -59,10 +64,12 @@ import {
   type DataPrimitive,
   type TransformationType,
   type SchemaField,
+  type ExtractionField,
   type ObjectField,
   type ListField,
   type TableField,
   type LeafField,
+  type InputField,
   type SchemaDefinition,
   type ExtractionJob,
   type VisualGroup,
@@ -75,6 +82,9 @@ import {
   createVisualGroup,
   addVisualGroup,
   removeVisualGroup,
+  isInputField,
+  isExtractionField,
+  getInputFields,
 } from "@/lib/schema"
 
 import {
@@ -90,6 +100,7 @@ import {
   sanitizeResultsFromFlat,
   sanitizeResultsFromTree,
 } from "@/lib/extraction-results"
+import { extractDocumentReferences } from "@/lib/extraction/mentionParser"
 
 import {
   Upload,
@@ -126,6 +137,7 @@ import {
   ListChecks,
   LayoutGrid,
   Grid,
+  Gauge,
 } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
@@ -153,6 +165,7 @@ const dataTypeIcons: Record<DataType, any> = {
   list: List,
   object: Globe,
   table: List,
+  input: Upload,
 }
 
 const transformationIcons: Record<TransformationType, any> = {
@@ -324,6 +337,18 @@ function schemaRowToDefinition(row: SchemaRow, jobRows: ExtractionJobRow[]): Sch
 function extractionJobRowToJob(row: ExtractionJobRow): ExtractionJob {
   const raw = (row.results as Record<string, any> | null) ?? undefined
   const { values, meta } = extractResultsMeta(raw)
+  const inputDocuments =
+    row.input_documents && typeof row.input_documents === 'object'
+      ? Object.fromEntries(
+        Object.entries(row.input_documents as Record<string, any>).map(([fieldId, doc]) => [
+          fieldId,
+          {
+            ...doc,
+            uploadedAt: doc?.uploadedAt ? new Date(doc.uploadedAt) : new Date(),
+          },
+        ]),
+      )
+      : undefined
 
   return {
     id: row.id,
@@ -337,6 +362,7 @@ function extractionJobRowToJob(row: ExtractionJobRow): ExtractionJob {
     ocrMarkdown: row.ocr_markdown ?? null,
     ocrAnnotatedImageUrl: row.ocr_annotated_image_url ?? null,
     originalFileUrl: row.original_file_url ?? null,
+    inputDocuments,
   }
 }
 
@@ -394,6 +420,7 @@ function extractionJobToRow(job: ExtractionJob, schemaId: string, userId: string
     ocr_annotated_image_url: job.ocrAnnotatedImageUrl ?? null,
     original_file_url: job.originalFileUrl ?? null,
     agent_type: job.agentType ?? null,
+    input_documents: job.inputDocuments ?? null,
     created_at: job.createdAt?.toISOString() ?? new Date().toISOString(),
     completed_at: job.completedAt ? job.completedAt.toISOString() : null,
     updated_at: new Date().toISOString(),
@@ -435,6 +462,9 @@ function jobsShallowEqual(a: ExtractionJob, b: ExtractionJob): boolean {
   const reviewA = a.review ?? null
   const reviewB = b.review ?? null
   const reviewEqual = stableStringify(reviewA) === stableStringify(reviewB)
+  const inputDocsA = a.inputDocuments ?? null
+  const inputDocsB = b.inputDocuments ?? null
+  const inputDocsEqual = stableStringify(inputDocsA) === stableStringify(inputDocsB)
 
   return (
     a.id === b.id &&
@@ -447,7 +477,8 @@ function jobsShallowEqual(a: ExtractionJob, b: ExtractionJob): boolean {
     createdAtA === createdAtB &&
     completedAtA === completedAtB &&
     resultsEqual &&
-    reviewEqual
+    reviewEqual &&
+    inputDocsEqual
   )
 }
 
@@ -643,10 +674,16 @@ export function DataExtractionPlatform({
   const [isColumnDialogOpen, setIsColumnDialogOpen] = useState(false)
   const [columnDialogMode, setColumnDialogMode] = useState<'create' | 'edit'>('create')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // Multi-document upload dialog state
+  const [isMultiDocUploadOpen, setIsMultiDocUploadOpen] = useState(false)
   // Schema name editing
   const [editingSchemaName, setEditingSchemaName] = useState(false)
   const [schemaNameInput, setSchemaNameInput] = useState<string>(activeSchema.name)
-  const isDraftTransformation = !!draftColumn?.isTransformation
+  const isDraftTransformation = draftColumn && isExtractionField(draftColumn) ? !!draftColumn.isTransformation : false
+  const isDraftInput = draftColumn?.type === 'input'
+  // Determine field source mode: 'input', 'transformation', or 'extraction'
+  const draftFieldSource: 'input' | 'transformation' | 'extraction' =
+    isDraftInput ? 'input' : isDraftTransformation ? 'transformation' : 'extraction'
   useEffect(() => {
     const userId = session?.user?.id
 
@@ -867,15 +904,6 @@ export function DataExtractionPlatform({
     rows: Record<string, any>[]
     columnHeaders: { key: string; label: string }[]
   } | null>(null)
-  // ROI modal state
-  const [roiOpen, setRoiOpen] = useState(false)
-  const [roiStage, setRoiStage] = useState<'calc' | 'result'>('calc')
-  const [docsPerMonth, setDocsPerMonth] = useState<string>('')
-  const [timePerDoc, setTimePerDoc] = useState<string>('')
-  const [hourlyCost, setHourlyCost] = useState<string>('')
-  const [totalHoursSaved, setTotalHoursSaved] = useState<number>(0)
-  const [monthlyDollarSavings, setMonthlyDollarSavings] = useState<number | null>(null)
-  const [annualDollarSavings, setAnnualDollarSavings] = useState<number | null>(null)
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false)
   const [templateNameInput, setTemplateNameInput] = useState<string>(activeSchema.name)
   const [templateDescriptionInput, setTemplateDescriptionInput] = useState<string>("")
@@ -891,8 +919,6 @@ export function DataExtractionPlatform({
   )
 
 
-  // Avoid referencing process.env in client runtime
-  const { BOOKING_URL } = require("@/lib/publicEnv") as { BOOKING_URL: string }
   const isSchemaFresh = (s: SchemaDefinition) => (s.fields?.length ?? 0) === 0 && (s.jobs?.length ?? 0) === 0
 
   // Sidebar disabled
@@ -925,7 +951,7 @@ export function DataExtractionPlatform({
     return dateFormatter.format(date)
   }
 
-  const toggleRowExpansion = (jobId: string) => {
+  const toggleRowExpansion = (jobId: string | null) => {
     setExpandedRowId((prev) => (prev === jobId ? null : jobId))
   }
 
@@ -1023,12 +1049,13 @@ export function DataExtractionPlatform({
       } as ListField
     }
     if (nextType === 'single_select' || nextType === 'multi_select') {
+      const prevConstraints = isExtractionField(prev) ? prev.constraints : undefined
       const leaf: LeafField = {
         ...(prev as any),
         type: nextType,
         constraints: {
-          ...prev.constraints,
-          options: prev.constraints?.options || []
+          ...prevConstraints,
+          options: prevConstraints?.options || []
         }
       }
       delete (leaf as any).children
@@ -1249,7 +1276,7 @@ export function DataExtractionPlatform({
                 No sub-fields yet. Add at least one field to describe this object.
               </div>
             ) : (
-              children.map((child) => (
+              children.filter(isExtractionField).map((child) => (
                 <div key={child.id} className="flex flex-col gap-3 rounded-xl bg-white px-4 py-4 shadow-sm sm:flex-row sm:items-end">
                   <button
                     type="button"
@@ -1474,65 +1501,6 @@ export function DataExtractionPlatform({
     if (!candidate) return false
     if (candidate.isCustom) return false
     return (candidate.fields?.length ?? 0) > 0
-  }
-
-  // ROI helpers
-  const shouldShowRoi = () => {
-    try {
-      const lastShown = localStorage.getItem('bb_roi_last_shown')
-      if (lastShown) {
-        const last = Number(lastShown)
-        if (!Number.isNaN(last)) {
-          const days = (Date.now() - last) / (1000 * 60 * 60 * 24)
-          if (days < 30) return false
-        }
-      }
-      const count = Number.parseInt(localStorage.getItem('bb_success_count') || '0') || 0
-      return count >= 3
-    } catch {
-      return false
-    }
-  }
-
-  const recordSuccessAndMaybeOpenRoi = () => {
-    try {
-      const current = Number.parseInt(localStorage.getItem('bb_success_count') || '0') || 0
-      const next = current + 1
-      localStorage.setItem('bb_success_count', String(next))
-      if (next >= 3) {
-        const lastShown = Number(localStorage.getItem('bb_roi_last_shown') || '0')
-        const days = lastShown ? (Date.now() - lastShown) / (1000 * 60 * 60 * 24) : Infinity
-        if (days >= 30) {
-          setRoiStage('calc')
-          setRoiOpen(true)
-        }
-      }
-    } catch { }
-  }
-
-  const onCloseRoi = (open: boolean) => {
-    setRoiOpen(open)
-    if (!open) {
-      try { localStorage.setItem('bb_roi_last_shown', String(Date.now())) } catch { }
-    }
-  }
-
-  const calculateSavings = () => {
-    const d = Math.max(0, Number(docsPerMonth) || 0)
-    const t = Math.max(0, Number(timePerDoc) || 0)
-    const h = Math.max(0, Number(hourlyCost) || 0)
-    const minutes = d * t
-    const hours = Math.round(minutes / 60)
-    setTotalHoursSaved(hours)
-    if (h > 0) {
-      const monthly = hours * h
-      setMonthlyDollarSavings(monthly)
-      setAnnualDollarSavings(monthly * 12)
-    } else {
-      setMonthlyDollarSavings(null)
-      setAnnualDollarSavings(null)
-    }
-    setRoiStage('result')
   }
 
   // Helpers to update active schema's fields and jobs
@@ -2112,23 +2080,59 @@ export function DataExtractionPlatform({
     setIsColumnDialogOpen(true)
   }
 
-  const handleDraftFieldTypeChange = (isTransformation: boolean) => {
+  const handleDraftFieldTypeChange = (mode: 'extraction' | 'transformation' | 'input') => {
     setDraftColumn((prev) => {
       if (!prev) return prev
-      if (isTransformation) {
+
+      if (mode === 'input') {
+        // Switch to input field mode
         return {
-          ...prev,
-          isTransformation: true,
-          transformationType: prev.transformationType || "calculation",
-        }
+          id: prev.id,
+          name: prev.name || 'Document Input',
+          type: 'input',
+          inputType: 'document',
+          description: prev.description || '',
+          required: prev.required ?? false,
+        } as InputField
       }
+
+      if (mode === 'transformation') {
+        // Switch to transformation mode
+        const base = prev.type === 'input' ? {
+          id: prev.id,
+          name: prev.name,
+          type: 'string' as const,
+          description: prev.description,
+          required: prev.required,
+        } : prev
+        return {
+          ...base,
+          isTransformation: true,
+          transformationType: (prev as any).transformationType || "calculation",
+        } as SchemaField
+      }
+
+      // Switch to extraction mode
+      if (prev.type === 'input') {
+        // Coming from input field
+        return {
+          id: prev.id,
+          name: prev.name,
+          type: 'string' as const,
+          description: prev.description,
+          extractionInstructions: '',
+          required: prev.required ?? false,
+          isTransformation: false,
+        } as SchemaField
+      }
+
       const {
         transformationType,
         transformationConfig,
         transformationSource,
         transformationSourceColumnId,
         ...rest
-      } = prev
+      } = prev as any
       return {
         ...rest,
         isTransformation: false,
@@ -2197,16 +2201,25 @@ export function DataExtractionPlatform({
     }
   }
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+    options?: {
+      inputDocuments?: Record<string, { file: File; inputField: InputField }>
+      fieldInputDocMap?: Record<string, string[]>
+    },
+  ) => {
     const files = event.target.files
-    if (!files) return
+    const isMultiInputUpload = options?.inputDocuments && Object.keys(options.inputDocuments).length > 0
+    if (!files && !isMultiInputUpload) return
 
     if (fields.length === 0 && activeSchema.templateId !== 'fnb-label-compliance' && selectedAgent !== 'pharma') {
       alert("Please define at least one column before uploading files.")
       return
     }
 
-    const fileArray = Array.from(files)
+    const fileArray = isMultiInputUpload
+      ? [Object.values(options!.inputDocuments!)[0].file]
+      : Array.from(files ?? [])
     if (fileArray.length === 0) return
 
     const targetSchemaId = activeSchemaId
@@ -2215,24 +2228,69 @@ export function DataExtractionPlatform({
     const fieldsSnapshot = fields
     const displayColumnsSnapshot = displayColumns
 
-    const jobsToCreate: ExtractionJob[] = fileArray.map((file) => ({
-      id: generateUuid(),
-      fileName: file.name,
-      status: "pending" as ExtractionJob["status"],
-      createdAt: new Date(),
-      agentType: agentSnapshot,
-      review: {},
-      ocrMarkdown: null,
-      ocrAnnotatedImageUrl: null,
-      originalFileUrl: null,
-    }))
+    // Check if schema has input fields defined
+    const inputFieldsInSchema = getInputFields(fieldsSnapshot)
+    const hasInputFields = inputFieldsInSchema.length > 0
+
+    const now = new Date()
+    const buildInputDocumentMeta = (docs?: Record<string, { file: File; inputField: InputField }>) => {
+      if (!docs) return undefined
+      return Object.fromEntries(
+        Object.entries(docs).map(([fieldId, { file }]) => [
+          fieldId,
+          {
+            fieldId,
+            fileName: file.name,
+            fileUrl: URL.createObjectURL(file),
+            uploadedAt: now,
+          },
+        ]),
+      )
+    }
+
+    const jobsToCreate: ExtractionJob[] = isMultiInputUpload
+      ? [
+        {
+          id: generateUuid(),
+          fileName: Object.values(options!.inputDocuments!)[0]?.file?.name ?? "Multi-document job",
+          status: "pending" as ExtractionJob["status"],
+          createdAt: now,
+          agentType: agentSnapshot,
+          review: {},
+          ocrMarkdown: null,
+          ocrAnnotatedImageUrl: null,
+          originalFileUrl: null,
+          inputDocuments: buildInputDocumentMeta(options?.inputDocuments),
+        },
+      ]
+      : fileArray.map((file) => ({
+        id: generateUuid(),
+        fileName: file.name,
+        status: "pending" as ExtractionJob["status"],
+        createdAt: now,
+        agentType: agentSnapshot,
+        review: {},
+        ocrMarkdown: null,
+        ocrAnnotatedImageUrl: null,
+        originalFileUrl: null,
+        // Initialize inputDocuments if schema has input fields
+        // For backward compat: if no input fields, originalFileUrl will be used
+        inputDocuments: hasInputFields ? {} : undefined,
+      }))
 
     if (jobsToCreate.length > 0) {
       updateSchemaJobs(targetSchemaId, (prev) => [...prev, ...jobsToCreate])
       setSelectedRowId(jobsToCreate[jobsToCreate.length - 1].id)
     }
 
-    const processEntry = async (file: File, job: ExtractionJob | undefined) => {
+    const processEntry = async (
+      file: File,
+      job: ExtractionJob | undefined,
+      opts?: {
+        inputDocuments?: Record<string, { file: File; inputField: InputField }>
+        fieldInputDocMap?: Record<string, string[]>
+      },
+    ) => {
       if (!job) return
 
       const jobMeta: {
@@ -2262,16 +2320,17 @@ export function DataExtractionPlatform({
           ),
         )
 
-        const filterTransforms = (fs: SchemaField[]): SchemaField[] =>
+        // Filter out input fields and transformations from schema tree for extraction
+        const filterForExtraction = (fs: SchemaField[]): SchemaField[] =>
           fs
-            .filter((f) => !f.isTransformation)
+            .filter((f) => isExtractionField(f) && !f.isTransformation)
             .map((f) => {
-              if (f.type === "object") return { ...f, children: filterTransforms(f.children) }
+              if (f.type === "object") return { ...f, children: filterForExtraction(f.children) }
               if (f.type === "list") return { ...f }
-              if (f.type === "table") return { ...f, columns: filterTransforms(f.columns) }
+              if (f.type === "table") return { ...f, columns: filterForExtraction(f.columns) }
               return f
             })
-        const schemaTree = filterTransforms(fieldsSnapshot)
+        const schemaTree = filterForExtraction(fieldsSnapshot)
 
         if (process.env.NODE_ENV !== 'production') {
           // eslint-disable-next-line no-console
@@ -2285,6 +2344,23 @@ export function DataExtractionPlatform({
           maxDim: 1800,
           quality: 0.75,
         }
+
+        const toBase64 = (blob: Blob) =>
+          new Promise<string>((resolve, reject) => {
+            try {
+              const reader = new FileReader()
+              reader.onload = () => {
+                const result = reader.result as string
+                const commaIndex = result.indexOf(",")
+                resolve(commaIndex >= 0 ? result.slice(commaIndex + 1) : result)
+              }
+              reader.onerror = () => reject(reader.error)
+              reader.readAsDataURL(blob)
+            } catch (e) {
+              reject(e)
+            }
+          })
+
         const compressed = await maybeDownscaleImage(file, compressionOptions)
         const uploadBlob = compressed.blob
         const uploadType = compressed.type || file.type || 'application/octet-stream'
@@ -2305,26 +2381,27 @@ export function DataExtractionPlatform({
           throw new Error(imageSizeExceededMessage)
         }
 
-        const base64Data = await new Promise<string>((resolve, reject) => {
-          try {
-            const reader = new FileReader()
-            reader.onload = () => {
-              const result = reader.result as string
-              const commaIndex = result.indexOf(",")
-              resolve(commaIndex >= 0 ? result.slice(commaIndex + 1) : result)
-            }
-            reader.onerror = () => reject(reader.error)
-            reader.readAsDataURL(uploadBlob)
-          } catch (e) {
-            reject(e)
-          }
-        })
+        const base64Data = await toBase64(uploadBlob)
 
         const fileData = {
           name: uploadName,
           type: uploadType,
           size: uploadBlob.size,
           data: base64Data,
+        }
+
+        let inputDocumentsPayload: Record<string, { name: string; type: string; data: string }> | undefined
+        if (opts?.inputDocuments && Object.keys(opts.inputDocuments).length > 0) {
+          inputDocumentsPayload = {}
+          for (const [fieldId, doc] of Object.entries(opts.inputDocuments)) {
+            const compressedDoc = await maybeDownscaleImage(doc.file, compressionOptions)
+            const docBase64 = await toBase64(compressedDoc.blob)
+            inputDocumentsPayload[fieldId] = {
+              name: compressedDoc.name || doc.file.name,
+              type: compressedDoc.type || doc.file.type || 'application/octet-stream',
+              data: docBase64,
+            }
+          }
         }
 
         if (agentSnapshot === 'pharma') {
@@ -2386,7 +2463,6 @@ export function DataExtractionPlatform({
                   : existing,
               ),
             )
-            recordSuccessAndMaybeOpenRoi()
           } catch (e) {
             console.error('Pharma flow error:', e)
             updateJobsForSchema((prev) =>
@@ -2453,7 +2529,6 @@ export function DataExtractionPlatform({
                   : existing,
               ),
             )
-            recordSuccessAndMaybeOpenRoi()
           } catch (e) {
             console.error('FNB flow error:', e)
             updateJobsForSchema((prev) =>
@@ -2477,6 +2552,8 @@ export function DataExtractionPlatform({
             schemaTree,
             extractionPromptOverride: undefined,
             job: jobMeta,
+            inputDocuments: inputDocumentsPayload,
+            fieldInputDocMap: opts?.fieldInputDocMap,
           }),
         })
 
@@ -2515,7 +2592,7 @@ export function DataExtractionPlatform({
           const baseStatus = validateDependencies(graph)
           baseStatus.unresolvable.forEach((id) => fieldStatus.set(id, { status: 'blocked', error: 'Missing dependency' }))
           const pendingTransformations = displayColumnsSnapshot
-            .filter((col) => col.isTransformation && !fieldStatus.has(col.id))
+            .filter((col) => isExtractionField(col) && col.isTransformation && !fieldStatus.has(col.id))
             .map((col) => col.id)
           pendingTransformations.forEach((id) => fieldStatus.set(id, { status: 'pending' }))
 
@@ -2526,7 +2603,7 @@ export function DataExtractionPlatform({
 
           const resolvedSummaryValues = new Map<string, Record<string, any>>()
 
-          const summaryFields = displayColumnsSnapshot.filter((col) => col.displayInSummary)
+          const summaryFields = displayColumnsSnapshot.filter((col) => isExtractionField(col) && col.displayInSummary)
           const summaryPrimitives = summaryFields.filter((col) => col.type !== 'object')
           const summaryComposite = summaryFields.filter((col) => col.type === 'object')
 
@@ -2546,11 +2623,11 @@ export function DataExtractionPlatform({
           const dependencyWarnings: string[] = []
 
           displayColumnsSnapshot.forEach((col) => {
-            if (!col.displayInSummary) return
+            if (!isExtractionField(col) || !col.displayInSummary) return
             const dependents = getFieldDependents(graph, col.id)
             dependents.forEach((depId) => {
               const depField = displayColumnsSnapshot.find((f) => f.id === depId)
-              if (depField?.displayInSummary) {
+              if (depField && isExtractionField(depField) && depField.displayInSummary) {
                 dependencyWarnings.push(
                   `Field "${depField.name}" depends on "${col.name}" while both are part of the summary. This may cause circular references.`,
                 )
@@ -2578,19 +2655,19 @@ export function DataExtractionPlatform({
           }
 
           displayColumnsSnapshot.forEach((col) => {
-            if (!col.displayInSummary) return
+            if (!isExtractionField(col) || !col.displayInSummary) return
             const parentPath = col.path.slice(0, -1)
             const destination = ensurePath(finalResults, parentPath)
             destination[col.id] = finalResults[col.id]
           })
 
           for (const wave of waves) {
-            const geminiFields = wave.fields.filter((col) =>
-              col.isTransformation && col.transformationType === 'gemini_api'
+            const geminiFields = wave.fields.filter((col): col is ExtractionField =>
+              isExtractionField(col) && !!col.isTransformation && col.transformationType === 'gemini_api'
             )
 
             // Helper function to execute a single transformation
-            const executeTransformationField = async (tcol: SchemaField) => {
+            const executeTransformationField = async (tcol: ExtractionField) => {
               const dependencies = graph.edges.get(tcol.id) || new Set<string>()
               const blockedBy: string[] = []
 
@@ -2625,12 +2702,27 @@ export function DataExtractionPlatform({
 
               // Build columnValues from dependencies
               const columnValues: Record<string, any> = {}
+              const referencedInputDocs: Array<{ fieldId: string; name: string; type: string; data: string }> = []
               dependencies.forEach((depId) => {
                 const depField = displayColumnsSnapshot.find((c) => c.id === depId)
                 if (depField) {
-                  columnValues[depField.name] = finalResults[depId]
-                  // Also add by ID for backward compatibility
-                  columnValues[depId] = finalResults[depId]
+                  const depValue = finalResults[depId]
+                  columnValues[depField.name] = depValue
+                  columnValues[depId] = depValue
+
+                  // If this dependency is an input field, attach the original document so the transform model can use it
+                  if (depField.type === 'input' && inputDocumentsPayload && inputDocumentsPayload[depId]) {
+                    const doc = inputDocumentsPayload[depId]
+                    referencedInputDocs.push({
+                      fieldId: depId,
+                      name: doc.name || depField.name || depId,
+                      type: doc.type || 'application/octet-stream',
+                      data: doc.data,
+                    })
+                    // Ensure the placeholder is replaced with something readable (the doc name)
+                    columnValues[depField.name] = doc.name || depField.name || depId
+                    columnValues[depId] = doc.name || depField.name || depId
+                  }
                 }
               })
 
@@ -2665,6 +2757,8 @@ export function DataExtractionPlatform({
                 fieldType: tcol.type,
                 fieldSchema,
                 selectedTools,
+                // Only include input documents that were explicitly referenced
+                inputDocuments: referencedInputDocs,
               }
 
               const response = await fetch("/api/transform", {
@@ -2804,7 +2898,6 @@ export function DataExtractionPlatform({
                 : existing,
             ),
           )
-          recordSuccessAndMaybeOpenRoi()
         } else {
           throw new Error(result.error || "Extraction failed")
         }
@@ -2824,7 +2917,30 @@ export function DataExtractionPlatform({
       }
     }
 
-    await Promise.allSettled(fileArray.map((file, index) => processEntry(file, jobsToCreate[index])))
+    const fieldInputDocMap =
+      options?.fieldInputDocMap ??
+      (isMultiInputUpload
+        ? displayColumnsSnapshot.reduce<Record<string, string[]>>((acc, col) => {
+          if (!isExtractionField(col)) return acc
+          const refs = extractDocumentReferences(
+            (col as any).extractionInstructions || (col as any).description || "",
+            fieldsSnapshot,
+          ).inputFieldIds
+          if (refs.length > 0) {
+            acc[col.id] = refs
+          }
+          return acc
+        }, {})
+        : undefined)
+
+    await Promise.allSettled(
+      fileArray.map((file, index) =>
+        processEntry(file, jobsToCreate[index], {
+          inputDocuments: options?.inputDocuments,
+          fieldInputDocMap,
+        }),
+      ),
+    )
 
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
@@ -3091,6 +3207,15 @@ export function DataExtractionPlatform({
       ) => void;
     },
   ) => {
+    if (column.type === 'input') {
+      const docName = job.inputDocuments?.[column.id]?.fileName ?? job.fileName
+      return (
+        <span className="text-sm font-medium text-foreground" title={docName || undefined}>
+          {docName || '—'}
+        </span>
+      )
+    }
+
     const value = job.results?.[column.id]
     if (job.status === 'error') return <span className="text-sm text-destructive">—</span>
     if (job.status !== 'completed') return <Skeleton className="h-4 w-24" />
@@ -3883,9 +4008,9 @@ export function DataExtractionPlatform({
                 <Plus className="mr-2 h-4 w-4" />
                 Add Column
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => {
                   // For GCC Food Label, open Label Maker directly
                   if (activeSchema.templateId === 'gcc-food-label' || activeSchema.name.toLowerCase().includes('gcc')) {
@@ -3898,7 +4023,20 @@ export function DataExtractionPlatform({
                 <Plus className="mr-2 h-4 w-4" />
                 Create Record
               </Button>
-              <Button variant="default" size="sm" onClick={() => fileInputRef.current?.click()}>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => {
+                  const inputFieldsCount = getInputFields(fields).length
+                  if (inputFieldsCount > 0) {
+                    // Schema has input fields - show multi-document upload dialog
+                    setIsMultiDocUploadOpen(true)
+                  } else {
+                    // No input fields - use traditional upload
+                    fileInputRef.current?.click()
+                  }
+                }}
+              >
                 <Upload className="mr-2 h-4 w-4" />
                 Upload Files
               </Button>
@@ -3960,553 +4098,87 @@ export function DataExtractionPlatform({
                   const displayMode = selectedJob?.agentType || selectedAgent
                   return displayMode
                 })() === 'pharma' ? (
-                  <div className="p-4 space-y-4">
-                    {/* Simple job selector */}
-                    {sortedJobs.length > 0 && (
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm text-muted-foreground">Jobs:</span>
-                        {sortedJobs.map((job, idx) => (
-                          <button
-                            key={job.id}
-                            onClick={() => setSelectedRowId(job.id)}
-                            className={`px-2 py-1 rounded border text-xs ${selectedRowId === job.id ? 'bg-accent text-accent-foreground' : 'bg-muted text-foreground'}`}
-                          >
-                            {idx + 1}. {job.fileName}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Selected job panels */}
-                    {(() => {
-                      const job = sortedJobs.find((j) => j.id === selectedRowId) || sortedJobs[sortedJobs.length - 1]
-                      if (!job) return (
-                        <div className="text-center py-12 text-muted-foreground">
-                          <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                          <p>No results yet. Upload a drug label image or document to get started.</p>
-                        </div>
-                      )
-                      const pharmaData = job.results?.pharma_data
-                      const drugInfo = pharmaData?.drugInfo
-                      const detailedInfo = pharmaData?.detailedInfo
-                      const matchedDrugUrl = pharmaData?.matchedDrugUrl
-                      const searchUrl = pharmaData?.searchUrl
-
-                      const KV = (label: string, value: any) => (
-                        value != null && value !== '' && value !== undefined ? (
-                          <div className="flex justify-between gap-3 text-sm">
-                            <span className="text-muted-foreground font-medium">{label}:</span>
-                            <span className="text-right break-words">{String(value)}</span>
-                          </div>
-                        ) : null
-                      )
-
-                      const Section = (title: string, content: any) => (
-                        content != null && content !== '' && content !== undefined ? (
-                          <div className="space-y-2">
-                            <div className="text-sm font-semibold text-foreground">{title}</div>
-                            <div className="text-sm whitespace-pre-wrap">{String(content)}</div>
-                          </div>
-                        ) : null
-                      )
-
-                      return (
-                        <div className="space-y-4">
-                          <Card>
-                            <CardContent className="p-4 space-y-3">
-                              <div className="flex items-center justify-between">
-                                <h3 className="font-semibold text-lg">Drug Information Extracted from File</h3>
-                                {getStatusIcon(job.status)}
-                              </div>
-                              {!drugInfo ? (
-                                <div className="text-sm text-muted-foreground">No drug information extracted</div>
-                              ) : (
-                                <div className="space-y-2">
-                                  {KV('Drug Name', drugInfo?.drugName)}
-                                  {KV('Generic Name', drugInfo?.genericName)}
-                                  {KV('Manufacturer', drugInfo?.manufacturer)}
-                                  {KV('Active Ingredients', drugInfo?.activeIngredients)}
-                                  {KV('Dosage', drugInfo?.dosage)}
-                                  {KV('Dosage Form', drugInfo?.dosageForm)}
-                                  {KV('Pack Size', drugInfo?.packSize)}
-                                  {KV('Batch Number', drugInfo?.batchNumber)}
-                                  {KV('Expiry Date', drugInfo?.expiryDate)}
-                                  {KV('Other Identifiers', drugInfo?.otherIdentifiers)}
-                                </div>
-                              )}
-                            </CardContent>
-                          </Card>
-
-                          {searchUrl && (
-                            <Card>
-                              <CardContent className="p-4 space-y-2">
-                                <h3 className="font-semibold text-lg">Saudi FDA Database Search</h3>
-                                <div className="text-sm">
-                                  <span className="text-muted-foreground">Search Query: </span>
-                                  <span className="font-medium">{pharmaData?.searchQuery || 'N/A'}</span>
-                                </div>
-                                <a
-                                  href={searchUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-sm text-blue-600 hover:underline inline-flex items-center gap-1"
-                                >
-                                  View Search Results
-                                  <Globe className="h-3 w-3" />
-                                </a>
-                              </CardContent>
-                            </Card>
-                          )}
-
-                          {matchedDrugUrl && (
-                            <Card>
-                              <CardContent className="p-4 space-y-2">
-                                <h3 className="font-semibold text-lg">Matched Drug</h3>
-                                <div className="text-sm">
-                                  <span className="text-muted-foreground">Drug ID: </span>
-                                  <span className="font-medium">{pharmaData?.matchedDrugId || 'N/A'}</span>
-                                </div>
-                                <a
-                                  href={matchedDrugUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-sm text-blue-600 hover:underline inline-flex items-center gap-1"
-                                >
-                                  View Drug Details on Saudi FDA
-                                  <Globe className="h-3 w-3" />
-                                </a>
-                              </CardContent>
-                            </Card>
-                          )}
-
-                          {detailedInfo && (
-                            <Card>
-                              <CardContent className="p-4 space-y-4">
-                                <h3 className="font-semibold text-lg">Detailed Drug Information</h3>
-                                <Accordion type="multiple" className="w-full">
-                                  {[
-                                    { key: 'description', label: 'Description', value: detailedInfo?.description },
-                                    { key: 'composition', label: 'Composition', value: detailedInfo?.composition },
-                                    { key: 'howToUse', label: 'How To Use', value: detailedInfo?.howToUse },
-                                    { key: 'indication', label: 'Indication', value: detailedInfo?.indication },
-                                    { key: 'possibleSideEffects', label: 'Possible Side Effects', value: detailedInfo?.possibleSideEffects },
-                                    { key: 'properties', label: 'Properties', value: detailedInfo?.properties },
-                                    { key: 'storage', label: 'Storage', value: detailedInfo?.storage },
-                                  ].map(section => {
-                                    if (!section.value || section.value === null) return null
-
-                                    const isEditing = pharmaEditingSection === section.key
-                                    const currentValue = pharmaEditedValues[section.key] ?? section.value
-
-                                    const handleSave = () => {
-                                      // Update the job results with the edited value
-                                      const updatedJobs = jobs.map(j => {
-                                        if (j.id === job.id && j.results) {
-                                          return {
-                                            ...j,
-                                            results: {
-                                              ...j.results,
-                                              pharma_data: {
-                                                ...j.results.pharma_data,
-                                                detailedInfo: {
-                                                  ...j.results.pharma_data?.detailedInfo,
-                                                  [section.key]: currentValue
-                                                }
-                                              }
-                                            }
-                                          }
-                                        }
-                                        return j
-                                      })
-                                      setJobs(updatedJobs)
-                                      setPharmaEditingSection(null)
-                                    }
-
-                                    const handleEdit = () => {
-                                      setPharmaEditedValues({ ...pharmaEditedValues, [section.key]: section.value })
-                                      setPharmaEditingSection(section.key)
-                                    }
-
-                                    const handleCancel = () => {
-                                      setPharmaEditingSection(null)
-                                      const newValues = { ...pharmaEditedValues }
-                                      delete newValues[section.key]
-                                      setPharmaEditedValues(newValues)
-                                    }
-
-                                    return (
-                                      <AccordionItem key={section.key} value={section.key}>
-                                        <AccordionTrigger className="text-left hover:no-underline">
-                                          <div className="flex items-center justify-between w-full pr-4">
-                                            <span className="font-semibold">{section.label}</span>
-                                          </div>
-                                        </AccordionTrigger>
-                                        <AccordionContent>
-                                          <div className="space-y-2 pt-2">
-                                            {isEditing ? (
-                                              <div className="space-y-2">
-                                                <Textarea
-                                                  value={currentValue}
-                                                  onChange={(e) => setPharmaEditedValues({ ...pharmaEditedValues, [section.key]: e.target.value })}
-                                                  className="min-h-[200px] font-normal"
-                                                />
-                                                <div className="flex gap-2">
-                                                  <Button size="sm" onClick={handleSave}>
-                                                    <Save className="h-3 w-3 mr-1" />
-                                                    Save
-                                                  </Button>
-                                                  <Button size="sm" variant="outline" onClick={handleCancel}>
-                                                    Cancel
-                                                  </Button>
-                                                </div>
-                                              </div>
-                                            ) : (
-                                              <div className="space-y-2">
-                                                <div className="text-sm whitespace-pre-wrap">{currentValue}</div>
-                                                <Button size="sm" variant="outline" onClick={handleEdit}>
-                                                  <Edit className="h-3 w-3 mr-1" />
-                                                  Edit
-                                                </Button>
-                                              </div>
-                                            )}
-                                          </div>
-                                        </AccordionContent>
-                                      </AccordionItem>
-                                    )
-                                  })}
-                                </Accordion>
-                              </CardContent>
-                            </Card>
-                          )}
-                          {pharmaData?.message && (
-                            <Card>
-                              <CardContent>
-                                <div className="text-sm text-muted-foreground">{pharmaData.message}</div>
-                              </CardContent>
-                            </Card>
-                          )}
-
-                          {job.status === 'error' && (
-                            <Card className="border-destructive">
-                              <CardContent className="p-4 space-y-2">
-                                <div className="font-semibold text-destructive">Error</div>
-                                <div className="text-sm text-destructive">
-                                  {pharmaData?.error || 'An error occurred during drug information extraction. Please try again with a clearer image or document.'}
-                                </div>
-                              </CardContent>
-                            </Card>
-                          )}
-
-                          {job.status === 'processing' && !pharmaData && (
-                            <Card>
-                              <CardContent className="p-4">
-                                <div className="text-sm text-muted-foreground animate-pulse">
-                                  Processing drug information extraction and Saudi FDA database search...
-                                </div>
-                              </CardContent>
-                            </Card>
-                          )}
-                        </div>
-                      )
-                    })()}
-                  </div>
+                  <PharmaResultsView
+                    jobs={sortedJobs}
+                    selectedRowId={selectedRowId}
+                    onSelectRow={setSelectedRowId}
+                    onUpdateJobs={setJobs}
+                    editingSection={pharmaEditingSection}
+                    editedValues={pharmaEditedValues}
+                    onSetEditingSection={setPharmaEditingSection}
+                    onSetEditedValues={setPharmaEditedValues}
+                  />
                 ) : activeSchema.templateId === 'fnb-label-compliance' ? (
-                  <div className="p-4 space-y-4">
-                    {/* Simple job selector */}
-                    {sortedJobs.length > 0 && (
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm text-muted-foreground">Jobs:</span>
-                        {sortedJobs.map((job, idx) => (
-                          <button
-                            key={job.id}
-                            onClick={() => setSelectedRowId(job.id)}
-                            className={`px-2 py-1 rounded border text-xs ${selectedRowId === job.id ? 'bg-accent text-accent-foreground' : 'bg-muted text-foreground'}`}
-                          >
-                            {idx + 1}. {job.fileName}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Selected job panels */}
-                    {(() => {
-                      const job = sortedJobs.find((j) => j.id === selectedRowId) || sortedJobs[sortedJobs.length - 1]
-                      if (!job) return (
-                        <div className="text-center py-12 text-muted-foreground">
-                          <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                          <p>No results yet. Upload a label image to get started.</p>
-                        </div>
-                      )
-                      const extraction = job.results?.fnb_extraction?.product_initial_language || job.results?.fnb_extraction
-                      const translation = job.results?.fnb_translation
-                      const collapseState = fnbCollapse[job.id] || { en: false, ar: false }
-                      const toggleEN = () => setFnbCollapse((prev) => ({ ...prev, [job.id]: { ...collapseState, en: !collapseState.en } }))
-                      const toggleAR = () => setFnbCollapse((prev) => ({ ...prev, [job.id]: { ...collapseState, ar: !collapseState.ar } }))
-                      const KV = (label: string, value: any) => (
-                        value != null && value !== '' && value !== undefined ? (
-                          <div className="flex justify-between gap-3 text-sm">
-                            <span className="text-muted-foreground">{label}</span>
-                            <span className="text-right break-words">{String(value)}</span>
-                          </div>
-                        ) : null
-                      )
-                      const List = (label: string, arr: any[]) => (
-                        Array.isArray(arr) && arr.length > 0 ? (
-                          <div className="space-y-1">
-                            <div className="text-sm text-muted-foreground">{label}</div>
-                            <ul className="list-disc pl-5 text-sm space-y-0.5">
-                              {arr.map((it, i) => (
-                                <li key={i}>{String(it)}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        ) : null
-                      )
-                      return (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <Card>
-                            <CardContent className="p-4 space-y-2">
-                              <div className="flex items-center justify-between">
-                                <h3 className="font-semibold">Extraction Result (Primary Language)</h3>
-                                {getStatusIcon(job.status)}
-                              </div>
-                              {!extraction ? (
-                                <div className="text-sm text-muted-foreground">No extraction data</div>
-                              ) : (
-                                <div className="space-y-3">
-                                  {KV('Barcode', extraction?.barcode)}
-                                  {KV('Product Name', extraction?.productName)}
-                                  <div className="space-y-1">
-                                    <div className="text-sm font-medium">Manufacturer</div>
-                                    <div className="space-y-1 rounded border p-2">
-                                      {KV('Name', extraction?.manufacturer?.name)}
-                                      {KV('Location', extraction?.manufacturer?.location)}
-                                      {KV('Additional Info', extraction?.manufacturer?.additionalInfo)}
-                                      {KV('Country', extraction?.manufacturer?.country)}
-                                    </div>
-                                  </div>
-                                  {KV('Product Description', extraction?.productDescription)}
-                                  {List('Ingredients', extraction?.ingredients)}
-                                  <div className="space-y-1">
-                                    <div className="text-sm font-medium">Serving Size Information</div>
-                                    <div className="space-y-1 rounded border p-2">
-                                      {KV('Serving Size', extraction?.servingSizeInformation?.servingSize)}
-                                      {KV('Unit', extraction?.servingSizeInformation?.servingSizeUnit)}
-                                      {KV('Servings / Container', extraction?.servingSizeInformation?.servingsPerContainer)}
-                                    </div>
-                                  </div>
-                                  <div className="space-y-1">
-                                    <div className="text-sm font-medium">Nutritional Information (per 100g)</div>
-                                    <div className="grid grid-cols-2 gap-2 rounded border p-2 text-sm">
-                                      {KV('Energy (kJ)', extraction?.nutritionalInformationPer100g?.energyPer100g?.kj)}
-                                      {KV('Energy (kcal)', extraction?.nutritionalInformationPer100g?.energyPer100g?.kcal)}
-                                      {KV('Fat', extraction?.nutritionalInformationPer100g?.fatPer100g)}
-                                      {KV('Saturates', extraction?.nutritionalInformationPer100g?.saturatesPer100g)}
-                                      {KV('Carbohydrate', extraction?.nutritionalInformationPer100g?.carbohydratePer100g)}
-                                      {KV('Sugars', extraction?.nutritionalInformationPer100g?.sugarsPer100g)}
-                                      {KV('Fibre', extraction?.nutritionalInformationPer100g?.fiberPer100g)}
-                                      {KV('Protein', extraction?.nutritionalInformationPer100g?.proteinPer100g)}
-                                      {KV('Salt', extraction?.nutritionalInformationPer100g?.saltPer100g)}
-                                      {KV('Sodium', extraction?.nutritionalInformationPer100g?.sodiumPer100g)}
-                                      {KV('Cholesterol', extraction?.nutritionalInformationPer100g?.cholesterolPer100g)}
-                                      {KV('Trans Fat', extraction?.nutritionalInformationPer100g?.transFatPer100g)}
-                                      {KV('Added Sugar', extraction?.nutritionalInformationPer100g?.includesAddedSugarPer100g)}
-                                    </div>
-                                  </div>
-                                  {KV('Storage Information', extraction?.storageInformation)}
-                                  {KV('Usage Information', extraction?.usageInformation)}
-                                  {List('Allergy Information', extraction?.allergyInformation)}
-                                  <div className="space-y-1">
-                                    <div className="text-sm font-medium">Weight Information</div>
-                                    <div className="space-y-1 rounded border p-2">
-                                      {KV('Net Weight', extraction?.weightInformation?.netWeight)}
-                                      {KV('Packaging Weight', extraction?.weightInformation?.packagingWeight)}
-                                    </div>
-                                  </div>
-                                  {KV('Product Status', extraction?.productStatus)}
-                                  {KV('Status Reason', extraction?.productStatusReason)}
-                                </div>
-                              )}
-                            </CardContent>
-                          </Card>
-                          <Card>
-                            <CardContent className="p-4 space-y-2">
-                              <div className="flex items-center justify-between">
-                                <h3 className="font-semibold">Translations (EN / AR)</h3>
-                                {getStatusIcon(job.status)}
-                              </div>
-                              {!translation ? (
-                                <div className="text-sm text-muted-foreground">No translation data</div>
-                              ) : (
-                                <div className="grid grid-cols-1 gap-3">
-                                  {/* English */}
-                                  <div className="space-y-1">
-                                    <div className="flex items-center justify-between">
-                                      <div className="text-sm font-medium">English</div>
-                                      <button className="text-xs text-muted-foreground underline" onClick={toggleEN}>
-                                        {collapseState.en ? 'Expand' : 'Collapse'}
-                                      </button>
-                                    </div>
-                                    {!collapseState.en && (
-                                      <div className="space-y-2 rounded border p-2">
-                                        {KV('Barcode', translation?.english_product_info?.barcode)}
-                                        {KV('Product Name', translation?.english_product_info?.productName)}
-                                        <div className="space-y-1">
-                                          <div className="text-xs text-muted-foreground">Manufacturer</div>
-                                          <div className="space-y-1 rounded border p-2">
-                                            {KV('Name', translation?.english_product_info?.manufacturer?.name)}
-                                            {KV('Location', translation?.english_product_info?.manufacturer?.location)}
-                                            {KV('Additional Info', translation?.english_product_info?.manufacturer?.additionalInfo)}
-                                            {KV('Country', translation?.english_product_info?.manufacturer?.country)}
-                                          </div>
-                                        </div>
-                                        {KV('Product Description', translation?.english_product_info?.productDescription)}
-                                        {List('Ingredients', translation?.english_product_info?.ingredients)}
-                                        <div className="grid grid-cols-2 gap-2 rounded border p-2 text-sm">
-                                          {KV('Energy (kJ)', translation?.english_product_info?.nutritionalInformationPer100g?.energyPer100g?.kj)}
-                                          {KV('Energy (kcal)', translation?.english_product_info?.nutritionalInformationPer100g?.energyPer100g?.kcal)}
-                                          {KV('Fat', translation?.english_product_info?.nutritionalInformationPer100g?.fatPer100g)}
-                                          {KV('Saturates', translation?.english_product_info?.nutritionalInformationPer100g?.saturatesPer100g)}
-                                          {KV('Carbohydrate', translation?.english_product_info?.nutritionalInformationPer100g?.carbohydratePer100g)}
-                                          {KV('Sugars', translation?.english_product_info?.nutritionalInformationPer100g?.sugarsPer100g)}
-                                          {KV('Fibre', translation?.english_product_info?.nutritionalInformationPer100g?.fiberPer100g)}
-                                          {KV('Protein', translation?.english_product_info?.nutritionalInformationPer100g?.proteinPer100g)}
-                                          {KV('Salt', translation?.english_product_info?.nutritionalInformationPer100g?.saltPer100g)}
-                                        </div>
-                                        {KV('Storage Information', translation?.english_product_info?.storageInformation)}
-                                        {KV('Usage Information', translation?.english_product_info?.usageInformation)}
-                                        {List('Allergy Information', translation?.english_product_info?.allergyInformation)}
-                                        <div className="space-y-1 rounded border p-2">
-                                          {KV('Net Weight', translation?.english_product_info?.weightInformation?.netWeight)}
-                                          {KV('Packaging Weight', translation?.english_product_info?.weightInformation?.packagingWeight)}
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                  {/* Arabic */}
-                                  <div className="space-y-1">
-                                    <div className="flex items-center justify-between">
-                                      <div className="text-sm font-medium">Arabic</div>
-                                      <button className="text-xs text-muted-foreground underline" onClick={toggleAR}>
-                                        {collapseState.ar ? 'Expand' : 'Collapse'}
-                                      </button>
-                                    </div>
-                                    {!collapseState.ar && (
-                                      <div className="space-y-2 rounded border p-2">
-                                        {KV('Barcode', translation?.arabic_product_info?.barcode)}
-                                        {KV('Product Name', translation?.arabic_product_info?.productName)}
-                                        <div className="space-y-1">
-                                          <div className="text-xs text-muted-foreground">Manufacturer</div>
-                                          <div className="space-y-1 rounded border p-2">
-                                            {KV('Name', translation?.arabic_product_info?.manufacturer?.name)}
-                                            {KV('Location', translation?.arabic_product_info?.manufacturer?.location)}
-                                            {KV('Additional Info', translation?.arabic_product_info?.manufacturer?.additionalInfo)}
-                                            {KV('Country', translation?.arabic_product_info?.manufacturer?.country)}
-                                          </div>
-                                        </div>
-                                        {KV('Product Description', translation?.arabic_product_info?.productDescription)}
-                                        {List('Ingredients', translation?.arabic_product_info?.ingredients)}
-                                        <div className="grid grid-cols-2 gap-2 rounded border p-2 text-sm">
-                                          {KV('Energy (kJ)', translation?.arabic_product_info?.nutritionalInformationPer100g?.energyPer100g?.kj)}
-                                          {KV('Energy (kcal)', translation?.arabic_product_info?.nutritionalInformationPer100g?.energyPer100g?.kcal)}
-                                          {KV('Fat', translation?.arabic_product_info?.nutritionalInformationPer100g?.fatPer100g)}
-                                          {KV('Saturates', translation?.arabic_product_info?.nutritionalInformationPer100g?.saturatesPer100g)}
-                                          {KV('Carbohydrate', translation?.arabic_product_info?.nutritionalInformationPer100g?.carbohydratePer100g)}
-                                          {KV('Sugars', translation?.arabic_product_info?.nutritionalInformationPer100g?.sugarsPer100g)}
-                                          {KV('Fibre', translation?.arabic_product_info?.nutritionalInformationPer100g?.fiberPer100g)}
-                                          {KV('Protein', translation?.arabic_product_info?.nutritionalInformationPer100g?.proteinPer100g)}
-                                          {KV('Salt', translation?.arabic_product_info?.nutritionalInformationPer100g?.saltPer100g)}
-                                        </div>
-                                        {KV('Storage Information', translation?.arabic_product_info?.storageInformation)}
-                                        {KV('Usage Information', translation?.arabic_product_info?.usageInformation)}
-                                        {List('Allergy Information', translation?.arabic_product_info?.allergyInformation)}
-                                        <div className="space-y-1 rounded border p-2">
-                                          {KV('Net Weight', translation?.arabic_product_info?.weightInformation?.netWeight)}
-                                          {KV('Packaging Weight', translation?.arabic_product_info?.weightInformation?.packagingWeight)}
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                            </CardContent>
-                          </Card>
-                        </div>
-                      )
-                    })()}
-                  </div>
+                  <FnBResultsView
+                    jobs={sortedJobs}
+                    selectedRowId={selectedRowId}
+                    onSelectRow={setSelectedRowId}
+                    collapseState={fnbCollapse}
+                    onToggleEnglish={(jobId) =>
+                      setFnbCollapse((prev) => {
+                        const current = prev[jobId] || { en: false, ar: false }
+                        return { ...prev, [jobId]: { ...current, en: !current.en } }
+                      })
+                    }
+                    onToggleArabic={(jobId) =>
+                      setFnbCollapse((prev) => {
+                        const current = prev[jobId] || { en: false, ar: false }
+                        return { ...prev, [jobId]: { ...current, ar: !current.ar } }
+                      })
+                    }
+                  />
                 ) : (
-                  <div className="flex-1 overflow-hidden min-h-0 relative">
-                    {viewMode === 'grid' ? (
-                      <TanStackGridSheet
-                        schemaId={activeSchemaId}
-                        columns={displayColumns}
-                        jobs={sortedJobs}
-                        selectedRowId={selectedJob?.id ?? null}
-                        onSelectRow={(id) => {
-                          const job = sortedJobs.find((j) => j.id === id)
-                          if (job) setSelectedJob(job)
-                        }}
-                        onRowDoubleClick={(job) => {
-                          // For GCC Food Label, use ExtractionDetailDialog with Label Maker
-                          if (activeSchema.templateId === 'gcc-food-label' || activeSchema.name.toLowerCase().includes('gcc')) {
-                            setLabelMakerJob(job)
-                            setIsLabelMakerNewRecord(false)
-                          } else {
-                            setSelectedJob(job)
-                            setIsDetailOpen(true)
-                          }
-                        }}
-                        onAddColumn={addColumn}
-                        renderCellValue={renderCellValue}
-                        getStatusIcon={getStatusIcon}
-                        renderStatusPill={renderStatusPill}
-                        onEditColumn={(col) => {
-                          setColumnDialogMode('edit')
-                          setDraftColumn(col)
-                          setIsColumnDialogOpen(true)
-                        }}
-                        onDeleteColumn={(colId) => {
-                          commitSchemaUpdate(activeSchemaId, (schema) => {
-                            const newFields = removeFieldById(schema.fields, colId)
-                            const updatedGroups = (schema.visualGroups || [])
-                              .map(group => ({
-                                ...group,
-                                fieldIds: group.fieldIds.filter(id => id !== colId)
-                              }))
-                              .filter(group => group.fieldIds.length > 0)
-                            return {
-                              ...schema,
-                              fields: newFields,
-                              visualGroups: updatedGroups,
-                            }
-                          })
-                        }}
-                        onUpdateCell={handleUpdateCell}
-                        onUpdateReviewStatus={handleUpdateReviewStatus}
-                        onColumnRightClick={handleColumnRightClick}
-                        onOpenTableModal={openTableModal}
-                        visualGroups={activeSchema.visualGroups}
-                        expandedRowId={expandedRowId}
-                        onToggleRowExpansion={toggleRowExpansion}
-                      />
-                    ) : (
-                      <GalleryView
-                        jobs={sortedJobs}
-                        onSelectJob={(job) => {
-                          // For GCC Food Label, use ExtractionDetailDialog with Label Maker
-                          if (activeSchema.templateId === 'gcc-food-label' || activeSchema.name.toLowerCase().includes('gcc')) {
-                            setLabelMakerJob(job)
-                            setIsLabelMakerNewRecord(false) // Not a new record
-                          } else {
-                            setSelectedJob(job)
-                            setIsDetailOpen(true)
-                          }
-                        }}
-                        onDeleteJob={(jobId) => handleDeleteJob(jobId)}
-                      />
-                    )}
-                  </div>
+                  <StandardResultsView
+                    activeSchemaId={activeSchemaId}
+                    activeSchema={activeSchema}
+                    displayColumns={displayColumns}
+                    jobs={sortedJobs}
+                    viewMode={viewMode}
+                    selectedJobId={selectedJob?.id ?? null}
+                    expandedRowId={expandedRowId}
+                    onSelectJob={setSelectedJob}
+                    onRowDoubleClick={(job) => {
+                      // For GCC Food Label, use ExtractionDetailDialog with Label Maker
+                      if (activeSchema.templateId === 'gcc-food-label' || activeSchema.name.toLowerCase().includes('gcc')) {
+                        setLabelMakerJob(job)
+                        setIsLabelMakerNewRecord(false)
+                      } else {
+                        setSelectedJob(job)
+                        setIsDetailOpen(true)
+                      }
+                    }}
+                    onDeleteJob={handleDeleteJob}
+                    onToggleRowExpansion={toggleRowExpansion}
+                    onAddColumn={addColumn}
+                    onEditColumn={(col) => {
+                      setColumnDialogMode('edit')
+                      setDraftColumn(col)
+                      setIsColumnDialogOpen(true)
+                    }}
+                    onDeleteColumn={(colId) => {
+                      commitSchemaUpdate(activeSchemaId, (schema) => {
+                        const newFields = removeFieldById(schema.fields, colId)
+                        const updatedGroups = (schema.visualGroups || [])
+                          .map(group => ({
+                            ...group,
+                            fieldIds: group.fieldIds.filter(id => id !== colId)
+                          }))
+                          .filter(group => group.fieldIds.length > 0)
+                        return {
+                          ...schema,
+                          fields: newFields,
+                          visualGroups: updatedGroups,
+                        }
+                      })
+                    }}
+                    onUpdateCell={handleUpdateCell}
+                    onUpdateReviewStatus={handleUpdateReviewStatus}
+                    onColumnRightClick={handleColumnRightClick}
+                    onOpenTableModal={openTableModal}
+                    renderCellValue={renderCellValue}
+                    getStatusIcon={getStatusIcon}
+                    renderStatusPill={renderStatusPill}
+                  />
                 )
                 }
               </div>
@@ -4525,7 +4197,7 @@ export function DataExtractionPlatform({
                     }
                   }}
                 >
-                  <DialogContent className="max-w-xl w-full max-h-[90vh] p-0 overflow-hidden flex flex-col">
+                  <DialogContent className="max-w-3xl w-full max-h-[90vh] p-0 overflow-hidden flex flex-col">
                     <DialogHeader className="border-b border-slate-200/70 px-6 py-5">
                       <DialogTitle className="text-xl font-semibold">
                         {columnDialogMode === 'edit' ? 'Edit Field' : 'Add New Field'}
@@ -4538,130 +4210,257 @@ export function DataExtractionPlatform({
                     {draftColumn && (
                       <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5 min-h-0">
                         <section className="space-y-3">
-                          <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Field Source</Label>
-                          <div className="grid gap-3 sm:grid-cols-2">
+                          <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Field Type</Label>
+                          <div className="grid gap-3 sm:grid-cols-3">
                             <Button
                               type="button"
                               variant="outline"
                               className={cn(
-                                'flex h-auto flex-col items-start gap-1 rounded-xl border-2 px-4 py-3 text-left shadow-none transition-all',
-                                !isDraftTransformation
+                                'flex h-full w-full flex-col items-start gap-1 rounded-xl border-2 px-4 py-3 text-left shadow-none transition-all min-h-[88px]',
+                                draftFieldSource === 'input'
+                                  ? 'border-amber-500/70 bg-amber-50/70 text-amber-700 hover:bg-amber-100'
+                                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100',
+                              )}
+                              aria-pressed={draftFieldSource === 'input'}
+                              onClick={() => handleDraftFieldTypeChange('input')}
+                            >
+                              <span className="flex items-center gap-2 text-sm font-semibold">
+                                <Upload className="h-4 w-4" />
+                                Input
+                              </span>
+                              <span className="text-xs text-slate-500 whitespace-normal break-words leading-snug text-left">
+                                Document to process
+                              </span>
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className={cn(
+                                'flex h-full w-full flex-col items-start gap-1 rounded-xl border-2 px-4 py-3 text-left shadow-none transition-all min-h-[88px]',
+                                draftFieldSource === 'extraction'
                                   ? 'border-[#2782ff]/70 bg-[#e6f0ff]/70 text-[#2782ff] hover:bg-[#d9e9ff]'
                                   : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100',
                               )}
-                              aria-pressed={!isDraftTransformation}
-                              onClick={() => handleDraftFieldTypeChange(false)}
+                              aria-pressed={draftFieldSource === 'extraction'}
+                              onClick={() => handleDraftFieldTypeChange('extraction')}
                             >
                               <span className="flex items-center gap-2 text-sm font-semibold">
                                 <FileText className="h-4 w-4" />
                                 Extraction
                               </span>
-                              <span className="text-xs text-slate-500">Extract directly from the document</span>
+                              <span className="text-xs text-slate-500 whitespace-normal break-words leading-snug text-left">
+                                Extract from document
+                              </span>
                             </Button>
                             <Button
                               type="button"
                               variant="outline"
                               className={cn(
-                                'flex h-auto flex-col items-start gap-1 rounded-xl border-2 px-4 py-3 text-left shadow-none transition-all',
-                                isDraftTransformation
+                                'flex h-full w-full flex-col items-start gap-1 rounded-xl border-2 px-4 py-3 text-left shadow-none transition-all min-h-[88px]',
+                                draftFieldSource === 'transformation'
                                   ? 'border-[#2782ff]/70 bg-[#e6f0ff]/70 text-[#2782ff] hover:bg-[#d9e9ff]'
                                   : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100',
                               )}
-                              aria-pressed={isDraftTransformation}
-                              onClick={() => handleDraftFieldTypeChange(true)}
+                              aria-pressed={draftFieldSource === 'transformation'}
+                              onClick={() => handleDraftFieldTypeChange('transformation')}
                             >
                               <span className="flex items-center gap-2 text-sm font-semibold">
                                 <Zap className="h-4 w-4" />
                                 Transformation
                               </span>
-                              <span className="text-xs text-slate-500">Compute value from other fields</span>
+                              <span className="text-xs text-slate-500 whitespace-normal break-words leading-snug text-left">
+                                Compute from fields
+                              </span>
                             </Button>
                           </div>
                         </section>
 
-                        <div className="space-y-4 rounded-2xl border border-slate-200/70 bg-white px-4 py-5 shadow-sm">
-                          <div className="grid gap-4">
-                            <div className="space-y-1.5">
-                              <Label htmlFor="column-name">Field Name</Label>
-                              <Input
-                                id="column-name"
-                                value={draftColumn.name}
-                                onChange={(event) => setDraftColumn({ ...draftColumn, name: event.target.value })}
-                                placeholder="e.g., Manufacturer"
-                              />
+                        {/* Input Field Configuration */}
+                        {isDraftInput ? (
+                          <div className="space-y-4 rounded-2xl border border-amber-200/70 bg-amber-50/30 px-4 py-5 shadow-sm">
+                            <div className="grid gap-4">
+                              <div className="space-y-1.5">
+                                <Label htmlFor="input-name">Input Name</Label>
+                                <Input
+                                  id="input-name"
+                                  value={draftColumn.name}
+                                  onChange={(event) => setDraftColumn({ ...draftColumn, name: event.target.value })}
+                                  placeholder="e.g., Reference Document, Old Version"
+                                />
+                                <p className="text-xs text-slate-500">Use this name in extraction instructions with @{draftColumn.name || 'Name'}</p>
+                              </div>
+
+                              <div className="space-y-1.5">
+                                <Label htmlFor="input-description">Description</Label>
+                                <Textarea
+                                  id="input-description"
+                                  value={draftColumn.description || ''}
+                                  onChange={(event) => setDraftColumn({ ...draftColumn, description: event.target.value })}
+                                  placeholder="Describe this input document's purpose in the workflow"
+                                  rows={3}
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label>Allowed File Types</Label>
+                                <div className="flex flex-wrap gap-2">
+                                  {['pdf', 'image', 'doc', 'any'].map((fileType) => {
+                                    const inputField = draftColumn as InputField
+                                    const allowedTypes = inputField.fileConstraints?.allowedTypes || []
+                                    const isAny = allowedTypes.length === 0 || allowedTypes.includes('any')
+                                    const isSelected = fileType === 'any' ? isAny : allowedTypes.includes(fileType)
+
+                                    return (
+                                      <Button
+                                        key={fileType}
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className={cn(
+                                          'rounded-full px-3 py-1 text-xs capitalize',
+                                          isSelected
+                                            ? 'border-amber-500 bg-amber-100 text-amber-700'
+                                            : 'border-slate-200 text-slate-600'
+                                        )}
+                                        onClick={() => {
+                                          const current = inputField.fileConstraints?.allowedTypes || []
+                                          let newTypes: string[]
+                                          if (fileType === 'any') {
+                                            newTypes = []
+                                          } else if (current.includes(fileType)) {
+                                            newTypes = current.filter(t => t !== fileType)
+                                          } else {
+                                            newTypes = [...current.filter(t => t !== 'any'), fileType]
+                                          }
+                                          setDraftColumn({
+                                            ...draftColumn,
+                                            fileConstraints: {
+                                              ...inputField.fileConstraints,
+                                              allowedTypes: newTypes,
+                                            }
+                                          } as InputField)
+                                        }}
+                                      >
+                                        {fileType === 'any' ? 'Any Type' : fileType.toUpperCase()}
+                                      </Button>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-3 pt-1">
+                                <Checkbox
+                                  id="input-required"
+                                  checked={!!draftColumn.required}
+                                  onCheckedChange={(checked) => setDraftColumn({ ...draftColumn, required: checked === true })}
+                                />
+                                <Label htmlFor="input-required" className="text-sm font-medium text-slate-600">
+                                  Required input
+                                </Label>
+                              </div>
                             </div>
-                            {/* Description has been merged with Extraction Guidance below */}
                           </div>
-
-                          <div className="space-y-3">
-                            <div className="space-y-1.5">
-                              <Label htmlFor="column-type">Data Type</Label>
-                              <Select value={draftColumn.type} onValueChange={(value: DataType) => changeDraftType(value)}>
-                                <SelectTrigger id="column-type">
-                                  <SelectValue placeholder="Select a data type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectGroup>
-                                    <SelectLabel>Simple Types</SelectLabel>
-                                    {simpleDataTypeOptions.map((option) => (
-                                      <SelectItem key={option.value} value={option.value}>
-                                        {option.label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectGroup>
-                                  <SelectSeparator />
-                                  <SelectGroup>
-                                    <SelectLabel>Structured Types</SelectLabel>
-                                    {complexDataTypeOptions.map((option) => (
-                                      <SelectItem key={option.value} value={option.value}>
-                                        {option.label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectGroup>
-                                </SelectContent>
-                              </Select>
+                        ) : (
+                          /* Extraction/Transformation Field Configuration */
+                          <div className="space-y-4 rounded-2xl border border-slate-200/70 bg-white px-4 py-5 shadow-sm">
+                            <div className="grid gap-4">
+                              <div className="space-y-1.5">
+                                <Label htmlFor="column-name">Field Name</Label>
+                                <Input
+                                  id="column-name"
+                                  value={draftColumn.name}
+                                  onChange={(event) => setDraftColumn({ ...draftColumn, name: event.target.value })}
+                                  placeholder="e.g., Manufacturer"
+                                />
+                              </div>
+                              {/* Description has been merged with Extraction Guidance below */}
                             </div>
 
-                            {renderStructuredConfig()}
+                            <div className="space-y-3">
+                              <div className="space-y-1.5">
+                                <Label htmlFor="column-type">Data Type</Label>
+                                <Select value={draftColumn.type} onValueChange={(value: DataType) => changeDraftType(value)}>
+                                  <SelectTrigger id="column-type">
+                                    <SelectValue placeholder="Select a data type" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectGroup>
+                                      <SelectLabel>Simple Types</SelectLabel>
+                                      {simpleDataTypeOptions.map((option) => (
+                                        <SelectItem key={option.value} value={option.value}>
+                                          {option.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectGroup>
+                                    <SelectSeparator />
+                                    <SelectGroup>
+                                      <SelectLabel>Structured Types</SelectLabel>
+                                      {complexDataTypeOptions.map((option) => (
+                                        <SelectItem key={option.value} value={option.value}>
+                                          {option.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectGroup>
+                                  </SelectContent>
+                                </Select>
+                              </div>
 
-                            <div className="flex items-center gap-3 pt-1">
-                              <Checkbox
-                                id="column-required"
-                                checked={!!draftColumn.required}
-                                onCheckedChange={(checked) => setDraftColumn({ ...draftColumn, required: checked === true })}
-                              />
-                              <Label htmlFor="column-required" className="text-sm font-medium text-slate-600">
-                                Required field
-                              </Label>
+                              {renderStructuredConfig()}
+
+                              <div className="flex items-center gap-3 pt-1">
+                                <Checkbox
+                                  id="column-required"
+                                  checked={!!draftColumn.required}
+                                  onCheckedChange={(checked) => setDraftColumn({ ...draftColumn, required: checked === true })}
+                                />
+                                <Label htmlFor="column-required" className="text-sm font-medium text-slate-600">
+                                  Required field
+                                </Label>
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        )}
 
-                        <div className="space-y-3 rounded-2xl border border-slate-200/70 bg-white px-4 py-5 shadow-sm">
-                          <div className="space-y-1">
-                            <h3 className="text-sm font-semibold text-slate-700">Field Guidance</h3>
-                            <p className="text-xs text-slate-500">Describe this field and how to extract it. This text helps teammates and the AI.</p>
-                          </div>
-                          {isDraftTransformation ? (
-                            <TransformBuilder
-                              allColumns={displayColumns}
-                              selected={draftColumn}
-                              onUpdate={(updates) => setDraftColumn({ ...draftColumn, ...updates })}
-                              visualGroups={activeSchema.visualGroups}
-                            />
-                          ) : (
-                            <div className="space-y-1.5">
-                              <Label htmlFor="field-guidance">Field Guidance</Label>
-                              <Textarea
-                                id="field-guidance"
-                                value={draftColumn.extractionInstructions || draftColumn.description || ''}
-                                onChange={(event) => setDraftColumn({ ...draftColumn, description: event.target.value, extractionInstructions: event.target.value })}
-                                placeholder="Explain what this field is and how to extract it from the document."
-                                rows={5}
-                              />
+                        {/* Field Guidance - only for extraction and transformation fields */}
+                        {!isDraftInput && (
+                          <div className="space-y-3 rounded-2xl border border-slate-200/70 bg-white px-4 py-5 shadow-sm">
+                            <div className="space-y-1">
+                              <h3 className="text-sm font-semibold text-slate-700">Field Guidance</h3>
+                              <p className="text-xs text-slate-500">
+                                {isDraftTransformation
+                                  ? 'Configure the transformation logic for this field.'
+                                  : 'Describe this field and how to extract it. Use @DocumentName to reference input documents.'
+                                }
+                              </p>
                             </div>
-                          )}
-                        </div>
+                            {isDraftTransformation ? (
+                              <TransformBuilder
+                                allColumns={displayColumns}
+                                selected={draftColumn}
+                                onUpdate={(updates) => setDraftColumn({ ...draftColumn, ...updates })}
+                                visualGroups={activeSchema.visualGroups}
+                              />
+                            ) : (
+                              <div className="space-y-1.5">
+                                <Label htmlFor="field-guidance">Extraction Instructions</Label>
+                                <MentionTextarea
+                                  id="field-guidance"
+                                  value={draftColumn.extractionInstructions || draftColumn.description || ''}
+                                  inputFields={getInputFields(fields)}
+                                  onValueChange={(value) => setDraftColumn({ ...draftColumn, description: value, extractionInstructions: value })}
+                                  placeholder="Explain what this field is and how to extract it. Type @ to mention input documents."
+                                  rows={5}
+                                />
+                                {/* Input field hints */}
+                                {getInputFields(fields).length > 0 && (
+                                  <p className="text-xs text-slate-500">
+                                    Type <kbd className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px]">@</kbd> to reference input documents
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -4684,29 +4483,46 @@ export function DataExtractionPlatform({
 
                             if (columnDialogMode === 'create') {
                               // Adding a new field
-                              const newField = {
-                                id: `col_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                                name: draftColumn.name,
-                                type: draftColumn.type,
-                                description: draftColumn.description,
-                                required: !!draftColumn.required,
-                                extractionInstructions: draftColumn.extractionInstructions,
-                                isTransformation: !!draftColumn.isTransformation,
-                                transformationType: draftColumn.transformationType,
-                                transformationConfig: draftColumn.transformationConfig,
-                                transformationSource: draftColumn.transformationSource,
-                                transformationSourceColumnId: draftColumn.transformationSourceColumnId,
-                              } as SchemaField
+                              let newField: SchemaField
 
-                              // Add type-specific fields
-                              if (draftColumn.type === 'object') {
-                                (newField as any).children = (draftColumn as ObjectField).children
-                              }
-                              if (draftColumn.type === 'table') {
-                                (newField as any).columns = (draftColumn as TableField).columns
-                              }
-                              if (draftColumn.type === 'list') {
-                                (newField as any).item = (draftColumn as ListField).item
+                              if (draftColumn.type === 'input') {
+                                // Input field
+                                const inputDraft = draftColumn as InputField
+                                newField = {
+                                  id: `input_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                                  name: inputDraft.name,
+                                  type: 'input',
+                                  inputType: inputDraft.inputType || 'document',
+                                  description: inputDraft.description,
+                                  required: !!inputDraft.required,
+                                  fileConstraints: inputDraft.fileConstraints,
+                                } as InputField
+                              } else {
+                                // Extraction or transformation field
+                                newField = {
+                                  id: `col_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                                  name: draftColumn.name,
+                                  type: draftColumn.type,
+                                  description: draftColumn.description,
+                                  required: !!draftColumn.required,
+                                  extractionInstructions: draftColumn.extractionInstructions,
+                                  isTransformation: !!draftColumn.isTransformation,
+                                  transformationType: draftColumn.transformationType,
+                                  transformationConfig: draftColumn.transformationConfig,
+                                  transformationSource: draftColumn.transformationSource,
+                                  transformationSourceColumnId: draftColumn.transformationSourceColumnId,
+                                } as SchemaField
+
+                                // Add type-specific fields
+                                if (draftColumn.type === 'object') {
+                                  (newField as any).children = (draftColumn as ObjectField).children
+                                }
+                                if (draftColumn.type === 'table') {
+                                  (newField as any).columns = (draftColumn as TableField).columns
+                                }
+                                if (draftColumn.type === 'list') {
+                                  (newField as any).item = (draftColumn as ListField).item
+                                }
                               }
 
                               commitSchemaUpdate(activeSchemaId, (schema) => ({
@@ -4716,28 +4532,44 @@ export function DataExtractionPlatform({
                             } else {
                               // Editing an existing field
                               if (!selectedColumn) return
-                              const updates: Partial<SchemaField> = {
-                                name: draftColumn.name,
-                                type: draftColumn.type,
-                                description: draftColumn.description,
-                                required: !!draftColumn.required,
-                                extractionInstructions: draftColumn.extractionInstructions,
-                                isTransformation: !!draftColumn.isTransformation,
-                                transformationType: draftColumn.transformationType,
-                                transformationConfig: draftColumn.transformationConfig,
-                                transformationSource: draftColumn.transformationSource,
-                                transformationSourceColumnId: draftColumn.transformationSourceColumnId,
+
+                              if (draftColumn.type === 'input') {
+                                // Input field updates
+                                const inputDraft = draftColumn as InputField
+                                const updates: Partial<InputField> = {
+                                  name: inputDraft.name,
+                                  type: 'input',
+                                  inputType: inputDraft.inputType || 'document',
+                                  description: inputDraft.description,
+                                  required: !!inputDraft.required,
+                                  fileConstraints: inputDraft.fileConstraints,
+                                }
+                                updateColumn(selectedColumn.id, updates as any)
+                              } else {
+                                // Extraction or transformation field updates
+                                const updates: Partial<SchemaField> = {
+                                  name: draftColumn.name,
+                                  type: draftColumn.type,
+                                  description: draftColumn.description,
+                                  required: !!draftColumn.required,
+                                  extractionInstructions: draftColumn.extractionInstructions,
+                                  isTransformation: !!draftColumn.isTransformation,
+                                  transformationType: draftColumn.transformationType,
+                                  transformationConfig: draftColumn.transformationConfig,
+                                  transformationSource: draftColumn.transformationSource,
+                                  transformationSourceColumnId: draftColumn.transformationSourceColumnId,
+                                }
+                                if (draftColumn.type === 'object') {
+                                  (updates as any).children = (draftColumn as ObjectField).children
+                                }
+                                if (draftColumn.type === 'table') {
+                                  (updates as any).columns = (draftColumn as TableField).columns
+                                }
+                                if (draftColumn.type === 'list') {
+                                  (updates as any).item = (draftColumn as ListField).item
+                                }
+                                updateColumn(selectedColumn.id, updates)
                               }
-                              if (draftColumn.type === 'object') {
-                                (updates as any).children = (draftColumn as ObjectField).children
-                              }
-                              if (draftColumn.type === 'table') {
-                                (updates as any).columns = (draftColumn as TableField).columns
-                              }
-                              if (draftColumn.type === 'list') {
-                                (updates as any).item = (draftColumn as ListField).item
-                              }
-                              updateColumn(selectedColumn.id, updates)
                             }
 
                             setIsColumnDialogOpen(false)
@@ -4827,76 +4659,8 @@ export function DataExtractionPlatform({
                 }
               }}
               job={selectedJob}
+              schema={activeSchema}
             />
-
-            {/* Advanced Automation ROI Modal */}
-            <Dialog open={roiOpen} onOpenChange={onCloseRoi}>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>
-                    {roiStage === 'calc'
-                      ? 'You just processed 1 document. What if you could automate the next 5 steps?'
-                      : 'Your estimated savings'}
-                  </DialogTitle>
-                  <DialogDescription>
-                    {roiStage === 'calc'
-                      ? 'Estimate how much time and money full workflow automation could save each month.'
-                      : 'These savings are based on the numbers you entered in the calculator.'}
-                  </DialogDescription>
-                </DialogHeader>
-
-                {roiStage === 'calc' ? (
-                  <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                      Simple data extraction is just the start. The real power of Bytebeam is in automating the entire, multi‑step process that follows—turning raw documents into decisions, actions, and results.
-                    </p>
-                    <p className="text-sm">Imagine a workflow that can:</p>
-                    <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
-                      <li><span className="mr-1">✅</span><strong>Extract & Validate:</strong> Pull invoice data, then automatically validate it against purchase orders in your database and flag discrepancies.</li>
-                      <li><span className="mr-1">✅</span><strong>Analyze & Flag:</strong> Read a 50‑page legal contract, identify all non‑compliant clauses based on your custom rules, and generate a summary report.</li>
-                      <li><span className="mr-1">✅</span><strong>Route & Decide:</strong> Process an incoming trade compliance form, determine the correct regional office based on its contents, and forward it with a recommended action.</li>
-                    </ul>
-
-                    <div className="rounded-md border p-3" id="roi-calculator">
-                      <h3 className="font-medium">Find out the real cost of your <em>entire</em> manual workflow.</h3>
-                      <p className="text-sm text-muted-foreground">Enter your estimates below to see your potential savings.</p>
-                      <div className="mt-3 grid gap-3">
-                        <div>
-                          <Label>1. Documents processed per month</Label>
-                          <Input type="number" placeholder="e.g., 500" value={docsPerMonth} onChange={(e) => setDocsPerMonth(e.target.value)} />
-                        </div>
-                        <div>
-                          <Label>2. Average time for the <em>full process</em> (in minutes)</Label>
-                          <Input type="number" placeholder="e.g., 15" value={timePerDoc} onChange={(e) => setTimePerDoc(e.target.value)} />
-                          <p className="text-[11px] text-muted-foreground">Note: Include all steps, not just data entry.</p>
-                        </div>
-                        <div>
-                          <Label>3. (Optional) Average hourly team cost ($)</Label>
-                          <Input type="number" placeholder="e.g., 35" value={hourlyCost} onChange={(e) => setHourlyCost(e.target.value)} />
-                        </div>
-                      </div>
-                      <div className="mt-3 flex justify-end">
-                        <Button id="calculate-btn" onClick={calculateSavings}>Calculate My Savings 📈</Button>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-3" id="roi-results">
-                    <h2 className="text-lg">You could save an estimated <strong>{totalHoursSaved} hours</strong> every month.</h2>
-                    {monthlyDollarSavings != null && annualDollarSavings != null && (
-                      <h3 className="text-base">That's around <strong>${monthlyDollarSavings.toLocaleString()}</strong> per month, or <strong>${annualDollarSavings.toLocaleString()}</strong> back in your budget every year.</h3>
-                    )}
-                    <p className="text-sm text-muted-foreground">Ready to claim that time back? Let's have a quick chat to map out the exact automation strategy to get you there.</p>
-                    <div className="flex items-center gap-3">
-                      <Button asChild>
-                        <a href={BOOKING_URL} target="_blank" rel="noopener noreferrer" className="cta-button">Book a 15‑min Strategy Call</a>
-                      </Button>
-                      <small className="text-muted-foreground"><em>Your schedule is open to map this out</em></small>
-                    </div>
-                  </div>
-                )}
-              </DialogContent>
-            </Dialog>
 
             {/* Table Modal */}
             <Dialog open={tableModalOpen} onOpenChange={setTableModalOpen}>
@@ -5128,6 +4892,19 @@ export function DataExtractionPlatform({
         onOpenChange={setIsManualRecordOpen}
         schema={activeSchema}
         onSave={handleSaveManualRecord}
+      />
+
+      {/* Multi-Document Upload Dialog */}
+      <MultiDocumentUpload
+        inputFields={getInputFields(fields)}
+        open={isMultiDocUploadOpen}
+        onOpenChange={setIsMultiDocUploadOpen}
+        onUpload={(documents) => {
+          const syntheticEvent = {
+            target: { files: null },
+          } as unknown as React.ChangeEvent<HTMLInputElement>
+          void handleFileUpload(syntheticEvent, { inputDocuments: documents })
+        }}
       />
 
       {/* Label Maker Dialog for GCC Food Label */}

@@ -112,6 +112,7 @@ export interface Database {
           ocr_annotated_image_url: string | null
           original_file_url: string | null
           agent_type: "standard" | "pharma" | null
+          input_documents: Json | null
           created_at: string | null
           completed_at: string | null
           updated_at: string | null
@@ -127,6 +128,7 @@ export interface Database {
           ocr_annotated_image_url?: string | null
           original_file_url?: string | null
           agent_type?: "standard" | "pharma" | null
+          input_documents?: Json | null
           created_at?: string | null
           completed_at?: string | null
           updated_at?: string | null
@@ -138,6 +140,7 @@ export interface Database {
           ocr_annotated_image_url?: string | null
           original_file_url?: string | null
           agent_type?: "standard" | "pharma" | null
+          input_documents?: Json | null
           created_at?: string | null
           completed_at?: string | null
           updated_at?: string | null

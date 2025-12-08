@@ -21,6 +21,7 @@ interface JobStatusPatch {
   ocrMarkdown?: string | null
   ocrAnnotatedImageUrl?: string | null
   originalFileUrl?: string | null
+  inputDocuments?: JobRow["input_documents"]
 }
 
 export const OCR_ANNOTATED_IMAGES_BUCKET = "ocr-annotated-images"
@@ -152,6 +153,9 @@ export async function upsertJobStatus(
   if (patch.errorMessage && patch.results === undefined) {
     updatePayload.results = { error: patch.errorMessage }
   }
+  if (patch.inputDocuments !== undefined) {
+    updatePayload.input_documents = patch.inputDocuments
+  }
   if (patch.completedAt !== undefined) {
     updatePayload.completed_at = patch.completedAt ? patch.completedAt.toISOString() : null
   }
@@ -190,6 +194,7 @@ export async function upsertJobStatus(
       ocr_annotated_image_url: patch.ocrAnnotatedImageUrl ?? null,
       original_file_url: patch.originalFileUrl ?? null,
       agent_type: meta.agentType ?? null,
+      input_documents: patch.inputDocuments ?? null,
       created_at: nowIso,
       completed_at: patch.completedAt ? patch.completedAt.toISOString() : null,
       updated_at: nowIso,

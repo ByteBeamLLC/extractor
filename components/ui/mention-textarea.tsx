@@ -1,167 +1,327 @@
 "use client"
 
-import React, { useEffect, useMemo, useRef, useState } from "react"
+import * as React from "react"
+import { cn } from "@/lib/utils"
+import { InputField } from "@/lib/schema"
+import { getMentionSuggestions, formatMention, completeMention } from "@/lib/extraction/mentionParser"
+import { Upload, FileText, BookOpen } from "lucide-react"
 
-type Option = { id: string; label: string }
-
-export function MentionTextarea(props: {
-  value: string
-  onChange: (v: string) => void
-  options: Option[]
-  knowledgeOptions?: Option[] // New prop for knowledge items
-  placeholder?: string
-  disabled?: boolean
-  mentionTrigger?: string // default '@'
-  insertWrapper?: (label: string) => string // default: {label}
-  className?: string
-  registerInsertHandler?: (fn: (token: string) => void) => void
-}) {
-  const {
-    value,
-    onChange,
-    options,
-    knowledgeOptions = [],
-    placeholder,
-    disabled,
-    mentionTrigger = "@",
-    insertWrapper = (label: string) => `{${label}}`,
-    className,
-    registerInsertHandler,
-  } = props
-
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
-  const [caret, setCaret] = useState(0)
-  const [query, setQuery] = useState<string | null>(null)
-  const [open, setOpen] = useState(false)
-
-  const filtered = useMemo(() => {
-    const q = (query || "").trim().toLowerCase()
-
-    // Combine options, prioritizing fields then knowledge
-    const allOptions = [
-      ...options.map(o => ({ ...o, type: 'field' })),
-      ...knowledgeOptions.map(o => ({ ...o, type: 'knowledge' }))
-    ]
-
-    if (!q) return allOptions.slice(0, 10)
-    return allOptions.filter((o) => o.label.toLowerCase().includes(q)).slice(0, 10)
-  }, [options, knowledgeOptions, query])
-
-  const updateCaret = () => {
-    const el = textareaRef.current
-    if (!el) return
-    const pos = el.selectionStart ?? 0
-    setCaret(pos)
-    // Determine if we are currently in a mention sequence using the live DOM value
-    const before = el.value.slice(0, pos)
-    const match = new RegExp(`\\${mentionTrigger}([A-Za-z0-9 _-]{0,50})$`).exec(before)
-    if (match) {
-      setQuery(match[1])
-      setOpen(true)
-    } else {
-      setQuery(null)
-      setOpen(false)
-    }
-  }
-
-  useEffect(() => {
-    if (!registerInsertHandler) return
-    const insert = (token: string) => insertAtCaret(token)
-    // Register once per handler identity to avoid render loops
-    registerInsertHandler(insert)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [registerInsertHandler])
-
-  const insertAtCaret = (text: string) => {
-    const el = textareaRef.current
-    if (!el) return
-    const start = el.selectionStart ?? caret
-    const end = el.selectionEnd ?? caret
-    const current = el.value
-    const newVal = current.slice(0, start) + text + current.slice(end)
-    onChange(newVal)
-    // Set caret after inserted text on next tick
-    requestAnimationFrame(() => {
-      el.focus()
-      const pos = start + text.length
-      el.setSelectionRange(pos, pos)
-      setCaret(pos)
-    })
-  }
-
-  const replaceCurrentMention = (label: string, type: string) => {
-    const el = textareaRef.current
-    if (!el) return
-    const pos = el.selectionStart ?? caret
-    const before = value.slice(0, pos)
-    const after = value.slice(pos)
-    const re = new RegExp(`(.*)\\${mentionTrigger}([A-Za-z0-9 _-]{0,50})$`)
-    const m = re.exec(before)
-
-    // Different wrapper for knowledge items if needed, but for now using same format
-    // We might want to use {kb:name} later as per plan, but sticking to simple names first
-    // or we can handle the prefix in the insertWrapper passed from parent
-
-    // Actually, let's use a specific format for knowledge items to distinguish them
-    const textToInsert = type === 'knowledge' ? `{kb:${label}}` : insertWrapper(label)
-
-    if (!m) {
-      insertAtCaret(textToInsert)
-      return
-    }
-    const prefix = m[1]
-    const replaced = prefix + textToInsert
-    const newVal = replaced + after
-    onChange(newVal)
-    requestAnimationFrame(() => {
-      if (!textareaRef.current) return
-      const pos2 = replaced.length
-      textareaRef.current.focus()
-      textareaRef.current.setSelectionRange(pos2, pos2)
-      setCaret(pos2)
-    })
-    setOpen(false)
-    setQuery(null)
-  }
-
-  return (
-    <div className="relative">
-      <textarea
-        ref={textareaRef}
-        value={value}
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyUp={updateCaret}
-        onClick={updateCaret}
-        onSelect={updateCaret}
-        onFocus={updateCaret}
-        placeholder={placeholder}
-        className={className || "w-full min-h-24 resize-y rounded-md border border-border bg-background p-2 text-sm"}
-      />
-      {open && filtered.length > 0 && (
-        <div className="absolute z-20 mt-2 w-full rounded-md border border-border bg-popover shadow-sm max-h-60 overflow-y-auto">
-          {filtered.map((o) => (
-            <button
-              key={`${o.type}-${o.id}`}
-              type="button"
-              className="flex w-full items-center cursor-pointer px-3 py-2 text-left text-sm hover:bg-muted"
-              onMouseDown={(e) => {
-                e.preventDefault()
-                replaceCurrentMention(o.label, o.type)
-              }}
-            >
-              <span className="mr-2 text-muted-foreground">
-                {o.type === 'knowledge' ? '📚' : '#'}
-              </span>
-              <span>{o.label}</span>
-              {o.type === 'knowledge' && (
-                <span className="ml-auto text-xs text-muted-foreground">Knowledge</span>
-              )}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
+interface BaseOption {
+  id: string
+  label: string
 }
 
+interface KnowledgeOption extends BaseOption {
+  type: 'folder' | 'file'
+}
+
+export interface MentionTextareaProps
+  extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'onChange'> {
+  // For input document mentions (extraction instructions)
+  inputFields?: InputField[]
+  onValueChange?: (value: string) => void
+  
+  // For transformation field mentions (transform builder)
+  options?: BaseOption[]
+  knowledgeOptions?: KnowledgeOption[]
+  onChange?: (value: string) => void
+  registerInsertHandler?: (fn: (token: string) => void) => void
+}
+
+const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaProps>(
+  ({ 
+    className, 
+    inputFields = [], 
+    options = [],
+    knowledgeOptions = [],
+    value, 
+    onChange, 
+    onValueChange,
+    registerInsertHandler,
+    ...props 
+  }, ref) => {
+    const textareaRef = React.useRef<HTMLTextAreaElement>(null)
+    const combinedRef = React.useMemo(() => {
+      return (node: HTMLTextAreaElement | null) => {
+        textareaRef.current = node
+        if (typeof ref === "function") {
+          ref(node)
+        } else if (ref) {
+          ref.current = node
+        }
+      }
+    }, [ref])
+
+    const [showSuggestions, setShowSuggestions] = React.useState(false)
+    const [suggestions, setSuggestions] = React.useState<Array<{ id: string; label: string; type: 'input' | 'field' | 'knowledge' }>>([])
+    const [selectedIndex, setSelectedIndex] = React.useState(0)
+    const [mentionQuery, setMentionQuery] = React.useState("")
+    const [mentionStartIndex, setMentionStartIndex] = React.useState(-1)
+
+    const textValue = String(value || "")
+
+    // Determine if we're in input-document mode or transformation mode
+    const isInputDocumentMode = inputFields.length > 0 && options.length === 0
+    const isTransformMode = options.length > 0 || knowledgeOptions.length > 0
+
+    // Register insert handler for transform mode
+    React.useEffect(() => {
+      if (registerInsertHandler && textareaRef.current) {
+        registerInsertHandler((token: string) => {
+          const textarea = textareaRef.current
+          if (!textarea) return
+          
+          const start = textarea.selectionStart || 0
+          const end = textarea.selectionEnd || 0
+          const newValue = textValue.slice(0, start) + token + textValue.slice(end)
+          
+          // Update value
+          onChange?.(newValue)
+          onValueChange?.(newValue)
+          
+          // Move cursor after inserted token
+          requestAnimationFrame(() => {
+            if (textarea) {
+              const newPos = start + token.length
+              textarea.selectionStart = newPos
+              textarea.selectionEnd = newPos
+              textarea.focus()
+            }
+          })
+        })
+      }
+    }, [registerInsertHandler, textValue, onChange, onValueChange])
+
+    // Build all suggestions
+    const allSuggestions = React.useMemo(() => {
+      const result: Array<{ id: string; label: string; type: 'input' | 'field' | 'knowledge' }> = []
+      
+      // Input document fields
+      inputFields.forEach(f => {
+        result.push({ id: f.id, label: f.name, type: 'input' })
+      })
+      
+      // Transform field options
+      options.forEach(o => {
+        result.push({ id: o.id, label: o.label, type: 'field' })
+      })
+      
+      // Knowledge options
+      knowledgeOptions.forEach(k => {
+        result.push({ id: k.id, label: k.label, type: 'knowledge' })
+      })
+      
+      return result
+    }, [inputFields, options, knowledgeOptions])
+
+    // Detect @ and show suggestions
+    const checkForMention = React.useCallback((cursorPosition: number) => {
+      if (allSuggestions.length === 0) {
+        setShowSuggestions(false)
+        return
+      }
+
+      // Look backward from cursor to find @
+      let atIndex = -1
+      for (let i = cursorPosition - 1; i >= 0; i--) {
+        const char = textValue[i]
+        if (char === "@") {
+          atIndex = i
+          break
+        }
+        // Stop if we hit whitespace (except space after @)
+        if (/[\n\r\t]/.test(char)) {
+          break
+        }
+        // For transform mode, also stop at { or }
+        if (isTransformMode && (char === '{' || char === '}')) {
+          break
+        }
+      }
+
+      if (atIndex === -1) {
+        setShowSuggestions(false)
+        return
+      }
+
+      // Check if there's a space or start of string before @
+      if (atIndex > 0 && !/[\s\n\r\t{]/.test(textValue[atIndex - 1])) {
+        setShowSuggestions(false)
+        return
+      }
+
+      // Extract query after @
+      const query = textValue.slice(atIndex + 1, cursorPosition).replace(/^"/, "").toLowerCase()
+      setMentionQuery(query)
+      setMentionStartIndex(atIndex)
+
+      // Filter suggestions
+      const matches = allSuggestions.filter(s => 
+        s.label.toLowerCase().includes(query)
+      )
+      setSuggestions(matches)
+      setShowSuggestions(matches.length > 0)
+      setSelectedIndex(0)
+    }, [textValue, allSuggestions, isTransformMode])
+
+    const handleChange = React.useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const newValue = e.target.value
+      onChange?.(newValue)
+      onValueChange?.(newValue)
+      
+      // Check for mention after a short delay to get accurate cursor position
+      requestAnimationFrame(() => {
+        checkForMention(e.target.selectionStart || 0)
+      })
+    }, [onChange, onValueChange, checkForMention])
+
+    const handleKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (!showSuggestions) return
+
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault()
+          setSelectedIndex((prev) => (prev + 1) % suggestions.length)
+          break
+        case "ArrowUp":
+          e.preventDefault()
+          setSelectedIndex((prev) => (prev - 1 + suggestions.length) % suggestions.length)
+          break
+        case "Enter":
+        case "Tab":
+          if (suggestions.length > 0) {
+            e.preventDefault()
+            insertMention(suggestions[selectedIndex])
+          }
+          break
+        case "Escape":
+          e.preventDefault()
+          setShowSuggestions(false)
+          break
+      }
+    }, [showSuggestions, suggestions, selectedIndex])
+
+    const insertMention = React.useCallback((suggestion: { id: string; label: string; type: 'input' | 'field' | 'knowledge' }) => {
+      if (!textareaRef.current) return
+
+      const cursorPosition = textareaRef.current.selectionStart || 0
+      
+      let insertText: string
+      if (suggestion.type === 'input') {
+        // For input documents, use @Name format
+        insertText = suggestion.label.includes(' ') ? `@"${suggestion.label}"` : `@${suggestion.label}`
+      } else if (suggestion.type === 'knowledge') {
+        // For knowledge, use {kb:Name} format
+        insertText = `{kb:${suggestion.label}}`
+      } else {
+        // For fields, use {Name} format
+        insertText = `{${suggestion.label}}`
+      }
+      
+      // Find the @ symbol to replace from
+      const before = textValue.slice(0, mentionStartIndex)
+      const after = textValue.slice(cursorPosition)
+      const newValue = before + insertText + ' ' + after
+      
+      // Update value
+      onChange?.(newValue)
+      onValueChange?.(newValue)
+
+      // Move cursor and close suggestions
+      setShowSuggestions(false)
+      
+      // Set cursor position after state update
+      const newCursorPosition = mentionStartIndex + insertText.length + 1
+      requestAnimationFrame(() => {
+        if (textareaRef.current) {
+          textareaRef.current.selectionStart = newCursorPosition
+          textareaRef.current.selectionEnd = newCursorPosition
+          textareaRef.current.focus()
+        }
+      })
+    }, [textValue, mentionStartIndex, onChange, onValueChange])
+
+    const handleBlur = React.useCallback(() => {
+      // Delay hiding to allow click on suggestion
+      setTimeout(() => setShowSuggestions(false), 150)
+    }, [])
+
+    const getIcon = (type: 'input' | 'field' | 'knowledge') => {
+      switch (type) {
+        case 'input':
+          return <Upload className="h-4 w-4 text-amber-600" />
+        case 'knowledge':
+          return <BookOpen className="h-4 w-4 text-emerald-600" />
+        default:
+          return <FileText className="h-4 w-4 text-blue-600" />
+      }
+    }
+
+    const getItemClass = (type: 'input' | 'field' | 'knowledge', isSelected: boolean) => {
+      const base = "flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors"
+      if (isSelected) {
+        switch (type) {
+          case 'input':
+            return cn(base, "bg-amber-50 text-amber-900")
+          case 'knowledge':
+            return cn(base, "bg-emerald-50 text-emerald-900")
+          default:
+            return cn(base, "bg-blue-50 text-blue-900")
+        }
+      }
+      return cn(base, "hover:bg-slate-50")
+    }
+
+    return (
+      <div className="relative">
+        <textarea
+          ref={combinedRef}
+          value={value}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
+          className={cn(
+            "flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+            className
+          )}
+          {...props}
+        />
+
+        {/* Suggestions dropdown */}
+        {showSuggestions && suggestions.length > 0 && (
+          <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-auto rounded-lg border border-slate-200 bg-white shadow-lg">
+            {suggestions.map((suggestion, index) => (
+              <button
+                key={`${suggestion.type}-${suggestion.id}`}
+                type="button"
+                className={getItemClass(suggestion.type, index === selectedIndex)}
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  insertMention(suggestion)
+                }}
+                onMouseEnter={() => setSelectedIndex(index)}
+              >
+                {getIcon(suggestion.type)}
+                <div className="flex-1">
+                  <div className="font-medium">
+                    {suggestion.type === 'input' 
+                      ? (suggestion.label.includes(' ') ? `@"${suggestion.label}"` : `@${suggestion.label}`)
+                      : suggestion.type === 'knowledge'
+                      ? `{kb:${suggestion.label}}`
+                      : `{${suggestion.label}}`
+                    }
+                  </div>
+                </div>
+                <span className="text-xs text-slate-400 capitalize">{suggestion.type}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+)
+
+MentionTextarea.displayName = "MentionTextarea"
+
+export { MentionTextarea }

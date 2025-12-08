@@ -1153,7 +1153,7 @@ export function getStaticSchemaTemplates(userEmail?: string | null): SchemaTempl
   if (!userEmail) {
     return allTemplates.filter((template) => {
       return (!template.allowedDomains || template.allowedDomains.length === 0) &&
-             (!template.allowedEmails || template.allowedEmails.length === 0)
+        (!template.allowedEmails || template.allowedEmails.length === 0)
     })
   }
 
@@ -1164,7 +1164,7 @@ export function getStaticSchemaTemplates(userEmail?: string | null): SchemaTempl
     const hasNoRestrictions =
       (!template.allowedDomains || template.allowedDomains.length === 0) &&
       (!template.allowedEmails || template.allowedEmails.length === 0)
-    
+
     if (hasNoRestrictions) {
       return true
     }

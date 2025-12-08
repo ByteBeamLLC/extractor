@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useCallback, useEffect, useMemo, useState } from "react"
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { MentionTextarea } from "@/components/ui/mention-textarea"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -31,7 +31,8 @@ export function TransformBuilder(props: {
     )
   }, [allColumns, selected])
 
-  const [insertFn, setInsertFn] = useState<null | ((token: string) => void)>(null)
+  // Keep mention insert handler without forcing re-renders when it re-registers
+  const insertFnRef = useRef<null | ((token: string) => void)>(null)
   const [knowledgeOptions, setKnowledgeOptions] = useState<{ id: string; label: string; type: 'folder' | 'file' }[]>([])
 
   useEffect(() => {
@@ -67,12 +68,12 @@ export function TransformBuilder(props: {
   }, [visualGroups, availableFields])
 
   const insertToken = (t: string) => {
-    if (insertFn) insertFn(t)
+    if (insertFnRef.current) insertFnRef.current(t)
   }
 
   // Stable handler identity to avoid update loops with child effect
   const handleRegisterInsert = useCallback((fn: (token: string) => void) => {
-    setInsertFn(() => fn)
+    insertFnRef.current = fn
   }, [])
 
   if (!selected.isTransformation) return null
@@ -168,12 +169,19 @@ export function TransformBuilder(props: {
   }
 
   // Get prompt from config
-  const getPromptValue = () => {
+  const getPromptValue = (): string => {
     const config = selected.transformationConfig
-    if (typeof config === 'object' && config !== null && 'prompt' in config) {
-      return String((config as any).prompt || "")
+    if (typeof config === 'string') {
+      return config
     }
-    return String(config || "")
+    if (typeof config === 'object' && config !== null) {
+      if ('prompt' in config && typeof (config as any).prompt === 'string') {
+        return (config as any).prompt
+      }
+      // If config is an object without a prompt property, return empty string
+      return ""
+    }
+    return ""
   }
 
   const setPromptValue = (value: string) => {
@@ -289,6 +297,19 @@ export function TransformBuilder(props: {
               Web Reader - Read and extract content from URLs
             </label>
           </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="tool-braille"
+              checked={selectedTools.includes('braille')}
+              onCheckedChange={() => toggleTool('braille')}
+            />
+            <label
+              htmlFor="tool-braille"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+            >
+              Braille - Convert text to Braille format
+            </label>
+          </div>
         </div>
         <p className="text-xs text-muted-foreground">
           Select which tools the AI can use. Only selected tools will be available during transformation.
@@ -297,4 +318,3 @@ export function TransformBuilder(props: {
     </div>
   )
 }
-

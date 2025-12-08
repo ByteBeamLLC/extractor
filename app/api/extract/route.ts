@@ -6,7 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { upsertJobStatus, type JobMetadata, uploadOcrAnnotatedImage, uploadOriginalFile } from "@/lib/jobs/server"
 import type { Database } from "@/lib/supabase/types"
-import { flattenFields } from "@/lib/schema"
+import { flattenFields, type InputDocument } from "@/lib/schema"
 import {
   FALLBACK_VALUE,
   computeInitialReviewMeta,
@@ -15,6 +15,15 @@ import {
   sanitizeResultsFromFlat,
   sanitizeResultsFromTree,
 } from "@/lib/extraction-results"
+import { parseMentions } from "@/lib/extraction/mentionParser"
+
+// Multi-document input structure for API requests
+export interface InputDocumentPayload {
+  fieldId: string
+  name: string
+  data: string // base64 encoded
+  type: string // mime type
+}
 
 export const runtime = "nodejs"
 
@@ -209,6 +218,44 @@ interface DotsOcrArtifacts {
   markdown?: string
   imageData?: string
   imageContentType?: string
+}
+
+function applyFileNameFallbackToTree(results: any, fields: any[], fileName: string): any {
+  const out: Record<string, any> = Array.isArray(fields) ? {} : results
+  for (const field of fields ?? []) {
+    const id = field?.id
+    if (!id) continue
+    const current = results?.[id]
+    if (field.type === "object") {
+      out[id] = applyFileNameFallbackToTree(current || {}, field.children || [], fileName)
+    } else if (field.type === "list" || field.type === "table") {
+      out[id] = current
+    } else {
+      if (typeof current === "string" && (current === FALLBACK_VALUE || current.trim().length === 0)) {
+        out[id] = fileName
+      } else {
+        out[id] = current
+      }
+    }
+  }
+  return out
+}
+
+function applyFileNameFallbackToFlat(results: any, schema: Record<string, any>, fileName: string): any {
+  const out: Record<string, any> = {}
+  Object.entries(schema || {}).forEach(([key, column]) => {
+    const current = results?.[key]
+    if (column?.type === "object" && Array.isArray(column?.children)) {
+      out[key] = applyFileNameFallbackToTree(current || {}, column.children, fileName)
+    } else {
+      if (typeof current === "string" && (current === FALLBACK_VALUE || current.trim().length === 0)) {
+        out[key] = fileName
+      } else {
+        out[key] = current
+      }
+    }
+  })
+  return out
 }
 
 function gatherCandidateObjects(value: any): any[] {
@@ -688,7 +735,42 @@ export async function POST(request: NextRequest) {
       schemaTree,
       extractionPromptOverride,
       job: rawJobMeta,
+      inputDocuments: inputDocsPayload,
+      fieldInputDocMap,
+      // Multi-document support: array of input documents keyed by field ID
     } = requestData
+
+    // Process input documents if provided (multi-document mode)
+    const inputDocuments: Map<string, InputDocumentPayload> = new Map()
+    if (inputDocsPayload && typeof inputDocsPayload === 'object') {
+      Object.entries(inputDocsPayload).forEach(([fieldId, doc]: [string, any]) => {
+        if (doc && doc.data) {
+          inputDocuments.set(fieldId, {
+            fieldId,
+            name: doc.name || fieldId,
+            data: doc.data,
+            type: doc.type || 'application/octet-stream',
+          })
+        }
+      })
+    }
+    const isMultiDocumentMode = inputDocuments.size > 0
+    console.log("[bytebeam] Multi-document mode:", isMultiDocumentMode, "documents:", inputDocuments.size)
+
+    const sanitizedInputDocuments =
+      isMultiDocumentMode && inputDocuments.size > 0
+        ? Object.fromEntries(
+          Array.from(inputDocuments.entries()).map(([fieldId, doc]) => [
+            fieldId,
+            {
+              fieldId,
+              fileName: doc.name,
+              fileUrl: "",
+              uploadedAt: new Date().toISOString(),
+            },
+          ]),
+        )
+        : null
 
     let supabase: SupabaseClient<Database> | null = null
     let userId: string | null = null
@@ -730,35 +812,38 @@ export async function POST(request: NextRequest) {
       console.log("[bytebeam] Schema keys:", Object.keys(schema || {}))
     }
 
-    if (!fileData || !fileData.data) {
-      console.log("[bytebeam] Error: No file data received")
-      return NextResponse.json({ error: "No file was uploaded or file is invalid" }, { status: 400 })
-    }
-
     if (!schema && !schemaTree) {
       console.log("[bytebeam] Error: No schema received")
       return NextResponse.json({ error: "No schema was provided" }, { status: 400 })
     }
 
-    // Decode base64 safely in Node runtime
-    const buffer = Buffer.from(String(fileData.data), "base64")
+    const hasPrimaryFile = Boolean(fileData && fileData.data)
+    if (!hasPrimaryFile && !isMultiDocumentMode) {
+      console.log("[bytebeam] Error: No file data received")
+      return NextResponse.json({ error: "No file was uploaded or file is invalid" }, { status: 400 })
+    }
+
+    // Decode base64 safely in Node runtime for single-file mode
+    const buffer = hasPrimaryFile ? Buffer.from(String(fileData?.data), "base64") : Buffer.from([])
     const bytes = new Uint8Array(buffer)
 
     console.log("[bytebeam] File converted from base64, size:", bytes.length)
 
-    if (bytes.length === 0) {
+    if (hasPrimaryFile && bytes.length === 0) {
       console.log("[bytebeam] Error: Empty file received")
       return NextResponse.json({ error: "Uploaded file is empty" }, { status: 400 })
     }
 
-    const originalMimeType = fileData.type ?? ""
+    const originalMimeType = fileData?.type ?? ""
     const fileMimeType = originalMimeType.toLowerCase()
-    const fileName = fileData.name ?? "uploaded"
+    const fileName = fileData?.name ?? "uploaded"
     const fileExt = fileName.toLowerCase()
     const isImageFile =
       fileMimeType.startsWith("image/") || fileExt.match(/\.(png|jpg|jpeg|gif|bmp|webp)$/)
     const isPdfFile = fileMimeType === "application/pdf" || fileExt.endsWith(".pdf")
-    const shouldProcessDotsOcr = isImageFile || isPdfFile
+    // dots.ocr is disabled; send files directly to OpenRouter instead
+    const shouldProcessDotsOcr = false
+    const shouldGenerateMarkdown = hasPrimaryFile && (isImageFile || isPdfFile)
 
     await syncJob({
       status: "processing",
@@ -766,6 +851,7 @@ export async function POST(request: NextRequest) {
       completedAt: null,
       ocrMarkdown: null,
       ocrAnnotatedImageUrl: null,
+      inputDocuments: sanitizedInputDocuments ?? undefined,
     })
 
     if (shouldProcessDotsOcr && !DOTS_OCR_SERVICE_URL && !process.env.HUGGINGFACE_API_KEY) {
@@ -788,7 +874,7 @@ export async function POST(request: NextRequest) {
 
     // Generate markdown and upload original file in parallel
     console.log("[bytebeam] Setting up markdown generation, shouldProcessDotsOcr:", shouldProcessDotsOcr)
-    markdownPromise = shouldProcessDotsOcr
+    markdownPromise = shouldGenerateMarkdown
       ? generateMarkdownFromDocument({
         bytes,
         fileName,
@@ -994,25 +1080,71 @@ export async function POST(request: NextRequest) {
 
     const warnings: string[] = []
 
-    let extractedDocumentText = ""
-    if (!isImageFile) {
-      const extraction = await extractTextFromDocument(bytes, fileName, fileMimeType)
-      extractedDocumentText = extraction.text
-      warnings.push(...extraction.warnings)
-    }
+    if (isMultiDocumentMode) {
+      const docNameById = new Map<string, string>()
+      inputDocuments.forEach((doc, id) => {
+        docNameById.set(id, doc.name || id)
+      })
 
-    if (isImageFile) {
-      console.log("[bytebeam] Processing as image file...")
+      const fieldDocHints =
+        fieldInputDocMap && typeof fieldInputDocMap === 'object'
+          ? (fieldInputDocMap as Record<string, string[]>)
+          : {}
+      const routingLines = Object.entries(fieldDocHints).map(
+        ([fieldId, docIds]) =>
+          `- ${fieldId}: ${docIds.map((id) => docNameById.get(id) || id).join(", ")}`,
+      )
 
-      // Build base64 without spreading large arrays (prevents stack issues)
-      const base64 = Buffer.from(bytes).toString("base64")
-      const mimeType = originalMimeType || fileMimeType || "image/png"
-
-      console.log("[bytebeam] Image processed, base64 length:", base64.length)
+      const routingText = routingLines.length > 0
+        ? `Document routing (use only these documents for each field):\n${routingLines.join("\n")}`
+        : "No explicit document routing provided; use the content of the attached documents as needed."
 
       const baseText = extractionPromptOverride
-        ? `${extractionPromptOverride}\n\nSchema Fields (for reference):\n${schemaSummary}`
-        : `You are a specialized AI model for structured data extraction. Your purpose is to accurately extract information from the given image based on a dynamic, user-provided schema.\n\n${schemaSummary}
+        ? `${extractionPromptOverride}\n\n${routingText}\n\nSchema Fields (for reference):\n${schemaSummary}`
+        : `You are a specialized AI model for structured data extraction. Multiple input documents are attached. Use only the documents referenced for each field (see routing below). Do not cross-contaminate data between documents.\n\n${routingText}\n\n${schemaSummary}
+
+Guidelines:
+- Strictly adhere to the schema. Do not add or remove fields.
+- If a field is not present in its referenced document(s), return "-" (a single hyphen). Do not guess.
+- Respect data types and formatting instructions supplied in the schema.
+- Provide a "__meta__" object with a "confidence" array. Each entry must contain a "fieldId" and a "value" between 0 and 1 describing your confidence in that field. Every field must appear exactly once in the confidence array. Use 1.0 only when highly certain; use 0.0 when the value is "-" or uncertain.`
+
+      const contents: any[] = [{ type: "text", text: baseText }]
+
+      inputDocuments.forEach((doc, fieldId) => {
+        const mimeType = doc.type || "application/octet-stream"
+        contents.push({
+          type: "text",
+          text: `Document "${doc.name || fieldId}" (input id: ${fieldId})`,
+        })
+        contents.push({
+          type: "image",
+          image: `data:${mimeType};base64,${doc.data}`,
+        })
+      })
+
+      documentContent = contents
+      extractionPrompt = ""
+    } else {
+      let extractedDocumentText = ""
+      if (!isImageFile) {
+        const extraction = await extractTextFromDocument(bytes, fileName, fileMimeType)
+        extractedDocumentText = extraction.text
+        warnings.push(...extraction.warnings)
+      }
+
+      if (isImageFile) {
+        console.log("[bytebeam] Processing as image file...")
+
+        // Build base64 without spreading large arrays (prevents stack issues)
+        const base64 = Buffer.from(bytes).toString("base64")
+        const mimeType = originalMimeType || fileMimeType || "image/png"
+
+        console.log("[bytebeam] Image processed, base64 length:", base64.length)
+
+        const baseText = extractionPromptOverride
+          ? `${extractionPromptOverride}\n\nSchema Fields (for reference):\n${schemaSummary}`
+          : `You are a specialized AI model for structured data extraction. Your purpose is to accurately extract information from the given image based on a dynamic, user-provided schema.\n\n${schemaSummary}
 
 Here are the guiding principles for your operation:
 
@@ -1036,18 +1168,18 @@ Follow these steps:
 5. Construct the final JSON object, ensuring it strictly validates against the provided schema and contains no extra text or explanations.
 6. Include a "__meta__" object with a "confidence" array. Each entry must be an object with keys "fieldId" (the schema field ID) and "value" (a decimal between 0 and 1 representing your confidence in that field). Every leaf field must appear exactly once in this array.`
 
-      documentContent = [
-        { type: "text", text: baseText },
-        { type: "image", image: `data:${mimeType};base64,${base64}` },
-      ]
+        documentContent = [
+          { type: "text", text: baseText },
+          { type: "image", image: `data:${mimeType};base64,${base64}` },
+        ]
 
-      extractionPrompt = "" // Not used for multimodal content
-    } else if (isPdfFile) {
-      console.log("[bytebeam] Processing as PDF file...")
+        extractionPrompt = "" // Not used for multimodal content
+      } else if (isPdfFile) {
+        console.log("[bytebeam] Processing as PDF file...")
 
-      const baseInstructions = extractionPromptOverride
-        ? `${extractionPromptOverride}\n\nSchema Fields (for reference):\n${schemaSummary}`
-        : `You are a specialized AI model for structured data extraction. A PDF document is attached. Read it carefully (including any scanned pages) and extract information according to the provided schema.\n\n${schemaSummary}
+        const baseInstructions = extractionPromptOverride
+          ? `${extractionPromptOverride}\n\nSchema Fields (for reference):\n${schemaSummary}`
+          : `You are a specialized AI model for structured data extraction. A PDF document is attached. Read it carefully (including any scanned pages) and extract information according to the provided schema.\n\n${schemaSummary}
 
 Guidelines:
 - Strictly adhere to the schema. Do not add or remove fields.
@@ -1057,89 +1189,90 @@ Guidelines:
 - Provide a "__meta__" object with a "confidence" array. Each entry must contain a "fieldId" and a "value" between 0 and 1 describing your confidence in that field.
 - Every field defined in the schema must appear exactly once in the confidence array. Use 1.0 only when you are highly certain; use 0.0 when the value is "-" or uncertain.`
 
-      documentContent = [
-        { type: "text", text: baseInstructions },
-        {
-          type: "file",
-          mediaType: originalMimeType || fileMimeType || "application/pdf",
-          data: Buffer.from(bytes),
-        },
-      ]
+        const base64 = Buffer.from(bytes).toString("base64")
+        const mimeType = originalMimeType || fileMimeType || "application/pdf"
 
-      if (extractedDocumentText.trim().length > 0) {
-        let supplemental = extractedDocumentText
-        const maxSupplementalChars = 15_000
-        if (supplemental.length > maxSupplementalChars) {
-          supplemental = `${supplemental.slice(0, maxSupplementalChars)}\n\n[Truncated supplemental text due to length]`
-          warnings.push(
-            `Supplemental extracted text truncated to ${maxSupplementalChars} characters to stay within model limits.`,
-          )
+        documentContent = [
+          { type: "text", text: baseInstructions },
+          { type: "image", image: `data:${mimeType};base64,${base64}` },
+        ]
+        extractionPrompt = ""
+
+        if (extractedDocumentText.trim().length > 0) {
+          let supplemental = extractedDocumentText
+          const maxSupplementalChars = 15_000
+          if (supplemental.length > maxSupplementalChars) {
+            supplemental = `${supplemental.slice(0, maxSupplementalChars)}\n\n[Truncated supplemental text due to length]`
+            warnings.push(
+              `Supplemental extracted text truncated to ${maxSupplementalChars} characters to stay within model limits.`,
+            )
+          }
+          // Provide extracted text as supplemental context only when available
+          documentContent.push({
+            type: "text",
+            text: `Supplemental extracted text (may be incomplete OCR):\n${supplemental}`,
+          })
         }
-        // Provide extracted text as supplemental context only when available
-        documentContent.push({
-          type: "text",
-          text: `Supplemental extracted text (may be incomplete OCR):\n${supplemental}`,
-        })
-      }
 
-      extractionPrompt = ""
-    } else {
-      console.log("[bytebeam] Processing as text-based document...", originalMimeType || fileMimeType || fileName)
+        extractionPrompt = ""
+      } else {
+        console.log("[bytebeam] Processing as text-based document...", originalMimeType || fileMimeType || fileName)
 
-      console.log("[bytebeam] Document text length:", extractedDocumentText.length)
+        console.log("[bytebeam] Document text length:", extractedDocumentText.length)
 
-      if (extractedDocumentText.trim().length === 0) {
-        console.log("[bytebeam] No readable text detected; returning fallback results")
-        const fallback = schemaTree && Array.isArray(schemaTree)
-          ? buildFallbackFromTree(schemaTree)
-          : buildFallbackFromFlat(schema)
-        const reviewMeta = computeInitialReviewMeta(fallback, {
-          handledWithFallback: true,
-          fallbackReason: "No readable text detected.",
-        })
-        const confidenceMap = Object.fromEntries(
-          Object.entries(reviewMeta).map(([fieldId, meta]) => [fieldId, meta.confidence ?? null]),
-        )
-        const fallbackWithMeta = mergeResultsWithMeta(fallback, {
-          review: reviewMeta,
-          confidence: confidenceMap,
-        })
-        warnings.push("No readable text detected. Returned '-' for all fields.")
-        const ocrResult = ocrPromise ? await ocrPromise : null
-        const markdownResult = markdownPromise ? await markdownPromise : null
-        const completedAt = new Date()
-        await syncJob({
-          status: "completed",
-          results: fallbackWithMeta,
-          completedAt,
+        if (extractedDocumentText.trim().length === 0) {
+          console.log("[bytebeam] No readable text detected; returning fallback results")
+          const fallback = schemaTree && Array.isArray(schemaTree)
+            ? buildFallbackFromTree(schemaTree)
+            : buildFallbackFromFlat(schema)
+          const reviewMeta = computeInitialReviewMeta(fallback, {
+            handledWithFallback: true,
+            fallbackReason: "No readable text detected.",
+          })
+          const confidenceMap = Object.fromEntries(
+            Object.entries(reviewMeta).map(([fieldId, meta]) => [fieldId, meta.confidence ?? null]),
+          )
+          const fallbackWithMeta = mergeResultsWithMeta(fallback, {
+            review: reviewMeta,
+            confidence: confidenceMap,
+          })
+          warnings.push("No readable text detected. Returned '-' for all fields.")
+          const ocrResult = ocrPromise ? await ocrPromise : null
+          const markdownResult = markdownPromise ? await markdownPromise : null
+          const completedAt = new Date()
+          await syncJob({
+            status: "completed",
+            results: fallbackWithMeta,
+            completedAt,
           errorMessage: "No readable text detected",
           ocrMarkdown: markdownResult?.markdown ?? ocrResult?.markdown ?? null,
           ocrAnnotatedImageUrl: ocrResult?.annotatedImageUrl ?? null,
           originalFileUrl: markdownResult?.originalFileUrl ?? null,
+          inputDocuments: sanitizedInputDocuments ?? undefined,
         })
-        return NextResponse.json(
-          {
-            success: true,
-            results: fallbackWithMeta,
-            warnings,
-            handledWithFallback: true,
-            ocrMarkdown: markdownResult?.markdown ?? ocrResult?.markdown ?? null,
-            ocrAnnotatedImageUrl: ocrResult?.annotatedImageUrl ?? null,
-            originalFileUrl: markdownResult?.originalFileUrl ?? null,
-          },
-          { status: 200 },
-        )
-      }
+          return NextResponse.json(
+            {
+              success: true,
+              results: fallbackWithMeta,
+              warnings,
+              handledWithFallback: true,
+              ocrMarkdown: markdownResult?.markdown ?? ocrResult?.markdown ?? null,
+              ocrAnnotatedImageUrl: ocrResult?.annotatedImageUrl ?? null,
+              originalFileUrl: markdownResult?.originalFileUrl ?? null,
+            },
+            { status: 200 },
+          )
+        }
 
-      extractionPrompt = extractionPromptOverride
-        ? `${extractionPromptOverride}
+        extractionPrompt = extractionPromptOverride
+          ? `${extractionPromptOverride}
 
 Schema Fields (for reference):
 ${schemaSummary}
 
 Document:
 ${extractedDocumentText}`
-        : `You are a specialized AI model for structured data extraction. Your purpose is to accurately extract information from a given document based on a dynamic, user-provided schema.\n\n${schemaSummary}
+          : `You are a specialized AI model for structured data extraction. Your purpose is to accurately extract information from a given document based on a dynamic, user-provided schema.\n\n${schemaSummary}
 
 Here are the guiding principles for your operation:
 
@@ -1167,6 +1300,7 @@ Follow these steps:
 4. If information for a field is not present in the document, return "-" as its value.
 5. Construct the final JSON object, ensuring it strictly validates against the provided schema and contains no extra text or explanations.
 6. Add a "__meta__" object with a "confidence" array where each item includes a "fieldId" and a "value" between 0 and 1 indicating your confidence in that field's value. Every field must appear exactly once in this array.`
+      }
     }
 
     console.log("[bytebeam] Processing with Gemini...")
@@ -1196,9 +1330,14 @@ Follow these steps:
 
       const rawForSanitization = modelValues ?? (result.object as Record<string, any>)
 
-      const sanitizedResults = schemaTree && Array.isArray(schemaTree)
+      let sanitizedResults = schemaTree && Array.isArray(schemaTree)
         ? sanitizeResultsFromTree(schemaTree, rawForSanitization)
         : sanitizeResultsFromFlat(schema, rawForSanitization)
+
+      // Fill empty string results ("-") with the file name so inputs are not left blank
+      sanitizedResults = schemaTree && Array.isArray(schemaTree)
+        ? applyFileNameFallbackToTree(sanitizedResults, schemaTree, fileName)
+        : applyFileNameFallbackToFlat(sanitizedResults, schema, fileName)
 
       const expectedFieldIds = schemaTree && Array.isArray(schemaTree)
         ? Array.from(
@@ -1257,6 +1396,7 @@ Follow these steps:
         ocrMarkdown: markdownResult?.markdown ?? ocrResult?.markdown ?? null,
         ocrAnnotatedImageUrl: ocrResult?.annotatedImageUrl ?? null,
         originalFileUrl: markdownResult?.originalFileUrl ?? null,
+        inputDocuments: sanitizedInputDocuments ?? undefined,
       })
       return NextResponse.json(responsePayload)
     } catch (modelError) {
@@ -1291,6 +1431,7 @@ Follow these steps:
         ocrMarkdown: markdownResult?.markdown ?? ocrResult?.markdown ?? null,
         ocrAnnotatedImageUrl: ocrResult?.annotatedImageUrl ?? null,
         originalFileUrl: markdownResult?.originalFileUrl ?? null,
+        inputDocuments: sanitizedInputDocuments ?? undefined,
       })
       return NextResponse.json({
         success: true,
@@ -1315,6 +1456,7 @@ Follow these steps:
       ocrMarkdown: markdownResult?.markdown ?? ocrResult?.markdown ?? null,
       ocrAnnotatedImageUrl: ocrResult?.annotatedImageUrl ?? null,
       originalFileUrl: markdownResult?.originalFileUrl ?? null,
+      inputDocuments: sanitizedInputDocuments ?? undefined,
     })
     return NextResponse.json(
       {

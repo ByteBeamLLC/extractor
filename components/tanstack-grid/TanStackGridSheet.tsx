@@ -179,6 +179,8 @@ export function TanStackGridSheet({
     Record<string, { query: string; jobIds: string[] }>
   >({});
 
+  const hasInputColumns = useMemo(() => columns.some((c) => c.type === "input"), [columns]);
+
   const currentSearchState = schemaId ? searchStateBySchema[schemaId] : undefined;
   const searchMatchingIds = currentSearchState?.jobIds ?? EMPTY_SEARCH_RESULTS;
   const currentSearchQuery = currentSearchState?.query ?? "";
@@ -214,7 +216,12 @@ export function TanStackGridSheet({
     return jobs.map((job) => {
       const valueMap: Record<string, unknown> = {};
       for (const col of columns) {
-        valueMap[col.id] = job.results?.[col.id] ?? null;
+        if (col.type === "input") {
+          const doc = job.inputDocuments?.[col.id];
+          valueMap[col.id] = doc?.fileName ?? null;
+        } else {
+          valueMap[col.id] = job.results?.[col.id] ?? null;
+        }
       }
       return {
         __job: job,
@@ -309,7 +316,7 @@ export function TanStackGridSheet({
     setColumnSizes(newSizes);
   }, [columns, jobs]);
 
-  const pinnedColumnsWidth = 60 + 200; // row index + file columns
+  const pinnedColumnsWidth = 60 + (hasInputColumns ? 0 : 200); // row index + optional file column
   const addColumnWidth = 56;
 
   // Calculate total width of data columns using dynamic sizes
@@ -371,8 +378,10 @@ export function TanStackGridSheet({
           );
         },
       },
-      // File column - FIXED width
-      {
+    ];
+
+    if (!hasInputColumns) {
+      defs.push({
         id: "file-name",
         header: "File",
         size: 200,
@@ -388,8 +397,8 @@ export function TanStackGridSheet({
             />
           </div>
         ),
-      },
-    ];
+      });
+    }
 
     // Add data columns with visual grouping support
     const groupedFieldIds = new Set<string>();
