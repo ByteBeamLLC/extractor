@@ -665,17 +665,30 @@ export function TanStackGridSheet({
   
   // Handle column sizing changes to track user resizes
   const handleColumnSizingChange = useCallback((updater: any) => {
-    const next = typeof updater === 'function' ? updater(columnSizing) : updater;
-    
-    // Mark any resized columns as user-resized and update final sizes
-    for (const [colId, info] of Object.entries(next) as [string, any][]) {
-      if (info && typeof info === 'object' && 'size' in info) {
-        userResizedColumnsRef.current.add(colId);
+    setColumnSizing((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      
+      // Collect all size changes
+      const sizeUpdates: Record<string, number> = {};
+      
+      for (const [colId, info] of Object.entries(next) as [string, any][]) {
+        if (info && typeof info === 'object' && 'size' in info) {
+          userResizedColumnsRef.current.add(colId);
+          sizeUpdates[colId] = info.size;
+        }
       }
-    }
-    
-    setColumnSizing(next);
-  }, [columnSizing]);
+      
+      // Update columnSizes state in a single batch
+      if (Object.keys(sizeUpdates).length > 0) {
+        setColumnSizes((prevSizes) => ({
+          ...prevSizes,
+          ...sizeUpdates,
+        }));
+      }
+      
+      return next;
+    });
+  }, []); // No dependencies needed - uses functional updates
 
   // Table instance with all features enabled
   const table = useReactTable({
