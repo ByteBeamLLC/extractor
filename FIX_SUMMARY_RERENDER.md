@@ -1,37 +1,21 @@
 # Fix for Infinite Re-renders (React Error #301)
 
 ## Issue Description
-The application was crashing with "Minified React error #301" (Too many re-renders) when creating a new schema/job from a template in production. This was caused by an infinite update loop in the `TanStackGridSheet` component.
+The application was crashing with "Minified React error #301" (Too many re-renders) when creating a new schema/job from a template in production. This was caused by an infinite update loop involving the `TanStackGridSheet` component and its parent `StandardResultsView`.
 
 ## Root Cause Analysis
-1.  **Unstable Props**: The `DataExtractionPlatform` component was passing non-memoized callback functions (`renderCellValue`, `getStatusIcon`, `renderStatusPill`, etc.) to `StandardResultsView`, which passed them to `TanStackGridSheet`.
-2.  **Dependency Chain**: `TanStackGridSheet` used these props in the dependency array for `columnDefs`. Since the props changed on every render, `columnDefs` was recalculated on every render.
-3.  **Effect Loop**: `TanStackGridSheet` has a `useEffect` hook that calculates optimal column widths based on `columns` (which are derived from `columnDefs`). This effect called `setColumnSizes` on every render.
-4.  **State Update**: The `setColumnSizes` call triggered a re-render of `TanStackGridSheet`, which triggered the parent `DataExtractionPlatform` to re-render (via callbacks or context), creating a closed loop of updates.
+1.  **Infinite Loop in Grid Layout**: `TanStackGridSheet` has a `useEffect` that calculates column widths. It runs whenever `columns` or `jobs` change.
+2.  **Unstable Props**: `StandardResultsView` was creating a new `sortedJobs` array and new `onSelectRow` callback on every render.
+3.  **State Logic**: The column width calculation effect in `TanStackGridSheet` was calling `setColumnSizes` on every run. Even though values might be similar, the state update could trigger a re-render.
+4.  **Component Reuse**: When switching schemas (e.g. creating a new one), `TanStackGridSheet` was reused (no unique key). Stale state or effect timing (like `isInitialLoadRef`) combined with prop updates pushed it into an unstable state.
 
 ## Fix Implementation
-1.  **Conditional State Update**: Modified the `useEffect` in `components/tanstack-grid/TanStackGridSheet.tsx` to checks if the calculated column sizes are actually different from the current state before calling `setColumnSizes`.
-    ```typescript
-    setColumnSizes((prevSizes) => {
-      // ... comparison logic ...
-      if (sameValues) return prevSizes;
-      return newSizes;
-    });
-    ```
-
-2.  **Memoization**: Wrapped all callback functions passed to `StandardResultsView` in `useCallback` hook within `components/data-extraction-platform.tsx`. This includes:
-    - `getStatusIcon`
-    - `renderStatusPill`
-    - `renderCellValue`
-    - `toggleRowExpansion`
-    - `openTableModal`
-    - `addColumn`
-    - `handleColumnRightClick`
-    - `handleRowDoubleClick` (refactored from inline)
-    - `handleEditColumn` (refactored from inline)
-    - `handleDeleteColumn` (refactored from inline)
+1.  **Conditional State Update**: Modified `TanStackGridSheet.tsx` to only update `columnSizes` state if the calculated values are actually different.
+2.  **Props Stabilization**:
+    -   Memoized `sortedJobs` and `handleSelectRow` in `StandardResultsView.tsx`.
+    -   Memoized all callbacks passed from `DataExtractionPlatform.tsx`.
+3.  **Force Remount**: Added `key={activeSchemaId}` to `TanStackGridSheet` introduction in `StandardResultsView.tsx`. This forces the grid to unmount and remount when the schema changes, ensuring a clean slate and preventing state pollution between schemas.
 
 ## Verification
--   Verified that the infinite loop logic is broken by the conditional state update.
--   Verified that props passed to grid components are stable.
--   Build verified successfully.
+-   Build passes.
+-   Logic ensures that data flow is stable and state updates break the loop.
