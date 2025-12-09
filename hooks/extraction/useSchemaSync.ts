@@ -129,11 +129,7 @@ export function useSchemaSync(options: UseSchemaSyncOptions): UseSchemaSyncRetur
 
             await deleteQuery
           } else {
-            await supabase
-              .from("extraction_jobs")
-              .delete()
-              .eq("schema_id", schema.id)
-              .eq("user_id", userId)
+            // Avoid wiping jobs if the local state is empty; explicit deletions use syncJobRecords
           }
         }
 
@@ -347,4 +343,3 @@ export function useSchemaSync(options: UseSchemaSyncOptions): UseSchemaSyncRetur
     commitSchemaUpdate,
   }
 }
-

@@ -31,6 +31,12 @@ interface TableCellProps {
   ) => void;
   onUpdateCell?: (jobId: string, columnId: string, value: unknown) => void;
   mode?: "interactive" | "summary" | "detail";
+  onOpenNestedGrid?: (payload: {
+    column: SchemaField;
+    job: GridRow["__job"];
+    value: Record<string, any>[];
+    columnHeaders: { key: string; label: string }[];
+  }) => void;
 }
 
 export function TableCell({
@@ -41,6 +47,7 @@ export function TableCell({
   onOpenTableModal,
   onUpdateCell,
   mode = "interactive",
+  onOpenNestedGrid,
 }: TableCellProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const rows = value || [];
@@ -134,14 +141,18 @@ export function TableCell({
     <span className="text-sm text-muted-foreground">No entries</span>
   ) : (
     <div className="space-y-2">
-      {onOpenTableModal && (
+      {(onOpenTableModal || onOpenNestedGrid) && (
         <Button
           type="button"
           size="sm"
           variant="outline"
           onClick={(e) => {
             e.stopPropagation();
-            onOpenTableModal(tableColumn, row.__job, rows, columnHeaders);
+            if (onOpenNestedGrid) {
+              onOpenNestedGrid({ column: tableColumn, job: row.__job, value: rows, columnHeaders });
+            } else if (onOpenTableModal) {
+              onOpenTableModal(tableColumn, row.__job, rows, columnHeaders);
+            }
           }}
           className="h-7 px-2 text-xs w-full"
         >
@@ -162,14 +173,18 @@ export function TableCell({
         <span className="text-xs font-medium text-muted-foreground">
           Nested Table
         </span>
-        {onOpenTableModal && rows.length > 20 && (
+        {(onOpenTableModal || onOpenNestedGrid) && rows.length > 20 && (
           <Button
             type="button"
             size="sm"
             variant="outline"
             onClick={(e) => {
               e.stopPropagation();
-              onOpenTableModal(tableColumn, row.__job, rows, columnHeaders);
+              if (onOpenNestedGrid) {
+                onOpenNestedGrid({ column: tableColumn, job: row.__job, value: rows, columnHeaders });
+              } else if (onOpenTableModal) {
+                onOpenTableModal(tableColumn, row.__job, rows, columnHeaders);
+              }
             }}
             className="h-7 px-2 text-xs"
           >
@@ -264,37 +279,47 @@ export function TableCell({
     );
   }
 
+  const openModal = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onOpenNestedGrid) {
+      onOpenNestedGrid({ column: tableColumn, job: row.__job, value: rows, columnHeaders });
+      return;
+    }
+    setIsModalOpen(true);
+  };
+
   // Interactive and summary modes - show collapsed view with click to expand
   return (
     <>
       <div
         className="cursor-pointer rounded-xl border border-emerald-300/20 bg-emerald-50/30 px-3 py-2 shadow-sm transition-colors hover:bg-emerald-50/40"
-        onClick={() => setIsModalOpen(true)}
+        onClick={openModal}
       >
         {headerContent}
         <div className="mt-2">{previewContent}</div>
       </div>
 
-      <NestedGridModal
-        open={isModalOpen}
-        onOpenChange={setIsModalOpen}
-        title={`${column.name || columnId} • ${row.fileName}`}
-        contentType="table"
-        columnCount={column.columns?.length || 0}
-      >
-        <NestedTableGrid
-          column={column as any}
-          rows={rows}
-          job={row.__job}
-          onUpdate={(updatedValue) => {
-            if (onUpdateCell) {
-              onUpdateCell(row.__job.id, columnId, updatedValue);
-            }
-            setIsModalOpen(false);
-          }}
-        />
-      </NestedGridModal>
+      {!onOpenNestedGrid && (
+        <NestedGridModal
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          title={`${column.name || columnId} • ${row.fileName}`}
+          contentType="table"
+          columnCount={column.columns?.length || 0}
+        >
+          <NestedTableGrid
+            column={column as any}
+            rows={rows}
+            job={row.__job}
+            onUpdate={(updatedValue) => {
+              if (onUpdateCell) {
+                onUpdateCell(row.__job.id, columnId, updatedValue);
+              }
+              setIsModalOpen(false);
+            }}
+          />
+        </NestedGridModal>
+      )}
     </>
   );
 }
-

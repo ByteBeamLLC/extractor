@@ -18,6 +18,8 @@ export type CompoundType = "object" | "list" | "table"
 
 export type InputType = "input"
 
+export type InputFieldType = "document" | "text"
+
 export type DataType = DataPrimitive | CompoundType | InputType
 
 export type TransformationType =
@@ -105,7 +107,7 @@ export interface InputField {
   id: string
   name: string
   type: "input"
-  inputType: "document" // extensible for future: "text", "url", etc.
+  inputType: InputFieldType // "document" for files, "text" for pasted content
   description?: string
   fileConstraints?: InputFieldConstraints
   required?: boolean
@@ -127,6 +129,9 @@ export interface InputDocument {
   fileName: string
   fileUrl: string
   previewUrl?: string | null // For annotated/OCR preview
+  textValue?: string | null // For text-based inputs
+  mimeType?: string | null
+  inputType?: InputFieldType
   uploadedAt: Date
 }
 

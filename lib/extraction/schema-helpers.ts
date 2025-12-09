@@ -1,6 +1,13 @@
 // Schema helper functions for extraction platform
 
-import type { SchemaDefinition, SchemaField, ExtractionJob, VisualGroup, ExtractionResultsMeta } from "@/lib/schema"
+import type {
+  SchemaDefinition,
+  SchemaField,
+  ExtractionJob,
+  VisualGroup,
+  ExtractionResultsMeta,
+  InputDocument,
+} from "@/lib/schema"
 import { extractResultsMeta, mergeResultsWithMeta } from "@/lib/extraction-results"
 import type { SchemaRow, ExtractionJobRow } from "./types"
 
@@ -60,12 +67,73 @@ export function schemaRowToDefinition(row: SchemaRow, jobRows: ExtractionJobRow[
   }
 }
 
+function serializeInputDocuments(
+  inputDocs?: Record<string, InputDocument>,
+): ExtractionJobRow["input_documents"] {
+  if (!inputDocs || Object.keys(inputDocs).length === 0) return null
+
+  const serialized: Record<string, unknown> = {}
+
+  Object.entries(inputDocs).forEach(([fieldId, doc]) => {
+    if (!doc) return
+    const uploadedAt =
+      doc.uploadedAt instanceof Date
+        ? doc.uploadedAt.toISOString()
+        : typeof (doc as any).uploadedAt === "string"
+          ? (doc as any).uploadedAt
+          : null
+
+    serialized[fieldId] = {
+      fieldId,
+      fileName: doc.fileName,
+      fileUrl: doc.fileUrl,
+      previewUrl: doc.previewUrl ?? null,
+      textValue: doc.textValue ?? null,
+      mimeType: doc.mimeType ?? null,
+      inputType: (doc as any).inputType ?? null,
+      uploadedAt,
+    }
+  })
+
+  return serialized
+}
+
+function parseInputDocuments(
+  raw: ExtractionJobRow["input_documents"],
+): Record<string, InputDocument> | null {
+  if (!raw || typeof raw !== "object") return null
+
+  const parsed: Record<string, InputDocument> = {}
+  Object.entries(raw as Record<string, any>).forEach(([fieldId, doc]) => {
+    if (!doc || typeof doc !== "object") return
+    const uploadedAtValue = doc.uploadedAt ?? doc.uploaded_at ?? null
+    const uploadedAt =
+      typeof uploadedAtValue === "string" || uploadedAtValue instanceof Date
+        ? new Date(uploadedAtValue)
+        : new Date()
+
+    parsed[fieldId] = {
+      fieldId: typeof doc.fieldId === "string" ? doc.fieldId : fieldId,
+      fileName: typeof doc.fileName === "string" ? doc.fileName : "",
+      fileUrl: typeof doc.fileUrl === "string" ? doc.fileUrl : "",
+      previewUrl: typeof doc.previewUrl === "string" ? doc.previewUrl : null,
+      textValue: typeof doc.textValue === "string" ? doc.textValue : undefined,
+      mimeType: typeof doc.mimeType === "string" ? doc.mimeType : null,
+      inputType: typeof doc.inputType === "string" ? doc.inputType : null,
+      uploadedAt,
+    }
+  })
+
+  return Object.keys(parsed).length > 0 ? parsed : null
+}
+
 /**
  * Convert a Supabase extraction job row to an ExtractionJob
  */
 export function extractionJobRowToJob(row: ExtractionJobRow): ExtractionJob {
   const raw = (row.results as Record<string, unknown> | null) ?? undefined
   const { values, meta } = extractResultsMeta(raw)
+  const parsedInputDocs = parseInputDocuments(row.input_documents)
 
   return {
     id: row.id,
@@ -79,6 +147,7 @@ export function extractionJobRowToJob(row: ExtractionJobRow): ExtractionJob {
     ocrMarkdown: row.ocr_markdown ?? null,
     ocrAnnotatedImageUrl: row.ocr_annotated_image_url ?? null,
     originalFileUrl: row.original_file_url ?? null,
+    inputDocuments: parsedInputDocs ?? undefined,
   }
 }
 
@@ -130,6 +199,7 @@ export function extractionJobToRow(job: ExtractionJob, schemaId: string, userId:
   const merged = mergeResultsWithMeta(baseResults, meta)
   const serializedResults =
     Object.keys(merged).length === 0 ? null : (merged as ExtractionJobRow["results"])
+  const serializedInputDocs = serializeInputDocuments(job.inputDocuments)
 
   return {
     id: job.id,
@@ -142,6 +212,7 @@ export function extractionJobToRow(job: ExtractionJob, schemaId: string, userId:
     ocr_annotated_image_url: job.ocrAnnotatedImageUrl ?? null,
     original_file_url: job.originalFileUrl ?? null,
     agent_type: job.agentType ?? null,
+    input_documents: serializedInputDocs,
     created_at: job.createdAt?.toISOString() ?? new Date().toISOString(),
     completed_at: job.completedAt ? job.completedAt.toISOString() : null,
     updated_at: new Date().toISOString(),
@@ -173,6 +244,26 @@ export function stableStringify(value: unknown): string {
   return JSON.stringify(sortObject(value))
 }
 
+function normalizeInputDocuments(inputDocs?: Record<string, InputDocument> | null) {
+  if (!inputDocs) return null
+  const entries = Object.entries(inputDocs)
+  if (entries.length === 0) return null
+  const normalized: Record<string, unknown> = {}
+  entries
+    .sort(([a], [b]) => a.localeCompare(b))
+    .forEach(([fieldId, doc]) => {
+      if (!doc) return
+      normalized[fieldId] = {
+        ...doc,
+        uploadedAt:
+          doc.uploadedAt instanceof Date
+            ? doc.uploadedAt.toISOString()
+            : (doc as any).uploadedAt ?? null,
+      }
+    })
+  return normalized
+}
+
 /**
  * Check if two ExtractionJobs are equal (shallow comparison)
  */
@@ -192,6 +283,9 @@ export function jobsShallowEqual(a: ExtractionJob, b: ExtractionJob): boolean {
   const reviewA = a.review ?? null
   const reviewB = b.review ?? null
   const reviewEqual = stableStringify(reviewA) === stableStringify(reviewB)
+  const inputDocsA = normalizeInputDocuments(a.inputDocuments)
+  const inputDocsB = normalizeInputDocuments(b.inputDocuments)
+  const inputDocsEqual = stableStringify(inputDocsA) === stableStringify(inputDocsB)
 
   return (
     a.id === b.id &&
@@ -204,7 +298,8 @@ export function jobsShallowEqual(a: ExtractionJob, b: ExtractionJob): boolean {
     createdAtA === createdAtB &&
     completedAtA === completedAtB &&
     resultsEqual &&
-    reviewEqual
+    reviewEqual &&
+    inputDocsEqual
   )
 }
 
@@ -247,4 +342,3 @@ export function upsertJobInList(list: ExtractionJob[], job: ExtractionJob): Extr
   next[index] = job
   return next
 }
-

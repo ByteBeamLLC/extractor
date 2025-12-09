@@ -146,6 +146,37 @@ export interface Database {
           updated_at?: string | null
         }
       }
+      workspace_preferences: {
+        Row: {
+          user_id: string
+          view_mode: string | null
+          sort: string | null
+          last_opened_schema: string | null
+          last_route: string | null
+          open_tabs: Json | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          user_id: string
+          view_mode?: string | null
+          sort?: string | null
+          last_opened_schema?: string | null
+          last_route?: string | null
+          open_tabs?: Json | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          view_mode?: string | null
+          sort?: string | null
+          last_opened_schema?: string | null
+          last_route?: string | null
+          open_tabs?: Json | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+      }
     }
     Views: {
       [_ in never]: never

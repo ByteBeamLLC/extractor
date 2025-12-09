@@ -31,17 +31,20 @@ import { SetupBanner } from "./setup-banner"
 // import { AgGridSheet } from "./ag-grid-sheet"
 import { TanStackGridSheet } from "./tanstack-grid/TanStackGridSheet"
 import { PrimitiveCell } from "./tanstack-grid/cells/PrimitiveCell"
-import { EditableObjectCell } from "./tanstack-grid/cells/EditableObjectCell"
 import { ListCell } from "./tanstack-grid/cells/ListCell"
 import { SingleSelectCell } from "./tanstack-grid/cells/SingleSelectCell"
 import { MultiSelectCell } from "./tanstack-grid/cells/MultiSelectCell"
+import { ObjectCell } from "./tanstack-grid/cells/ObjectCell"
+import { TableCell } from "./tanstack-grid/cells/TableCell"
+import { NestedGridModal } from "./tanstack-grid/nested/NestedGridModal"
+import { NestedAdvancedField } from "./tanstack-grid/nested/NestedAdvancedField"
 import { OCRDetailModal } from "@/components/OCRDetailModal"
 import { TransformBuilder } from "@/components/transform-builder"
 import { GalleryView } from "@/components/gallery-view/GalleryView"
 import { JobGalleryView } from "@/components/data-extraction/JobGalleryView"
 import { TemplateSelectorDialog } from "@/components/workspace/TemplateSelectorDialog"
 import { ManualRecordDialog } from "@/components/design-preview/views/dashboard/ManualRecordDialog"
-import { MultiDocumentUpload } from "@/components/features/extraction/MultiDocumentUpload"
+import { MultiDocumentUpload, type MultiDocUploadMap, type MultiDocInput } from "@/components/features/extraction/MultiDocumentUpload"
 import { ExtractionDetailDialog } from "@/components/design-preview/views/dashboard/ExtractionDetailDialog"
 import { LabelData, DEFAULT_LABEL_DATA, labelDataToResults } from "@/components/label-maker"
 import { PharmaResultsView } from "@/components/features/extraction/components/PharmaResultsView"
@@ -121,6 +124,7 @@ import {
   Zap,
   Trash2,
   Download,
+  Check,
   CheckCircle,
   Clock,
   AlertCircle,
@@ -584,11 +588,23 @@ export function DataExtractionPlatform({
   const autoAppliedTemplatesRef = useRef<Set<string>>(new Set())
   useEffect(() => {
     if (!externalActiveSchemaId) return
-    setActiveSchemaId((current) => {
-      if (current === externalActiveSchemaId) return current
-      const exists = schemas.some((schema) => schema.id === externalActiveSchemaId)
-      return exists ? externalActiveSchemaId : current
-    })
+    const exists = schemas.some((schema) => schema.id === externalActiveSchemaId)
+    if (exists) {
+      // Schema exists in array, set it as active
+      setActiveSchemaId((current) => {
+        if (current === externalActiveSchemaId) return current
+        return externalActiveSchemaId
+      })
+    } else {
+      // Schema doesn't exist in array yet - it might still be loading
+      // Set it as active anyway so uploads use the correct schema_id
+      // The schema will be loaded from the database when the workspace loads
+      setActiveSchemaId((current) => {
+        if (current === externalActiveSchemaId) return current
+        console.log(`[bytebeam] externalActiveSchemaId ${externalActiveSchemaId} not in schemas array yet, setting as active anyway`)
+        return externalActiveSchemaId
+      })
+    }
   }, [externalActiveSchemaId, schemas])
   useEffect(() => {
     onSchemasChanged?.(schemas)
@@ -1544,7 +1560,8 @@ export function DataExtractionPlatform({
 
             await deleteQuery
           } else {
-            await supabase.from("extraction_jobs").delete().eq("schema_id", schema.id).eq("user_id", userId)
+            // Skip blanket delete when we have no local jobs to avoid wiping existing rows
+            // (explicit job deletions are handled via updateSchemaJobs/syncJobRecords)
           }
         }
 
@@ -1825,16 +1842,24 @@ export function DataExtractionPlatform({
 
   const syncJobRecords = useCallback(
     async (schemaId: string, payload: { upsert?: ExtractionJob[]; deleted?: string[] }) => {
-      if (!session?.user?.id) return
+      if (!session?.user?.id) {
+        console.warn('[bytebeam] syncJobRecords: No user session, skipping sync')
+        return
+      }
       const userId = session.user.id
       const operations: Promise<unknown>[] = []
 
       if (payload.upsert && payload.upsert.length > 0) {
+        console.log(`[bytebeam] syncJobRecords: Upserting ${payload.upsert.length} jobs to schema ${schemaId}`)
+        payload.upsert.forEach((job) => {
+          console.log(`[bytebeam] - Job ${job.id}: status=${job.status}, fileName=${job.fileName}, hasResults=${!!job.results}`)
+        })
         const rows = payload.upsert.map((job) => extractionJobToRow(job, schemaId, userId))
         operations.push(supabase.from("extraction_jobs").upsert(rows))
       }
 
       if (payload.deleted && payload.deleted.length > 0) {
+        console.log(`[bytebeam] syncJobRecords: Deleting ${payload.deleted.length} jobs from schema ${schemaId}`)
         operations.push(
           supabase
             .from("extraction_jobs")
@@ -1845,12 +1870,16 @@ export function DataExtractionPlatform({
         )
       }
 
-      if (operations.length === 0) return
+      if (operations.length === 0) {
+        console.log('[bytebeam] syncJobRecords: No operations to perform')
+        return
+      }
 
       try {
         await Promise.all(operations)
+        console.log(`[bytebeam] syncJobRecords: Successfully synced jobs to schema ${schemaId}`)
       } catch (error) {
-        console.error('Failed to sync jobs', error)
+        console.error('[bytebeam] Failed to sync jobs:', error)
       }
     },
     [session?.user?.id, supabase],
@@ -2065,6 +2094,16 @@ export function DataExtractionPlatform({
     }
   }, [activeSchemaId, schemas, session?.user?.id, syncSchema])
 
+  const handleSaveSchema = useCallback(() => {
+    const schema = schemas.find((s) => s.id === activeSchemaId)
+    if (!schema) return
+    if (!session?.user?.id) {
+      openAuthDialog("sign-in")
+      return
+    }
+    void syncSchema(schema, { includeJobs: true })
+  }, [activeSchemaId, schemas, session?.user?.id, syncSchema, openAuthDialog])
+
   const addColumn = () => {
     const newColumn: SchemaField = {
       id: `col_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -2204,7 +2243,7 @@ export function DataExtractionPlatform({
   const handleFileUpload = async (
     event: React.ChangeEvent<HTMLInputElement>,
     options?: {
-      inputDocuments?: Record<string, { file: File; inputField: InputField }>
+      inputDocuments?: MultiDocUploadMap
       fieldInputDocMap?: Record<string, string[]>
     },
   ) => {
@@ -2217,34 +2256,132 @@ export function DataExtractionPlatform({
       return
     }
 
+    const getUploadFileForDoc = (doc: MultiDocInput): File | null => {
+      if (doc.file) return doc.file
+      if (typeof doc.text === 'string' && doc.text.trim().length > 0) {
+        const baseName = doc.inputField.name || doc.inputField.id || 'input'
+        return new File([doc.text], `${baseName}.txt`, { type: 'text/plain' })
+      }
+      return null
+    }
+
+    const primaryDoc = isMultiInputUpload ? Object.values(options!.inputDocuments!)[0] : null
+    const primaryUpload = isMultiInputUpload && primaryDoc ? getUploadFileForDoc(primaryDoc) : null
+
     const fileArray = isMultiInputUpload
-      ? [Object.values(options!.inputDocuments!)[0].file]
+      ? primaryUpload
+        ? [primaryUpload]
+        : []
       : Array.from(files ?? [])
+
+    if (isMultiInputUpload && fileArray.length === 0) {
+      alert("Please provide at least one file or text input.")
+      return
+    }
     if (fileArray.length === 0) return
 
-    const targetSchemaId = activeSchemaId
+    // Ensure we're using the correct schema - prioritize externalActiveSchemaId and pendingSchemaCreate
+    // This handles cases where:
+    // 1. Schema was just created but not yet in schemas array (pendingSchemaCreate)
+    // 2. Schema is opened from tab but not yet loaded (externalActiveSchemaId)
+    let targetSchemaId = activeSchemaId
+    let targetSchema = activeSchema
+    
+    // Priority 1: externalActiveSchemaId (when opening from tab)
+    if (externalActiveSchemaId) {
+      console.log(`[bytebeam] Upload: externalActiveSchemaId=${externalActiveSchemaId}, activeSchemaId=${activeSchemaId}`)
+      if (externalActiveSchemaId !== activeSchemaId) {
+        console.log(`[bytebeam] Upload: Switching to external schema ${externalActiveSchemaId}`)
+        setActiveSchemaId(externalActiveSchemaId)
+      }
+      targetSchemaId = externalActiveSchemaId
+      const externalSchema = schemas.find((s) => s.id === externalActiveSchemaId)
+      if (externalSchema) {
+        targetSchema = externalSchema
+        console.log(`[bytebeam] Upload: Found external schema in array: ${externalSchema.name}`)
+      } else {
+        // Schema not loaded yet - try to find it in the database or use a placeholder
+        // For now, create minimal schema - fields will be loaded from the actual schema during extraction
+        // The important thing is that the job is saved to the correct schema_id
+        targetSchema = {
+          id: externalActiveSchemaId,
+          name: "Loading...",
+          fields: [],
+          jobs: [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }
+        console.warn(`[bytebeam] Upload: Schema ${externalActiveSchemaId} not in schemas array yet - job will be saved but fields may be empty`)
+      }
+    }
+    
+    // Priority 2: pendingSchemaCreate (when schema was just created)
+    if (pendingSchemaCreate && pendingSchemaCreate.id !== targetSchemaId) {
+      console.log(`[bytebeam] Upload: Using pending schema ${pendingSchemaCreate.id} instead of ${targetSchemaId}`)
+      if (pendingSchemaCreate.id !== activeSchemaId) {
+        setActiveSchemaId(pendingSchemaCreate.id)
+      }
+      targetSchemaId = pendingSchemaCreate.id
+      
+      // Try to find the schema in the array, or create one with fields from template
+      const pendingSchemaExists = schemas.find((s) => s.id === pendingSchemaCreate.id)
+      if (pendingSchemaExists) {
+        targetSchema = pendingSchemaExists
+      } else {
+        // Schema not in array yet - load fields from template if available
+        let fieldsFromTemplate: SchemaField[] = []
+        if (pendingSchemaCreate.templateId) {
+          const templateDef = templateMap.get(pendingSchemaCreate.templateId)
+          if (templateDef?.fields) {
+            fieldsFromTemplate = cloneSchemaFields(templateDef.fields)
+            console.log(`[bytebeam] Upload: Loaded ${fieldsFromTemplate.length} fields from template ${pendingSchemaCreate.templateId}`)
+          }
+        }
+        
+        targetSchema = {
+          id: pendingSchemaCreate.id,
+          name: pendingSchemaCreate.name,
+          fields: fieldsFromTemplate,
+          jobs: [],
+          templateId: pendingSchemaCreate.templateId ?? undefined,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }
+        console.log(`[bytebeam] Upload: Pending schema ${pendingSchemaCreate.id} not in schemas array yet, using template fields`)
+      }
+    }
+    
     const agentSnapshot = selectedAgent
-    const templateIdSnapshot = activeSchema.templateId
-    const fieldsSnapshot = fields
-    const displayColumnsSnapshot = displayColumns
+    const templateIdSnapshot = targetSchema.templateId
+    const fieldsSnapshot = targetSchema.fields
+    const displayColumnsSnapshot = flattenFields(fieldsSnapshot)
 
     // Check if schema has input fields defined
     const inputFieldsInSchema = getInputFields(fieldsSnapshot)
     const hasInputFields = inputFieldsInSchema.length > 0
 
     const now = new Date()
-    const buildInputDocumentMeta = (docs?: Record<string, { file: File; inputField: InputField }>) => {
+    const buildInputDocumentMeta = (docs?: MultiDocUploadMap) => {
       if (!docs) return undefined
       return Object.fromEntries(
-        Object.entries(docs).map(([fieldId, { file }]) => [
-          fieldId,
-          {
+        Object.entries(docs).map(([fieldId, doc]) => {
+          const uploadFile = getUploadFileForDoc(doc)
+          const fileName = uploadFile?.name ?? doc.inputField.name ?? fieldId
+          const mimeType = uploadFile?.type ?? (doc.text ? 'text/plain' : undefined)
+
+          return [
             fieldId,
-            fileName: file.name,
-            fileUrl: URL.createObjectURL(file),
-            uploadedAt: now,
-          },
-        ]),
+            {
+              fieldId,
+              fileName,
+              fileUrl: uploadFile ? URL.createObjectURL(uploadFile) : "",
+              uploadedAt: now,
+              textValue: doc.text ?? null,
+              mimeType: mimeType ?? null,
+              inputType: doc.inputField.inputType ?? 'document',
+            },
+          ]
+        }),
       )
     }
 
@@ -2252,7 +2389,10 @@ export function DataExtractionPlatform({
       ? [
         {
           id: generateUuid(),
-          fileName: Object.values(options!.inputDocuments!)[0]?.file?.name ?? "Multi-document job",
+          fileName:
+            primaryUpload?.name ||
+            Object.values(options!.inputDocuments!)[0]?.inputField?.name ||
+            "Multi-document job",
           status: "pending" as ExtractionJob["status"],
           createdAt: now,
           agentType: agentSnapshot,
@@ -2287,7 +2427,7 @@ export function DataExtractionPlatform({
       file: File,
       job: ExtractionJob | undefined,
       opts?: {
-        inputDocuments?: Record<string, { file: File; inputField: InputField }>
+        inputDocuments?: MultiDocUploadMap
         fieldInputDocMap?: Record<string, string[]>
       },
     ) => {
@@ -2308,10 +2448,15 @@ export function DataExtractionPlatform({
       if (session?.user?.id) {
         jobMeta.userId = session.user.id
       }
+      
+      console.log(`[bytebeam] Processing job ${job.id} for schema ${targetSchemaId} (file: ${job.fileName})`)
 
       const updateJobsForSchema = (
         updater: ExtractionJob[] | ((prev: ExtractionJob[]) => ExtractionJob[])
-      ) => updateSchemaJobs(targetSchemaId, updater)
+      ) => {
+        console.log(`[bytebeam] updateJobsForSchema called for schema ${targetSchemaId}`)
+        return updateSchemaJobs(targetSchemaId, updater)
+      }
 
       try {
         updateJobsForSchema((prev) =>
@@ -2390,16 +2535,21 @@ export function DataExtractionPlatform({
           data: base64Data,
         }
 
-        let inputDocumentsPayload: Record<string, { name: string; type: string; data: string }> | undefined
+        let inputDocumentsPayload: Record<string, { name: string; type: string; data: string; text?: string; inputType?: InputField["inputType"] }> | undefined
         if (opts?.inputDocuments && Object.keys(opts.inputDocuments).length > 0) {
           inputDocumentsPayload = {}
           for (const [fieldId, doc] of Object.entries(opts.inputDocuments)) {
-            const compressedDoc = await maybeDownscaleImage(doc.file, compressionOptions)
+            const uploadFile = getUploadFileForDoc(doc)
+            if (!uploadFile) continue
+
+            const compressedDoc = await maybeDownscaleImage(uploadFile, compressionOptions)
             const docBase64 = await toBase64(compressedDoc.blob)
             inputDocumentsPayload[fieldId] = {
-              name: compressedDoc.name || doc.file.name,
-              type: compressedDoc.type || doc.file.type || 'application/octet-stream',
+              name: compressedDoc.name || uploadFile.name,
+              type: compressedDoc.type || uploadFile.type || 'application/octet-stream',
               data: docBase64,
+              text: doc.text,
+              inputType: doc.inputField.inputType || 'document',
             }
           }
         }
@@ -2450,6 +2600,8 @@ export function DataExtractionPlatform({
             const reviewMeta = computeInitialReviewMeta(finalResults)
             const completedAt = new Date()
 
+            console.log(`[bytebeam] Pharma extraction completed for job ${job.id}, saving to schema ${targetSchemaId}`)
+            
             updateJobsForSchema((prev) =>
               prev.map((existing) =>
                 existing.id === job.id
@@ -2702,7 +2854,7 @@ export function DataExtractionPlatform({
 
               // Build columnValues from dependencies
               const columnValues: Record<string, any> = {}
-              const referencedInputDocs: Array<{ fieldId: string; name: string; type: string; data: string }> = []
+              const referencedInputDocs: Array<{ fieldId: string; name: string; type: string; data: string; text?: string; inputType?: InputField["inputType"] }> = []
               dependencies.forEach((depId) => {
                 const depField = displayColumnsSnapshot.find((c) => c.id === depId)
                 if (depField) {
@@ -2718,10 +2870,13 @@ export function DataExtractionPlatform({
                       name: doc.name || depField.name || depId,
                       type: doc.type || 'application/octet-stream',
                       data: doc.data,
+                      text: doc.text,
+                      inputType: doc.inputType,
                     })
-                    // Ensure the placeholder is replaced with something readable (the doc name)
-                    columnValues[depField.name] = doc.name || depField.name || depId
-                    columnValues[depId] = doc.name || depField.name || depId
+                    // Ensure the placeholder is replaced with something readable (prefer text if available)
+                    const readableValue = doc.text || doc.name || depField.name || depId
+                    columnValues[depField.name] = readableValue
+                    columnValues[depId] = readableValue
                   }
                 }
               })
@@ -3192,6 +3347,12 @@ export function DataExtractionPlatform({
 
   type GridRenderMode = 'interactive' | 'summary' | 'detail'
 
+  const [nestedFieldView, setNestedFieldView] = useState<{
+    column: SchemaField
+    job: ExtractionJob
+    value: any
+  } | null>(null)
+
   const renderCellValue = (
     column: SchemaField,
     job: ExtractionJob,
@@ -3208,7 +3369,8 @@ export function DataExtractionPlatform({
     },
   ) => {
     if (column.type === 'input') {
-      const docName = job.inputDocuments?.[column.id]?.fileName ?? job.fileName
+      const inputDoc = job.inputDocuments?.[column.id]
+      const docName = inputDoc?.textValue || inputDoc?.fileName || job.fileName
       return (
         <span className="text-sm font-medium text-foreground" title={docName || undefined}>
           {docName || '—'}
@@ -3228,16 +3390,67 @@ export function DataExtractionPlatform({
       (typeof value === 'string' && value.trim().length === 0) ||
       (Array.isArray(value) && value.length === 0)
 
-    // Use new cell components if onUpdateCell is available
-    if (opts?.onUpdateCell && column.type !== 'object' && column.type !== 'table' && column.type !== 'list') {
+    // Use rich grid cells when editable
+    if (opts?.onUpdateCell) {
       const row: any = {
         __job: job,
         fileName: job.fileName,
         status: job.status,
         [column.id]: value,
-      };
+      }
 
-      // Handle select types with special components
+      if (column.type === 'object') {
+        const safeValue = value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, any>) : {}
+        return (
+          <ObjectCell
+            value={safeValue}
+            row={row}
+            columnId={column.id}
+            column={column}
+            mode={mode}
+            onUpdateCell={opts.onUpdateCell}
+            onOpenNestedGrid={({ column: nestedColumn, job: nestedJob, value: nestedValue }) => {
+              setNestedFieldView({ column: nestedColumn, job: nestedJob, value: nestedValue })
+            }}
+          />
+        )
+      }
+
+      if (column.type === 'table') {
+        const safeValue = Array.isArray(value) ? (value as Record<string, any>[]) : []
+        return (
+          <TableCell
+            value={safeValue}
+            row={row}
+            columnId={column.id}
+            column={column}
+            onOpenTableModal={opts.onOpenTableModal}
+            onUpdateCell={opts.onUpdateCell}
+            mode={mode}
+            onOpenNestedGrid={({ column: nestedColumn, job: nestedJob, value: nestedValue }) => {
+              setNestedFieldView({ column: nestedColumn, job: nestedJob, value: nestedValue })
+            }}
+          />
+        )
+      }
+
+      if (column.type === 'list') {
+        const safeValue = Array.isArray(value) ? value : []
+        return (
+          <ListCell
+            value={safeValue}
+            row={row}
+            columnId={column.id}
+            column={column}
+            onUpdateCell={opts.onUpdateCell}
+            mode={mode}
+            onOpenNestedGrid={({ column: nestedColumn, job: nestedJob, value: nestedValue }) => {
+              setNestedFieldView({ column: nestedColumn, job: nestedJob, value: nestedValue })
+            }}
+          />
+        )
+      }
+
       if (column.type === 'single_select') {
         const options = column.constraints?.options || []
         return (
@@ -3264,7 +3477,16 @@ export function DataExtractionPlatform({
         )
       }
 
-      return <PrimitiveCell value={value} row={row} columnId={column.id} columnType={column.type} columnMeta={column} onUpdateCell={opts.onUpdateCell} />;
+      return (
+        <PrimitiveCell
+          value={value}
+          row={row}
+          columnId={column.id}
+          columnType={column.type}
+          columnMeta={column}
+          onUpdateCell={opts.onUpdateCell}
+        />
+      )
     }
 
     if (isEmptyValue) {
@@ -3649,7 +3871,9 @@ export function DataExtractionPlatform({
       rows = jobs.map((job) => {
         const row: string[] = [job.fileName, job.status]
         displayColumns.forEach((col) => {
-          const value = job.results?.[col.id]
+          const value = col.type === 'input'
+            ? job.inputDocuments?.[col.id]?.textValue ?? job.inputDocuments?.[col.id]?.fileName
+            : job.results?.[col.id]
           row.push(formatCell(value))
         })
         return row
@@ -4043,6 +4267,27 @@ export function DataExtractionPlatform({
             </>
           )}
 
+          {session?.user && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleSaveSchema}
+              disabled={activeSchemaStatus === 'saving'}
+            >
+              {activeSchemaStatus === 'saving' ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving…
+                </>
+              ) : (
+                <>
+                  <Check className="mr-2 h-4 w-4" />
+                  Save schema
+                </>
+              )}
+            </Button>
+          )}
+
           <div className="flex items-center gap-1">
             {session?.user && (
               <div className="flex items-center gap-2 ml-2">
@@ -4152,6 +4397,7 @@ export function DataExtractionPlatform({
                     onAddColumn={addColumn}
                     onEditColumn={(col) => {
                       setColumnDialogMode('edit')
+                      setSelectedColumn(col)
                       setDraftColumn(col)
                       setIsColumnDialogOpen(true)
                     }}
@@ -4181,6 +4427,40 @@ export function DataExtractionPlatform({
                   />
                 )
                 }
+
+                {nestedFieldView && nestedFieldView.column.type !== 'input' && (
+                  <NestedGridModal
+                    open
+                    onOpenChange={(open) => {
+                      if (!open) setNestedFieldView(null)
+                    }}
+                    title={`${nestedFieldView.column.name || nestedFieldView.column.id} • ${nestedFieldView.job.fileName}`}
+                    contentType={
+                      nestedFieldView.column.type === 'table'
+                        ? 'table'
+                        : nestedFieldView.column.type === 'list'
+                          ? 'list'
+                          : 'object'
+                    }
+                    columnCount={
+                      nestedFieldView.column.type === 'table'
+                        ? nestedFieldView.column.columns?.length || 0
+                        : 0
+                    }
+                  >
+                    <div className="px-2">
+                      <NestedAdvancedField
+                        column={nestedFieldView.column as any}
+                        job={nestedFieldView.job}
+                        value={nestedFieldView.value}
+                        onUpdate={(updatedValue) => {
+                          handleUpdateCell(nestedFieldView.job.id, nestedFieldView.column.id, updatedValue)
+                          setNestedFieldView(null)
+                        }}
+                      />
+                    </div>
+                  </NestedGridModal>
+                )}
               </div>
             </div>
 
@@ -4302,17 +4582,16 @@ export function DataExtractionPlatform({
                               </div>
 
                               <div className="space-y-2">
-                                <Label>Allowed File Types</Label>
+                                <Label>Input Type</Label>
                                 <div className="flex flex-wrap gap-2">
-                                  {['pdf', 'image', 'doc', 'any'].map((fileType) => {
-                                    const inputField = draftColumn as InputField
-                                    const allowedTypes = inputField.fileConstraints?.allowedTypes || []
-                                    const isAny = allowedTypes.length === 0 || allowedTypes.includes('any')
-                                    const isSelected = fileType === 'any' ? isAny : allowedTypes.includes(fileType)
-
+                                  {[
+                                    { value: 'document', label: 'File upload' },
+                                    { value: 'text', label: 'Text input' },
+                                  ].map((option) => {
+                                    const isSelected = (draftColumn as InputField).inputType === option.value || (!('inputType' in draftColumn) && option.value === 'document')
                                     return (
                                       <Button
-                                        key={fileType}
+                                        key={option.value}
                                         type="button"
                                         variant="outline"
                                         size="sm"
@@ -4323,30 +4602,73 @@ export function DataExtractionPlatform({
                                             : 'border-slate-200 text-slate-600'
                                         )}
                                         onClick={() => {
-                                          const current = inputField.fileConstraints?.allowedTypes || []
-                                          let newTypes: string[]
-                                          if (fileType === 'any') {
-                                            newTypes = []
-                                          } else if (current.includes(fileType)) {
-                                            newTypes = current.filter(t => t !== fileType)
-                                          } else {
-                                            newTypes = [...current.filter(t => t !== 'any'), fileType]
+                                          const inputField = draftColumn as InputField
+                                          const next = {
+                                            ...inputField,
+                                            inputType: option.value as InputField["inputType"],
                                           }
-                                          setDraftColumn({
-                                            ...draftColumn,
-                                            fileConstraints: {
-                                              ...inputField.fileConstraints,
-                                              allowedTypes: newTypes,
-                                            }
-                                          } as InputField)
+                                          if (option.value === 'text') {
+                                            delete (next as any).fileConstraints
+                                          }
+                                          setDraftColumn(next as SchemaField)
                                         }}
                                       >
-                                        {fileType === 'any' ? 'Any Type' : fileType.toUpperCase()}
+                                        {option.label}
                                       </Button>
                                     )
                                   })}
                                 </div>
+                                <p className="text-xs text-slate-500">Choose whether this input collects a file or pasted text.</p>
                               </div>
+
+                              {(draftColumn as InputField).inputType !== 'text' && (
+                                <div className="space-y-2">
+                                  <Label>Allowed File Types</Label>
+                                  <div className="flex flex-wrap gap-2">
+                                    {['pdf', 'image', 'doc', 'any'].map((fileType) => {
+                                      const inputField = draftColumn as InputField
+                                      const allowedTypes = inputField.fileConstraints?.allowedTypes || []
+                                      const isAny = allowedTypes.length === 0 || allowedTypes.includes('any')
+                                      const isSelected = fileType === 'any' ? isAny : allowedTypes.includes(fileType)
+
+                                      return (
+                                        <Button
+                                          key={fileType}
+                                          type="button"
+                                          variant="outline"
+                                          size="sm"
+                                          className={cn(
+                                            'rounded-full px-3 py-1 text-xs capitalize',
+                                            isSelected
+                                              ? 'border-amber-500 bg-amber-100 text-amber-700'
+                                              : 'border-slate-200 text-slate-600'
+                                          )}
+                                          onClick={() => {
+                                            const current = inputField.fileConstraints?.allowedTypes || []
+                                            let newTypes: string[]
+                                            if (fileType === 'any') {
+                                              newTypes = []
+                                            } else if (current.includes(fileType)) {
+                                              newTypes = current.filter(t => t !== fileType)
+                                            } else {
+                                              newTypes = [...current.filter(t => t !== 'any'), fileType]
+                                            }
+                                            setDraftColumn({
+                                              ...draftColumn,
+                                              fileConstraints: {
+                                                ...inputField.fileConstraints,
+                                                allowedTypes: newTypes,
+                                              }
+                                            } as InputField)
+                                          }}
+                                        >
+                                          {fileType === 'any' ? 'Any Type' : fileType.toUpperCase()}
+                                        </Button>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                              )}
 
                               <div className="flex items-center gap-3 pt-1">
                                 <Checkbox

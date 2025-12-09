@@ -47,12 +47,22 @@ const webSearchTool = tool({
         },
       })
 
+      const rawText = await response.text()
+      const truncated = rawText.length > 4000 ? `${rawText.slice(0, 4000)} ... [truncated]` : rawText
+      console.log("[bytebeam] Jina search raw response:", truncated || "<empty body>")
+
       if (!response.ok) {
-        const errorText = await response.text().catch(() => response.statusText)
-        throw new Error(`Jina API error: ${response.status} ${errorText}`)
+        throw new Error(`Jina API error: ${response.status} ${rawText || response.statusText}`)
       }
 
-      const data = await response.json()
+      let data: any
+      try {
+        data = rawText ? JSON.parse(rawText) : {}
+      } catch (parseError) {
+        console.error("[bytebeam] Jina search JSON parse error:", parseError)
+        throw new Error("Jina API returned non-JSON response")
+      }
+
       console.log("[bytebeam] Jina response received:", data)
 
       // Transform Jina response to match expected format
@@ -104,12 +114,22 @@ const webReaderTool = tool({
         },
       })
 
+      const rawText = await response.text()
+      const truncated = rawText.length > 4000 ? `${rawText.slice(0, 4000)} ... [truncated]` : rawText
+      console.log("[bytebeam] Jina Reader raw response:", truncated || "<empty body>")
+
       if (!response.ok) {
-        const errorText = await response.text().catch(() => response.statusText)
-        throw new Error(`Jina Reader API error: ${response.status} ${errorText}`)
+        throw new Error(`Jina Reader API error: ${response.status} ${rawText || response.statusText}`)
       }
 
-      const data = await response.json()
+      let data: any
+      try {
+        data = rawText ? JSON.parse(rawText) : {}
+      } catch (parseError) {
+        console.error("[bytebeam] Jina Reader JSON parse error:", parseError)
+        throw new Error("Jina Reader returned non-JSON response")
+      }
+
       console.log("[bytebeam] Jina Reader response received for:", url)
 
       return {
@@ -167,6 +187,232 @@ const brailleTool = tool({
 // ===== ONE-SHOT TRANSFORMATION WITH STRUCTURED OUTPUT =====
 // All transformation logic is now handled directly in the POST handler below
 // using generateObject with structured schemas
+
+const MAX_LOG_BODY = 4000
+
+const TEXT_MIME_PREFIXES = ["text/", "application/json", "application/xml"]
+
+function isTextLikeMime(mimeType?: string | null): boolean {
+  if (!mimeType) return false
+  const normalized = mimeType.toLowerCase()
+  return TEXT_MIME_PREFIXES.some((prefix) => normalized.startsWith(prefix))
+}
+
+function truncateBody(body: string): string {
+  return body.length > MAX_LOG_BODY ? `${body.slice(0, MAX_LOG_BODY)} ... [truncated]` : body
+}
+
+function extractUrls(text: string): string[] {
+  if (!text) return []
+  const matches = Array.from(text.matchAll(/https?:\/\/\S+/g)).map((m) =>
+    m[0].replace(/[)\}>'"]+$/, ""),
+  )
+  return Array.from(new Set(matches))
+}
+
+type PrimitiveValue = string | number | boolean
+
+function isPrimitiveValue(value: unknown): value is PrimitiveValue {
+  return typeof value === "string" || typeof value === "number" || typeof value === "boolean"
+}
+
+function getValueByPath(source: Record<string, any>, path: string): unknown {
+  const parts = path.split(".").map((p) => p.trim()).filter(Boolean)
+  let current: any = source
+
+  for (const part of parts) {
+    if (current && typeof current === "object" && part in current) {
+      current = current[part]
+      continue
+    }
+    return undefined
+  }
+
+  return current
+}
+
+function flattenPrimitiveValues(value: unknown, prefix?: string): Record<string, PrimitiveValue> {
+  const result: Record<string, PrimitiveValue> = {}
+
+  if (isPrimitiveValue(value)) {
+    if (prefix) {
+      result[prefix] = value
+    }
+    return result
+  }
+
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return result
+  }
+
+  for (const [key, val] of Object.entries(value)) {
+    const nextPrefix = prefix ? `${prefix}.${key}` : key
+
+    if (isPrimitiveValue(val)) {
+      result[nextPrefix] = val
+      continue
+    }
+
+    if (val && typeof val === "object" && !Array.isArray(val)) {
+      const nested = flattenPrimitiveValues(val, nextPrefix)
+      Object.assign(result, nested)
+    }
+  }
+
+  return result
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
+function resolveUrlWithValues(
+  url: string,
+  replacements: Record<string, string>,
+  candidates: Set<string>,
+): { original: string; resolved: string; replacedTokens: string[]; unresolvedTokens: string[] } {
+  let resolved = url
+  const replacedTokens: string[] = []
+
+  for (const [token, value] of Object.entries(replacements)) {
+    const encodedValue = encodeURIComponent(value)
+    let matched = false
+
+    // Replace [token] style placeholders first
+    const bracketPattern = new RegExp(`\\[\\s*${escapeRegExp(token)}\\s*\\]`, "g")
+    if (bracketPattern.test(resolved)) {
+      resolved = resolved.replace(bracketPattern, encodedValue)
+      matched = true
+    }
+
+    // Then replace bare token occurrences
+    const pattern = new RegExp(`\\b${escapeRegExp(token)}\\b`, "g")
+    if (pattern.test(resolved)) {
+      resolved = resolved.replace(pattern, encodedValue)
+      matched = true
+    }
+
+    if (matched) {
+      replacedTokens.push(token)
+    }
+  }
+
+  const unresolvedTokens: string[] = []
+  candidates.forEach((token) => {
+    if (replacedTokens.includes(token)) return
+    const pattern = new RegExp(`\\b${escapeRegExp(token)}\\b`)
+    if (pattern.test(resolved)) {
+      unresolvedTokens.push(token)
+    }
+  })
+
+  return { original: url, resolved, replacedTokens, unresolvedTokens }
+}
+
+async function performWebSearch(query: string) {
+  const apiKey = process.env.JINA_API_KEY
+  console.log(`[bytebeam] Web search requested for "${query}" (API key ${apiKey ? "present" : "missing"})`)
+
+  if (!apiKey) {
+    return { error: "JINA_API_KEY not configured. Please set the JINA_API_KEY environment variable to enable web search.", query }
+  }
+
+  try {
+    const response = await fetch(`https://s.jina.ai/${encodeURIComponent(query)}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        Accept: "application/json",
+        "X-Retain-Images": "none",
+      },
+    })
+
+    const rawText = await response.text()
+    console.log(`[bytebeam] Jina search raw response (${response.status}):`, truncateBody(rawText) || "<empty body>")
+
+    if (!response.ok) {
+      return { error: `Jina API error: ${response.status} ${rawText || response.statusText}`, query }
+    }
+
+    let data: any
+    try {
+      data = rawText ? JSON.parse(rawText) : {}
+    } catch (parseError) {
+      console.error("[bytebeam] Jina search JSON parse error:", parseError)
+      return { error: "Jina API returned non-JSON response", query }
+    }
+
+    const results = (data.data || []).slice(0, 5).map((result: any) => ({
+      title: result.title || result.breadcrumb || "",
+      url: result.url || "",
+      content: result.content || result.description || "",
+    }))
+
+    return {
+      query,
+      results,
+      answer: data.answer || results[0]?.content || "No direct answer available",
+      raw: data,
+    }
+  } catch (error) {
+    console.error("[bytebeam] Jina search error:", error)
+    return { error: error instanceof Error ? error.message : "Web search failed", query }
+  }
+}
+
+async function performWebReader(url: string) {
+  const apiKey = process.env.JINA_API_KEY
+  console.log("[bytebeam] Web reader requested for URL:", url, `(API key ${apiKey ? "present" : "missing"})`)
+
+  if (!apiKey) {
+    return { error: "JINA_API_KEY not configured. Please set the JINA_API_KEY environment variable to enable web reading.", url }
+  }
+
+  try {
+    new URL(url)
+  } catch {
+    return { error: "Invalid URL format", url }
+  }
+
+  try {
+    const response = await fetch(`https://r.jina.ai/${url}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        Accept: "application/json",
+        "X-Return-Format": "json",
+      },
+    })
+
+    const rawText = await response.text()
+    console.log(`[bytebeam] Jina Reader raw response (${response.status}):`, truncateBody(rawText) || "<empty body>")
+
+    if (!response.ok) {
+      return { error: `Jina Reader API error: ${response.status} ${rawText || response.statusText}`, url }
+    }
+
+    let data: any
+    try {
+      data = rawText ? JSON.parse(rawText) : {}
+    } catch (parseError) {
+      console.error("[bytebeam] Jina Reader JSON parse error:", parseError)
+      return { error: "Jina Reader returned non-JSON response", url }
+    }
+
+    const payload = data?.data ?? data
+
+    return {
+      url,
+      title: payload.title || payload.data?.title || "",
+      content: payload.content || payload.text || payload.data?.content || "",
+      description: payload.description || payload.data?.description || "",
+      raw: data,
+    }
+  } catch (error) {
+    console.error("[bytebeam] Jina Reader error:", error)
+    return { error: error instanceof Error ? error.message : "Web reading failed", url }
+  }
+}
 
 function evaluateExpression(expr: string): number {
   expr = expr.trim().toLowerCase()
@@ -230,11 +476,26 @@ function makePrimitive(fieldSchema: any): z.ZodTypeAny {
     case "address":
     case "phone":
     case "string":
-    default:
-      prop = z.string()
-      if (fieldSchema.constraints?.minLength !== undefined) prop = prop.min(fieldSchema.constraints.minLength)
-      if (fieldSchema.constraints?.maxLength !== undefined) prop = prop.max(fieldSchema.constraints.maxLength)
+    default: {
+      const toStringSafe = (val: unknown): string => {
+        if (val === undefined || val === null) return ""
+        if (typeof val === "string") return val
+        if (typeof val === "number" || typeof val === "boolean") return String(val)
+        try {
+          return JSON.stringify(val)
+        } catch {
+          return String(val)
+        }
+      }
+
+      // Accept any incoming type, coerce to string, then apply string constraints via pipe
+      let stringTarget = z.string()
+      if (fieldSchema.constraints?.minLength !== undefined) stringTarget = stringTarget.min(fieldSchema.constraints.minLength)
+      if (fieldSchema.constraints?.maxLength !== undefined) stringTarget = stringTarget.max(fieldSchema.constraints.maxLength)
+
+      prop = z.any().transform(toStringSafe).pipe(stringTarget)
       break
+    }
   }
 
   return prop
@@ -306,7 +567,7 @@ export async function POST(request: NextRequest) {
     const inputSource: "document" | "column" = body.inputSource || "column"
     const prompt: string = String(body.prompt || "")
     const selectedTools: string[] = body.selectedTools || [] // New: manual tool selection
-    const inputDocuments: Array<{ fieldId?: string; name?: string; type?: string; data?: string }> = Array.isArray(body.inputDocuments)
+    const inputDocuments: Array<{ fieldId?: string; name?: string; type?: string; data?: string; text?: string; inputType?: string }> = Array.isArray(body.inputDocuments)
       ? body.inputDocuments
       : []
 
@@ -361,23 +622,123 @@ export async function POST(request: NextRequest) {
       // We replace {kb:name} with just the name for readability in the final prompt, 
       // as the content is added to context
       let substitutedPrompt = prompt.replace(/\{kb:([^}]+)\}/g, "$1")
+      const primitiveSubstitutions: Record<string, string> = {}
+      const primitiveTokenCandidates = new Set<string>()
+
+      const registerPrimitiveToken = (token: string, value: unknown) => {
+        primitiveTokenCandidates.add(token)
+        const leaf = token.split(".").pop()
+        if (leaf) primitiveTokenCandidates.add(leaf)
+
+        if (isPrimitiveValue(value)) {
+          const valueAsString = String(value)
+          if (!(token in primitiveSubstitutions)) {
+            primitiveSubstitutions[token] = valueAsString
+          }
+          if (leaf && !(leaf in primitiveSubstitutions)) {
+            primitiveSubstitutions[leaf] = valueAsString
+          }
+        }
+      }
 
       substitutedPrompt = substitutedPrompt.replace(/\{([^}]+)\}/g, (match, columnName) => {
-        const value = columnValues[columnName.trim()]
+        const key = columnName.trim()
+        const value = getValueByPath(columnValues, key)
         if (value === undefined) return match
 
         // If value is an object/structured type, provide it as JSON context
         if (typeof value === 'object' && value !== null) {
           const jsonValue = JSON.stringify(value, null, 2)
-          columnContext.push(`${columnName.trim()}: ${jsonValue}`)
-          return `{${columnName.trim()}}`
+          columnContext.push(`${key}: ${jsonValue}`)
+
+          const flattened = flattenPrimitiveValues(value, key)
+          Object.entries(flattened).forEach(([flatKey, flatValue]) => {
+            registerPrimitiveToken(flatKey, flatValue)
+          })
+
+          return `{${key}}`
         }
 
         // For primitive values, substitute directly
+        registerPrimitiveToken(key, value)
         return String(value)
       })
 
+      const detectedUrls = extractUrls(substitutedPrompt)
+      const urlPlaceholderTokens = new Set<string>()
+
+      detectedUrls.forEach((url) => {
+        Array.from(url.matchAll(/\[([^\]]+)\]/g)).forEach(([, token]) => urlPlaceholderTokens.add(token.trim()))
+        Array.from(url.matchAll(/\{([^}]+)\}/g)).forEach(([, token]) => urlPlaceholderTokens.add(token.trim()))
+      })
+
+      const placeholderTokensLower = new Set(Array.from(urlPlaceholderTokens).map((t) => t.toLowerCase()))
+
+      urlPlaceholderTokens.forEach((token) => {
+        const value = getValueByPath(columnValues, token)
+        if (value !== undefined) {
+          registerPrimitiveToken(token, value)
+        } else {
+          primitiveTokenCandidates.add(token)
+        }
+      })
+
+      const buildAutoQuery = (): string | null => {
+        const stringEntries = Object.entries(primitiveSubstitutions)
+          .map(([key, val]) => [key, String(val).trim()] as const)
+          .filter(([, val]) => val.length > 0)
+
+        if (stringEntries.length === 0) return null
+
+        const preferred = stringEntries
+          .filter(([key]) => /query|search|drug|name|title|product|generic|brand|variant|form/i.test(key))
+          .map(([, val]) => val)
+
+        const parts = preferred.length > 0 ? preferred : stringEntries.map(([, val]) => val)
+        const uniqueParts = Array.from(new Set(parts))
+        if (uniqueParts.length === 0) return null
+
+        return uniqueParts.slice(0, 3).join(" ")
+      }
+
+      const needsQuery =
+        placeholderTokensLower.has("query") ||
+        placeholderTokensLower.has("search_query") ||
+        placeholderTokensLower.has("sfda_search_query")
+
+      const autoQueryValue = needsQuery ? buildAutoQuery() : null
+      if (autoQueryValue) {
+        if (!primitiveSubstitutions["query"]) {
+          primitiveSubstitutions["query"] = autoQueryValue
+        }
+        if (!primitiveSubstitutions["search_query"]) {
+          primitiveSubstitutions["search_query"] = autoQueryValue
+        }
+        if (!primitiveSubstitutions["sfda_search_query"]) {
+          primitiveSubstitutions["sfda_search_query"] = autoQueryValue
+        }
+        primitiveTokenCandidates.add("query")
+        primitiveTokenCandidates.add("search_query")
+        primitiveTokenCandidates.add("sfda_search_query")
+      }
+
       console.log("[bytebeam] Transform - Original prompt:", prompt)
+      const resolvedUrls = detectedUrls.map((url) =>
+        resolveUrlWithValues(url, primitiveSubstitutions, primitiveTokenCandidates)
+      )
+
+      let promptWithResolvedUrls = substitutedPrompt
+      resolvedUrls.forEach(({ original, resolved }) => {
+        if (original === resolved) return
+        const pattern = new RegExp(escapeRegExp(original), "g")
+        promptWithResolvedUrls = promptWithResolvedUrls.replace(pattern, resolved)
+      })
+
+      const urlsInPrompt = extractUrls(promptWithResolvedUrls)
+      const hasExplicitUrl = urlsInPrompt.length > 0
+
+      console.log("[bytebeam] Transform - URL resolutions:", resolvedUrls)
+      console.log("[bytebeam] Transform - Prompt after URL resolution:", promptWithResolvedUrls)
       console.log("[bytebeam] Transform - Column values:", columnValues)
       console.log("[bytebeam] Transform - Substituted prompt:", substitutedPrompt)
       console.log("[bytebeam] Transform - Column context:", columnContext)
@@ -387,6 +748,59 @@ export async function POST(request: NextRequest) {
       console.log("[bytebeam] Transform - Selected tools:", selectedTools)
       if (inputDocuments.length > 0) {
         console.log("[bytebeam] Transform - Attached input documents:", inputDocuments.length)
+      }
+
+      // Execute web tools server-side (OpenRouter tool calls are disabled)
+      let webSearchData: any = null
+      let webReaderData: any = null
+
+      if (selectedTools.includes('webSearch') && !hasExplicitUrl) {
+        const queryCandidate =
+          primitiveSubstitutions['sfda_search_query'] ??
+          primitiveSubstitutions['search_query'] ??
+          primitiveSubstitutions['query'] ??
+          Object.values(primitiveSubstitutions)[0]
+
+        if (queryCandidate) {
+          console.log("[bytebeam] Transform - Running web search for:", queryCandidate)
+          webSearchData = await performWebSearch(queryCandidate)
+        } else {
+          console.warn("[bytebeam] Transform - No query found for web search tool")
+        }
+      } else if (selectedTools.includes('webSearch') && hasExplicitUrl) {
+        console.log("[bytebeam] Transform - Skipping web search because URL is explicitly provided")
+      }
+
+      if (selectedTools.includes('webReader')) {
+        const targetUrlInfo = resolvedUrls[0]
+        const targetUrl = targetUrlInfo?.resolved || urlsInPrompt[0]
+        const hasUnresolvedTokens = (targetUrlInfo?.unresolvedTokens || []).length > 0
+
+        if (targetUrl && !hasUnresolvedTokens) {
+          console.log("[bytebeam] Transform - Running web reader for:", targetUrl)
+          webReaderData = await performWebReader(targetUrl)
+        } else if (hasUnresolvedTokens && targetUrlInfo) {
+          console.warn("[bytebeam] Transform - Skipping web reader; unresolved tokens:", targetUrlInfo.unresolvedTokens)
+          webReaderData = {
+            error: `Missing values for ${targetUrlInfo.unresolvedTokens.join(", ")}`,
+            url: targetUrlInfo.original,
+          }
+        } else {
+          console.warn("[bytebeam] Transform - No URL found in prompt for web reader tool")
+        }
+      }
+
+      // If prompt explicitly asks for full content and we have a reader result, return it directly to avoid hallucinations
+      const wantsFullContent = /entire content|full content|whole content/i.test(promptWithResolvedUrls)
+      if (fieldType === 'string' && webReaderData && !webReaderData.error) {
+        const directContent = webReaderData.content || webReaderData.description || ""
+        if (wantsFullContent || (hasExplicitUrl && !selectedTools.includes('webSearch'))) {
+          console.log("[bytebeam] Transform - Returning webReader content directly")
+          return NextResponse.json({
+            success: true,
+            result: directContent || "no results found",
+          })
+        }
       }
 
       // ===== NEW ONE-SHOT STRUCTURED OUTPUT APPROACH =====
@@ -444,8 +858,46 @@ export async function POST(request: NextRequest) {
         contextInfo += `Available data:\n${columnContext.join('\n')}\n\n`
       }
 
+      const primitiveEntries = Object.entries(primitiveSubstitutions)
+      if (primitiveEntries.length > 0) {
+        const primitiveLines = primitiveEntries.map(([k, v]) => `- ${k}: ${v}`)
+        contextInfo += `Available primitive values:\n${primitiveLines.join("\n")}\n\n`
+      }
+
+      if (resolvedUrls.length > 0) {
+        const urlLines = resolvedUrls.map(({ original, resolved, unresolvedTokens }) => {
+          const resolutionNote = original === resolved ? "" : ` -> ${resolved}`
+          const unresolved = unresolvedTokens.length > 0 ? ` (missing: ${unresolvedTokens.join(", ")})` : ""
+          return `- ${original}${resolutionNote}${unresolved}`
+        })
+        contextInfo += `URL resolution:\n${urlLines.join("\n")}\n\n`
+      }
+
       if (knowledgeContext.length > 0) {
         contextInfo += `Reference Knowledge:\n${knowledgeContext.join('\n\n')}\n\n`
+      }
+
+      const toolContextParts: string[] = []
+      if (webSearchData) {
+        if (webSearchData.error) {
+          toolContextParts.push(`Web search error${webSearchData.query ? ` for "${webSearchData.query}"` : ""}: ${webSearchData.error}`)
+        } else {
+          const searchSummaries = (webSearchData.results || [])
+            .map((r: any, idx: number) => `${idx + 1}. ${r.title || r.url}\n${truncateBody(r.content || "")}`)
+            .join('\n')
+          toolContextParts.push(`Web search results for "${webSearchData.query}":\n${searchSummaries || "(no results)"}`)
+        }
+      }
+      if (webReaderData) {
+        if (webReaderData.error) {
+          toolContextParts.push(`Web reader error${webReaderData.url ? ` for ${webReaderData.url}` : ""}: ${webReaderData.error}`)
+        } else {
+          const readerContent = webReaderData.content || webReaderData.description || ""
+          toolContextParts.push(`Web reader content from ${webReaderData.url}:\n${truncateBody(readerContent)}`)
+        }
+      }
+      if (toolContextParts.length > 0) {
+        contextInfo += `Tool outputs (do not hallucinate beyond these):\n${toolContextParts.join('\n\n')}\n\n`
       }
 
       let finalResult: any = null
@@ -469,8 +921,36 @@ export async function POST(request: NextRequest) {
                 .join(", ")}. Use them when they match referenced input fields.`
               : ""
 
+          const buildInputDocMessages = (docs: typeof inputDocuments) =>
+            docs.flatMap((doc) => {
+              if (!doc) return []
+              const mimeType = doc.type || "application/octet-stream"
+              const isTextDoc = typeof doc.text === "string" || isTextLikeMime(mimeType)
+              const decodedText =
+                typeof doc.text === "string"
+                  ? doc.text
+                  : isTextDoc && doc.data
+                    ? Buffer.from(String(doc.data), "base64").toString("utf-8")
+                    : null
+              const label = `Document "${doc.name || doc.fieldId || "input document"}"${doc.fieldId ? ` (input id: ${doc.fieldId})` : ""
+                }`
+
+              if (decodedText) {
+                return [{ type: "text", text: `${label}\n\n${decodedText}` }]
+              }
+
+              if (doc.data) {
+                return [
+                  { type: "text", text: label },
+                  { type: "image", image: `data:${mimeType};base64,${doc.data}` },
+                ]
+              }
+
+              return [{ type: "text", text: label }]
+            })
+
           // Build the comprehensive prompt for one-shot generation
-          const fullPrompt = `${substitutedPrompt}
+          const fullPrompt = `${promptWithResolvedUrls}
 
 ${contextInfo}${attachmentNote}
 
@@ -480,9 +960,11 @@ Instructions:
 - For list/table types: Return all items as an array of objects
 - For object types: Return all fields matching the schema
 - For primitive types: Return the single value
+- If a URL contains placeholders or missing parameters, replace them using the available primitive values before proceeding
 - If you need to perform calculations, use the calculator tool
 - If you need to search for information, use the webSearch tool
 - If you need to convert text to Braille, use the braille tool
+- Use the Tool outputs above as ground truth for web search/reader content; do not invent details
 - Ensure data types match the schema (numbers as numbers, not strings)
 - If information is not available, use null for that field
 - Use the provided Reference Knowledge to answer questions or perform tasks if applicable`
@@ -492,21 +974,7 @@ Instructions:
             inputDocuments.length > 0
               ? [
                 { type: "text", text: fullPrompt },
-                ...inputDocuments.flatMap((doc) => {
-                  if (!doc?.data) return []
-                  const mimeType = doc.type || "application/octet-stream"
-                  return [
-                    {
-                      type: "text",
-                      text: `Document "${doc.name || doc.fieldId || "input document"}"${doc.fieldId ? ` (input id: ${doc.fieldId})` : ""
-                        }`,
-                    },
-                    {
-                      type: "image",
-                      image: `data:${mimeType};base64,${doc.data}`,
-                    },
-                  ]
-                }),
+                ...buildInputDocMessages(inputDocuments),
               ]
               : fullPrompt
 
@@ -524,13 +992,39 @@ Instructions:
 
         } catch (error) {
           console.error("[bytebeam] Transform - Structured output error:", error)
-          throw error
+          // Fallback to plain text generation to avoid 500s when the model returns non-conforming JSON
+          const fallbackPrompt = `${promptWithResolvedUrls}
+
+${contextInfo}
+
+Instructions:
+- Perform the task described above
+- Return ONLY the final result, nothing else
+- If a URL contains placeholders or missing parameters, replace them using the available primitive values before proceeding
+- Use the Tool outputs above as ground truth for web search/reader content; do not invent details
+- Use the provided Reference Knowledge to answer questions or perform tasks if applicable`
+
+          const fallbackMessageContent =
+            inputDocuments.length > 0
+              ? [
+                { type: "text", text: fallbackPrompt },
+                ...buildInputDocMessages(inputDocuments),
+              ]
+              : fallbackPrompt
+
+          const { text } = await generateText({
+            temperature: 0.1,
+            messages: [{ role: "user", content: fallbackMessageContent }]
+          })
+
+          finalResult = text
+          console.log("[bytebeam] Transform - Fallback text result:", finalResult)
         }
       } else {
         // Fallback for fields without type information (backward compatibility)
         console.log("[bytebeam] Transform - Using text-based output (no type info)")
 
-        const fullPrompt = `${substitutedPrompt}
+        const fullPrompt = `${promptWithResolvedUrls}
 
 ${contextInfo}
 
@@ -540,6 +1034,8 @@ Instructions:
 - If you need to perform calculations, use the calculator tool
 - If you need to search for information, use the webSearch tool
 - If you need to convert text to Braille, use the braille tool
+- If a URL contains placeholders or missing parameters, replace them using the available primitive values before proceeding
+- Use the Tool outputs above as ground truth for web search/reader content; do not invent details
 - Use the provided Reference Knowledge to answer questions or perform tasks if applicable`
 
         const userMessageContent =

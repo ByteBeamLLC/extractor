@@ -1,8 +1,11 @@
 "use client";
 
 import type { FlatLeaf, ExtractionJob, SchemaField } from "@/lib/schema";
+import type { ReactNode } from "react";
 import { useState, useEffect, useMemo } from "react";
 import { EditableValueInput } from "./EditableValueInput";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
 
 interface NestedListGridProps {
   column: FlatLeaf;
@@ -10,13 +13,22 @@ interface NestedListGridProps {
   job: ExtractionJob;
   onUpdate: (value: unknown[]) => void;
   maxHeight?: string;
+  onDeleteItem?: (index: number) => void;
+  onAddItem?: () => void;
 }
 
 const isObjectItem = (item: SchemaField | undefined): item is SchemaField & { children: SchemaField[] } => {
   return Boolean(item && (item.type === "object" || item.type === "table"));
 };
 
-export function NestedListGrid({ column, values, onUpdate, maxHeight = "14rem" }: NestedListGridProps) {
+export function NestedListGrid({
+  column,
+  values,
+  onUpdate,
+  maxHeight = "14rem",
+  onDeleteItem,
+  onAddItem,
+}: NestedListGridProps) {
   const [draft, setDraft] = useState<unknown[]>(values ?? []);
 
   useEffect(() => {
@@ -52,10 +64,57 @@ export function NestedListGrid({ column, values, onUpdate, maxHeight = "14rem" }
     commitUpdate(updated);
   };
 
+  const renderEmptyState = () => (
+    <div className="rounded-lg border border-dashed border-slate-200 bg-white p-4 text-center text-xs text-slate-400">
+      No {column.name} items
+    </div>
+  );
+
+  const renderActionHeader = () => (
+    <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 w-16">
+      Actions
+    </th>
+  );
+
+  const renderDeleteCell = (index: number) => (
+    <td className="border-b border-slate-200 px-3 py-2 align-top">
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="h-7 w-7 text-destructive hover:text-destructive"
+        onClick={() => onDeleteItem?.(index)}
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </td>
+  );
+
+  const renderHeaderRow = (cells: ReactNode[]) => (
+    <tr>
+      <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+        #
+      </th>
+      {cells}
+      {onDeleteItem && renderActionHeader()}
+    </tr>
+  );
+
+  const renderAddButton = () => (
+    onAddItem ? (
+      <div className="flex justify-end pb-2">
+        <Button type="button" size="sm" variant="outline" onClick={onAddItem}>
+          Add Item
+        </Button>
+      </div>
+    ) : null
+  );
+
   if (draft.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-slate-200 bg-white p-4 text-center text-xs text-slate-400">
-        No {column.name} items
+      <div style={{ maxHeight }} className="overflow-hidden">
+        {renderAddButton()}
+        {renderEmptyState()}
       </div>
     );
   }
@@ -63,21 +122,19 @@ export function NestedListGrid({ column, values, onUpdate, maxHeight = "14rem" }
   if (itemDef && isObjectItem(itemDef)) {
     return (
       <div className="overflow-auto rounded-lg" style={{ maxHeight }}>
+        {renderAddButton()}
         <table className="min-w-full text-sm">
           <thead className="bg-slate-100">
-            <tr>
-              <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                #
-              </th>
-              {headerFields.map((header) => (
+            {renderHeaderRow(
+              headerFields.map((header) => (
                 <th
                   key={header.id}
                   className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 min-w-[150px]"
                 >
                   {header.name}
                 </th>
-              ))}
-            </tr>
+              ))
+            )}
           </thead>
           <tbody>
             {draft.map((item, index) => {
@@ -98,6 +155,7 @@ export function NestedListGrid({ column, values, onUpdate, maxHeight = "14rem" }
                       </div>
                     </td>
                   ))}
+                  {onDeleteItem && renderDeleteCell(index)}
                 </tr>
               );
             })}
@@ -109,16 +167,17 @@ export function NestedListGrid({ column, values, onUpdate, maxHeight = "14rem" }
 
   return (
     <div className="overflow-auto rounded-lg" style={{ maxHeight }}>
+      {renderAddButton()}
       <table className="w-full text-sm">
         <thead className="bg-slate-100">
-          <tr>
-            <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-              #
-            </th>
-            <th className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+          {renderHeaderRow([
+            <th
+              key="value"
+              className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
+            >
               Value
-            </th>
-          </tr>
+            </th>,
+          ])}
         </thead>
         <tbody>
           {draft.map((value, index) => (
@@ -134,6 +193,7 @@ export function NestedListGrid({ column, values, onUpdate, maxHeight = "14rem" }
                   />
                 </div>
               </td>
+              {onDeleteItem && renderDeleteCell(index)}
             </tr>
           ))}
         </tbody>

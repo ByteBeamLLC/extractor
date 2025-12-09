@@ -218,7 +218,7 @@ export function TanStackGridSheet({
       for (const col of columns) {
         if (col.type === "input") {
           const doc = job.inputDocuments?.[col.id];
-          valueMap[col.id] = doc?.fileName ?? null;
+          valueMap[col.id] = doc?.fileName ?? doc?.textValue ?? null;
         } else {
           valueMap[col.id] = job.results?.[col.id] ?? null;
         }

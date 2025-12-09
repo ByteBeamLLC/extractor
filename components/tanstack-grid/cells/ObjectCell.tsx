@@ -7,14 +7,16 @@ import { prettifyKey } from "../utils/formatters";
 import { formatNumericValue } from "../utils/formatters";
 import { NestedAdvancedField } from "../nested/NestedAdvancedField";
 import { NestedGridModal } from "../nested/NestedGridModal";
+import type { SchemaField } from "@/lib/schema";
 
 interface ObjectCellProps {
   value: Record<string, any>;
   row: GridRow;
   columnId: string;
-  column: { children?: Array<{ id: string; name: string; displayInSummary?: boolean }> };
+  column: SchemaField;
   mode?: "interactive" | "summary" | "detail";
   onUpdateCell?: (jobId: string, columnId: string, value: unknown) => void;
+  onOpenNestedGrid?: (payload: { column: SchemaField; job: GridRow["__job"]; value: Record<string, any> }) => void;
 }
 
 export function ObjectCell({
@@ -24,6 +26,7 @@ export function ObjectCell({
   column,
   mode = "interactive",
   onUpdateCell,
+  onOpenNestedGrid,
 }: ObjectCellProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const entries = Object.entries(value).filter(
@@ -56,9 +59,10 @@ export function ObjectCell({
   };
 
   const getDisplayChildren = () => {
-    return (column.children || []).filter(
-      (c: any) => c.displayInSummary
-    );
+    const children = column.children || [];
+    const displayMarked = children.filter((c: any) => c.displayInSummary);
+    if (displayMarked.length > 0) return displayMarked;
+    return children.length > 0 ? [children[0]] : [];
   };
 
   const labelsForSummary: string[] = [];
@@ -77,10 +81,11 @@ export function ObjectCell({
     }
   }
 
+  const primarySummary =
+    labelsForSummary.length > 0 ? labelsForSummary[0] : firstNonEmptyText();
+
   const summary =
-    labelsForSummary.length > 0
-      ? labelsForSummary.join(" / ")
-      : `${entries.length} ${entries.length === 1 ? "field" : "fields"}`;
+    primarySummary ?? `${entries.length} ${entries.length === 1 ? "field" : "fields"}`;
 
   const badge = (
     <span
@@ -142,12 +147,21 @@ export function ObjectCell({
     );
   }
 
+  const openModal = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onOpenNestedGrid) {
+      onOpenNestedGrid({ column, job: row.__job, value });
+      return;
+    }
+    setIsModalOpen(true);
+  };
+
   // Interactive and summary modes - show collapsed view with click to expand in modal
   return (
     <>
       <div
         className="cursor-pointer rounded-xl border border-[#2782ff]/10 bg-white/75 px-3 py-2 shadow-sm transition-colors hover:bg-white/90"
-        onClick={() => setIsModalOpen(true)}
+        onClick={openModal}
       >
         {headerContent}
       </div>
@@ -173,4 +187,3 @@ export function ObjectCell({
     </>
   );
 }
-

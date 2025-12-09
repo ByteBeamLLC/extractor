@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Plus, Trash2, Pencil, Check, X, ChevronDown, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SchemaField } from '@/lib/schema'
+import { MCListPanel } from './MCListPanel'
 
 interface MCObjectPanelProps {
     value: Record<string, any>
@@ -119,10 +120,25 @@ export function MCObjectPanel({ value, onChange, schemaField, depth = 0 }: MCObj
 
         // Array
         if (Array.isArray(val)) {
+            const isExpanded = expandedKeys.has(key)
             return (
-                <span className="text-sm text-muted-foreground">
-                    [{val.length} items]
-                </span>
+                <div className="w-full">
+                    <button
+                        onClick={() => toggleExpand(key)}
+                        className="flex items-center gap-1 text-sm text-blue-600 hover:underline"
+                    >
+                        {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                        {val.length} {val.length === 1 ? 'item' : 'items'}
+                    </button>
+                    {isExpanded && (
+                        <div className="mt-2 ml-4 pl-3 border-l-2 border-slate-200">
+                            <MCListPanel
+                                value={val}
+                                onChange={(list) => handleNestedChange(key, list)}
+                            />
+                        </div>
+                    )}
+                </div>
             )
         }
 

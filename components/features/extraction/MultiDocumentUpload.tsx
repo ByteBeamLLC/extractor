@@ -4,15 +4,19 @@ import * as React from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { InputField, InputDocument } from "@/lib/schema"
+import { Textarea } from "@/components/ui/textarea"
+import { InputField } from "@/lib/schema"
 import { Upload, FileText, X, CheckCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+export type MultiDocInput = { inputField: InputField; file?: File; text?: string }
+export type MultiDocUploadMap = Record<string, MultiDocInput>
 
 interface MultiDocumentUploadProps {
   inputFields: InputField[]
   open: boolean
   onOpenChange: (open: boolean) => void
-  onUpload: (documents: Record<string, { file: File; inputField: InputField }>) => void
+  onUpload: (documents: MultiDocUploadMap) => void
 }
 
 export function MultiDocumentUpload({
@@ -21,43 +25,59 @@ export function MultiDocumentUpload({
   onOpenChange,
   onUpload,
 }: MultiDocumentUploadProps) {
-  const [selectedFiles, setSelectedFiles] = React.useState<Record<string, File>>({})
+  const [selectedValues, setSelectedValues] = React.useState<Record<string, { file?: File; text?: string }>>({})
   const fileInputRefs = React.useRef<Record<string, HTMLInputElement | null>>({})
 
   // Reset on close
   React.useEffect(() => {
     if (!open) {
-      setSelectedFiles({})
+      setSelectedValues({})
     }
   }, [open])
 
   const handleFileSelect = (inputFieldId: string, file: File | null) => {
-    setSelectedFiles((prev) => {
+    setSelectedValues((prev) => {
+      const current = prev[inputFieldId] || {}
       if (file) {
-        return { ...prev, [inputFieldId]: file }
+        return { ...prev, [inputFieldId]: { ...current, file } }
       }
       const { [inputFieldId]: _, ...rest } = prev
       return rest
     })
   }
 
+  const handleTextChange = (inputFieldId: string, text: string) => {
+    setSelectedValues((prev) => {
+      const current = prev[inputFieldId] || {}
+      const next = { ...current, text }
+      if (!next.text && !next.file) {
+        const { [inputFieldId]: _, ...rest } = prev
+        return rest
+      }
+      return { ...prev, [inputFieldId]: next }
+    })
+  }
+
   const handleSubmit = () => {
-    const documents: Record<string, { file: File; inputField: InputField }> = {}
-    
+    const documents: MultiDocUploadMap = {}
+
     for (const inputField of inputFields) {
-      const file = selectedFiles[inputField.id]
-      if (file) {
-        documents[inputField.id] = { file, inputField }
+      const selection = selectedValues[inputField.id]
+      if (selection?.file || (selection?.text && selection.text.trim().length > 0)) {
+        documents[inputField.id] = { ...selection, inputField }
       }
     }
 
-    // Check required fields
-    const missingRequired = inputFields.filter(
-      (f) => f.required && !selectedFiles[f.id]
-    )
-    
+    const missingRequired = inputFields.filter((f) => {
+      const selection = selectedValues[f.id]
+      if (f.inputType === 'text') {
+        return f.required && !(selection?.text && selection.text.trim().length > 0)
+      }
+      return f.required && !selection?.file
+    })
+
     if (missingRequired.length > 0) {
-      alert(`Please upload files for required inputs: ${missingRequired.map(f => f.name).join(", ")}`)
+      alert(`Please provide inputs for required fields: ${missingRequired.map(f => f.name).join(", ")}`)
       return
     }
 
@@ -65,35 +85,47 @@ export function MultiDocumentUpload({
     onOpenChange(false)
   }
 
-  const hasAnyFile = Object.keys(selectedFiles).length > 0
+  const hasAnyInput = Object.values(selectedValues).some(
+    (value) => value.file || (value.text && value.text.trim().length > 0),
+  )
+
   const allRequiredFilled = inputFields
     .filter((f) => f.required)
-    .every((f) => selectedFiles[f.id])
+    .every((f) => {
+      const selection = selectedValues[f.id]
+      if (f.inputType === 'text') {
+        return selection?.text && selection.text.trim().length > 0
+      }
+      return !!selection?.file
+    })
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px]">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
-            Upload Documents
+            Provide Inputs
           </DialogTitle>
           <DialogDescription>
-            Upload files for each input document slot defined in your schema.
+            Supply files or text for each input defined in your schema.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           {inputFields.map((inputField) => {
-            const selectedFile = selectedFiles[inputField.id]
+            const selection = selectedValues[inputField.id]
+            const selectedFile = selection?.file
+            const selectedText = selection?.text ?? ""
+            const isTextInput = inputField.inputType === 'text'
             const allowedTypes = inputField.fileConstraints?.allowedTypes || []
             const acceptAttr = allowedTypes.length > 0 && !allowedTypes.includes('any')
               ? allowedTypes.map((t) => {
-                  if (t === 'pdf') return '.pdf'
-                  if (t === 'image') return 'image/*'
-                  if (t === 'doc') return '.doc,.docx'
-                  return `.${t}`
-                }).join(',')
+                if (t === 'pdf') return '.pdf'
+                if (t === 'image') return 'image/*'
+                if (t === 'doc') return '.doc,.docx'
+                return `.${t}`
+              }).join(',')
               : undefined
 
             return (
@@ -101,7 +133,7 @@ export function MultiDocumentUpload({
                 key={inputField.id}
                 className={cn(
                   "rounded-lg border-2 border-dashed p-4 transition-colors",
-                  selectedFile
+                  (isTextInput ? selectedText.trim().length > 0 : !!selectedFile)
                     ? "border-green-300 bg-green-50"
                     : "border-slate-200 hover:border-amber-300 hover:bg-amber-50/30"
                 )}
@@ -120,52 +152,79 @@ export function MultiDocumentUpload({
                         {inputField.description}
                       </p>
                     )}
-                    {allowedTypes.length > 0 && !allowedTypes.includes('any') && (
+                    {!isTextInput && allowedTypes.length > 0 && !allowedTypes.includes('any') && (
                       <p className="mt-1 text-xs text-slate-400">
                         Accepts: {allowedTypes.join(", ").toUpperCase()}
                       </p>
                     )}
                   </div>
 
-                  <input
-                    type="file"
-                    ref={(el) => { fileInputRefs.current[inputField.id] = el }}
-                    accept={acceptAttr}
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      handleFileSelect(inputField.id, file || null)
-                    }}
-                  />
+                  {!isTextInput && (
+                    <input
+                      type="file"
+                      ref={(el) => { fileInputRefs.current[inputField.id] = el }}
+                      accept={acceptAttr}
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        handleFileSelect(inputField.id, file || null)
+                      }}
+                    />
+                  )}
 
-                  {selectedFile ? (
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1.5 rounded-full bg-green-100 px-2 py-1 text-xs text-green-700">
-                        <CheckCircle className="h-3 w-3" />
-                        <span className="max-w-[120px] truncate">{selectedFile.name}</span>
+                  {!isTextInput && (
+                    selectedFile ? (
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 rounded-full bg-green-100 px-2 py-1 text-xs text-green-700">
+                          <CheckCircle className="h-3 w-3" />
+                          <span className="max-w-[140px] truncate">{selectedFile.name}</span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-slate-400 hover:text-red-500"
+                          onClick={() => handleFileSelect(inputField.id, null)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       </div>
+                    ) : (
                       <Button
                         type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-slate-400 hover:text-red-500"
-                        onClick={() => handleFileSelect(inputField.id, null)}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRefs.current[inputField.id]?.click()}
                       >
-                        <X className="h-4 w-4" />
+                        <FileText className="mr-1.5 h-4 w-4" />
+                        Select File
                       </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => fileInputRefs.current[inputField.id]?.click()}
-                    >
-                      <FileText className="mr-1.5 h-4 w-4" />
-                      Select File
-                    </Button>
+                    )
                   )}
                 </div>
+
+                {isTextInput && (
+                  <div className="mt-3">
+                    <Textarea
+                      value={selectedText}
+                      onChange={(e) => handleTextChange(inputField.id, e.target.value)}
+                      placeholder="Paste or type the text to use for this input"
+                      rows={4}
+                    />
+                    {selectedText.trim().length > 0 && (
+                      <div className="mt-1 flex justify-end">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() => handleTextChange(inputField.id, "")}
+                        >
+                          Clear
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )
           })}
@@ -186,7 +245,7 @@ export function MultiDocumentUpload({
           <Button
             type="button"
             onClick={handleSubmit}
-            disabled={!hasAnyFile || !allRequiredFilled}
+            disabled={!hasAnyInput || !allRequiredFilled}
           >
             Start Extraction
           </Button>
@@ -195,4 +254,3 @@ export function MultiDocumentUpload({
     </Dialog>
   )
 }
-

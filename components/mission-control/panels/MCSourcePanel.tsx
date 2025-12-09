@@ -8,13 +8,23 @@ import { cn } from '@/lib/utils'
 interface MCSourcePanelProps {
     imageUrl?: string | null
     fileName: string
+    textContent?: string | null
 }
 
-export function MCSourcePanel({ imageUrl, fileName }: MCSourcePanelProps) {
+export function MCSourcePanel({ imageUrl, fileName, textContent }: MCSourcePanelProps) {
     const [zoom, setZoom] = React.useState(1)
 
     const isPdf = fileName.toLowerCase().endsWith('.pdf')
     const isImage = /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(fileName)
+    const hasText = typeof textContent === 'string' && textContent.trim().length > 0
+
+    if (!imageUrl && hasText) {
+        return (
+            <div className="rounded border bg-white p-3 text-sm text-slate-700 max-h-64 overflow-auto whitespace-pre-wrap">
+                {textContent}
+            </div>
+        )
+    }
 
     if (!imageUrl) {
         return (

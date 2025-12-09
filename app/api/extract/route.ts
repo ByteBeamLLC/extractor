@@ -23,6 +23,8 @@ export interface InputDocumentPayload {
   name: string
   data: string // base64 encoded
   type: string // mime type
+  text?: string // raw text (for text inputs)
+  inputType?: string | null
 }
 
 export const runtime = "nodejs"
@@ -36,6 +38,12 @@ const docMimeTypes = new Set(["application/msword"])
 const textLikeMimePrefixes = ["text/", "application/json", "application/xml"]
 
 const decoder = new TextDecoder()
+
+function isTextLikeMimeType(mimeType?: string | null): boolean {
+  if (!mimeType) return false
+  const normalized = mimeType.toLowerCase()
+  return textLikeMimePrefixes.some((prefix) => normalized.startsWith(prefix))
+}
 
 function resolveLocalDotsOcrServiceUrl(): string | null {
   const explicit =
@@ -750,6 +758,8 @@ export async function POST(request: NextRequest) {
             name: doc.name || fieldId,
             data: doc.data,
             type: doc.type || 'application/octet-stream',
+            text: typeof doc.text === 'string' ? doc.text : undefined,
+            inputType: doc.inputType ?? null,
           })
         }
       })
@@ -766,6 +776,14 @@ export async function POST(request: NextRequest) {
               fieldId,
               fileName: doc.name,
               fileUrl: "",
+              textValue:
+                typeof doc.text === "string"
+                  ? doc.text
+                  : isTextLikeMimeType(doc.type)
+                    ? Buffer.from(String(doc.data ?? ""), "base64").toString("utf-8")
+                    : null,
+              mimeType: doc.type || null,
+              inputType: doc.inputType ?? null,
               uploadedAt: new Date().toISOString(),
             },
           ]),
@@ -1113,14 +1131,35 @@ Guidelines:
 
       inputDocuments.forEach((doc, fieldId) => {
         const mimeType = doc.type || "application/octet-stream"
-        contents.push({
-          type: "text",
-          text: `Document "${doc.name || fieldId}" (input id: ${fieldId})`,
-        })
-        contents.push({
-          type: "image",
-          image: `data:${mimeType};base64,${doc.data}`,
-        })
+        const isTextDoc = typeof doc.text === "string" || isTextLikeMimeType(mimeType)
+        const decodedText =
+          typeof doc.text === "string"
+            ? doc.text
+            : isTextDoc && doc.data
+              ? Buffer.from(String(doc.data), "base64").toString("utf-8")
+              : null
+        const label = `Document "${doc.name || fieldId}" (input id: ${fieldId})`
+
+        if (decodedText) {
+          contents.push({
+            type: "text",
+            text: `${label}\n\n${decodedText}`,
+          })
+        } else if (doc.data) {
+          contents.push({
+            type: "text",
+            text: label,
+          })
+          contents.push({
+            type: "image",
+            image: `data:${mimeType};base64,${doc.data}`,
+          })
+        } else {
+          contents.push({
+            type: "text",
+            text: label,
+          })
+        }
       })
 
       documentContent = contents
@@ -1333,11 +1372,6 @@ Follow these steps:
       let sanitizedResults = schemaTree && Array.isArray(schemaTree)
         ? sanitizeResultsFromTree(schemaTree, rawForSanitization)
         : sanitizeResultsFromFlat(schema, rawForSanitization)
-
-      // Fill empty string results ("-") with the file name so inputs are not left blank
-      sanitizedResults = schemaTree && Array.isArray(schemaTree)
-        ? applyFileNameFallbackToTree(sanitizedResults, schemaTree, fileName)
-        : applyFileNameFallbackToFlat(sanitizedResults, schema, fileName)
 
       const expectedFieldIds = schemaTree && Array.isArray(schemaTree)
         ? Array.from(

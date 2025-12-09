@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
 
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
 import type { Database } from "@/lib/supabase/types"
@@ -67,6 +67,7 @@ const PLACEHOLDER_SCHEMAS: SchemaSummary[] = [
 ]
 
 const LOCAL_TEMPLATE_STORAGE_KEY = "workspace_custom_templates_v1"
+const LOCAL_TABS_STORAGE_KEY = "workspace_tabs_v1"
 
 function mapDefinitionToSummary(
   definition: SchemaDefinition,
@@ -156,6 +157,55 @@ function writeGuestTemplates(templates: SchemaTemplateDefinition[]) {
       updatedAt: template.updatedAt ? template.updatedAt.toISOString() : null,
     }))
     window.localStorage.setItem(LOCAL_TEMPLATE_STORAGE_KEY, JSON.stringify(payload))
+  } catch {
+    // Ignore storage errors (private browsing, quota, etc.)
+  }
+}
+
+function readGuestTabs(): WorkspaceTab[] {
+  if (typeof window === "undefined") return [HOME_TAB]
+  try {
+    const raw = window.localStorage.getItem(LOCAL_TABS_STORAGE_KEY)
+    if (!raw) return [HOME_TAB]
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return [HOME_TAB]
+    // Validate and filter tabs - ensure home tab exists
+    const tabs = parsed.filter((tab: any) => {
+      if (tab.id === "home") {
+        return tab.type === "home" && typeof tab.title === "string"
+      }
+      return (
+        tab.type === "schema" &&
+        typeof tab.id === "string" &&
+        typeof tab.schemaId === "string" &&
+        typeof tab.title === "string"
+      )
+    }) as WorkspaceTab[]
+    // Ensure home tab exists
+    if (!tabs.some((tab) => tab.id === "home")) {
+      return [HOME_TAB, ...tabs]
+    }
+    return tabs
+  } catch {
+    return [HOME_TAB]
+  }
+}
+
+function writeGuestTabs(tabs: WorkspaceTab[]) {
+  if (typeof window === "undefined") return
+  try {
+    // Only save non-home tabs for guests, or all tabs if needed
+    const payload = tabs.map((tab) => ({
+      id: tab.id,
+      type: tab.type,
+      schemaId: tab.type === "schema" ? tab.schemaId : undefined,
+      title: tab.title,
+      templateId: tab.type === "schema" ? tab.templateId : undefined,
+      agentType: tab.type === "schema" ? tab.agentType : undefined,
+      closable: tab.closable,
+      lastOpenedAt: tab.type === "schema" ? tab.lastOpenedAt : undefined,
+    }))
+    window.localStorage.setItem(LOCAL_TABS_STORAGE_KEY, JSON.stringify(payload))
   } catch {
     // Ignore storage errors (private browsing, quota, etc.)
   }
@@ -282,9 +332,139 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     setIsLoadingSchemas(false)
   }, [session?.user?.id, supabase, templateMap])
 
+  // Load tabs from Supabase or local storage
+  const loadTabs = useCallback(async () => {
+    if (!session?.user?.id) {
+      // For guests, load from local storage
+      const guestTabs = readGuestTabs()
+      setTabs(guestTabs)
+      // Set active tab to first tab or home
+      const firstTab = guestTabs[0]
+      if (firstTab) {
+        setActiveTabId(firstTab.id)
+      }
+      return
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("workspace_preferences")
+        .select("open_tabs, last_opened_schema")
+        .eq("user_id", session.user.id)
+        .single()
+
+      if (error && error.code !== "PGRST116") {
+        // PGRST116 is "not found" - that's okay, we'll create it
+        console.error("Error loading tabs:", error)
+        return
+      }
+
+      if (data?.open_tabs && Array.isArray(data.open_tabs)) {
+        const loadedTabs = data.open_tabs as WorkspaceTab[]
+        // Validate tabs
+        const validTabs = loadedTabs.filter((tab: any) => {
+          if (tab.id === "home") {
+            return tab.type === "home" && typeof tab.title === "string"
+          }
+          return (
+            tab.type === "schema" &&
+            typeof tab.id === "string" &&
+            typeof tab.schemaId === "string" &&
+            typeof tab.title === "string"
+          )
+        }) as WorkspaceTab[]
+
+        // Ensure home tab exists
+        if (!validTabs.some((tab) => tab.id === "home")) {
+          validTabs.unshift(HOME_TAB)
+        }
+
+        setTabs(validTabs)
+
+        // Set active tab from preferences or use first tab
+        const lastOpenedSchema = data.last_opened_schema
+        if (lastOpenedSchema) {
+          const schemaTab = validTabs.find(
+            (tab) => tab.type === "schema" && tab.schemaId === lastOpenedSchema
+          )
+          if (schemaTab) {
+            setActiveTabId(schemaTab.id)
+          } else {
+            setActiveTabId(validTabs[0]?.id ?? HOME_TAB.id)
+          }
+        } else {
+          setActiveTabId(validTabs[0]?.id ?? HOME_TAB.id)
+        }
+      }
+    } catch (err) {
+      console.error("Error loading tabs:", err)
+    }
+  }, [session?.user?.id, supabase])
+
+  // Save tabs to Supabase (debounced)
+  const saveTabsRef = useRef<NodeJS.Timeout | null>(null)
+  const saveTabs = useCallback(
+    async (tabsToSave: WorkspaceTab[], activeTab: string) => {
+      if (!session?.user?.id) {
+        // For guests, save to local storage
+        writeGuestTabs(tabsToSave)
+        return
+      }
+
+      // Clear existing timeout
+      if (saveTabsRef.current) {
+        clearTimeout(saveTabsRef.current)
+      }
+
+      // Debounce the save
+      saveTabsRef.current = setTimeout(async () => {
+        try {
+          // Extract schema ID from active tab if it's a schema tab
+          const activeTabObj = tabsToSave.find((tab) => tab.id === activeTab)
+          const lastOpenedSchema =
+            activeTabObj?.type === "schema" ? activeTabObj.schemaId : null
+
+          // Prepare tabs for storage (remove unnecessary fields)
+          const tabsToStore = tabsToSave.map((tab) => ({
+            id: tab.id,
+            type: tab.type,
+            schemaId: tab.type === "schema" ? tab.schemaId : undefined,
+            title: tab.title,
+            templateId: tab.type === "schema" ? tab.templateId : undefined,
+            agentType: tab.type === "schema" ? tab.agentType : undefined,
+            closable: tab.closable,
+            lastOpenedAt: tab.type === "schema" ? tab.lastOpenedAt : undefined,
+          }))
+
+          const { error } = await supabase.from("workspace_preferences").upsert({
+            user_id: session.user.id,
+            open_tabs: tabsToStore as any,
+            last_opened_schema: lastOpenedSchema,
+            updated_at: new Date().toISOString(),
+          })
+
+          if (error) {
+            console.error("Error saving tabs:", error)
+          }
+        } catch (err) {
+          console.error("Error saving tabs:", err)
+        }
+      }, 500) // 500ms debounce
+    },
+    [session?.user?.id, supabase]
+  )
+
   useEffect(() => {
     void fetchSchemas()
-  }, [fetchSchemas])
+    void loadTabs()
+  }, [fetchSchemas, loadTabs])
+
+  // Save tabs when they change
+  useEffect(() => {
+    if (tabs.length > 0) {
+      void saveTabs(tabs, activeTabId)
+    }
+  }, [tabs, activeTabId, saveTabs])
 
   const fetchTemplates = useCallback(async () => {
     if (!session?.user?.id) {
@@ -407,9 +587,20 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     })
   }, [activeTabId])
 
-  const setActiveTab = useCallback((tabId: string) => {
-    setActiveTabId(tabId)
-  }, [])
+  const setActiveTab = useCallback(
+    (tabId: string) => {
+      setActiveTabId(tabId)
+      // Update lastOpenedAt for the tab
+      setTabs((prev) =>
+        prev.map((tab) =>
+          tab.id === tabId && tab.type === "schema"
+            ? { ...tab, lastOpenedAt: Date.now() }
+            : tab
+        )
+      )
+    },
+    []
+  )
 
   const createSchema = useCallback(
     async ({ name, agent, templateId }: { name: string; agent: AgentType; templateId?: string | null }) => {

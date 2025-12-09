@@ -62,7 +62,24 @@ function getPanelConfig(key: string, value: any, field?: SchemaField): { type: P
     if (field) {
         if (field.type === 'object') return { type: 'object', size: 'medium' }
         if (field.type === 'table') return { type: 'table', size: 'large' }
-        if (field.type === 'list') return { type: 'list', size: 'medium' }
+        if (field.type === 'list') {
+            const listField = field as Extract<SchemaField, { type: 'list' }>
+            const items = Array.isArray(value) ? value : []
+            const hasObjectItems = items.some((item) => item && typeof item === 'object' && !Array.isArray(item))
+            const schemaExpectsObjects = listField.item?.type === 'object' || listField.item?.type === 'table'
+
+            if (schemaExpectsObjects) {
+                return (items.length === 0 || hasObjectItems)
+                    ? { type: 'table', size: 'large' }
+                    : { type: 'list', size: 'medium' }
+            }
+
+            if (hasObjectItems) {
+                return { type: 'table', size: 'large' }
+            }
+
+            return { type: 'list', size: 'medium' }
+        }
     }
 
     // Infer from value structure
@@ -249,6 +266,7 @@ export function DocumentMissionControl({ job, schema, onUpdateResults }: Documen
                     <MCSourcePanel
                         imageUrl={doc?.previewUrl || doc?.fileUrl}
                         fileName={doc?.fileName || panel.label}
+                        textContent={doc?.textValue}
                     />
                 )
             case 'text':

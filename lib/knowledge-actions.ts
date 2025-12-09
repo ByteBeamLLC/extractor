@@ -166,12 +166,15 @@ async function processLink(docId: string, url: string) {
         // Use Jina Reader to get markdown
         const jinaUrl = `https://r.jina.ai/${url}`
         const response = await fetch(jinaUrl)
+        const rawText = await response.text()
+        const truncated = rawText.length > 4000 ? `${rawText.slice(0, 4000)} ... [truncated]` : rawText
+        console.log(`[bytebeam] Knowledge - Jina Reader raw response (${response.status}):`, truncated || "<empty body>")
 
         if (!response.ok) {
-            throw new Error(`Jina Reader failed: ${response.statusText}`)
+            throw new Error(`Jina Reader failed: ${response.statusText} ${rawText || ''}`.trim())
         }
 
-        const markdown = await response.text()
+        const markdown = rawText
 
         await supabase
             .from('knowledge_documents')
