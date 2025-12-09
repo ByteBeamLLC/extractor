@@ -261,9 +261,11 @@ export function TanStackGridSheet({
       try {
         const state = await loadTableState(supabase, schemaId);
 
-        // Only update if component is still mounted and state exists
-        if (!isMounted || !state) {
-          // Even if no state, mark initial load as complete
+        // Only update if component is still mounted
+        if (!isMounted) return;
+        
+        // If no state exists, mark initial load as complete
+        if (!state) {
           isInitialLoadRef.current = false;
           return;
         }
@@ -275,13 +277,22 @@ export function TanStackGridSheet({
         if (state.columnOrder) setColumnOrder(state.columnOrder);
         if (state.columnVisibility) setColumnVisibility(state.columnVisibility);
         if (state.columnPinning) setColumnPinning(state.columnPinning);
-        if (state.columnSizes) setColumnSizes(state.columnSizes);
+        if (state.columnSizes) {
+          setColumnSizes(state.columnSizes);
+          // Mark all loaded column sizes as user-resized to prevent recalculation
+          for (const colId of Object.keys(state.columnSizes)) {
+            userResizedColumnsRef.current.add(colId);
+          }
+        }
         if (state.globalFilter !== undefined) setGlobalFilter(state.globalFilter);
 
-        // Mark initial load as complete after a brief delay to ensure all state updates are applied
-        setTimeout(() => {
-          isInitialLoadRef.current = false;
-        }, 100);
+        // Mark initial load as complete using queueMicrotask to ensure it happens
+        // after all state updates are processed by React
+        queueMicrotask(() => {
+          if (isMounted) {
+            isInitialLoadRef.current = false;
+          }
+        });
       } catch (error) {
         console.error("[TanStackGrid] Error loading table state:", error);
         // Silently fail - use default state instead
@@ -654,28 +665,17 @@ export function TanStackGridSheet({
   
   // Handle column sizing changes to track user resizes
   const handleColumnSizingChange = useCallback((updater: any) => {
-    setColumnSizing((prev) => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      
-      // Mark any resized columns as user-resized
-      for (const colId of Object.keys(next)) {
+    const next = typeof updater === 'function' ? updater(columnSizing) : updater;
+    
+    // Mark any resized columns as user-resized and update final sizes
+    for (const [colId, info] of Object.entries(next) as [string, any][]) {
+      if (info && typeof info === 'object' && 'size' in info) {
         userResizedColumnsRef.current.add(colId);
       }
-      
-      // Update columnSizes state with the new sizes
-      setColumnSizes((prevSizes) => {
-        const newSizes = { ...prevSizes };
-        for (const [colId, info] of Object.entries(next) as [string, any][]) {
-          if (info && typeof info === 'object' && 'size' in info) {
-            newSizes[colId] = info.size;
-          }
-        }
-        return newSizes;
-      });
-      
-      return next;
-    });
-  }, []);
+    }
+    
+    setColumnSizing(next);
+  }, [columnSizing]);
 
   // Table instance with all features enabled
   const table = useReactTable({
