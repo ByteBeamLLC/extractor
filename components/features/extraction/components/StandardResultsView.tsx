@@ -1,4 +1,5 @@
 "use client"
+import { useMemo, useCallback } from "react"
 
 import { TanStackGridSheet } from "@/components/tanstack-grid/TanStackGridSheet"
 import { GalleryView } from "@/components/gallery-view/GalleryView"
@@ -94,24 +95,27 @@ export function StandardResultsView({
   renderStatusPill,
 }: StandardResultsViewProps) {
   // Sort jobs by creation date
-  const sortedJobs = [...jobs].sort((a, b) => {
+  const sortedJobs = useMemo(() => [...jobs].sort((a, b) => {
     const aTime = a.createdAt?.getTime() ?? 0
     const bTime = b.createdAt?.getTime() ?? 0
     return aTime - bTime
-  })
+  }), [jobs])
+
+  const handleSelectRow = useCallback((id: string) => {
+    const job = sortedJobs.find((j) => j.id === id)
+    onSelectJob(job ?? null)
+  }, [sortedJobs, onSelectJob])
 
   return (
     <div className="flex-1 overflow-hidden min-h-0 relative">
       {viewMode === 'grid' ? (
         <TanStackGridSheet
+          key={activeSchemaId}
           schemaId={activeSchemaId}
           columns={displayColumns}
           jobs={sortedJobs}
           selectedRowId={selectedJobId}
-          onSelectRow={(id) => {
-            const job = sortedJobs.find((j) => j.id === id)
-            onSelectJob(job ?? null)
-          }}
+          onSelectRow={handleSelectRow}
           onRowDoubleClick={onRowDoubleClick}
           onAddColumn={onAddColumn}
           renderCellValue={renderCellValue}
