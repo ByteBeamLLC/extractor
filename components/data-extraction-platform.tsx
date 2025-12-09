@@ -586,6 +586,7 @@ export function DataExtractionPlatform({
   const [isLabelMakerNewRecord, setIsLabelMakerNewRecord] = useState(false)
   const hasInitialLoadCompletedRef = useRef(false)
   const autoAppliedTemplatesRef = useRef<Set<string>>(new Set())
+  const handledPendingSchemasRef = useRef<Set<string>>(new Set())
   useEffect(() => {
     if (!externalActiveSchemaId) return
     const exists = schemas.some((schema) => schema.id === externalActiveSchemaId)
@@ -1764,10 +1765,13 @@ export function DataExtractionPlatform({
 
   useEffect(() => {
     if (!pendingSchemaCreate) return
-    const exists = schemas.some((schema) => schema.id === pendingSchemaCreate.id)
-    if (exists) {
-      if (onPendingCreateConsumed) onPendingCreateConsumed()
+    if (handledPendingSchemasRef.current.has(pendingSchemaCreate.id)) return
+    handledPendingSchemasRef.current.add(pendingSchemaCreate.id)
+
+    const existing = schemasRef.current.find((schema) => schema.id === pendingSchemaCreate.id)
+    if (existing) {
       setActiveSchemaId(pendingSchemaCreate.id)
+      onPendingCreateConsumed?.()
       return
     }
 
@@ -1815,16 +1819,11 @@ export function DataExtractionPlatform({
         applySchemaTemplate(templateId ?? "")
       }, 0)
     }
-    if (onPendingCreateConsumed) onPendingCreateConsumed()
+    onPendingCreateConsumed?.()
   }, [
     pendingSchemaCreate,
-    schemas,
     templateMap,
-    setSchemas,
-    setActiveSchemaId,
-    setSchemaNameInput,
     session?.user?.id,
-    setSchemaSyncState,
     syncSchema,
     applySchemaTemplate,
     onPendingCreateConsumed,

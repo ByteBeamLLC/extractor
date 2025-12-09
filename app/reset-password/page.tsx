@@ -1,5 +1,8 @@
 "use client"
 
+// Route uses cookies (supabase session) so opt out of static rendering
+export const dynamic = "force-dynamic"
+
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
