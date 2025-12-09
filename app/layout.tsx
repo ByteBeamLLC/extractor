@@ -11,6 +11,9 @@ import { AuthDialogProvider } from '@/components/auth/AuthDialogContext'
 import { AccountMenu } from '@/components/auth/AccountMenu'
 import { createSupabaseServerComponentClient } from '@/lib/supabase/server'
 
+// Force dynamic rendering since we use cookies for auth
+export const dynamic = 'force-dynamic'
+
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
 export const metadata: Metadata = {

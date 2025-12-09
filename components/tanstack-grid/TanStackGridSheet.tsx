@@ -161,6 +161,7 @@ export function TanStackGridSheet({
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState<number>(0);
   const [columnSizes, setColumnSizes] = useState<Record<string, number>>({});
+  const userResizedColumnsRef = useRef<Set<string>>(new Set()); // Track which columns user manually resized
   const supabase = useSupabaseClient<Database>();
 
   // Table state management
@@ -310,9 +311,26 @@ export function TanStackGridSheet({
   }, [schemaId, supabase]);
 
   // Auto-save table state when it changes
+  // Note: We save columnSizes separately to avoid loops with auto-calculated widths
+  const userColumnSizesRef = useRef<Record<string, number>>({});
+  
   useEffect(() => {
     // Skip auto-save during initial load to prevent infinite loops
     if (!debouncedSaveRef.current || isInitialLoadRef.current) return;
+
+    // Only save user-resized column widths, not auto-calculated ones
+    const userResizedSizes: Record<string, number> = {};
+    for (const colId of userResizedColumnsRef.current) {
+      if (columnSizes[colId] !== undefined) {
+        userResizedSizes[colId] = columnSizes[colId];
+      }
+    }
+    
+    // Only update ref if sizes changed
+    const sizesChanged = JSON.stringify(userResizedSizes) !== JSON.stringify(userColumnSizesRef.current);
+    if (sizesChanged) {
+      userColumnSizesRef.current = userResizedSizes;
+    }
 
     const state: TableState = {
       sorting,
@@ -320,7 +338,7 @@ export function TanStackGridSheet({
       columnOrder,
       columnVisibility,
       columnPinning,
-      columnSizes,
+      columnSizes: userResizedSizes, // Only save user-resized widths
       globalFilter,
     };
 
@@ -330,7 +348,10 @@ export function TanStackGridSheet({
     if (onTableStateChange) {
       onTableStateChange(state);
     }
-  }, [sorting, columnFilters, columnOrder, columnVisibility, columnPinning, columnSizes, globalFilter, onTableStateChange]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sorting, columnFilters, columnOrder, columnVisibility, columnPinning, globalFilter]);
+  // Note: onTableStateChange and columnSizes are intentionally excluded from deps to prevent infinite loops
+  // columnSizes changes are tracked separately via userResizedColumnsRef
 
   // Calculate optimal column widths when data changes
   useEffect(() => {
@@ -339,32 +360,28 @@ export function TanStackGridSheet({
 
     const newSizes: Record<string, number> = {};
     for (const col of columns) {
-      const calculatedWidth = calculateColumnWidth(col, jobs);
-      newSizes[col.id] = calculatedWidth;
+      // Only auto-calculate if user hasn't manually resized this column
+      if (!userResizedColumnsRef.current.has(col.id)) {
+        const calculatedWidth = calculateColumnWidth(col, jobs);
+        newSizes[col.id] = calculatedWidth;
+      }
     }
 
     // Only update state if sizes actually changed to prevent infinite re-renders
     setColumnSizes((prevSizes) => {
-      // Check if sizes are different
-      const prevKeys = Object.keys(prevSizes);
-      const newKeys = Object.keys(newSizes);
-
-      // Different number of columns
-      if (prevKeys.length !== newKeys.length) {
-        return newSizes;
+      // Merge with previous sizes (keeping user-resized columns)
+      const mergedSizes = { ...prevSizes };
+      let hasChanges = false;
+      
+      for (const [colId, width] of Object.entries(newSizes)) {
+        if (mergedSizes[colId] !== width) {
+          mergedSizes[colId] = width;
+          hasChanges = true;
+        }
       }
-
-      // Check if all values are the same
-      const sameValues = newKeys.every(
-        (key) => prevSizes[key] === newSizes[key]
-      );
 
       // Return previous state if nothing changed (prevents re-render)
-      if (sameValues) {
-        return prevSizes;
-      }
-
-      return newSizes;
+      return hasChanges ? mergedSizes : prevSizes;
     });
   }, [columns, jobs]);
 
@@ -632,6 +649,34 @@ export function TanStackGridSheet({
     onOpenTableModal,
   ]);
 
+  // Track column sizing state for user resizes
+  const [columnSizing, setColumnSizing] = useState({});
+  
+  // Handle column sizing changes to track user resizes
+  const handleColumnSizingChange = useCallback((updater: any) => {
+    setColumnSizing((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      
+      // Mark any resized columns as user-resized
+      for (const colId of Object.keys(next)) {
+        userResizedColumnsRef.current.add(colId);
+      }
+      
+      // Update columnSizes state with the new sizes
+      setColumnSizes((prevSizes) => {
+        const newSizes = { ...prevSizes };
+        for (const [colId, info] of Object.entries(next) as [string, any][]) {
+          if (info && typeof info === 'object' && 'size' in info) {
+            newSizes[colId] = info.size;
+          }
+        }
+        return newSizes;
+      });
+      
+      return next;
+    });
+  }, []);
+
   // Table instance with all features enabled
   const table = useReactTable({
     data: filteredRowData,
@@ -647,6 +692,7 @@ export function TanStackGridSheet({
       columnVisibility,
       columnPinning,
       globalFilter,
+      columnSizing,
     },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -654,6 +700,7 @@ export function TanStackGridSheet({
     onColumnVisibilityChange: setColumnVisibility,
     onColumnPinningChange: setColumnPinning,
     onGlobalFilterChange: setGlobalFilter,
+    onColumnSizingChange: handleColumnSizingChange,
     enableColumnResizing: true,
     enableSorting: true,
     enableFilters: true,

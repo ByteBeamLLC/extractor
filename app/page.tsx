@@ -1,5 +1,8 @@
 'use client'
 
+// Force dynamic rendering since we use cookies for auth
+export const dynamic = 'force-dynamic'
+
 import * as React from 'react'
 import {
   Breadcrumb,
