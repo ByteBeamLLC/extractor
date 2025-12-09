@@ -259,7 +259,7 @@ export function TanStackGridSheet({
     const load = async () => {
       try {
         const state = await loadTableState(supabase, schemaId);
-        
+
         // Only update if component is still mounted and state exists
         if (!isMounted || !state) {
           // Even if no state, mark initial load as complete
@@ -342,7 +342,30 @@ export function TanStackGridSheet({
       const calculatedWidth = calculateColumnWidth(col, jobs);
       newSizes[col.id] = calculatedWidth;
     }
-    setColumnSizes(newSizes);
+
+    // Only update state if sizes actually changed to prevent infinite re-renders
+    setColumnSizes((prevSizes) => {
+      // Check if sizes are different
+      const prevKeys = Object.keys(prevSizes);
+      const newKeys = Object.keys(newSizes);
+
+      // Different number of columns
+      if (prevKeys.length !== newKeys.length) {
+        return newSizes;
+      }
+
+      // Check if all values are the same
+      const sameValues = newKeys.every(
+        (key) => prevSizes[key] === newSizes[key]
+      );
+
+      // Return previous state if nothing changed (prevents re-render)
+      if (sameValues) {
+        return prevSizes;
+      }
+
+      return newSizes;
+    });
   }, [columns, jobs]);
 
   const pinnedColumnsWidth = 60 + (hasInputColumns ? 0 : 200); // row index + optional file column
