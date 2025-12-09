@@ -174,6 +174,7 @@ export function TanStackGridSheet({
   });
   const [globalFilter, setGlobalFilter] = useState<string>("");
   const debouncedSaveRef = useRef<((state: TableState) => void) | null>(null);
+  const isInitialLoadRef = useRef<boolean>(true); // Flag to prevent auto-save during initial load
   const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
   const [searchStateBySchema, setSearchStateBySchema] = useState<
     Record<string, { query: string; jobIds: string[] }>
@@ -252,13 +253,19 @@ export function TanStackGridSheet({
     if (!schemaId) return;
 
     let isMounted = true;
+    // Mark as initial load to prevent auto-save during load
+    isInitialLoadRef.current = true;
 
     const load = async () => {
       try {
         const state = await loadTableState(supabase, schemaId);
         
         // Only update if component is still mounted and state exists
-        if (!isMounted || !state) return;
+        if (!isMounted || !state) {
+          // Even if no state, mark initial load as complete
+          isInitialLoadRef.current = false;
+          return;
+        }
 
         // Batch all state updates together using React's automatic batching
         // This prevents multiple re-renders and potential infinite loops
@@ -269,9 +276,15 @@ export function TanStackGridSheet({
         if (state.columnPinning) setColumnPinning(state.columnPinning);
         if (state.columnSizes) setColumnSizes(state.columnSizes);
         if (state.globalFilter !== undefined) setGlobalFilter(state.globalFilter);
+
+        // Mark initial load as complete after a brief delay to ensure all state updates are applied
+        setTimeout(() => {
+          isInitialLoadRef.current = false;
+        }, 100);
       } catch (error) {
         console.error("[TanStackGrid] Error loading table state:", error);
         // Silently fail - use default state instead
+        isInitialLoadRef.current = false;
       }
     };
 
@@ -298,7 +311,8 @@ export function TanStackGridSheet({
 
   // Auto-save table state when it changes
   useEffect(() => {
-    if (!debouncedSaveRef.current) return;
+    // Skip auto-save during initial load to prevent infinite loops
+    if (!debouncedSaveRef.current || isInitialLoadRef.current) return;
 
     const state: TableState = {
       sorting,
@@ -316,7 +330,7 @@ export function TanStackGridSheet({
     if (onTableStateChange) {
       onTableStateChange(state);
     }
-  }, [sorting, columnFilters, columnOrder, columnVisibility, columnPinning, columnSizes, globalFilter]);
+  }, [sorting, columnFilters, columnOrder, columnVisibility, columnPinning, columnSizes, globalFilter, onTableStateChange]);
 
   // Calculate optimal column widths when data changes
   useEffect(() => {
