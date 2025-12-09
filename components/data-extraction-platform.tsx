@@ -967,11 +967,11 @@ export function DataExtractionPlatform({
     return dateFormatter.format(date)
   }
 
-  const toggleRowExpansion = (jobId: string | null) => {
+  const toggleRowExpansion = useCallback((jobId: string | null) => {
     setExpandedRowId((prev) => (prev === jobId ? null : jobId))
-  }
+  }, [])
 
-  const openTableModal = (
+  const openTableModal = useCallback((
     column: SchemaField,
     job: ExtractionJob,
     rows: Record<string, any>[],
@@ -979,7 +979,7 @@ export function DataExtractionPlatform({
   ) => {
     setTableModalData({ column, job, rows, columnHeaders })
     setTableModalOpen(true)
-  }
+  }, [])
 
   const findChildLabel = (column: SchemaField, key: string): string | undefined => {
     if (column.type === 'object') {
@@ -1229,11 +1229,11 @@ export function DataExtractionPlatform({
     setIsGroupDialogOpen(true)
   }
 
-  const handleColumnRightClick = (columnId: string, event: React.MouseEvent) => {
+  const handleColumnRightClick = useCallback((columnId: string, event: React.MouseEvent) => {
     event.preventDefault()
     setContextMenuColumn(columnId)
     setContextMenuPosition({ x: event.clientX, y: event.clientY })
-  }
+  }, [])
 
   const startGroupingFromContext = () => {
     if (!contextMenuColumn) return
@@ -1985,14 +1985,7 @@ export function DataExtractionPlatform({
     [activeSchemaId, session?.user?.id, updateSchemaJobs],
   )
 
-  const handleRowDoubleClick = useCallback(
-    (job: ExtractionJob) => {
-      if (!job) return
-      setSelectedJob(job)
-      setIsDetailOpen(true)
-    },
-    [],
-  )
+
 
   const addSchema = useCallback((options?: { name?: string; templateId?: string | null; agent?: AgentType }) => {
     const nextIndex = schemas.length + 1
@@ -2104,7 +2097,7 @@ export function DataExtractionPlatform({
     void syncSchema(schema, { includeJobs: true })
   }, [activeSchemaId, schemas, session?.user?.id, syncSchema, openAuthDialog])
 
-  const addColumn = () => {
+  const addColumn = useCallback(() => {
     const newColumn: SchemaField = {
       id: `col_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       name: `Column ${displayColumns.length + 1}`,
@@ -2117,7 +2110,7 @@ export function DataExtractionPlatform({
     setDraftColumn(JSON.parse(JSON.stringify(newColumn)))
     setSelectedColumn(null)
     setIsColumnDialogOpen(true)
-  }
+  }, [displayColumns.length])
 
   const handleDraftFieldTypeChange = (mode: 'extraction' | 'transformation' | 'input') => {
     setDraftColumn((prev) => {
@@ -2286,7 +2279,7 @@ export function DataExtractionPlatform({
     // 2. Schema is opened from tab but not yet loaded (externalActiveSchemaId)
     let targetSchemaId = activeSchemaId
     let targetSchema = activeSchema
-    
+
     // Priority 1: externalActiveSchemaId (when opening from tab)
     if (externalActiveSchemaId) {
       console.log(`[bytebeam] Upload: externalActiveSchemaId=${externalActiveSchemaId}, activeSchemaId=${activeSchemaId}`)
@@ -2314,7 +2307,7 @@ export function DataExtractionPlatform({
         console.warn(`[bytebeam] Upload: Schema ${externalActiveSchemaId} not in schemas array yet - job will be saved but fields may be empty`)
       }
     }
-    
+
     // Priority 2: pendingSchemaCreate (when schema was just created)
     if (pendingSchemaCreate && pendingSchemaCreate.id !== targetSchemaId) {
       console.log(`[bytebeam] Upload: Using pending schema ${pendingSchemaCreate.id} instead of ${targetSchemaId}`)
@@ -2322,7 +2315,7 @@ export function DataExtractionPlatform({
         setActiveSchemaId(pendingSchemaCreate.id)
       }
       targetSchemaId = pendingSchemaCreate.id
-      
+
       // Try to find the schema in the array, or create one with fields from template
       const pendingSchemaExists = schemas.find((s) => s.id === pendingSchemaCreate.id)
       if (pendingSchemaExists) {
@@ -2337,7 +2330,7 @@ export function DataExtractionPlatform({
             console.log(`[bytebeam] Upload: Loaded ${fieldsFromTemplate.length} fields from template ${pendingSchemaCreate.templateId}`)
           }
         }
-        
+
         targetSchema = {
           id: pendingSchemaCreate.id,
           name: pendingSchemaCreate.name,
@@ -2350,7 +2343,7 @@ export function DataExtractionPlatform({
         console.log(`[bytebeam] Upload: Pending schema ${pendingSchemaCreate.id} not in schemas array yet, using template fields`)
       }
     }
-    
+
     const agentSnapshot = selectedAgent
     const templateIdSnapshot = targetSchema.templateId
     const fieldsSnapshot = targetSchema.fields
@@ -2448,7 +2441,7 @@ export function DataExtractionPlatform({
       if (session?.user?.id) {
         jobMeta.userId = session.user.id
       }
-      
+
       console.log(`[bytebeam] Processing job ${job.id} for schema ${targetSchemaId} (file: ${job.fileName})`)
 
       const updateJobsForSchema = (
@@ -2601,7 +2594,7 @@ export function DataExtractionPlatform({
             const completedAt = new Date()
 
             console.log(`[bytebeam] Pharma extraction completed for job ${job.id}, saving to schema ${targetSchemaId}`)
-            
+
             updateJobsForSchema((prev) =>
               prev.map((existing) =>
                 existing.id === job.id
@@ -3291,7 +3284,7 @@ export function DataExtractionPlatform({
     }
   }
 
-  const getStatusIcon = (status: ExtractionJob["status"]) => {
+  const getStatusIcon = useCallback((status: ExtractionJob["status"]) => {
     const iconSizing = "h-3.5 w-3.5"
     switch (status) {
       case "completed":
@@ -3303,9 +3296,9 @@ export function DataExtractionPlatform({
       default:
         return <Clock className={`${iconSizing} text-muted-foreground`} />
     }
-  }
+  }, [])
 
-  const renderStatusPill = (
+  const renderStatusPill = useCallback((
     status: ExtractionJob["status"],
     opts?: { size?: 'default' | 'compact' },
   ) => {
@@ -3337,7 +3330,7 @@ export function DataExtractionPlatform({
       )
     }
     return <span className={cn(base, 'bg-muted text-muted-foreground')}>Pending</span>
-  }
+  }, [])
 
   const getCellAlignClasses = (type: DataType) => {
     if (type === 'number' || type === 'decimal') return 'text-right [font-variant-numeric:tabular-nums]'
@@ -3353,7 +3346,7 @@ export function DataExtractionPlatform({
     value: any
   } | null>(null)
 
-  const renderCellValue = (
+  const renderCellValue = useCallback((
     column: SchemaField,
     job: ExtractionJob,
     opts?: {
@@ -3792,7 +3785,7 @@ export function DataExtractionPlatform({
         {String(value)}
       </span>
     )
-  }
+  }, [])
 
   const exportToCSV = () => {
     const formatCell = (val: unknown): string => {
@@ -4135,6 +4128,41 @@ export function DataExtractionPlatform({
     setEditingSchemaName(false);
   }, [schemaNameInput, activeSchema.name, activeSchemaId, commitSchemaUpdate]);
 
+  const handleRowDoubleClick = useCallback((job: ExtractionJob) => {
+    // For GCC Food Label, use ExtractionDetailDialog with Label Maker
+    if (activeSchema.templateId === 'gcc-food-label' || activeSchema.name.toLowerCase().includes('gcc')) {
+      setLabelMakerJob(job)
+      setIsLabelMakerNewRecord(false)
+    } else {
+      setSelectedJob(job)
+      setIsDetailOpen(true)
+    }
+  }, [activeSchema.templateId, activeSchema.name])
+
+  const handleEditColumn = useCallback((col: SchemaField) => {
+    setColumnDialogMode('edit')
+    setSelectedColumn(col)
+    setDraftColumn(col)
+    setIsColumnDialogOpen(true)
+  }, [])
+
+  const handleDeleteColumn = useCallback((colId: string) => {
+    commitSchemaUpdate(activeSchemaId, (schema) => {
+      const newFields = removeFieldById(schema.fields, colId)
+      const updatedGroups = (schema.visualGroups || [])
+        .map(group => ({
+          ...group,
+          fieldIds: group.fieldIds.filter(id => id !== colId)
+        }))
+        .filter(group => group.fieldIds.length > 0)
+      return {
+        ...schema,
+        fields: newFields,
+        visualGroups: updatedGroups,
+      }
+    })
+  }, [activeSchemaId, commitSchemaUpdate])
+
   return (
     <div className={cn("flex flex-col bg-background", isEmbedded ? "h-full" : "h-screen")}>
       {/* Hidden file input for Upload Files button */}
@@ -4382,41 +4410,12 @@ export function DataExtractionPlatform({
                     selectedJobId={selectedJob?.id ?? null}
                     expandedRowId={expandedRowId}
                     onSelectJob={setSelectedJob}
-                    onRowDoubleClick={(job) => {
-                      // For GCC Food Label, use ExtractionDetailDialog with Label Maker
-                      if (activeSchema.templateId === 'gcc-food-label' || activeSchema.name.toLowerCase().includes('gcc')) {
-                        setLabelMakerJob(job)
-                        setIsLabelMakerNewRecord(false)
-                      } else {
-                        setSelectedJob(job)
-                        setIsDetailOpen(true)
-                      }
-                    }}
+                    onRowDoubleClick={handleRowDoubleClick}
                     onDeleteJob={handleDeleteJob}
                     onToggleRowExpansion={toggleRowExpansion}
                     onAddColumn={addColumn}
-                    onEditColumn={(col) => {
-                      setColumnDialogMode('edit')
-                      setSelectedColumn(col)
-                      setDraftColumn(col)
-                      setIsColumnDialogOpen(true)
-                    }}
-                    onDeleteColumn={(colId) => {
-                      commitSchemaUpdate(activeSchemaId, (schema) => {
-                        const newFields = removeFieldById(schema.fields, colId)
-                        const updatedGroups = (schema.visualGroups || [])
-                          .map(group => ({
-                            ...group,
-                            fieldIds: group.fieldIds.filter(id => id !== colId)
-                          }))
-                          .filter(group => group.fieldIds.length > 0)
-                        return {
-                          ...schema,
-                          fields: newFields,
-                          visualGroups: updatedGroups,
-                        }
-                      })
-                    }}
+                    onEditColumn={handleEditColumn}
+                    onDeleteColumn={handleDeleteColumn}
                     onUpdateCell={handleUpdateCell}
                     onUpdateReviewStatus={handleUpdateReviewStatus}
                     onColumnRightClick={handleColumnRightClick}
