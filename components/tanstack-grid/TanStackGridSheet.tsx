@@ -198,19 +198,19 @@ export function TanStackGridSheet({
     [schemaId]
   );
 
-  // Debug logging for search state changes
-  useEffect(() => {
-    console.log(`[TanStackGridSheet] search state for schema ${schemaId}:`, {
-      query: currentSearchQuery,
-      matchCount: searchMatchingIds.length,
-    });
-    console.log(`[TanStackGridSheet] globalFilter:`, globalFilter);
-    console.log(`[TanStackGridSheet] Current table state:`, {
-      sorting: table?.getState?.()?.sorting,
-      columnFilters: table?.getState?.()?.columnFilters,
-      globalFilter: table?.getState?.()?.globalFilter,
-    });
-  }, [schemaId, searchMatchingIds, currentSearchQuery, globalFilter]);
+  // Debug logging for search state changes (disabled to reduce console noise)
+  // useEffect(() => {
+  //   console.log(`[TanStackGridSheet] search state for schema ${schemaId}:`, {
+  //     query: currentSearchQuery,
+  //     matchCount: searchMatchingIds.length,
+  //   });
+  //   console.log(`[TanStackGridSheet] globalFilter:`, globalFilter);
+  //   console.log(`[TanStackGridSheet] Current table state:`, {
+  //     sorting: table?.getState?.()?.sorting,
+  //     columnFilters: table?.getState?.()?.columnFilters,
+  //     globalFilter: table?.getState?.()?.globalFilter,
+  //   });
+  // }, [schemaId, searchMatchingIds, currentSearchQuery, globalFilter]);
 
   // Transform jobs to grid rows with stable reference
   const rowData = useMemo<GridRow[]>(() => {
