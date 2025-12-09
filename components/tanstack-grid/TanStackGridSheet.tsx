@@ -251,20 +251,35 @@ export function TanStackGridSheet({
   useEffect(() => {
     if (!schemaId) return;
 
+    let isMounted = true;
+
     const load = async () => {
-      const state = await loadTableState(supabase, schemaId);
-      if (state) {
+      try {
+        const state = await loadTableState(supabase, schemaId);
+        
+        // Only update if component is still mounted and state exists
+        if (!isMounted || !state) return;
+
+        // Batch all state updates together using React's automatic batching
+        // This prevents multiple re-renders and potential infinite loops
         if (state.sorting) setSorting(state.sorting);
         if (state.columnFilters) setColumnFilters(state.columnFilters);
         if (state.columnOrder) setColumnOrder(state.columnOrder);
         if (state.columnVisibility) setColumnVisibility(state.columnVisibility);
         if (state.columnPinning) setColumnPinning(state.columnPinning);
         if (state.columnSizes) setColumnSizes(state.columnSizes);
-        setGlobalFilter(state.globalFilter ?? "");
+        if (state.globalFilter !== undefined) setGlobalFilter(state.globalFilter);
+      } catch (error) {
+        console.error("[TanStackGrid] Error loading table state:", error);
+        // Silently fail - use default state instead
       }
     };
 
     void load();
+
+    return () => {
+      isMounted = false;
+    };
   }, [schemaId, supabase]);
 
   // Initialize debounced save function

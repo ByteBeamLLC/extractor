@@ -18,7 +18,8 @@ export async function loadTableState(
       .from("schemas")
       .select("table_state")
       .eq("id", schemaId)
-      .single();
+      // Use maybeSingle so we don't throw a 406 if the row doesn't exist yet (new schema)
+      .maybeSingle();
 
     if (error) {
       console.error("[tableState] Error loading table state:", error);
@@ -128,4 +129,3 @@ export async function clearTableState(
     return false;
   }
 }
-
