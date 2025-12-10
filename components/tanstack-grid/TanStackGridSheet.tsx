@@ -790,6 +790,25 @@ export function TanStackGridSheet({
 
   const tableRows = table.getRowModel().rows;
 
+  // Detect any Promise values in row data early to avoid React 301
+  useEffect(() => {
+    for (const row of filteredRowData) {
+      const jobId = row.__job.id;
+      for (const col of columns) {
+        const cellValue = (row as any)[col.id];
+        if (cellValue instanceof Promise) {
+          console.error("Promise value detected in grid data", {
+            schemaId,
+            jobId,
+            columnId: col.id,
+            value: cellValue,
+          });
+          return;
+        }
+      }
+    }
+  }, [filteredRowData, columns, schemaId]);
+
   // Handle column drag and drop for reordering
   const handleColumnDragStart = useCallback((columnId: string, e: React.DragEvent) => {
     setDraggedColumn(columnId);
