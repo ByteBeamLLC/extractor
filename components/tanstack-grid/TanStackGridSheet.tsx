@@ -666,7 +666,7 @@ export function TanStackGridSheet({
     columns,
     columnSizes,
     visualGroups,
-    filteredRowData,
+    // Avoid tying column definition identity to data to keep table stable
     stableOnEditColumn,
     stableOnDeleteColumn,
     onAddColumn,
@@ -738,7 +738,7 @@ export function TanStackGridSheet({
     defaultColumnConfig,
   ]);
 
-  // Table instance with all features enabled - memoized options ensure stable reference
+  // Table instance with all features enabled
   const table = useReactTable(tableOptions);
 
   const tableRows = table.getRowModel().rows;
