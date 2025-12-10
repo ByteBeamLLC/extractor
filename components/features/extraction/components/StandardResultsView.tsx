@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { TanStackGridSheet } from "@/components/tanstack-grid/TanStackGridSheet"
 import { GalleryView } from "@/components/gallery-view/GalleryView"
 import type { SchemaDefinition, SchemaField, ExtractionJob, VisualGroup } from "@/lib/schema"
@@ -93,12 +94,14 @@ export function StandardResultsView({
   getStatusIcon,
   renderStatusPill,
 }: StandardResultsViewProps) {
-  // Sort jobs by creation date
-  const sortedJobs = [...jobs].sort((a, b) => {
-    const aTime = a.createdAt?.getTime() ?? 0
-    const bTime = b.createdAt?.getTime() ?? 0
-    return aTime - bTime
-  })
+  // Sort jobs by creation date - memoized to prevent re-sorting on every render
+  const sortedJobs = React.useMemo(() => {
+    return [...jobs].sort((a, b) => {
+      const aTime = a.createdAt?.getTime() ?? 0
+      const bTime = b.createdAt?.getTime() ?? 0
+      return aTime - bTime
+    })
+  }, [jobs])
 
   return (
     <div className="flex-1 overflow-hidden min-h-0 relative">

@@ -580,22 +580,33 @@ export function TanStackGridSheet({
     onOpenTableModal,
   ]);
 
-  // Table instance with all features enabled
+  // Memoize table options to ensure stable table instance
+  const getRowId = useCallback((row: GridRow) => row.__job.id, []);
+  
+  const tableState = useMemo(() => ({
+    sorting,
+    columnFilters,
+    columnOrder,
+    columnVisibility,
+    columnPinning,
+    globalFilter,
+  }), [sorting, columnFilters, columnOrder, columnVisibility, columnPinning, globalFilter]);
+
+  const defaultColumnConfig = useMemo(() => ({
+    size: DEFAULT_DATA_COL_WIDTH,
+    minSize: MIN_COL_WIDTH,
+    maxSize: MAX_COL_WIDTH,
+  }), []);
+
+  // Table instance with all features enabled - memoized inputs ensure stable reference
   const table = useReactTable({
     data: filteredRowData,
     columns: columnDefs,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    getRowId: (row) => row.__job.id,
-    state: {
-      sorting,
-      columnFilters,
-      columnOrder,
-      columnVisibility,
-      columnPinning,
-      globalFilter,
-    },
+    getRowId,
+    state: tableState,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnOrderChange: setColumnOrder,
@@ -609,11 +620,7 @@ export function TanStackGridSheet({
     enableColumnPinning: true,
     enableGlobalFilter: true,
     columnResizeMode: 'onChange',
-    defaultColumn: {
-      size: DEFAULT_DATA_COL_WIDTH,
-      minSize: MIN_COL_WIDTH,
-      maxSize: MAX_COL_WIDTH,
-    },
+    defaultColumn: defaultColumnConfig,
   });
 
   const tableRows = table.getRowModel().rows;

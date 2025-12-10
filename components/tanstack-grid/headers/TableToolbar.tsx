@@ -42,6 +42,23 @@ export function TableToolbar({
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const abortControllerRef = useRef<AbortController | null>(null);
   const searchCacheRef = useRef<Record<string, { query: string; results: SearchResult[] }>>({});
+  const previousQueryRef = useRef<string>("");
+
+  // Memoize table method to avoid re-running effects when table reference changes
+  // Use a ref to store the table method to ensure stability
+  const tableRef = useRef(table);
+  useEffect(() => {
+    tableRef.current = table;
+  }, [table]);
+  
+  const setGlobalFilter = useCallback((value: string) => {
+    // Skip update if the global filter already matches the new value
+    const currentFilter = tableRef.current.getState().globalFilter;
+    if (currentFilter === value) {
+      return;
+    }
+    tableRef.current.setGlobalFilter(value);
+  }, []);
 
   // Debounce search input - wait for user to finish typing
   useEffect(() => {
@@ -54,6 +71,12 @@ export function TableToolbar({
 
   // Perform search when debounced query changes
   useEffect(() => {
+    // Skip if query hasn't actually changed
+    if (debouncedQuery === previousQueryRef.current) {
+      return;
+    }
+    previousQueryRef.current = debouncedQuery;
+
     if (!debouncedQuery.trim()) {
       setSearchResults([]);
       searchCacheRef.current[schemaId] = { query: "", results: [] };
@@ -62,8 +85,11 @@ export function TableToolbar({
         abortControllerRef.current = null;
       }
       onSearchResults?.({ jobIds: [], query: "" });
-      // Clear the global filter when search is empty
-      table.setGlobalFilter("");
+      // Clear the global filter when search is empty (only if not already empty)
+      const currentFilter = tableRef.current.getState().globalFilter;
+      if (currentFilter !== "") {
+        setGlobalFilter("");
+      }
       return;
     }
 
@@ -74,7 +100,9 @@ export function TableToolbar({
       }
       
       // Create new abort controller
-      abortControllerRef.current = new AbortController();
+      const currentAbortController = new AbortController();
+      abortControllerRef.current = currentAbortController;
+      const signal = currentAbortController.signal;
       
       setIsSearching(true);
       try {
@@ -85,11 +113,22 @@ export function TableToolbar({
             query: debouncedQuery,
             schemaId,
           }),
-          signal: abortControllerRef.current.signal, // Add abort signal
+          signal, // Add abort signal
         });
+
+        // Check if request was aborted before processing response
+        if (signal.aborted) {
+          return;
+        }
 
         if (response.ok) {
           const data = await response.json();
+          
+          // Check again before updating state (request might have been aborted during JSON parsing)
+          if (signal.aborted) {
+            return;
+          }
+          
           setSearchResults(data.results || []);
           searchCacheRef.current[schemaId] = {
             query: debouncedQuery,
@@ -100,29 +139,50 @@ export function TableToolbar({
           const matchingJobIds = data.results.map((r: SearchResult) => r.jobId);
           console.log(`[TableToolbar] Search found ${matchingJobIds.length} matching jobs:`, matchingJobIds);
           
-          onSearchResults?.({
-            jobIds: matchingJobIds,
-            query: debouncedQuery,
-          });
+          // Final check before updating parent state
+          if (!signal.aborted) {
+            onSearchResults?.({
+              jobIds: matchingJobIds,
+              query: debouncedQuery,
+            });
 
-          // Set global filter with search query AFTER updating matching IDs
-          // Use setTimeout to ensure state has updated
-          setTimeout(() => {
-            table.setGlobalFilter(debouncedQuery);
-            console.log(`[TableToolbar] Applied global filter: "${debouncedQuery}"`);
-          }, 0);
+            // Set global filter with search query AFTER updating matching IDs
+            // Use setTimeout to ensure state has updated, but only if value changed
+            setTimeout(() => {
+              // Check one more time in case component unmounted or request was aborted
+              if (!signal.aborted && abortControllerRef.current === currentAbortController) {
+                const currentFilter = tableRef.current.getState().globalFilter;
+                if (currentFilter !== debouncedQuery) {
+                  setGlobalFilter(debouncedQuery);
+                  console.log(`[TableToolbar] Applied global filter: "${debouncedQuery}"`);
+                }
+              }
+            }, 0);
+          }
         }
       } catch (error) {
-        if (error.name !== 'AbortError') {
+        // Only log non-abort errors
+        if (error instanceof Error && error.name !== 'AbortError') {
           console.error("[TableToolbar] Search error:", error);
         }
       } finally {
-        setIsSearching(false);
+        // Only update loading state if this is still the current request
+        if (abortControllerRef.current === currentAbortController && !signal.aborted) {
+          setIsSearching(false);
+        }
       }
     };
 
     void performSearch();
-  }, [debouncedQuery, schemaId, table, onSearchResults]);
+
+    // Cleanup function to abort ongoing requests
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, [debouncedQuery, schemaId, setGlobalFilter, onSearchResults]);
 
   // Restore per-tab search state when schema changes
   useEffect(() => {
@@ -138,37 +198,39 @@ export function TableToolbar({
     setSearchQuery(cachedQuery);
     setDebouncedQuery(cachedQuery);
     setSearchResults(cachedResults);
+    previousQueryRef.current = cachedQuery;
 
     if (cachedQuery.trim().length > 0) {
-      table.setGlobalFilter(cachedQuery);
+      setGlobalFilter(cachedQuery);
       const ids = cachedResults.map((result) => result.jobId);
       onSearchResults?.({ jobIds: ids, query: cachedQuery });
     } else {
-      table.setGlobalFilter("");
+      setGlobalFilter("");
       onSearchResults?.({ jobIds: [], query: "" });
     }
-  }, [schemaId, table, onSearchResults]);
+  }, [schemaId, setGlobalFilter, onSearchResults]);
 
-  const clearSearch = () => {
+  const clearSearch = useCallback(() => {
     setSearchQuery("");
     setSearchResults([]);
     setDebouncedQuery("");
+    previousQueryRef.current = "";
     searchCacheRef.current[schemaId] = { query: "", results: [] };
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
-    table.setGlobalFilter("");
+    setGlobalFilter("");
     onSearchResults?.({ jobIds: [], query: "" });
-  };
+  }, [schemaId, setGlobalFilter, onSearchResults]);
 
   const clearFilters = useCallback(() => {
     table.resetColumnFilters();
-  }, [table]);
+  }, [table.resetColumnFilters]);
 
   const clearSorting = useCallback(() => {
     table.resetSorting();
-  }, [table]);
+  }, [table.resetSorting]);
 
   const resetAll = useCallback(() => {
     clearSearch();
@@ -177,7 +239,7 @@ export function TableToolbar({
     table.resetColumnVisibility();
     table.resetColumnOrder();
     table.resetColumnPinning();
-  }, [table, clearFilters, clearSorting]);
+  }, [clearSearch, clearFilters, clearSorting, table.resetColumnVisibility, table.resetColumnOrder, table.resetColumnPinning]);
 
   const columns = table.getAllColumns().filter((column) => {
     // Filter out utility columns
@@ -204,7 +266,13 @@ export function TableToolbar({
             type="text"
             placeholder="Search across all files and data..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              const newValue = e.target.value;
+              // Skip update if value hasn't changed
+              if (searchQuery !== newValue) {
+                setSearchQuery(newValue);
+              }
+            }}
             className={cn(
               "h-9 pl-9 pr-9",
               isSearching && "animate-pulse"

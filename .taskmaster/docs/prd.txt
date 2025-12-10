@@ -1,0 +1,33 @@
+<context> # Overview Production users hit React error #301 (“Too many re-renders”) when creating a new job from template/blank. Root cause: the grid stack (StandardResultsView → TanStackGridSheet → TableToolbar) re-creates the table and re-runs effects every render because inputs (sorted jobs array, table instance) are not memoized and effects depend on an unstable `table` object. Fix focus: stabilize inputs, guard effects, and validate prod builds so new job flow is error-free.
+Core Features
+Stabilized grid data & table creation: memoize sorted jobs and grid inputs so the TanStack table instance is stable across renders.
+Effect guardrails in TableToolbar: ensure search/filter effects run only when inputs change (not every render) and avoid re-entrant state updates that trigger render loops.
+Regression validation: add targeted checks (test/dev harness or manual checklist) to verify new job creation and grid load do not trigger render loops in production build.
+User Experience
+Persona: Analyst/Reviewer creating schemas/jobs.
+Flow: New → pick template/blank → grid loads without crash → can search/filter/edit.
+UX considerations: identical behavior dev/prod; no visible change except stability; if search is empty, toolbar should not spam state updates. </context>
+<PRD> # Technical Architecture - Components touched: - `StandardResultsView`: stop re-sorting on every render; memoize `sortedJobs`. - `TanStackGridSheet`: memoize table creation (wrap `useReactTable` in `useMemo` with stable deps) so `table` reference doesn’t change each render. - `TableToolbar`: - Debounce/search effects depend on `debouncedQuery` and stable `table` methods only; remove `table` object itself from deps or memoize callbacks. - Skip state updates when values already match to avoid redundant renders. - Data flow: ensure `jobs` and `columns` passed to grid are stable arrays when unchanged; keep search cache keyed by schemaId. - APIs/infra: none changed.
+Development Roadmap
+MVP fixes:
+Memoize sortedJobs in StandardResultsView with useMemo([jobs]).
+Memoize table instance in TanStackGridSheet (wrap useReactTable in useMemo using stable columns, data, handlers).
+Harden TableToolbar effects: guard on debouncedQuery changes; avoid re-running on table ref churn; no-op if search query unchanged; ensure abort controller cleanup.
+Quick manual verification on production build (next build && next start): new schema → select template/blank → grid renders; toggle search/filter; no error.
+Enhancements:
+Add a lightweight render-loop regression test (e.g., playwright or Cypress script that opens template dialog and loads grid).
+Instrument a one-time console warning if search effect runs >N times in a short window (dev-only).
+Memoize renderCellValue/handlers if needed to reduce churn.
+Logical Dependency Chain
+Stabilize data inputs (memoized sorted jobs).
+Stabilize table creation (memoized useReactTable).
+Guard toolbar effects against unnecessary state updates.
+Validate on production build and add regression check.
+Risks and Mitigations
+Regression in search/filter: Mitigate by keeping current behavior when query changes and testing empty-query path.
+Missed render-loop edge cases: Mitigate with debounced effect guards and a regression script.
+Perf impact: Memoization reduces churn; ensure deps are correct to avoid stale data.
+Appendix
+Root cause: unstable table ref + effects depending on it → continuous rerenders → React invariant 301 in production.
+Target files: components/features/extraction/StandardResultsView.tsx, components/tanstack-grid/TanStackGridSheet.tsx, components/tanstack-grid/headers/TableToolbar.tsx.
+</PRD>
