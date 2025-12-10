@@ -784,8 +784,9 @@ export function TanStackGridSheet({
     defaultColumnConfig,
   ]);
 
-  // Table instance with all features enabled - memoized to prevent re-creation
-  const table = useMemo(() => useReactTable(tableOptions), [tableOptions]);
+  // Table instance with all features enabled
+  // The table is stable because tableOptions is memoized with stable dependencies
+  const table = useReactTable(tableOptions);
 
   const tableRows = table.getRowModel().rows;
 
