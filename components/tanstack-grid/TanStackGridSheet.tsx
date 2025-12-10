@@ -785,8 +785,8 @@ export function TanStackGridSheet({
   ]);
 
   // Table instance with all features enabled
-  // The table is stable because tableOptions is memoized with stable dependencies
-  const table = useReactTable(tableOptions);
+  // Memoize to avoid creating a new table each render (prevents render loops/React 301)
+  const table = useMemo(() => useReactTable(tableOptions), [tableOptions]);
 
   const tableRows = table.getRowModel().rows;
 
