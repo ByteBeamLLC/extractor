@@ -157,6 +157,7 @@ export function TanStackGridSheet({
   expandedRowId,
   onToggleRowExpansion,
   onTableStateChange,
+  enableTableStatePersistence = true, // Default to true for backward compatibility
 }: TanStackGridSheetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState<number>(0);
@@ -180,6 +181,97 @@ export function TanStackGridSheet({
   >({});
 
   const hasInputColumns = useMemo(() => columns.some((c) => c.type === "input"), [columns]);
+
+  // Create stable wrapper callbacks for props to prevent columnDefs from changing
+  // Use refs to always call the latest version while maintaining stable references
+  const renderCellValueRef = useRef(renderCellValue);
+  const getStatusIconRef = useRef(getStatusIcon);
+  const renderStatusPillRef = useRef(renderStatusPill);
+  const onEditColumnRef = useRef(onEditColumn);
+  const onDeleteColumnRef = useRef(onDeleteColumn);
+  const onUpdateCellRef = useRef(onUpdateCell);
+  const onUpdateReviewStatusRef = useRef(onUpdateReviewStatus);
+  const onColumnRightClickRef = useRef(onColumnRightClick);
+  const onOpenTableModalRef = useRef(onOpenTableModal);
+  const onToggleRowExpansionRef = useRef(onToggleRowExpansion);
+
+  // Update refs when props change
+  useEffect(() => {
+    renderCellValueRef.current = renderCellValue;
+    getStatusIconRef.current = getStatusIcon;
+    renderStatusPillRef.current = renderStatusPill;
+    onEditColumnRef.current = onEditColumn;
+    onDeleteColumnRef.current = onDeleteColumn;
+    onUpdateCellRef.current = onUpdateCell;
+    onUpdateReviewStatusRef.current = onUpdateReviewStatus;
+    onColumnRightClickRef.current = onColumnRightClick;
+    onOpenTableModalRef.current = onOpenTableModal;
+    onToggleRowExpansionRef.current = onToggleRowExpansion;
+  }, [
+    renderCellValue,
+    getStatusIcon,
+    renderStatusPill,
+    onEditColumn,
+    onDeleteColumn,
+    onUpdateCell,
+    onUpdateReviewStatus,
+    onColumnRightClick,
+    onOpenTableModal,
+    onToggleRowExpansion,
+  ]);
+
+  // Create stable callbacks that use refs
+  const stableRenderCellValue = useCallback(
+    (column: any, job: any, opts?: any) => renderCellValueRef.current(column, job, opts),
+    []
+  );
+
+  const stableGetStatusIcon = useCallback(
+    (status: any) => getStatusIconRef.current(status),
+    []
+  );
+
+  const stableRenderStatusPill = useCallback(
+    (status: any, opts?: any) => renderStatusPillRef.current(status, opts),
+    []
+  );
+
+  const stableOnEditColumn = useCallback(
+    (column: any) => onEditColumnRef.current(column),
+    []
+  );
+
+  const stableOnDeleteColumn = useCallback(
+    (columnId: string) => onDeleteColumnRef.current(columnId),
+    []
+  );
+
+  const stableOnUpdateCell = useCallback(
+    (jobId: string, columnId: string, value: unknown) => onUpdateCellRef.current(jobId, columnId, value),
+    []
+  );
+
+  const stableOnUpdateReviewStatus = useCallback(
+    (jobId: string, columnId: string, status: 'verified' | 'needs_review', payload?: { reason?: string | null }) =>
+      onUpdateReviewStatusRef.current(jobId, columnId, status, payload),
+    []
+  );
+
+  const stableOnColumnRightClick = useCallback(
+    (columnId: string, event: React.MouseEvent) => onColumnRightClickRef.current(columnId, event),
+    []
+  );
+
+  const stableOnOpenTableModal = useCallback(
+    (column: any, job: any, rows: Record<string, unknown>[], columnHeaders: Array<{ key: string; label: string }>) =>
+      onOpenTableModalRef.current(column, job, rows, columnHeaders),
+    []
+  );
+
+  const stableOnToggleRowExpansion = useCallback(
+    (rowId: string | null) => onToggleRowExpansionRef.current(rowId),
+    []
+  );
 
   const currentSearchState = schemaId ? searchStateBySchema[schemaId] : undefined;
   const searchMatchingIds = currentSearchState?.jobIds ?? EMPTY_SEARCH_RESULTS;
@@ -250,6 +342,13 @@ export function TanStackGridSheet({
   // Load table state from Supabase when schema changes
   useEffect(() => {
     if (!schemaId) return;
+    
+    if (!enableTableStatePersistence) {
+      if (process.env.NODE_ENV === 'development') {
+        console.info("[TanStackGridSheet] Table state persistence is disabled for schema:", schemaId);
+      }
+      return;
+    }
 
     const load = async () => {
       const state = await loadTableState(supabase, schemaId);
@@ -265,11 +364,14 @@ export function TanStackGridSheet({
     };
 
     void load();
-  }, [schemaId, supabase]);
+  }, [schemaId, supabase, enableTableStatePersistence]);
 
   // Initialize debounced save function
   useEffect(() => {
-    if (!schemaId) return;
+    if (!schemaId || !enableTableStatePersistence) {
+      debouncedSaveRef.current = null;
+      return;
+    }
 
     debouncedSaveRef.current = createDebouncedSave(supabase, schemaId, 500);
 
@@ -279,11 +381,11 @@ export function TanStackGridSheet({
         (debouncedSaveRef.current as any).flush();
       }
     };
-  }, [schemaId, supabase]);
+  }, [schemaId, supabase, enableTableStatePersistence]);
 
   // Auto-save table state when it changes
   useEffect(() => {
-    if (!debouncedSaveRef.current) return;
+    if (!debouncedSaveRef.current || !enableTableStatePersistence) return;
 
     const state: TableState = {
       sorting,
@@ -297,11 +399,11 @@ export function TanStackGridSheet({
 
     debouncedSaveRef.current(state);
 
-    // Notify parent if callback provided
+    // Notify parent if callback provided (always notify, even if persistence is disabled)
     if (onTableStateChange) {
       onTableStateChange(state);
     }
-  }, [sorting, columnFilters, columnOrder, columnVisibility, columnPinning, columnSizes, globalFilter]);
+  }, [sorting, columnFilters, columnOrder, columnVisibility, columnPinning, columnSizes, globalFilter, enableTableStatePersistence, onTableStateChange]);
 
   // Calculate optimal column widths when data changes
   useEffect(() => {
@@ -360,7 +462,7 @@ export function TanStackGridSheet({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    onToggleRowExpansion(row.original.__job.id);
+                    stableOnToggleRowExpansion(row.original.__job.id);
                   }}
                   className="p-0.5 hover:bg-slate-200 rounded transition-colors"
                   title={isExpanded ? "Collapse row" : "Expand row"}
@@ -392,8 +494,8 @@ export function TanStackGridSheet({
           <div className="ag-cell-wrap-text">
             <FileCellRenderer
               row={row.original}
-              getStatusIcon={getStatusIcon}
-              renderStatusPill={renderStatusPill}
+              getStatusIcon={stableGetStatusIcon}
+              renderStatusPill={stableRenderStatusPill}
             />
           </div>
         ),
@@ -432,9 +534,9 @@ export function TanStackGridSheet({
             <DataColumnHeader
               column={col}
               columnMeta={column}
-              onEditColumn={onEditColumn}
-              onDeleteColumn={onDeleteColumn}
-              onColumnRightClick={onColumnRightClick}
+              onEditColumn={stableOnEditColumn}
+              onDeleteColumn={stableOnDeleteColumn}
+              onColumnRightClick={stableOnColumnRightClick}
             />
           </div>
         ),
@@ -451,7 +553,7 @@ export function TanStackGridSheet({
             <ReviewWrapper
               job={job}
               columnId={column.id}
-              onUpdateReviewStatus={onUpdateReviewStatus}
+              onUpdateReviewStatus={stableOnUpdateReviewStatus}
               onDoubleClick={() => {
                 if (
                   columnMeta.type === "object" ||
@@ -461,12 +563,12 @@ export function TanStackGridSheet({
                   return;
               }}
             >
-              {renderCellValue(columnMeta, job, {
+              {stableRenderCellValue(columnMeta, job, {
                 mode: columnMeta.type === 'object' || columnMeta.type === 'list' || columnMeta.type === 'table'
                   ? 'summary'
                   : 'interactive',
-                onUpdateCell,
-                onOpenTableModal,
+                onUpdateCell: stableOnUpdateCell,
+                onOpenTableModal: stableOnOpenTableModal,
               })}
             </ReviewWrapper>
           );
@@ -499,9 +601,9 @@ export function TanStackGridSheet({
             <DataColumnHeader
               column={col}
               columnMeta={column}
-              onEditColumn={onEditColumn}
-              onDeleteColumn={onDeleteColumn}
-              onColumnRightClick={onColumnRightClick}
+              onEditColumn={stableOnEditColumn}
+              onDeleteColumn={stableOnDeleteColumn}
+              onColumnRightClick={stableOnColumnRightClick}
             />
           </div>
         ),
@@ -518,14 +620,14 @@ export function TanStackGridSheet({
             <ReviewWrapper
               job={job}
               columnId={column.id}
-              onUpdateReviewStatus={onUpdateReviewStatus}
+              onUpdateReviewStatus={stableOnUpdateReviewStatus}
             >
-              {renderCellValue(columnMeta, job, {
+              {stableRenderCellValue(columnMeta, job, {
                 mode: columnMeta.type === 'object' || columnMeta.type === 'list' || columnMeta.type === 'table'
                   ? 'summary'
                   : 'interactive',
-                onUpdateCell,
-                onOpenTableModal,
+                onUpdateCell: stableOnUpdateCell,
+                onOpenTableModal: stableOnOpenTableModal,
               })}
             </ReviewWrapper>
           );
@@ -565,19 +667,19 @@ export function TanStackGridSheet({
     columnSizes,
     visualGroups,
     filteredRowData,
-    onEditColumn,
-    onDeleteColumn,
+    stableOnEditColumn,
+    stableOnDeleteColumn,
     onAddColumn,
-    onUpdateReviewStatus,
-    onColumnRightClick,
-    getStatusIcon,
-    renderStatusPill,
-    renderCellValue,
+    stableOnUpdateReviewStatus,
+    stableOnColumnRightClick,
+    stableGetStatusIcon,
+    stableRenderStatusPill,
+    stableRenderCellValue,
     fillerWidth,
     expandedRowId,
-    onToggleRowExpansion,
-    onUpdateCell,
-    onOpenTableModal,
+    stableOnToggleRowExpansion,
+    stableOnUpdateCell,
+    stableOnOpenTableModal,
   ]);
 
   // Memoize table options to ensure stable table instance
@@ -598,8 +700,9 @@ export function TanStackGridSheet({
     maxSize: MAX_COL_WIDTH,
   }), []);
 
-  // Table instance with all features enabled - memoized inputs ensure stable reference
-  const table = useReactTable({
+  // Memoize table options object to ensure all inputs are stable
+  // This ensures the table instance remains stable when inputs haven't changed
+  const tableOptions = useMemo(() => ({
     data: filteredRowData,
     columns: columnDefs,
     getCoreRowModel: getCoreRowModel(),
@@ -619,9 +722,24 @@ export function TanStackGridSheet({
     enableColumnOrdering: true,
     enableColumnPinning: true,
     enableGlobalFilter: true,
-    columnResizeMode: 'onChange',
+    columnResizeMode: 'onChange' as const,
     defaultColumn: defaultColumnConfig,
-  });
+  }), [
+    filteredRowData,
+    columnDefs,
+    getRowId,
+    tableState,
+    setSorting,
+    setColumnFilters,
+    setColumnOrder,
+    setColumnVisibility,
+    setColumnPinning,
+    setGlobalFilter,
+    defaultColumnConfig,
+  ]);
+
+  // Table instance with all features enabled - memoized options ensure stable reference
+  const table = useReactTable(tableOptions);
 
   const tableRows = table.getRowModel().rows;
 

@@ -45,10 +45,26 @@ export function TableToolbar({
   const previousQueryRef = useRef<string>("");
 
   // Memoize table method to avoid re-running effects when table reference changes
-  // Use a ref to store the table method to ensure stability
+  // Use a ref to store the table and its methods to ensure stability
   const tableRef = useRef(table);
+  const tableResetMethodsRef = useRef<{
+    resetColumnFilters: () => void;
+    resetSorting: () => void;
+    resetColumnVisibility: () => void;
+    resetColumnOrder: () => void;
+    resetColumnPinning: () => void;
+  } | null>(null);
+
   useEffect(() => {
     tableRef.current = table;
+    // Store reset methods in ref to maintain stable references
+    tableResetMethodsRef.current = {
+      resetColumnFilters: table.resetColumnFilters,
+      resetSorting: table.resetSorting,
+      resetColumnVisibility: table.resetColumnVisibility,
+      resetColumnOrder: table.resetColumnOrder,
+      resetColumnPinning: table.resetColumnPinning,
+    };
   }, [table]);
   
   const setGlobalFilter = useCallback((value: string) => {
@@ -225,21 +241,21 @@ export function TableToolbar({
   }, [schemaId, setGlobalFilter, onSearchResults]);
 
   const clearFilters = useCallback(() => {
-    table.resetColumnFilters();
-  }, [table.resetColumnFilters]);
+    tableResetMethodsRef.current?.resetColumnFilters();
+  }, []);
 
   const clearSorting = useCallback(() => {
-    table.resetSorting();
-  }, [table.resetSorting]);
+    tableResetMethodsRef.current?.resetSorting();
+  }, []);
 
   const resetAll = useCallback(() => {
     clearSearch();
     clearFilters();
     clearSorting();
-    table.resetColumnVisibility();
-    table.resetColumnOrder();
-    table.resetColumnPinning();
-  }, [clearSearch, clearFilters, clearSorting, table.resetColumnVisibility, table.resetColumnOrder, table.resetColumnPinning]);
+    tableResetMethodsRef.current?.resetColumnVisibility();
+    tableResetMethodsRef.current?.resetColumnOrder();
+    tableResetMethodsRef.current?.resetColumnPinning();
+  }, [clearSearch, clearFilters, clearSorting]);
 
   const columns = table.getAllColumns().filter((column) => {
     // Filter out utility columns

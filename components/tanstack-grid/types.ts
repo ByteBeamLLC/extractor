@@ -85,6 +85,7 @@ export interface TanStackGridSheetProps {
   expandedRowId: string | null;
   onToggleRowExpansion: (jobId: string) => void;
   onTableStateChange?: (state: any) => void; // Callback for parent tracking
+  enableTableStatePersistence?: boolean; // Optional flag to disable table-state persistence (default: true)
 }
 
 // Column grouping structure

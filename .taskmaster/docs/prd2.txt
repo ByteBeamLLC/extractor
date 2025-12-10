@@ -1,0 +1,31 @@
+<context> # Overview We addressed the original React #301 by memoizing sorted jobs and hardening the toolbar search, but production still hits #301 when loading the grid after creating a new job. The grid/table instance is still unstable because `useReactTable` and handlers are recreated every render, and Supabase table_state fetches return 406. This follow-up PRD focuses on stabilizing the table instance, preventing render loops, and making table-state persistence resilient. Target users remain analysts/reviewers working in the grid-first flow (new schema → grid → search/filter/edit).
+Core Features
+Stable grid instance: memoized table creation and stable callbacks so the table/toolbar don’t re-trigger effects.
+Effect guardrails: keep search/filter/reset handlers from re-running due to changing refs; protect against redundant state updates.
+Resilient table-state persistence: handle Supabase 406 gracefully and allow disabling persistence if unavailable.
+User Experience
+Persona: Analyst/Reviewer creating schemas/jobs and reviewing in the grid.
+Flow: Create schema (template/blank) → grid loads without crashes → search/filter/edit works; table state saves when allowed, silently skips when not.
+UX considerations: No visible change except stability; no repeated toasts or loops; if table-state load fails, grid still works with defaults. </context>
+<PRD> # Technical Architecture - Components: - `StandardResultsView` (sorted jobs already memoized). - `TanStackGridSheet`: memoize `useReactTable`; memoize column defs and callbacks; use tableRef for reset helpers; guard table-state load/save. - `TableToolbar`: already guarded; extend to use stable reset helpers if needed. - Data models/APIs: unchanged; Supabase `schemas.table_state` read/write, but add fallback/flag on 406. - Infrastructure: none added; optional flag to disable table-state persistence if RLS blocks it.
+Development Roadmap
+MVP (stability):
+Wrap useReactTable in useMemo keyed on stable deps (data, columns, tableState, getRowId, defaultColumnConfig).
+Wrap renderCellValue, getStatusIcon, renderStatusPill, and handler props in useCallback before passing to columnDefs, or remove them from deps.
+Use tableRef for reset methods in toolbar helpers to avoid changing deps on table.reset*.
+Add guard in table-state load: on 406 or error, skip state application; optionally gate persistence behind a flag.
+Next:
+If persistence is off, surface a dev-only log; add a small regression check for production build new-job flow.
+Logical Dependency Chain
+Stabilize table inputs (memoized table/data/columns).
+Stabilize callbacks/handlers used in columnDefs and toolbar.
+Guard table-state load/save (handle 406, optional flag).
+Validate in production build (new schema → grid → search/filter).
+Risks and Mitigations
+Risk: Memoization mistakes causing stale props. Mitigation: key memo on jobs, columns, and handler refs; keep handlers stable with useCallback.
+Risk: Table-state persistence blocked (406). Mitigation: short-circuit on error; allow disabling persistence; default to local state.
+Risk: Residual render loops. Mitigation: tableRef for toolbar resets; ensure effects depend only on stable values.
+Appendix
+Resolved: sorted jobs now memoized; toolbar search debounced and guarded; globalFilter setter uses tableRef.
+Outstanding: useReactTable not memoized; columnDefs depend on volatile handlers; toolbar reset helpers depend on table reset method identities; Supabase table_state load returning 406.
+</PRD>

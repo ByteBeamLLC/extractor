@@ -103,6 +103,12 @@ export function StandardResultsView({
     })
   }, [jobs])
 
+  // Memoize onSelectRow callback to prevent unnecessary re-renders of TanStackGridSheet
+  const handleSelectRow = React.useCallback((id: string) => {
+    const job = sortedJobs.find((j) => j.id === id)
+    onSelectJob(job ?? null)
+  }, [sortedJobs, onSelectJob])
+
   return (
     <div className="flex-1 overflow-hidden min-h-0 relative">
       {viewMode === 'grid' ? (
@@ -111,10 +117,7 @@ export function StandardResultsView({
           columns={displayColumns}
           jobs={sortedJobs}
           selectedRowId={selectedJobId}
-          onSelectRow={(id) => {
-            const job = sortedJobs.find((j) => j.id === id)
-            onSelectJob(job ?? null)
-          }}
+          onSelectRow={handleSelectRow}
           onRowDoubleClick={onRowDoubleClick}
           onAddColumn={onAddColumn}
           renderCellValue={renderCellValue}

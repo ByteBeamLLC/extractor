@@ -14,14 +14,23 @@ export async function loadTableState(
   schemaId: string
 ): Promise<TableState | null> {
   try {
-    const { data, error } = await supabase
+    const { data, error, status } = await supabase
       .from("schemas")
       .select("table_state")
       .eq("id", schemaId)
       .single();
 
     if (error) {
-      console.error("[tableState] Error loading table state:", error);
+      // Handle 406 (Not Acceptable) gracefully - usually means RLS blocked access or not found
+      if (status === 406) {
+        if (process.env.NODE_ENV === 'development') {
+          console.debug("[tableState] Table state not found or access denied (406), using defaults");
+        }
+        return null;
+      }
+      if (process.env.NODE_ENV === 'development') {
+        console.error("[tableState] Error loading table state:", error);
+      }
       return null;
     }
 
@@ -51,13 +60,22 @@ export async function saveTableState(
 ): Promise<boolean> {
   try {
     // Save as JSONB object directly, not as string
-    const { error } = await supabase
+    const { error, status } = await supabase
       .from("schemas")
       .update({ table_state: state as any }) // Cast to any for JSONB
       .eq("id", schemaId);
 
     if (error) {
-      console.error("[tableState] Error saving table state:", error);
+      // Handle 406 (Not Acceptable) gracefully - usually means RLS blocked access
+      if (status === 406) {
+        if (process.env.NODE_ENV === 'development') {
+          console.debug("[tableState] Table state save blocked (406), skipping persistence");
+        }
+        return false;
+      }
+      if (process.env.NODE_ENV === 'development') {
+        console.error("[tableState] Error saving table state:", error);
+      }
       return false;
     }
 
@@ -83,7 +101,12 @@ export function createDebouncedSave(
     if (latestState && timeoutId) {
       clearTimeout(timeoutId);
       timeoutId = null;
-      await saveTableState(supabase, schemaId, latestState);
+      try {
+        await saveTableState(supabase, schemaId, latestState);
+      } catch (err) {
+        // Errors are already handled in saveTableState, but catch here to prevent unhandled rejections
+        console.debug("[tableState] Debounced save error (already handled):", err);
+      }
       latestState = null;
     }
   };
