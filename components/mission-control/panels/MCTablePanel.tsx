@@ -14,22 +14,30 @@ import {
 } from '@/components/ui/table'
 
 interface MCTablePanelProps {
-    value: Record<string, any>[]
+    value: Record<string, any>[] | Record<string, any> | null | undefined
     onChange: (value: Record<string, any>[]) => void
 }
 
 export function MCTablePanel({ value, onChange }: MCTablePanelProps) {
+    // Normalize incoming value to a row array so unexpected shapes don't break rendering
+    const rows = Array.isArray(value)
+        ? value
+        : value && typeof value === 'object'
+            ? [value]
+            : []
     const [editingCell, setEditingCell] = useState<{ row: number; col: string } | null>(null)
     const [editValue, setEditValue] = useState('')
 
     // Get all unique keys from all rows
     const columns = useMemo(() => {
         const keys = new Set<string>()
-        value.forEach(row => {
-            Object.keys(row).forEach(key => keys.add(key))
+        rows.forEach(row => {
+            if (row && typeof row === 'object' && !Array.isArray(row)) {
+                Object.keys(row).forEach(key => keys.add(key))
+            }
         })
         return Array.from(keys)
-    }, [value])
+    }, [rows])
 
     const prettifyKey = (key: string) => {
         return key
@@ -56,7 +64,7 @@ export function MCTablePanel({ value, onChange }: MCTablePanelProps) {
             }
         }
 
-        const updated = [...value]
+        const updated = [...rows]
         updated[editingCell.row] = {
             ...updated[editingCell.row],
             [editingCell.col]: parsedValue
@@ -71,7 +79,7 @@ export function MCTablePanel({ value, onChange }: MCTablePanelProps) {
     }
 
     const handleDeleteRow = (rowIndex: number) => {
-        onChange(value.filter((_, i) => i !== rowIndex))
+        onChange(rows.filter((_, i) => i !== rowIndex))
     }
 
     const handleAddRow = () => {
@@ -79,10 +87,10 @@ export function MCTablePanel({ value, onChange }: MCTablePanelProps) {
         columns.forEach(col => {
             newRow[col] = ''
         })
-        onChange([...value, newRow])
+        onChange([...rows, newRow])
     }
 
-    if (value.length === 0) {
+    if (rows.length === 0) {
         return (
             <div className="text-center py-4" onClick={(e) => e.stopPropagation()}>
                 <p className="text-sm text-muted-foreground mb-2">No data</p>
@@ -109,7 +117,7 @@ export function MCTablePanel({ value, onChange }: MCTablePanelProps) {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {value.map((row, rowIndex) => (
+                        {rows.map((row, rowIndex) => (
                             <TableRow key={rowIndex} className="group">
                                 {columns.map((col) => {
                                     const cellValue = row[col]
