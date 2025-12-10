@@ -725,7 +725,6 @@ export function TanStackGridSheet({
     stableOnUpdateCell,
     stableOnOpenTableModal,
     hasInputColumns,
-    filteredRowData,
     draggedColumn,
   ]);
 
