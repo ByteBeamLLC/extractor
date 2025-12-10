@@ -24,6 +24,15 @@ export function PrimitiveCell({
   columnMeta,
   onUpdateCell,
 }: PrimitiveCellProps) {
+  if (value instanceof Promise) {
+    console.error("Promise value passed to PrimitiveCell", {
+      columnId,
+      jobId: row.__job.id,
+      value,
+    });
+    return <span className="text-red-600">[promise]</span>;
+  }
+
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState<any>(value ?? "");
 
@@ -269,4 +278,3 @@ export function PrimitiveCell({
     </span>
   );
 }
-

@@ -49,6 +49,15 @@ export function TableCell({
   mode = "interactive",
   onOpenNestedGrid,
 }: TableCellProps) {
+  if (value instanceof Promise) {
+    console.error("Promise value passed to TableCell", {
+      columnId,
+      jobId: row.__job.id,
+      value,
+    });
+    return <div className="text-sm text-red-600">[promise]</div>;
+  }
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const rows = value || [];
   const tableColumn = column as Extract<SchemaField, { type: "table" }>;

@@ -3368,6 +3368,15 @@ export function DataExtractionPlatform({
       ) => void;
     },
   ) => {
+    if (value instanceof Promise) {
+      console.error("Promise value passed to grid cell", {
+        columnId: column.id,
+        jobId: job.id,
+        value,
+      });
+      return <span className="text-red-600">[promise]</span>;
+    }
+
     if (column.type === 'input') {
       const inputDoc = job.inputDocuments?.[column.id]
       const docName = inputDoc?.textValue || inputDoc?.fileName || job.fileName
