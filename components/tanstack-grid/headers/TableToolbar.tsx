@@ -43,6 +43,7 @@ export function TableToolbar({
   const abortControllerRef = useRef<AbortController | null>(null);
   const searchCacheRef = useRef<Record<string, { query: string; results: SearchResult[] }>>({});
   const previousQueryRef = useRef<string>("");
+  const previousSearchResultsRef = useRef<{ jobIds: string[]; query: string }>({ jobIds: [], query: "" });
 
   // Memoize table method to avoid re-running effects when table reference changes
   // Use a ref to store the table and its methods to ensure stability
@@ -100,7 +101,11 @@ export function TableToolbar({
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
       }
-      onSearchResults?.({ jobIds: [], query: "" });
+      // Only call onSearchResults if clearing (not already cleared)
+      if (previousSearchResultsRef.current.query !== "" || previousSearchResultsRef.current.jobIds.length > 0) {
+        previousSearchResultsRef.current = { jobIds: [], query: "" };
+        onSearchResults?.({ jobIds: [], query: "" });
+      }
       // Clear the global filter when search is empty (only if not already empty)
       const currentFilter = tableRef.current.getState().globalFilter;
       if (currentFilter !== "") {
@@ -157,10 +162,17 @@ export function TableToolbar({
           
           // Final check before updating parent state
           if (!signal.aborted) {
-            onSearchResults?.({
-              jobIds: matchingJobIds,
-              query: debouncedQuery,
-            });
+            // Only call onSearchResults if the data actually changed
+            const newSearchResults = { jobIds: matchingJobIds, query: debouncedQuery };
+            const hasChanged = 
+              previousSearchResultsRef.current.query !== newSearchResults.query ||
+              previousSearchResultsRef.current.jobIds.length !== newSearchResults.jobIds.length ||
+              !previousSearchResultsRef.current.jobIds.every((id, idx) => id === newSearchResults.jobIds[idx]);
+            
+            if (hasChanged) {
+              previousSearchResultsRef.current = newSearchResults;
+              onSearchResults?.(newSearchResults);
+            }
 
             // Set global filter with search query AFTER updating matching IDs
             // Use setTimeout to ensure state has updated, but only if value changed
@@ -219,10 +231,14 @@ export function TableToolbar({
     if (cachedQuery.trim().length > 0) {
       setGlobalFilter(cachedQuery);
       const ids = cachedResults.map((result) => result.jobId);
-      onSearchResults?.({ jobIds: ids, query: cachedQuery });
+      const newSearchResults = { jobIds: ids, query: cachedQuery };
+      previousSearchResultsRef.current = newSearchResults;
+      onSearchResults?.(newSearchResults);
     } else {
       setGlobalFilter("");
-      onSearchResults?.({ jobIds: [], query: "" });
+      const emptyResults = { jobIds: [], query: "" };
+      previousSearchResultsRef.current = emptyResults;
+      onSearchResults?.(emptyResults);
     }
   }, [schemaId, setGlobalFilter, onSearchResults]);
 
@@ -237,7 +253,9 @@ export function TableToolbar({
       abortControllerRef.current = null;
     }
     setGlobalFilter("");
-    onSearchResults?.({ jobIds: [], query: "" });
+    const emptyResults = { jobIds: [], query: "" };
+    previousSearchResultsRef.current = emptyResults;
+    onSearchResults?.(emptyResults);
   }, [schemaId, setGlobalFilter, onSearchResults]);
 
   const clearFilters = useCallback(() => {

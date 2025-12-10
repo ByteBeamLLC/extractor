@@ -23,11 +23,13 @@ export async function loadTableState(
     if (error) {
       // Handle 406 (Not Acceptable) gracefully - usually means RLS blocked access or not found
       if (status === 406) {
+        // Only log in development, suppress in production to avoid console noise
         if (process.env.NODE_ENV === 'development') {
           console.debug("[tableState] Table state not found or access denied (406), using defaults");
         }
         return null;
       }
+      // Only log other errors in development
       if (process.env.NODE_ENV === 'development') {
         console.error("[tableState] Error loading table state:", error);
       }
@@ -68,11 +70,13 @@ export async function saveTableState(
     if (error) {
       // Handle 406 (Not Acceptable) gracefully - usually means RLS blocked access
       if (status === 406) {
+        // Only log in development, suppress in production to avoid console noise
         if (process.env.NODE_ENV === 'development') {
           console.debug("[tableState] Table state save blocked (406), skipping persistence");
         }
         return false;
       }
+      // Only log other errors in development
       if (process.env.NODE_ENV === 'development') {
         console.error("[tableState] Error saving table state:", error);
       }

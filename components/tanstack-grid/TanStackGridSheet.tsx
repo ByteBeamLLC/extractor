@@ -194,6 +194,9 @@ export function TanStackGridSheet({
   const onColumnRightClickRef = useRef(onColumnRightClick);
   const onOpenTableModalRef = useRef(onOpenTableModal);
   const onToggleRowExpansionRef = useRef(onToggleRowExpansion);
+  const onAddColumnRef = useRef(onAddColumn);
+  const onSelectRowRef = useRef(onSelectRow);
+  const onRowDoubleClickRef = useRef(onRowDoubleClick);
 
   // Update refs when props change
   useEffect(() => {
@@ -207,6 +210,9 @@ export function TanStackGridSheet({
     onColumnRightClickRef.current = onColumnRightClick;
     onOpenTableModalRef.current = onOpenTableModal;
     onToggleRowExpansionRef.current = onToggleRowExpansion;
+    onAddColumnRef.current = onAddColumn;
+    onSelectRowRef.current = onSelectRow;
+    onRowDoubleClickRef.current = onRowDoubleClick;
   }, [
     renderCellValue,
     getStatusIcon,
@@ -218,6 +224,9 @@ export function TanStackGridSheet({
     onColumnRightClick,
     onOpenTableModal,
     onToggleRowExpansion,
+    onAddColumn,
+    onSelectRow,
+    onRowDoubleClick,
   ]);
 
   // Create stable callbacks that use refs
@@ -270,6 +279,21 @@ export function TanStackGridSheet({
 
   const stableOnToggleRowExpansion = useCallback(
     (rowId: string | null) => onToggleRowExpansionRef.current(rowId),
+    []
+  );
+
+  const stableOnAddColumn = useCallback(
+    () => onAddColumnRef.current(),
+    []
+  );
+
+  const stableOnSelectRow = useCallback(
+    (id: string) => onSelectRowRef.current(id),
+    []
+  );
+
+  const stableOnRowDoubleClick = useCallback(
+    (job: any) => onRowDoubleClickRef.current?.(job),
     []
   );
 
@@ -351,15 +375,35 @@ export function TanStackGridSheet({
     }
 
     const load = async () => {
-      const state = await loadTableState(supabase, schemaId);
-      if (state) {
-        if (state.sorting) setSorting(state.sorting);
-        if (state.columnFilters) setColumnFilters(state.columnFilters);
-        if (state.columnOrder) setColumnOrder(state.columnOrder);
-        if (state.columnVisibility) setColumnVisibility(state.columnVisibility);
-        if (state.columnPinning) setColumnPinning(state.columnPinning);
-        if (state.columnSizes) setColumnSizes(state.columnSizes);
-        setGlobalFilter(state.globalFilter ?? "");
+      try {
+        // Check if user is authenticated before attempting to load table state
+        // This prevents 406 errors from appearing in console on initial page load
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        // Only attempt to load if user is authenticated
+        // Unauthenticated users will use default table state
+        if (!session?.user) {
+          if (process.env.NODE_ENV === 'development') {
+            console.debug("[TanStackGridSheet] Skipping table state load - user not authenticated");
+          }
+          return;
+        }
+
+        const state = await loadTableState(supabase, schemaId);
+        if (state) {
+          if (state.sorting) setSorting(state.sorting);
+          if (state.columnFilters) setColumnFilters(state.columnFilters);
+          if (state.columnOrder) setColumnOrder(state.columnOrder);
+          if (state.columnVisibility) setColumnVisibility(state.columnVisibility);
+          if (state.columnPinning) setColumnPinning(state.columnPinning);
+          if (state.columnSizes) setColumnSizes(state.columnSizes);
+          setGlobalFilter(state.globalFilter ?? "");
+        }
+      } catch (err) {
+        // Silently handle errors - already logged in loadTableState if needed
+        if (process.env.NODE_ENV === 'development') {
+          console.debug("[TanStackGridSheet] Error during table state load:", err);
+        }
       }
     };
 
@@ -652,7 +696,7 @@ export function TanStackGridSheet({
     // Add column button - always at the end, sticky to right
     defs.push({
       id: "bb-add-field",
-      header: () => <AddColumnHeader onAddColumn={onAddColumn} />,
+      header: () => <AddColumnHeader onAddColumn={stableOnAddColumn} />,
       size: 56,
       minSize: 56,
       maxSize: 56,
@@ -669,7 +713,7 @@ export function TanStackGridSheet({
     // Avoid tying column definition identity to data to keep table stable
     stableOnEditColumn,
     stableOnDeleteColumn,
-    onAddColumn,
+    stableOnAddColumn,
     stableOnUpdateReviewStatus,
     stableOnColumnRightClick,
     stableGetStatusIcon,
@@ -680,6 +724,9 @@ export function TanStackGridSheet({
     stableOnToggleRowExpansion,
     stableOnUpdateCell,
     stableOnOpenTableModal,
+    hasInputColumns,
+    filteredRowData,
+    draggedColumn,
   ]);
 
   // Memoize table options to ensure stable table instance
@@ -738,8 +785,8 @@ export function TanStackGridSheet({
     defaultColumnConfig,
   ]);
 
-  // Table instance with all features enabled
-  const table = useReactTable(tableOptions);
+  // Table instance with all features enabled - memoized to prevent re-creation
+  const table = useMemo(() => useReactTable(tableOptions), [tableOptions]);
 
   const tableRows = table.getRowModel().rows;
 
@@ -833,20 +880,20 @@ export function TanStackGridSheet({
   const hasRows = virtualizedRows.length > 0;
   const leafColumnCount = Math.max(table.getAllLeafColumns().length, 1);
 
-  // Handle row clicks
+  // Handle row clicks - using stable callbacks to prevent re-renders
   const handleRowClick = useCallback(
     (row: GridRow) => {
-      onSelectRow(row.__job.id);
+      stableOnSelectRow(row.__job.id);
     },
-    [onSelectRow]
+    [stableOnSelectRow]
   );
 
   const handleRowDoubleClick = useCallback(
     (row: GridRow) => {
-      onSelectRow(row.__job.id);
-      onRowDoubleClick?.(row.__job);
+      stableOnSelectRow(row.__job.id);
+      stableOnRowDoubleClick(row.__job);
     },
-    [onSelectRow, onRowDoubleClick]
+    [stableOnSelectRow, stableOnRowDoubleClick]
   );
 
   // Calculate total table width and handle column overflow
@@ -1042,7 +1089,7 @@ export function TanStackGridSheet({
                       job={detailRow.original.__job}
                       columns={columns}
                       visibleCells={detailRow.getVisibleCells()}
-                      onUpdateCell={onUpdateCell}
+                      onUpdateCell={stableOnUpdateCell}
                     />
                   );
                 })}
