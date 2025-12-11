@@ -314,54 +314,50 @@ export function TanStackGridSheet({
   // Table state management (guarded setters to avoid redundant updates)
   const [sorting, setSortingState] = useState<SortingState>([]);
   const setSorting = useCallback(
-    (updater: SortingState | ((prev: SortingState) => SortingState)) =>
-      microtask(() =>
-        setSortingState((prev) => {
-          const next = typeof updater === "function" ? (updater as any)(prev) : updater;
-          if (GRID_DEBUG_ENABLED) logDebug("setSorting", { prev, next });
-          return shallowArrayEqual(prev, next) ? prev : next;
-        }), "setSorting"
-      ),
-    [microtask, logDebug]
+    (updater: SortingState | ((prev: SortingState) => SortingState)) => {
+      setSortingState((prev) => {
+        const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+        if (GRID_DEBUG_ENABLED) logDebug("setSorting", { prev, next });
+        return shallowArrayEqual(prev, next) ? prev : next;
+      });
+    },
+    [logDebug]
   );
 
   const [columnFilters, setColumnFiltersState] = useState<ColumnFiltersState>([]);
   const setColumnFilters = useCallback(
-    (updater: ColumnFiltersState | ((prev: ColumnFiltersState) => ColumnFiltersState)) =>
-      microtask(() =>
-        setColumnFiltersState((prev) => {
-          const next = typeof updater === "function" ? (updater as any)(prev) : updater;
-          if (GRID_DEBUG_ENABLED) logDebug("setColumnFilters", { prev, next });
-          return shallowArrayEqual(prev, next) ? prev : next;
-        }), "setColumnFilters"
-      ),
-    [microtask, logDebug]
+    (updater: ColumnFiltersState | ((prev: ColumnFiltersState) => ColumnFiltersState)) => {
+      setColumnFiltersState((prev) => {
+        const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+        if (GRID_DEBUG_ENABLED) logDebug("setColumnFilters", { prev, next });
+        return shallowArrayEqual(prev, next) ? prev : next;
+      });
+    },
+    [logDebug]
   );
 
   const [columnOrder, setColumnOrderState] = useState<ColumnOrderState>([]);
   const setColumnOrder = useCallback(
-    (updater: ColumnOrderState | ((prev: ColumnOrderState) => ColumnOrderState)) =>
-      microtask(() =>
-        setColumnOrderState((prev) => {
-          const next = typeof updater === "function" ? (updater as any)(prev) : updater;
-          if (GRID_DEBUG_ENABLED) logDebug("setColumnOrder", { prev, next });
-          return shallowArrayEqual(prev, next) ? prev : next;
-        }), "setColumnOrder"
-      ),
-    [microtask, logDebug]
+    (updater: ColumnOrderState | ((prev: ColumnOrderState) => ColumnOrderState)) => {
+      setColumnOrderState((prev) => {
+        const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+        if (GRID_DEBUG_ENABLED) logDebug("setColumnOrder", { prev, next });
+        return shallowArrayEqual(prev, next) ? prev : next;
+      });
+    },
+    [logDebug]
   );
 
   const [columnVisibility, setColumnVisibilityState] = useState<VisibilityState>({});
   const setColumnVisibility = useCallback(
-    (updater: VisibilityState | ((prev: VisibilityState) => VisibilityState)) =>
-      microtask(() =>
-        setColumnVisibilityState((prev) => {
-          const next = typeof updater === "function" ? (updater as any)(prev) : updater;
-          if (GRID_DEBUG_ENABLED) logDebug("setColumnVisibility", { prev, next });
-          return shallowObjectEqual(prev, next) ? prev : next;
-        }), "setColumnVisibility"
-      ),
-    [microtask, logDebug]
+    (updater: VisibilityState | ((prev: VisibilityState) => VisibilityState)) => {
+      setColumnVisibilityState((prev) => {
+        const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+        if (GRID_DEBUG_ENABLED) logDebug("setColumnVisibility", { prev, next });
+        return shallowObjectEqual(prev, next) ? prev : next;
+      });
+    },
+    [logDebug]
   );
 
   const [columnPinning, setColumnPinningState] = useState<ColumnPinningState>({
@@ -369,28 +365,26 @@ export function TanStackGridSheet({
     right: [],
   });
   const setColumnPinning = useCallback(
-    (updater: ColumnPinningState | ((prev: ColumnPinningState) => ColumnPinningState)) =>
-      microtask(() =>
-        setColumnPinningState((prev) => {
-          const next = typeof updater === "function" ? (updater as any)(prev) : updater;
-          if (GRID_DEBUG_ENABLED) logDebug("setColumnPinning", { prev, next });
-          return shallowObjectEqual(prev, next) ? prev : next;
-        }), "setColumnPinning"
-      ),
-    [microtask, logDebug]
+    (updater: ColumnPinningState | ((prev: ColumnPinningState) => ColumnPinningState)) => {
+      setColumnPinningState((prev) => {
+        const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+        if (GRID_DEBUG_ENABLED) logDebug("setColumnPinning", { prev, next });
+        return shallowObjectEqual(prev, next) ? prev : next;
+      });
+    },
+    [logDebug]
   );
 
   const [globalFilter, setGlobalFilterState] = useState<string>("");
   const setGlobalFilter = useCallback(
-    (updater: string | ((prev: string) => string)) =>
-      microtask(() =>
-        setGlobalFilterState((prev) => {
-          const next = typeof updater === "function" ? (updater as any)(prev) : updater;
-          if (GRID_DEBUG_ENABLED) logDebug("setGlobalFilter", { prev, next });
-          return Object.is(prev, next) ? prev : next;
-        }), "setGlobalFilter"
-      ),
-    [microtask, logDebug]
+    (updater: string | ((prev: string) => string)) => {
+      setGlobalFilterState((prev) => {
+        const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+        if (GRID_DEBUG_ENABLED) logDebug("setGlobalFilter", { prev, next });
+        return Object.is(prev, next) ? prev : next;
+      });
+    },
+    [logDebug]
   );
   const debouncedSaveRef = useRef<((state: TableState) => void) | null>(null);
   const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
