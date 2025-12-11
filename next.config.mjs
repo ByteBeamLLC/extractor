@@ -3,6 +3,9 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['@ai-sdk/google'],
   },
+
+
+  
   poweredByHeader: false,
   eslint: {
     ignoreDuringBuilds: true,

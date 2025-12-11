@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import { GeistMono } from 'geist/font/mono'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
@@ -12,7 +11,8 @@ import { AccountMenu } from '@/components/auth/AccountMenu'
 import { createSupabaseServerComponentClient } from '@/lib/supabase/server'
 import { GlobalErrorBoundary } from '@/components/GlobalErrorBoundary'
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
+// Use a neutral fallback to avoid remote font downloads in restricted builds.
+const inter = { variable: '' } as const
 
 export const metadata: Metadata = {
   title: 'SheetIT — by Bytebeam',

@@ -607,24 +607,20 @@ export function DataExtractionPlatform({
   const [isLabelMakerNewRecord, setIsLabelMakerNewRecord] = useState(false)
   const hasInitialLoadCompletedRef = useRef(false)
   const autoAppliedTemplatesRef = useRef<Set<string>>(new Set())
+  // Track externalActiveSchemaId changes once to avoid churn from schema array updates.
+  const lastExternalSchemaIdRef = useRef<string | null>(null)
   useEffect(() => {
     if (!externalActiveSchemaId) return
+    if (lastExternalSchemaIdRef.current === externalActiveSchemaId) return
+    lastExternalSchemaIdRef.current = externalActiveSchemaId
+
     const exists = schemas.some((schema) => schema.id === externalActiveSchemaId)
     if (exists) {
-      // Schema exists in array, set it as active
-      setActiveSchemaId((current) => {
-        if (current === externalActiveSchemaId) return current
-        return externalActiveSchemaId
-      })
+      setActiveSchemaId(externalActiveSchemaId)
     } else {
-      // Schema doesn't exist in array yet - it might still be loading
-      // Set it as active anyway so uploads use the correct schema_id
-      // The schema will be loaded from the database when the workspace loads
-      setActiveSchemaId((current) => {
-        if (current === externalActiveSchemaId) return current
-        console.log(`[bytebeam] externalActiveSchemaId ${externalActiveSchemaId} not in schemas array yet, setting as active anyway`)
-        return externalActiveSchemaId
-      })
+      // Schema may still be loading; set active so uploads use the correct schema_id.
+      console.log(`[bytebeam] externalActiveSchemaId ${externalActiveSchemaId} not in schemas array yet, setting as active anyway`)
+      setActiveSchemaId(externalActiveSchemaId)
     }
   }, [externalActiveSchemaId, schemas])
   useEffect(() => {
