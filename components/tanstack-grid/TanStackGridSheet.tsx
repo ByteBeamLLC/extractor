@@ -774,6 +774,14 @@ export function TanStackGridSheet({
 
   // Calculate optimal column widths when data changes
   useEffect(() => {
+    // #region agent log
+    console.error('[H6] Column size calculation effect firing', {
+      renderCount: renderCountRef.current,
+      columnsLength: columns.length,
+      jobsLength: jobs.length
+    });
+    // #endregion
+
     // We calculate widths even if jobs is empty, to ensure headers are sized correctly
     // based on their text length.
     const newSizes: Record<string, number> = {};
@@ -789,6 +797,16 @@ export function TanStackGridSheet({
       const sameKeys =
         Object.keys(newSizes).length === Object.keys(prev).length &&
         Object.keys(newSizes).every((key) => prev[key] === newSizes[key]);
+
+      // #region agent log
+      if (!sameKeys) {
+        console.error('[H6] setColumnSizes called - will trigger re-render', {
+          renderCount: renderCountRef.current,
+          prevKeys: Object.keys(prev).length,
+          newKeys: Object.keys(newSizes).length
+        });
+      }
+      // #endregion
 
       return sameKeys ? prev : newSizes;
     });
@@ -818,8 +836,23 @@ export function TanStackGridSheet({
   fillerWidthRef.current = fillerWidth;
   
   const tableWidth = baseTableWidth + fillerWidth;
+  // #region agent log
+  const prevColumnSizesRef = useRef(columnSizes);
+  const columnSizesChanged = prevColumnSizesRef.current !== columnSizes;
+  if (columnSizesChanged) {
+    console.error('[H5] columnSizes changed during render', {
+      renderCount: renderCountRef.current,
+      newSizes: Object.keys(columnSizes).length
+    });
+  }
+  prevColumnSizesRef.current = columnSizes;
+  // #endregion
+
   // Define column definitions
   const columnDefs = useMemo<ColumnDef<GridRow>[]>(() => {
+    // #region agent log
+    console.error('[H5] columnDefs recomputing', { renderCount: renderCountRef.current });
+    // #endregion
     const defs: ColumnDef<GridRow>[] = [
       // Row index column with expand/collapse icon - FIXED
       {
@@ -1094,6 +1127,9 @@ export function TanStackGridSheet({
   // Memoize table options object to ensure all inputs are stable
   // This ensures the table instance remains stable when inputs haven't changed
   const tableOptions = useMemo(() => {
+    // #region agent log
+    console.error('[H5] tableOptions recomputing', { renderCount: renderCountRef.current });
+    // #endregion
     return {
     data: filteredRowData,
     columns: columnDefs,
@@ -1153,9 +1189,28 @@ export function TanStackGridSheet({
     }
   }, [columns, filteredRowData, schemaId]);
 
+  // #region agent log
+  renderCountRef.current += 1;
+  console.error('[H5] TanStackGridSheet render', {
+    renderCount: renderCountRef.current,
+    columnsLength: columns.length,
+    jobsLength: jobs.length
+  });
+  
+  if (renderCountRef.current >= 25) {
+    console.error('[H5] RENDER LOOP DETECTED IN GRID!', {
+      renderCount: renderCountRef.current,
+      schemaId
+    });
+  }
+  // #endregion
+
   // Table instance with all features enabled.
   // useReactTable must be called at the top level (not inside other hooks) to satisfy hook rules.
   const table = useReactTable(tableOptions);
+  // #region agent log
+  console.error('[H5] useReactTable called', { renderCount: renderCountRef.current });
+  // #endregion
   if (GRID_DEBUG_ENABLED) {
     logDebug("tableOptions", {
       dataRows: filteredRowData.length,
@@ -1305,10 +1360,22 @@ export function TanStackGridSheet({
 
   // Calculate total table width and handle column overflow
   useEffect(() => {
+    // #region agent log
+    console.error('[H7] Container width effect firing', {
+      renderCount: renderCountRef.current
+    });
+    // #endregion
+
     const el = containerRef.current;
     if (!el) return;
 
     const updateWidth = () => {
+      // #region agent log
+      console.error('[H7] setContainerWidth called - will trigger re-render', {
+        renderCount: renderCountRef.current,
+        width: el.clientWidth
+      });
+      // #endregion
       setContainerWidth(el.clientWidth);
     };
 
