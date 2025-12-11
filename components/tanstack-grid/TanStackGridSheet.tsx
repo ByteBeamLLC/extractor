@@ -245,6 +245,9 @@ export function TanStackGridSheet({
   visualGroups: [],
   enableTableStatePersistence: true,
 }) {
+  // #region agent log
+  console.error('[GRID_DEBUG:ENTRY]', JSON.stringify({location:'TanStackGridSheet.tsx:247',message:'Function entry',data:{schemaId,columnsLength:columns?.length,jobsLength:jobs?.length,propsReceived:{hasSchemaId:!!schemaId,columnsIsArray:Array.isArray(columns),jobsIsArray:Array.isArray(jobs)},isClient:typeof window!=='undefined'},timestamp:Date.now(),hypothesisId:'F,G'}));
+  // #endregion
   // Search is disabled per request; keep table simple and avoid global filter churn.
   const enableSearch = false;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -253,6 +256,10 @@ export function TanStackGridSheet({
   const supabase = useSupabaseClient<Database>();
   const renderCountRef = useRef(0);
   const renderWindowStartRef = useRef<number>(Date.now());
+  // #region agent log
+  const columnsRef = useRef(columns);
+  const jobsRef = useRef(jobs);
+  // #endregion
 
   const logDebug = useCallback(
     (message: string, payload?: Record<string, unknown>) => {
@@ -267,7 +274,15 @@ export function TanStackGridSheet({
     [schemaId]
   );
 
+  // #region agent log
   renderCountRef.current += 1;
+  if (renderCountRef.current <= 30) {
+    console.error('[GRID_DEBUG:RENDER]', JSON.stringify({location:'TanStackGridSheet.tsx:273',renderCount:renderCountRef.current,columnsLength:columns?.length,jobsLength:jobs?.length,schemaId,propsIdentity:{columnsRef:columns===columnsRef.current,jobsRef:jobs===jobsRef.current},timestamp:Date.now(),hypothesisId:'A,F,G,H'}));
+  }
+  if (renderCountRef.current === 30) {
+    console.error('[GRID_DEBUG:LOOP_DETECTED]', 'Render loop detected! 30 renders reached.');
+  }
+  // #endregion
   if (GRID_DEBUG_ENABLED) {
     const elapsed = Date.now() - renderWindowStartRef.current;
     if (elapsed > 3000) {
@@ -295,6 +310,9 @@ export function TanStackGridSheet({
     // when TanStack internally fires onChange during render.
     const stack = GRID_DEBUG_ENABLED ? new Error().stack : undefined;
     const runner = () => {
+      // #region agent log
+      if (label) console.error('[GRID_DEBUG:MICROTASK]', JSON.stringify({location:'TanStackGridSheet.tsx:303',label,timestamp:Date.now(),hypothesisId:'C'}));
+      // #endregion
       if (label && GRID_DEBUG_ENABLED) logDebug(`microtask:${label}`, { stack });
       fn();
     };
@@ -419,6 +437,16 @@ export function TanStackGridSheet({
         jobs: jobs.length,
       });
     }
+    // #region agent log
+    if (columns !== columnsRef.current) {
+      console.error('[GRID_DEBUG:PROPS_CHANGED]', JSON.stringify({location:'columns changed',oldLength:columnsRef.current?.length,newLength:columns?.length,timestamp:Date.now(),hypothesisId:'H'}));
+      columnsRef.current = columns;
+    }
+    if (jobs !== jobsRef.current) {
+      console.error('[GRID_DEBUG:PROPS_CHANGED]', JSON.stringify({location:'jobs changed',oldLength:jobsRef.current?.length,newLength:jobs?.length,timestamp:Date.now(),hypothesisId:'H'}));
+      jobsRef.current = jobs;
+    }
+    // #endregion
     renderCellValueRef.current = renderCellValue;
     getStatusIconRef.current = getStatusIcon;
     renderStatusPillRef.current = renderStatusPill;
@@ -805,6 +833,9 @@ export function TanStackGridSheet({
   const tableWidth = baseTableWidth + fillerWidth;
   // Define column definitions
   const columnDefs = useMemo<ColumnDef<GridRow>[]>(() => {
+    // #region agent log
+    console.error('[GRID_DEBUG:COLUMNDEFS_MEMO]', JSON.stringify({location:'TanStackGridSheet.tsx:832',message:'columnDefs recomputing',columnsLength:columns?.length,fillerWidth,hasInputColumns,draggedColumn,expandedRowId,visualGroupsLength:visualGroups?.length,timestamp:Date.now(),hypothesisId:'B,D,H'}));
+    // #endregion
     const defs: ColumnDef<GridRow>[] = [
       // Row index column with expand/collapse icon - FIXED
       {
@@ -1076,7 +1107,11 @@ export function TanStackGridSheet({
 
   // Memoize table options object to ensure all inputs are stable
   // This ensures the table instance remains stable when inputs haven't changed
-  const tableOptions = useMemo(() => ({
+  const tableOptions = useMemo(() => {
+    // #region agent log
+    console.error('[GRID_DEBUG:TABLEOPTIONS_MEMO]', JSON.stringify({location:'TanStackGridSheet.tsx:1104',message:'tableOptions recomputing',dataRows:filteredRowData?.length,columnDefsLength:columnDefs?.length,enableSearch,stateSnapshot:{sorting:sorting?.length,filters:columnFilters?.length,order:columnOrder?.length},timestamp:Date.now(),hypothesisId:'D,H'}));
+    // #endregion
+    return {
     data: filteredRowData,
     columns: columnDefs,
     getCoreRowModel: coreRowModel,
@@ -1097,7 +1132,7 @@ export function TanStackGridSheet({
     enableColumnPinning: true,
     enableGlobalFilter: enableSearch,
     defaultColumn: defaultColumnConfig,
-  }), [
+  };}, [
     filteredRowData,
     columnDefs,
     getRowId,
@@ -1137,7 +1172,13 @@ export function TanStackGridSheet({
 
   // Table instance with all features enabled.
   // useReactTable must be called at the top level (not inside other hooks) to satisfy hook rules.
+  // #region agent log
+  console.error('[GRID_DEBUG:BEFORE_TABLE]', JSON.stringify({location:'TanStackGridSheet.tsx:1165',dataLength:tableOptions?.data?.length,columnsLength:tableOptions?.columns?.length,timestamp:Date.now(),hypothesisId:'A,D,F'}));
+  // #endregion
   const table = useReactTable(tableOptions);
+  // #region agent log
+  console.error('[GRID_DEBUG:AFTER_TABLE]', JSON.stringify({location:'TanStackGridSheet.tsx:1169',tableCreated:!!table,timestamp:Date.now(),hypothesisId:'A,D,F'}));
+  // #endregion
   if (GRID_DEBUG_ENABLED) {
     logDebug("tableOptions", {
       dataRows: filteredRowData.length,
