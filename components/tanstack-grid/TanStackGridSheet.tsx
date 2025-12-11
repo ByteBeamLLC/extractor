@@ -177,46 +177,63 @@ export function TanStackGridSheet({
   const [containerWidth, setContainerWidth] = useState<number>(0);
   const [columnSizes, setColumnSizes] = useState<Record<string, number>>({});
   const supabase = useSupabaseClient<Database>();
+  const microtask = useCallback((fn: () => void) => {
+    // Always push table state updates out of the render phase to avoid React 301
+    // when TanStack internally fires onChange during render.
+    if (typeof queueMicrotask === "function") {
+      queueMicrotask(fn);
+    } else {
+      Promise.resolve().then(fn);
+    }
+  }, []);
 
   // Table state management (guarded setters to avoid redundant updates)
   const [sorting, setSortingState] = useState<SortingState>([]);
   const setSorting = useCallback(
     (updater: SortingState | ((prev: SortingState) => SortingState)) =>
-      setSortingState((prev) => {
-        const next = typeof updater === "function" ? (updater as any)(prev) : updater;
-        return shallowArrayEqual(prev, next) ? prev : next;
-      }),
-    []
+      microtask(() =>
+        setSortingState((prev) => {
+          const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+          return shallowArrayEqual(prev, next) ? prev : next;
+        })
+      ),
+    [microtask]
   );
 
   const [columnFilters, setColumnFiltersState] = useState<ColumnFiltersState>([]);
   const setColumnFilters = useCallback(
     (updater: ColumnFiltersState | ((prev: ColumnFiltersState) => ColumnFiltersState)) =>
-      setColumnFiltersState((prev) => {
-        const next = typeof updater === "function" ? (updater as any)(prev) : updater;
-        return shallowArrayEqual(prev, next) ? prev : next;
-      }),
-    []
+      microtask(() =>
+        setColumnFiltersState((prev) => {
+          const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+          return shallowArrayEqual(prev, next) ? prev : next;
+        })
+      ),
+    [microtask]
   );
 
   const [columnOrder, setColumnOrderState] = useState<ColumnOrderState>([]);
   const setColumnOrder = useCallback(
     (updater: ColumnOrderState | ((prev: ColumnOrderState) => ColumnOrderState)) =>
-      setColumnOrderState((prev) => {
-        const next = typeof updater === "function" ? (updater as any)(prev) : updater;
-        return shallowArrayEqual(prev, next) ? prev : next;
-      }),
-    []
+      microtask(() =>
+        setColumnOrderState((prev) => {
+          const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+          return shallowArrayEqual(prev, next) ? prev : next;
+        })
+      ),
+    [microtask]
   );
 
   const [columnVisibility, setColumnVisibilityState] = useState<VisibilityState>({});
   const setColumnVisibility = useCallback(
     (updater: VisibilityState | ((prev: VisibilityState) => VisibilityState)) =>
-      setColumnVisibilityState((prev) => {
-        const next = typeof updater === "function" ? (updater as any)(prev) : updater;
-        return shallowObjectEqual(prev, next) ? prev : next;
-      }),
-    []
+      microtask(() =>
+        setColumnVisibilityState((prev) => {
+          const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+          return shallowObjectEqual(prev, next) ? prev : next;
+        })
+      ),
+    [microtask]
   );
 
   const [columnPinning, setColumnPinningState] = useState<ColumnPinningState>({
@@ -225,21 +242,25 @@ export function TanStackGridSheet({
   });
   const setColumnPinning = useCallback(
     (updater: ColumnPinningState | ((prev: ColumnPinningState) => ColumnPinningState)) =>
-      setColumnPinningState((prev) => {
-        const next = typeof updater === "function" ? (updater as any)(prev) : updater;
-        return shallowObjectEqual(prev, next) ? prev : next;
-      }),
-    []
+      microtask(() =>
+        setColumnPinningState((prev) => {
+          const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+          return shallowObjectEqual(prev, next) ? prev : next;
+        })
+      ),
+    [microtask]
   );
 
   const [globalFilter, setGlobalFilterState] = useState<string>("");
   const setGlobalFilter = useCallback(
     (updater: string | ((prev: string) => string)) =>
-      setGlobalFilterState((prev) => {
-        const next = typeof updater === "function" ? (updater as any)(prev) : updater;
-        return Object.is(prev, next) ? prev : next;
-      }),
-    []
+      microtask(() =>
+        setGlobalFilterState((prev) => {
+          const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+          return Object.is(prev, next) ? prev : next;
+        })
+      ),
+    [microtask]
   );
   const debouncedSaveRef = useRef<((state: TableState) => void) | null>(null);
   const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
