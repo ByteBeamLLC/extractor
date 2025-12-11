@@ -710,7 +710,7 @@ export function TanStackGridSheet({
         size: columnSizes[column.id] || DEFAULT_DATA_COL_WIDTH,
         minSize: MIN_COL_WIDTH,
         maxSize: MAX_COL_WIDTH,
-        enableResizing: true,
+        enableResizing: false,
         cell: ({ row, column }) => {
           const job = row.original.__job;
           const columnMeta = columns.find((c) => c.id === column.id);
@@ -777,7 +777,7 @@ export function TanStackGridSheet({
         size: columnSizes[column.id] || DEFAULT_DATA_COL_WIDTH,
         minSize: MIN_COL_WIDTH,
         maxSize: MAX_COL_WIDTH,
-        enableResizing: true,
+        enableResizing: false,
         cell: ({ row, column }) => {
           const job = row.original.__job;
           const columnMeta = columns.find((c) => c.id === column.id);
@@ -890,13 +890,12 @@ export function TanStackGridSheet({
     onColumnVisibilityChange: setColumnVisibility,
     onColumnPinningChange: setColumnPinning,
     onGlobalFilterChange: enableSearch ? setGlobalFilter : undefined,
-    enableColumnResizing: true,
+    enableColumnResizing: false, // Disable resizing to avoid runtime issues in prod
     enableSorting: true,
     enableFilters: true,
     enableColumnOrdering: true,
     enableColumnPinning: true,
     enableGlobalFilter: enableSearch,
-    columnResizeMode: 'onChange' as const,
     defaultColumn: defaultColumnConfig,
   }), [
     filteredRowData,
