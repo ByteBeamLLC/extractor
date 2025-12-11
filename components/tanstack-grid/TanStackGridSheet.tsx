@@ -826,10 +826,16 @@ export function TanStackGridSheet({
   const baseTableWidth = pinnedColumnsWidth + dataColumnsWidth + addColumnWidth;
   const effectiveContainerWidth =
     containerWidth > 0 ? containerWidth : baseTableWidth;
+  
+  // Use a ref to track fillerWidth to avoid re-rendering columnDefs
+  // This prevents infinite loop when ResizeObserver updates containerWidth
+  const fillerWidthRef = useRef(0);
   const fillerWidth =
     effectiveContainerWidth > baseTableWidth
       ? effectiveContainerWidth - baseTableWidth
       : 0;
+  fillerWidthRef.current = fillerWidth;
+  
   const tableWidth = baseTableWidth + fillerWidth;
   // Define column definitions
   const columnDefs = useMemo<ColumnDef<GridRow>[]>(() => {
@@ -1034,13 +1040,15 @@ export function TanStackGridSheet({
     }
 
     // Add filler column to keep the add button anchored to the far right when there's extra space
-    if (fillerWidth > 0) {
+    // Use ref to get current fillerWidth without triggering memo recomputation
+    const currentFillerWidth = fillerWidthRef.current;
+    if (currentFillerWidth > 0) {
       defs.push({
         id: "bb-spacer",
         header: () => null,
-        size: fillerWidth,
-        minSize: fillerWidth,
-        maxSize: fillerWidth,
+        size: currentFillerWidth,
+        minSize: currentFillerWidth,
+        maxSize: currentFillerWidth,
         enableResizing: false,
         enableSorting: false,
         cell: () => null,
@@ -1073,7 +1081,7 @@ export function TanStackGridSheet({
     stableGetStatusIcon,
     stableRenderStatusPill,
     stableRenderCellValue,
-    fillerWidth,
+    // REMOVED fillerWidth - using ref to prevent infinite loop from ResizeObserver
     expandedRowId,
     stableOnToggleRowExpansion,
     stableOnUpdateCell,
