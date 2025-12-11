@@ -1252,8 +1252,11 @@ export function TanStackGridSheet({
   const prevTableRef = useRef<any>(null);
   const tableOptionsChanged = prevTableOptionsRef.current !== tableOptions;
   
+  // Log tableOptions change separately for visibility
+  console.error('[CRITICAL] tableOptions_changed:', tableOptionsChanged, 'render:', renderCountRef.current);
+  
   // Log each callback change explicitly
-  console.error('[DEBUG-B] Before useReactTable', {
+  console.error('[DEBUG-B] callbacks:', {
     renderCount:renderCountRef.current,
     setSorting_changed:callbacksChanged.setSorting,
     setColumnFilters_changed:callbacksChanged.setColumnFilters,
@@ -1261,8 +1264,7 @@ export function TanStackGridSheet({
     setColumnVisibility_changed:callbacksChanged.setColumnVisibility,
     setColumnPinning_changed:callbacksChanged.setColumnPinning,
     setGlobalFilter_changed:callbacksChanged.setGlobalFilter,
-    logDebug_changed:callbacksChanged.logDebug,
-    tableOptions_changed:tableOptionsChanged
+    logDebug_changed:callbacksChanged.logDebug
   });
   prevTableOptionsRef.current = tableOptions;
   // #endregion
@@ -1273,10 +1275,7 @@ export function TanStackGridSheet({
   // #region agent log
   const tableInstanceChanged = prevTableRef.current !== table;
   prevTableRef.current = table;
-  console.error('[DEBUG-D] After useReactTable', {
-    renderCount:renderCountRef.current,
-    table_instance_changed:tableInstanceChanged
-  });
+  console.error('[CRITICAL] table_instance_changed:', tableInstanceChanged, 'render:', renderCountRef.current);
   // #endregion
   if (GRID_DEBUG_ENABLED) {
     logDebug("tableOptions", {
@@ -1287,11 +1286,19 @@ export function TanStackGridSheet({
   }
 
   // #region agent log
-  console.error('[DEBUG-D] Before getRowModel', {renderCount:renderCountRef.current});
+  console.error('[DEBUG-E] Before table method calls', {renderCount:renderCountRef.current});
   // #endregion
+  // Extract ALL table method calls outside JSX to prevent potential side effects
   const tableRows = table.getRowModel().rows;
+  const headerGroups = table.getHeaderGroups();
+  const leafColumns = table.getAllLeafColumns();
   // #region agent log
-  console.error('[DEBUG-D] After getRowModel', {renderCount:renderCountRef.current, rowsLength:tableRows.length});
+  console.error('[DEBUG-E] After table method calls', {
+    renderCount:renderCountRef.current,
+    rowsLength:tableRows.length,
+    headerGroupsLength:headerGroups.length,
+    leafColumnsLength:leafColumns.length
+  });
   // #endregion
 
   // Detect any Promise values in row data early to avoid React 301
@@ -1413,7 +1420,7 @@ export function TanStackGridSheet({
       ? totalVirtualSize - virtualItems[virtualItems.length - 1].end
       : 0;
   const hasRows = virtualizedRows.length > 0;
-  const leafColumnCount = Math.max(table.getAllLeafColumns().length, 1);
+  const leafColumnCount = Math.max(leafColumns.length, 1);
 
   // Handle row clicks - using stable callbacks to prevent re-renders
   const handleRowClick = useCallback(
@@ -1461,6 +1468,11 @@ export function TanStackGridSheet({
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+  
+  // #region agent log
+  console.error('[DEBUG-F] Before JSX render', {renderCount:renderCountRef.current});
+  // #endregion
+  
   return (
     <div className="tanstack-grid-wrapper flex h-full w-full flex-col">
       {/* Table toolbar */}
@@ -1482,7 +1494,7 @@ export function TanStackGridSheet({
           }}
         >
           <thead>
-            {table.getHeaderGroups().map((headerGroup) => (
+            {headerGroups.map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   const headerWidth = header.getSize();

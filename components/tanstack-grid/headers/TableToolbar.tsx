@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useMemo, memo } from "react";
 import { Eye, RotateCcw } from "lucide-react";
 import type { Table } from "@tanstack/react-table";
 import type { GridRow } from "../types";
@@ -20,20 +20,46 @@ interface TableToolbarProps {
   schemaId: string;
 }
 
-export function TableToolbar({ table }: TableToolbarProps) {
-  const columns = table.getAllColumns().filter((column) => {
-    return (
-      column.id !== "row-index" &&
-      column.id !== "file-name" &&
-      column.id !== "bb-add-field" &&
-      column.id !== "bb-spacer" &&
-      !column.id.startsWith("group-")
-    );
-  });
+function TableToolbarInner({ table }: TableToolbarProps) {
+  // #region agent log
+  console.error('[TOOLBAR] Rendering', {timestamp: Date.now()});
+  // #endregion
+  
+  // Get table state once to avoid multiple getState() calls
+  // #region agent log
+  console.error('[TOOLBAR] Before getState()');
+  // #endregion
+  const tableState = table.getState();
+  // #region agent log
+  console.error('[TOOLBAR] After getState()');
+  // #endregion
+  
+  // Memoize column filtering to prevent repeated getAllColumns() calls
+  const columns = useMemo(() => {
+    // #region agent log
+    console.error('[TOOLBAR] useMemo: Before getAllColumns()');
+    // #endregion
+    const allColumns = table.getAllColumns();
+    // #region agent log
+    console.error('[TOOLBAR] useMemo: After getAllColumns(), count:', allColumns.length);
+    // #endregion
+    return allColumns.filter((column) => {
+      return (
+        column.id !== "row-index" &&
+        column.id !== "file-name" &&
+        column.id !== "bb-add-field" &&
+        column.id !== "bb-spacer" &&
+        !column.id.startsWith("group-")
+      );
+    });
+  }, [table]);
 
-  const activeFiltersCount = table.getState().columnFilters.length;
-  const activeSortsCount = table.getState().sorting.length;
-  const hiddenColumnsCount = columns.filter((col) => !col.getIsVisible()).length;
+  const activeFiltersCount = tableState.columnFilters.length;
+  const activeSortsCount = tableState.sorting.length;
+  
+  const hiddenColumnsCount = useMemo(() => {
+    return columns.filter((col) => !col.getIsVisible()).length;
+  }, [columns]);
 
   const resetAll = useCallback(() => {
     table.resetColumnFilters();
@@ -95,3 +121,6 @@ export function TableToolbar({ table }: TableToolbarProps) {
     </div>
   );
 }
+
+// Memoize to prevent unnecessary re-renders and table method calls
+export const TableToolbar = memo(TableToolbarInner);
