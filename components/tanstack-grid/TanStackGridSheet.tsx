@@ -449,6 +449,7 @@ export function TanStackGridSheet({
   const onAddColumnRef = useRef(onAddColumn);
   const onSelectRowRef = useRef(onSelectRow);
   const onRowDoubleClickRef = useRef(onRowDoubleClick);
+  const onTableStateChangeRef = useRef(onTableStateChange);
 
   // Update refs when props change
   useEffect(() => {
@@ -481,6 +482,7 @@ export function TanStackGridSheet({
     onAddColumnRef.current = onAddColumn;
     onSelectRowRef.current = onSelectRow;
     onRowDoubleClickRef.current = onRowDoubleClick;
+    onTableStateChangeRef.current = onTableStateChange;
   }, [
     renderCellValue,
     getStatusIcon,
@@ -495,6 +497,7 @@ export function TanStackGridSheet({
     onAddColumn,
     onSelectRow,
     onRowDoubleClick,
+    onTableStateChange,
   ]);
 
   // Create stable callbacks that use refs
@@ -811,10 +814,10 @@ export function TanStackGridSheet({
     // #endregion
 
     // Notify parent if callback provided (always notify, even if persistence is disabled)
-    if (onTableStateChange) {
-      onTableStateChange(state);
+    if (onTableStateChangeRef.current) {
+      onTableStateChangeRef.current(state);
     }
-  }, [sorting, columnFilters, columnOrder, columnVisibility, columnPinning, columnSizes, globalFilter, enableTableStatePersistence, onTableStateChange]);
+  }, [sorting, columnFilters, columnOrder, columnVisibility, columnPinning, columnSizes, globalFilter, enableTableStatePersistence]);
 
   // Calculate optimal column widths when data changes
   useEffect(() => {
