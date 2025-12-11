@@ -7,7 +7,11 @@ export function createSupabaseBrowserClient() {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error("Supabase environment variables are missing on the client")
+    console.error(
+      "[Supabase] Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY. " +
+      "Set these in your Vercel project settings.",
+    )
+    return null
   }
 
   return createClientComponentClient<Database>({

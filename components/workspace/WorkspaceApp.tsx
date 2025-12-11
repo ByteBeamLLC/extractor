@@ -14,6 +14,7 @@ import type { AgentType } from "./types"
 import { DataExtractionPlatform } from "@/components/data-extraction-platform"
 import type { SchemaDefinition } from "@/lib/schema"
 import type { SchemaTemplateDefinition } from "@/lib/schema-templates"
+import { DataExtractionErrorBoundary } from "@/components/DataExtractionErrorBoundary"
 
 export function WorkspaceApp({ isEmbedded = false }: { isEmbedded?: boolean } = {}) {
   return (
@@ -156,15 +157,24 @@ function SchemaEditor({
 }: SchemaEditorProps) {
   return (
     <div className="flex h-full flex-col">
-      <DataExtractionPlatform
-        externalActiveSchemaId={schemaId}
-        onSchemasChanged={onSchemasChanged}
-        pendingSchemaCreate={pendingSchemaCreate}
-        onPendingCreateConsumed={clearPendingSchemaCreate}
-        templateLibrary={templates}
-        onCreateTemplate={onCreateTemplate}
-        isEmbedded={isEmbedded}
-      />
+      <DataExtractionErrorBoundary
+        context={{
+          source: "WorkspaceApp",
+          schemaId: schemaId ?? null,
+          hasPendingCreate: Boolean(pendingSchemaCreate),
+          isEmbedded,
+        }}
+      >
+        <DataExtractionPlatform
+          externalActiveSchemaId={schemaId}
+          onSchemasChanged={onSchemasChanged}
+          pendingSchemaCreate={pendingSchemaCreate}
+          onPendingCreateConsumed={clearPendingSchemaCreate}
+          templateLibrary={templates}
+          onCreateTemplate={onCreateTemplate}
+          isEmbedded={isEmbedded}
+        />
+      </DataExtractionErrorBoundary>
     </div>
   )
 }

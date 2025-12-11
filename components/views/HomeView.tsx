@@ -1,6 +1,7 @@
 "use client"
 
 import { DataExtractionPlatform } from "@/components/data-extraction-platform"
+import { DataExtractionErrorBoundary } from "@/components/DataExtractionErrorBoundary"
 import { ENABLE_DASHBOARD } from "@/lib/workspace/featureFlags"
 import { WorkspaceApp } from "@/components/workspace/WorkspaceApp"
 import { useCallback, useEffect, useState } from "react"
@@ -236,10 +237,12 @@ function StandaloneDataExtractor() {
     )
 
     return (
-        <DataExtractionPlatform
-            onCreateTemplate={createTemplateFromSchema}
-            templateLibrary={templates}
-            isEmbedded={true}
-        />
+        <DataExtractionErrorBoundary context={{ source: "HomeView", embedMode: "standalone" }}>
+            <DataExtractionPlatform
+                onCreateTemplate={createTemplateFromSchema}
+                templateLibrary={templates}
+                isEmbedded={true}
+            />
+        </DataExtractionErrorBoundary>
     )
 }
