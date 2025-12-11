@@ -387,27 +387,24 @@ export function TanStackGridSheet({
             [schemaId]: { jobIds, query },
           };
         });
-
-        // Avoid updating if filter already matches
-        setGlobalFilter((current) => (current === query ? current : query));
       });
     },
     [schemaId]
   );
 
-  // Debug logging for search state changes
-  useEffect(() => {
-    console.log(`[TanStackGridSheet] search state for schema ${schemaId}:`, {
-      query: currentSearchQuery,
-      matchCount: searchMatchingIds.length,
-    });
-    console.log(`[TanStackGridSheet] globalFilter:`, globalFilter);
-    console.log(`[TanStackGridSheet] Current table state:`, {
-      sorting: table?.getState?.()?.sorting,
-      columnFilters: table?.getState?.()?.columnFilters,
-      globalFilter: table?.getState?.()?.globalFilter,
-    });
-  }, [schemaId, searchMatchingIds, currentSearchQuery, globalFilter]);
+  // Debug logging disabled in production to avoid noisy console and potential loops
+  // useEffect(() => {
+  //   console.log(`[TanStackGridSheet] search state for schema ${schemaId}:`, {
+  //     query: currentSearchQuery,
+  //     matchCount: searchMatchingIds.length,
+  //   });
+  //   console.log(`[TanStackGridSheet] globalFilter:`, globalFilter);
+  //   console.log(`[TanStackGridSheet] Current table state:`, {
+  //     sorting: table?.getState?.()?.sorting,
+  //     columnFilters: table?.getState?.()?.columnFilters,
+  //     globalFilter: table?.getState?.()?.globalFilter,
+  //   });
+  // }, [schemaId, searchMatchingIds, currentSearchQuery, globalFilter]);
 
   // Transform jobs to grid rows with stable reference
   const rowData = useMemo<GridRow[]>(() => {

@@ -156,13 +156,9 @@ export function TableToolbar({
             results: data.results || [],
           };
           
-          // Notify parent of matching job IDs FIRST before setting filter
+          // Notify parent of matching job IDs
           const matchingJobIds = data.results.map((r: SearchResult) => r.jobId);
-          console.log(`[TableToolbar] Search found ${matchingJobIds.length} matching jobs:`, matchingJobIds);
-          
-          // Final check before updating parent state
           if (!signal.aborted) {
-            // Only call onSearchResults if the data actually changed
             const newSearchResults = { jobIds: matchingJobIds, query: debouncedQuery };
             const hasChanged = 
               previousSearchResultsRef.current.query !== newSearchResults.query ||
@@ -174,18 +170,11 @@ export function TableToolbar({
               onSearchResults?.(newSearchResults);
             }
 
-            // Set global filter with search query AFTER updating matching IDs
-            // Use setTimeout to ensure state has updated, but only if value changed
-            setTimeout(() => {
-              // Check one more time in case component unmounted or request was aborted
-              if (!signal.aborted && abortControllerRef.current === currentAbortController) {
-                const currentFilter = tableRef.current.getState().globalFilter;
-                if (currentFilter !== debouncedQuery) {
-                  setGlobalFilter(debouncedQuery);
-                  console.log(`[TableToolbar] Applied global filter: "${debouncedQuery}"`);
-                }
-              }
-            }, 0);
+            // Keep table filter in sync but skip console spam and avoid extra task scheduling
+            const currentFilter = tableRef.current.getState().globalFilter;
+            if (currentFilter !== debouncedQuery) {
+              setGlobalFilter(debouncedQuery);
+            }
           }
         }
       } catch (error) {
@@ -228,19 +217,16 @@ export function TableToolbar({
     setSearchResults(cachedResults);
     previousQueryRef.current = cachedQuery;
 
-    // If there's nothing cached, avoid firing callbacks/state updates during render/mount.
-    if (!cachedQuery.trim() && cachedResults.length === 0) {
+    // Only propagate if there is cached content to avoid mount-time churn
+    if (cachedQuery.trim() || cachedResults.length > 0) {
+      const ids = cachedResults.map((result) => result.jobId);
+      const newSearchResults = { jobIds: ids, query: cachedQuery };
+      previousSearchResultsRef.current = newSearchResults;
+      setGlobalFilter(cachedQuery);
+      onSearchResults?.(newSearchResults);
+    } else {
       previousSearchResultsRef.current = { jobIds: [], query: "" };
-      return;
     }
-
-    const ids = cachedResults.map((result) => result.jobId);
-    const newSearchResults = { jobIds: ids, query: cachedQuery };
-    previousSearchResultsRef.current = newSearchResults;
-
-    // Only propagate if something actually changed
-    setGlobalFilter(cachedQuery);
-    onSearchResults?.(newSearchResults);
   }, [schemaId, setGlobalFilter, onSearchResults]);
 
   const clearSearch = useCallback(() => {
