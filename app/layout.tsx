@@ -10,6 +10,7 @@ import { SupabaseProvider } from '@/components/providers/SupabaseProvider'
 import { AuthDialogProvider } from '@/components/auth/AuthDialogContext'
 import { AccountMenu } from '@/components/auth/AccountMenu'
 import { createSupabaseServerComponentClient } from '@/lib/supabase/server'
+import { GlobalErrorBoundary } from '@/components/GlobalErrorBoundary'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
@@ -40,12 +41,13 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans ${inter.variable} ${GeistMono.variable}`}>
-        <SupabaseProvider initialSession={session}>
-          <AuthDialogProvider>
-            <TutorialGuideProvider>
-              <header className="fixed top-0 left-0 right-0 z-40 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                <div className="w-full px-4 py-2 sm:px-6 lg:px-8 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+        <GlobalErrorBoundary>
+          <SupabaseProvider initialSession={session}>
+            <AuthDialogProvider>
+              <TutorialGuideProvider>
+                <header className="fixed top-0 left-0 right-0 z-40 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                  <div className="w-full px-4 py-2 sm:px-6 lg:px-8 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
 
 <a
   href="https://bytebeam.co"
@@ -60,28 +62,29 @@ export default async function RootLayout({
     
             
                   </div>
-                  <div className="flex items-center gap-2">
-                    <GuideButton />
-                    <ContactUsButton source="topbar" />
-                    <AccountMenu />
-                    <noscript>
-                      <a
-                        href="mailto:support@bytebeam.ai?subject=SheetIt%20Support"
-                        className="inline-flex items-center rounded-md border border-border px-3 py-1.5 text-sm text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-                      >
-                        Contact Us
-                      </a>
-                    </noscript>
+                    <div className="flex items-center gap-2">
+                      <GuideButton />
+                      <ContactUsButton source="topbar" />
+                      <AccountMenu />
+                      <noscript>
+                        <a
+                          href="mailto:support@bytebeam.ai?subject=SheetIt%20Support"
+                          className="inline-flex items-center rounded-md border border-border px-3 py-1.5 text-sm text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                        >
+                          Contact Us
+                        </a>
+                      </noscript>
+                    </div>
                   </div>
+                </header>
+                <div className="pt-14">
+                  {children}
                 </div>
-              </header>
-              <div className="pt-14">
-                {children}
-              </div>
-              <Analytics />
-            </TutorialGuideProvider>
-          </AuthDialogProvider>
-        </SupabaseProvider>
+                <Analytics />
+              </TutorialGuideProvider>
+            </AuthDialogProvider>
+          </SupabaseProvider>
+        </GlobalErrorBoundary>
       </body>
     </html>
   )

@@ -157,19 +157,19 @@ export function TanStackGridSheet({
   onSelectRow,
   onRowDoubleClick,
   onAddColumn,
-  renderCellValue,
-  getStatusIcon,
-  renderStatusPill,
-  onEditColumn,
-  onDeleteColumn,
-  onUpdateCell,
-  onUpdateReviewStatus,
-  onColumnRightClick,
-  onOpenTableModal,
+  renderCellValue = () => null,
+  getStatusIcon = () => null,
+  renderStatusPill = () => null,
+  onEditColumn = () => {},
+  onDeleteColumn = () => {},
+  onUpdateCell = () => {},
+  onUpdateReviewStatus = () => {},
+  onColumnRightClick = () => {},
+  onOpenTableModal = () => {},
   visualGroups = [],
   expandedRowId,
-  onToggleRowExpansion,
-  onTableStateChange,
+  onToggleRowExpansion = () => {},
+  onTableStateChange = () => {},
   enableTableStatePersistence = true, // Default to true for backward compatibility
 }: TanStackGridSheetProps = {
   schemaId: undefined as any,
@@ -178,17 +178,6 @@ export function TanStackGridSheet({
   visualGroups: [],
   enableTableStatePersistence: true,
 }) {
-  // If required callbacks are missing, bail early to avoid undefined accesses.
-  if (!renderCellValue || !getStatusIcon || !renderStatusPill) {
-    if (GRID_DEBUG_ENABLED) {
-      console.error("[TanStackGridSheet] required props missing; rendering null", {
-        hasRenderCellValue: !!renderCellValue,
-        hasGetStatusIcon: !!getStatusIcon,
-        hasRenderStatusPill: !!renderStatusPill,
-      });
-    }
-    return null;
-  }
   // Search is disabled per request; keep table simple and avoid global filter churn.
   const enableSearch = false;
   const containerRef = useRef<HTMLDivElement>(null);
