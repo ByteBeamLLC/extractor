@@ -60,18 +60,26 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 
-const APP_DEBUG_ENABLED = process.env.NEXT_PUBLIC_APP_DEBUG !== 'false';
-const appDebug = (message: string, payload?: Record<string, unknown>) => {
+const APP_DEBUG_ENABLED =
+  typeof process !== "undefined"
+    ? process.env.NEXT_PUBLIC_APP_DEBUG !== "false"
+    : true;
+function appDebug(message: string, payload?: Record<string, unknown>) {
   if (!APP_DEBUG_ENABLED) return;
-  const ts = new Date().toISOString();
-  if (payload) {
+  try {
+    const ts = new Date().toISOString();
+    if (payload) {
+      // eslint-disable-next-line no-console
+      console.log(`[DataExtraction] ${ts} ${message}`, payload);
+    } else {
+      // eslint-disable-next-line no-console
+      console.log(`[DataExtraction] ${ts} ${message}`);
+    }
+  } catch (err) {
     // eslint-disable-next-line no-console
-    console.log(`[DataExtraction] ${ts} ${message}`, payload);
-  } else {
-    // eslint-disable-next-line no-console
-    console.log(`[DataExtraction] ${ts} ${message}`);
+    console.warn("[DataExtraction] debug log failed", err);
   }
-};
+}
 
 type AgentType = "standard" | "pharma"
 
@@ -632,18 +640,23 @@ export function DataExtractionPlatform({
   const renderWindowStartRef = useRef<number>(Date.now())
   renderCountRef.current += 1
   if (APP_DEBUG_ENABLED) {
-    const elapsed = Date.now() - renderWindowStartRef.current
-    if (elapsed > 3000) {
-      renderWindowStartRef.current = Date.now()
-      renderCountRef.current = 1
-    } else if (renderCountRef.current % 25 === 0) {
-      appDebug("Render burst", {
-        renders: renderCountRef.current,
-        elapsedMs: elapsed,
-        activeSchemaId,
-        fieldCount: fields.length,
-        jobCount: jobs.length,
-      })
+    try {
+      const elapsed = Date.now() - renderWindowStartRef.current
+      if (elapsed > 3000) {
+        renderWindowStartRef.current = Date.now()
+        renderCountRef.current = 1
+      } else if (renderCountRef.current % 25 === 0) {
+        appDebug("Render burst", {
+          renders: renderCountRef.current,
+          elapsedMs: elapsed,
+          activeSchemaId,
+          fieldCount: fields.length,
+          jobCount: jobs.length,
+        })
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn("[DataExtraction] failed to log render burst", err)
     }
   }
   useEffect(() => {
@@ -681,27 +694,42 @@ export function DataExtractionPlatform({
     [schemas],
   )
   useEffect(() => {
-    appDebug("Active schema", {
-      id: activeSchema.id,
-      name: activeSchema.name,
-      fieldCount: fields.length,
-      jobCount: jobs.length,
-      viewMode,
-      selectedRowId,
-    })
+    try {
+      appDebug("Active schema", {
+        id: activeSchema.id,
+        name: activeSchema.name,
+        fieldCount: fields.length,
+        jobCount: jobs.length,
+        viewMode,
+        selectedRowId,
+      })
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn("[DataExtraction] failed to log active schema", err)
+    }
   }, [activeSchema.id, activeSchema.name, fields.length, jobs.length, viewMode, selectedRowId])
   useEffect(() => {
     const handler = (event: ErrorEvent) => {
-      appDebug("Window error", {
-        message: event.message,
-        filename: event.filename,
-        lineno: event.lineno,
-        colno: event.colno,
-        stack: event.error?.stack,
-      })
+      try {
+        appDebug("Window error", {
+          message: event.message,
+          filename: event.filename,
+          lineno: event.lineno,
+          colno: event.colno,
+          stack: event.error?.stack,
+        })
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn("[DataExtraction] failed to log window error", err)
+      }
     }
     const rejectionHandler = (event: PromiseRejectionEvent) => {
-      appDebug("Unhandled rejection", { reason: String(event.reason) })
+      try {
+        appDebug("Unhandled rejection", { reason: String(event.reason) })
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn("[DataExtraction] failed to log rejection", err)
+      }
     }
     window.addEventListener("error", handler)
     window.addEventListener("unhandledrejection", rejectionHandler)
@@ -759,19 +787,29 @@ export function DataExtractionPlatform({
     isDraftInput ? 'input' : isDraftTransformation ? 'transformation' : 'extraction'
   useEffect(() => {
     if (!APP_DEBUG_ENABLED) return
-    appDebug("Column dialog state", {
-      open: isColumnDialogOpen,
-      mode: columnDialogMode,
-      selectedColumnId: selectedColumn?.id ?? null,
-    })
+    try {
+      appDebug("Column dialog state", {
+        open: isColumnDialogOpen,
+        mode: columnDialogMode,
+        selectedColumnId: selectedColumn?.id ?? null,
+      })
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn("[DataExtraction] failed to log column dialog state", err)
+    }
   }, [isColumnDialogOpen, columnDialogMode, selectedColumn?.id])
   useEffect(() => {
     const userId = session?.user?.id
     if (APP_DEBUG_ENABLED) {
-      appDebug("Session change", {
-        userId: userId ?? "guest",
-        schemaCount: schemas.length,
-      })
+      try {
+        appDebug("Session change", {
+          userId: userId ?? "guest",
+          schemaCount: schemas.length,
+        })
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn("[DataExtraction] failed to log session change", err)
+      }
     }
 
     if (!userId) {
