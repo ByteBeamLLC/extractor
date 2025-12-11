@@ -17,8 +17,30 @@ export class GlobalErrorBoundary extends React.Component<
     console.error('[GlobalErrorBoundary] error', error, 'stack', error.stack, 'componentStack', info.componentStack)
   }
 
+  handleReset = () => {
+    this.setState({ error: null })
+  }
+
   render() {
-    // Keep rendering children so we can see subsequent errors in the console
+    if (this.state.error) {
+      return (
+        <div
+          role="alert"
+          className="m-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800"
+        >
+          <div className="font-semibold">Something went wrong</div>
+          <p className="mt-1 break-words">{this.state.error.message}</p>
+          <button
+            type="button"
+            onClick={this.handleReset}
+            className="mt-3 inline-flex items-center rounded-md border border-red-200 bg-white px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-100"
+          >
+            Dismiss and retry
+          </button>
+        </div>
+      )
+    }
+
     return this.props.children
   }
 }
