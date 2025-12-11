@@ -1288,16 +1288,39 @@ export function TanStackGridSheet({
   // #region agent log
   console.error('[DEBUG-E] Before table method calls', {renderCount:renderCountRef.current});
   // #endregion
-  // Extract ALL table method calls outside JSX to prevent potential side effects
-  const tableRows = table.getRowModel().rows;
-  const headerGroups = table.getHeaderGroups();
-  const leafColumns = table.getAllLeafColumns();
+  // CRITICAL FIX: Memoize table method calls to prevent repeated invocations
+  // These methods might trigger internal TanStack subscriptions in production mode
+  const tableRows = useMemo(() => {
+    console.error('[DEBUG-E] Computing tableRows', {renderCount:renderCountRef.current});
+    return table.getRowModel().rows;
+  }, [table]);
+  const headerGroups = useMemo(() => {
+    console.error('[DEBUG-E] Computing headerGroups', {renderCount:renderCountRef.current});
+    return table.getHeaderGroups();
+  }, [table]);
+  const leafColumns = useMemo(() => {
+    console.error('[DEBUG-E] Computing leafColumns', {renderCount:renderCountRef.current});
+    return table.getAllLeafColumns();
+  }, [table]);
   // #region agent log
+  // Track if these extracted values have stable identities
+  const prevTableRowsRef = useRef(tableRows);
+  const prevHeaderGroupsRef = useRef(headerGroups);
+  const prevLeafColumnsRef = useRef(leafColumns);
+  const tableRowsIdentityChanged = prevTableRowsRef.current !== tableRows;
+  const headerGroupsIdentityChanged = prevHeaderGroupsRef.current !== headerGroups;
+  const leafColumnsIdentityChanged = prevLeafColumnsRef.current !== leafColumns;
+  prevTableRowsRef.current = tableRows;
+  prevHeaderGroupsRef.current = headerGroups;
+  prevLeafColumnsRef.current = leafColumns;
   console.error('[DEBUG-E] After table method calls', {
     renderCount:renderCountRef.current,
     rowsLength:tableRows.length,
     headerGroupsLength:headerGroups.length,
-    leafColumnsLength:leafColumns.length
+    leafColumnsLength:leafColumns.length,
+    tableRowsIdentityChanged,
+    headerGroupsIdentityChanged,
+    leafColumnsIdentityChanged
   });
   // #endregion
 
@@ -1470,6 +1493,17 @@ export function TanStackGridSheet({
   }, []);
   
   // #region agent log
+  // Track if containerWidth state value changes across renders
+  const prevContainerWidthRef = useRef(containerWidth);
+  const containerWidthValueChanged = prevContainerWidthRef.current !== containerWidth;
+  if (containerWidthValueChanged) {
+    console.error('[CRITICAL] containerWidth VALUE changed', {
+      renderCount: renderCountRef.current,
+      oldValue: prevContainerWidthRef.current,
+      newValue: containerWidth
+    });
+  }
+  prevContainerWidthRef.current = containerWidth;
   console.error('[DEBUG-F] Before JSX render', {renderCount:renderCountRef.current});
   // #endregion
   
