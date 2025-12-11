@@ -3710,7 +3710,8 @@ export function DataExtractionPlatform({
                     {columnHeaders.map((header) => (
                       <th key={header.key} className="bg-white/70 px-2 py-1 text-left font-medium first:rounded-l-md last:rounded-r-md shadow-sm">{header.label}</th>
                     ))}
-                  </tr>
+                    
+                  </tr> 
                 </thead>
                 <tbody>
                   {rows.slice(0, Math.min(rows.length, 5)).map((row, idx) => (
