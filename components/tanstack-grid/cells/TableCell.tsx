@@ -106,24 +106,24 @@ export function TableCell({
     [columnHeaders]
   );
 
-  // Create nested TanStack Table instance
-  // Memoize to avoid re-instantiating on every render (prevents render loops/React 301)
-  const nestedTable = useMemo(
-    () =>
-      useReactTable({
-        data: rows,
-        columns: nestedTableColumns,
-        getCoreRowModel: getCoreRowModel(),
-        getSortedRowModel: getSortedRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
-        initialState: {
-          pagination: {
-            pageSize: 10,
-          },
+  const nestedTableOptions = useMemo(
+    () => ({
+      data: rows,
+      columns: nestedTableColumns,
+      getCoreRowModel: getCoreRowModel(),
+      getSortedRowModel: getSortedRowModel(),
+      getPaginationRowModel: getPaginationRowModel(),
+      initialState: {
+        pagination: {
+          pageSize: 10,
         },
-      }),
+      },
+    }),
     [rows, nestedTableColumns]
   );
+
+  // Nested table instance — must be called at the top level to satisfy hook rules
+  const nestedTable = useReactTable(nestedTableOptions);
 
   const badge = (
     <span

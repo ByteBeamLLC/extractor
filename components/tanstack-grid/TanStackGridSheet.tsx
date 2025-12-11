@@ -45,6 +45,18 @@ const MIN_COL_WIDTH = 120; // Minimum width for readability
 const MAX_COL_WIDTH = 500; // Maximum width - prevent excessive expansion
 const EMPTY_SEARCH_RESULTS: string[] = [];
 
+// Shallow equality helpers to avoid redundant state updates
+const shallowArrayEqual = <T,>(a: T[], b: T[]) =>
+  a === b || (a.length === b.length && a.every((v, i) => Object.is(v, b[i])));
+
+const shallowObjectEqual = (a: Record<string, any>, b: Record<string, any>) => {
+  if (a === b) return true;
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+  if (aKeys.length !== bKeys.length) return false;
+  return aKeys.every((k) => Object.is(a[k], b[k]));
+};
+
 type VirtualizedGridRow =
   | {
     key: string;
@@ -164,21 +176,78 @@ export function TanStackGridSheet({
   const [columnSizes, setColumnSizes] = useState<Record<string, number>>({});
   const supabase = useSupabaseClient<Database>();
 
-  // Table state management
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-  const [columnPinning, setColumnPinning] = useState<ColumnPinningState>({
+  // Table state management (guarded setters to avoid redundant updates)
+  const [sorting, setSortingState] = useState<SortingState>([]);
+  const setSorting = useCallback(
+    (updater: SortingState | ((prev: SortingState) => SortingState)) =>
+      setSortingState((prev) => {
+        const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+        return shallowArrayEqual(prev, next) ? prev : next;
+      }),
+    []
+  );
+
+  const [columnFilters, setColumnFiltersState] = useState<ColumnFiltersState>([]);
+  const setColumnFilters = useCallback(
+    (updater: ColumnFiltersState | ((prev: ColumnFiltersState) => ColumnFiltersState)) =>
+      setColumnFiltersState((prev) => {
+        const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+        return shallowArrayEqual(prev, next) ? prev : next;
+      }),
+    []
+  );
+
+  const [columnOrder, setColumnOrderState] = useState<ColumnOrderState>([]);
+  const setColumnOrder = useCallback(
+    (updater: ColumnOrderState | ((prev: ColumnOrderState) => ColumnOrderState)) =>
+      setColumnOrderState((prev) => {
+        const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+        return shallowArrayEqual(prev, next) ? prev : next;
+      }),
+    []
+  );
+
+  const [columnVisibility, setColumnVisibilityState] = useState<VisibilityState>({});
+  const setColumnVisibility = useCallback(
+    (updater: VisibilityState | ((prev: VisibilityState) => VisibilityState)) =>
+      setColumnVisibilityState((prev) => {
+        const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+        return shallowObjectEqual(prev, next) ? prev : next;
+      }),
+    []
+  );
+
+  const [columnPinning, setColumnPinningState] = useState<ColumnPinningState>({
     left: [],
     right: [],
   });
-  const [globalFilter, setGlobalFilter] = useState<string>("");
+  const setColumnPinning = useCallback(
+    (updater: ColumnPinningState | ((prev: ColumnPinningState) => ColumnPinningState)) =>
+      setColumnPinningState((prev) => {
+        const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+        return shallowObjectEqual(prev, next) ? prev : next;
+      }),
+    []
+  );
+
+  const [globalFilter, setGlobalFilterState] = useState<string>("");
+  const setGlobalFilter = useCallback(
+    (updater: string | ((prev: string) => string)) =>
+      setGlobalFilterState((prev) => {
+        const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+        return Object.is(prev, next) ? prev : next;
+      }),
+    []
+  );
   const debouncedSaveRef = useRef<((state: TableState) => void) | null>(null);
   const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
   const [searchStateBySchema, setSearchStateBySchema] = useState<
     Record<string, { query: string; jobIds: string[] }>
   >({});
+  const isMountedRef = useRef(true);
+  useEffect(() => () => {
+    isMountedRef.current = false;
+  }, []);
 
   const hasInputColumns = useMemo(() => columns.some((c) => c.type === "input"), [columns]);
 
@@ -304,11 +373,24 @@ export function TanStackGridSheet({
   const handleSearchResults = useCallback(
     ({ jobIds, query }: { jobIds: string[]; query: string }) => {
       if (!schemaId) return;
-      setSearchStateBySchema((prev) => ({
-        ...prev,
-        [schemaId]: { jobIds, query },
-      }));
-      setGlobalFilter(query);
+      // Defer state updates to avoid render-phase updates if upstream callers invoke during render
+      queueMicrotask(() => {
+        if (!isMountedRef.current) return;
+
+        setSearchStateBySchema((prev) => {
+          const existing = prev[schemaId];
+          const sameQuery = existing?.query === query;
+          const sameIds = existing?.jobIds && shallowArrayEqual(existing.jobIds, jobIds);
+          if (sameQuery && sameIds) return prev;
+          return {
+            ...prev,
+            [schemaId]: { jobIds, query },
+          };
+        });
+
+        // Avoid updating if filter already matches
+        setGlobalFilter((current) => (current === query ? current : query));
+      });
     },
     [schemaId]
   );
@@ -459,8 +541,16 @@ export function TanStackGridSheet({
       const calculatedWidth = calculateColumnWidth(col, jobs);
       newSizes[col.id] = calculatedWidth;
     }
-    setColumnSizes(newSizes);
-  }, [columns, jobs]);
+
+    // Avoid pointless state updates that can trigger extra renders
+    const sameKeys =
+      Object.keys(newSizes).length === Object.keys(columnSizes).length &&
+      Object.keys(newSizes).every((key) => columnSizes[key] === newSizes[key]);
+
+    if (!sameKeys) {
+      setColumnSizes(newSizes);
+    }
+  }, [columns, jobs, columnSizes]);
 
   const pinnedColumnsWidth = 60 + (hasInputColumns ? 0 : 200); // row index + optional file column
   const addColumnWidth = 56;
@@ -746,14 +836,19 @@ export function TanStackGridSheet({
     maxSize: MAX_COL_WIDTH,
   }), []);
 
+  // Memoize row model getters so tableOptions identity stays stable
+  const coreRowModel = useMemo(() => getCoreRowModel(), []);
+  const sortedRowModel = useMemo(() => getSortedRowModel(), []);
+  const filteredRowModel = useMemo(() => getFilteredRowModel(), []);
+
   // Memoize table options object to ensure all inputs are stable
   // This ensures the table instance remains stable when inputs haven't changed
   const tableOptions = useMemo(() => ({
     data: filteredRowData,
     columns: columnDefs,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
+    getCoreRowModel: coreRowModel,
+    getSortedRowModel: sortedRowModel,
+    getFilteredRowModel: filteredRowModel,
     getRowId,
     state: tableState,
     onSortingChange: setSorting,
@@ -782,11 +877,14 @@ export function TanStackGridSheet({
     setColumnPinning,
     setGlobalFilter,
     defaultColumnConfig,
+    coreRowModel,
+    sortedRowModel,
+    filteredRowModel,
   ]);
 
-  // Table instance with all features enabled
-  // Memoize to avoid creating a new table each render (prevents render loops/React 301)
-  const table = useMemo(() => useReactTable(tableOptions), [tableOptions]);
+  // Table instance with all features enabled.
+  // useReactTable must be called at the top level (not inside other hooks) to satisfy hook rules.
+  const table = useReactTable(tableOptions);
 
   const tableRows = table.getRowModel().rows;
 
@@ -811,6 +909,7 @@ export function TanStackGridSheet({
 
   // Handle column drag and drop for reordering
   const handleColumnDragStart = useCallback((columnId: string, e: React.DragEvent) => {
+    if (!e.dataTransfer) return;
     setDraggedColumn(columnId);
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", columnId);
@@ -833,7 +932,7 @@ export function TanStackGridSheet({
     // Get current column order
     const currentOrder = table.getState().columnOrder;
     const allColumns = table.getAllLeafColumns().map(col => col.id);
-    const activeOrder = currentOrder.length > 0 ? currentOrder : allColumns;
+    const activeOrder = Array.isArray(currentOrder) && currentOrder.length > 0 ? currentOrder : allColumns;
 
     // Find indices
     const sourceIndex = activeOrder.indexOf(sourceColumnId);
@@ -883,10 +982,6 @@ export function TanStackGridSheet({
         ? element.getBoundingClientRect().height
         : 0,
   });
-
-  useEffect(() => {
-    rowVirtualizer.measure();
-  }, [rowVirtualizer, columnSizes, containerWidth, expandedRowId]);
 
   const virtualItems = rowVirtualizer.getVirtualItems();
   const totalVirtualSize = rowVirtualizer.getTotalSize();

@@ -228,18 +228,19 @@ export function TableToolbar({
     setSearchResults(cachedResults);
     previousQueryRef.current = cachedQuery;
 
-    if (cachedQuery.trim().length > 0) {
-      setGlobalFilter(cachedQuery);
-      const ids = cachedResults.map((result) => result.jobId);
-      const newSearchResults = { jobIds: ids, query: cachedQuery };
-      previousSearchResultsRef.current = newSearchResults;
-      onSearchResults?.(newSearchResults);
-    } else {
-      setGlobalFilter("");
-      const emptyResults = { jobIds: [], query: "" };
-      previousSearchResultsRef.current = emptyResults;
-      onSearchResults?.(emptyResults);
+    // If there's nothing cached, avoid firing callbacks/state updates during render/mount.
+    if (!cachedQuery.trim() && cachedResults.length === 0) {
+      previousSearchResultsRef.current = { jobIds: [], query: "" };
+      return;
     }
+
+    const ids = cachedResults.map((result) => result.jobId);
+    const newSearchResults = { jobIds: ids, query: cachedQuery };
+    previousSearchResultsRef.current = newSearchResults;
+
+    // Only propagate if something actually changed
+    setGlobalFilter(cachedQuery);
+    onSearchResults?.(newSearchResults);
   }, [schemaId, setGlobalFilter, onSearchResults]);
 
   const clearSearch = useCallback(() => {

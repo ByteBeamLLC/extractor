@@ -3368,6 +3368,8 @@ export function DataExtractionPlatform({
       ) => void;
     },
   ) => {
+    const value = job.results?.[column.id]
+
     if (value instanceof Promise) {
       console.error("Promise value passed to grid cell", {
         columnId: column.id,
@@ -3387,7 +3389,6 @@ export function DataExtractionPlatform({
       )
     }
 
-    const value = job.results?.[column.id]
     if (job.status === 'error') return <span className="text-sm text-destructive">—</span>
     if (job.status !== 'completed') return <Skeleton className="h-4 w-24" />
 
