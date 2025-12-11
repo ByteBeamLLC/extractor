@@ -60,6 +60,19 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 
+const APP_DEBUG_ENABLED = process.env.NEXT_PUBLIC_APP_DEBUG !== 'false';
+const appDebug = (message: string, payload?: Record<string, unknown>) => {
+  if (!APP_DEBUG_ENABLED) return;
+  const ts = new Date().toISOString();
+  if (payload) {
+    // eslint-disable-next-line no-console
+    console.log(`[DataExtraction] ${ts} ${message}`, payload);
+  } else {
+    // eslint-disable-next-line no-console
+    console.log(`[DataExtraction] ${ts} ${message}`);
+  }
+};
+
 type AgentType = "standard" | "pharma"
 
 import {
@@ -615,6 +628,24 @@ export function DataExtractionPlatform({
   useEffect(() => {
     schemaSyncStateRef.current = schemaSyncState
   }, [schemaSyncState])
+  const renderCountRef = useRef(0)
+  const renderWindowStartRef = useRef<number>(Date.now())
+  renderCountRef.current += 1
+  if (APP_DEBUG_ENABLED) {
+    const elapsed = Date.now() - renderWindowStartRef.current
+    if (elapsed > 3000) {
+      renderWindowStartRef.current = Date.now()
+      renderCountRef.current = 1
+    } else if (renderCountRef.current % 25 === 0) {
+      appDebug("Render burst", {
+        renders: renderCountRef.current,
+        elapsedMs: elapsed,
+        activeSchemaId,
+        fieldCount: fields.length,
+        jobCount: jobs.length,
+      })
+    }
+  }
   useEffect(() => {
     if (!isEmbeddedInWorkspace) return
     // Only re-run when the templateId actually changes
@@ -649,10 +680,36 @@ export function DataExtractionPlatform({
       ),
     [schemas],
   )
-  if (process.env.NODE_ENV !== 'production') {
-    // eslint-disable-next-line no-console
-    console.log('Active schema:', activeSchema.name, 'Fields count:', fields.length)
-  }
+  useEffect(() => {
+    appDebug("Active schema", {
+      id: activeSchema.id,
+      name: activeSchema.name,
+      fieldCount: fields.length,
+      jobCount: jobs.length,
+      viewMode,
+      selectedRowId,
+    })
+  }, [activeSchema.id, activeSchema.name, fields.length, jobs.length, viewMode, selectedRowId])
+  useEffect(() => {
+    const handler = (event: ErrorEvent) => {
+      appDebug("Window error", {
+        message: event.message,
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno,
+        stack: event.error?.stack,
+      })
+    }
+    const rejectionHandler = (event: PromiseRejectionEvent) => {
+      appDebug("Unhandled rejection", { reason: String(event.reason) })
+    }
+    window.addEventListener("error", handler)
+    window.addEventListener("unhandledrejection", rejectionHandler)
+    return () => {
+      window.removeEventListener("error", handler)
+      window.removeEventListener("unhandledrejection", rejectionHandler)
+    }
+  }, [])
   useEffect(() => {
     if (!session?.user?.id) {
       guestSchemasRef.current = schemas
@@ -701,7 +758,21 @@ export function DataExtractionPlatform({
   const draftFieldSource: 'input' | 'transformation' | 'extraction' =
     isDraftInput ? 'input' : isDraftTransformation ? 'transformation' : 'extraction'
   useEffect(() => {
+    if (!APP_DEBUG_ENABLED) return
+    appDebug("Column dialog state", {
+      open: isColumnDialogOpen,
+      mode: columnDialogMode,
+      selectedColumnId: selectedColumn?.id ?? null,
+    })
+  }, [isColumnDialogOpen, columnDialogMode, selectedColumn?.id])
+  useEffect(() => {
     const userId = session?.user?.id
+    if (APP_DEBUG_ENABLED) {
+      appDebug("Session change", {
+        userId: userId ?? "guest",
+        schemaCount: schemas.length,
+      })
+    }
 
     if (!userId) {
       lastLoadedUserIdRef.current = null
