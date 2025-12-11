@@ -46,6 +46,39 @@ const MAX_COL_WIDTH = 500; // Maximum width - prevent excessive expansion
 const EMPTY_SEARCH_RESULTS: string[] = [];
 const GRID_DEBUG_ENABLED = process.env.NEXT_PUBLIC_GRID_DEBUG !== "false";
 
+// Replace any Promises (or Promises nested in objects/arrays) with a safe placeholder
+// to avoid React error 301 in production builds.
+function sanitizeValue(
+  value: unknown,
+  ctx?: { jobId?: string; columnId?: string; schemaId?: string }
+): unknown {
+  if (value instanceof Promise) {
+    if (GRID_DEBUG_ENABLED) {
+      console.error("[TanStackGridSheet] Promise value detected", {
+        ...ctx,
+        value,
+      });
+    }
+    return "[promise]";
+  }
+
+  // Preserve primitives and Dates as-is
+  if (value === null || typeof value !== "object" || value instanceof Date) {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeValue(item, ctx));
+  }
+
+  // Plain object case
+  const result: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value)) {
+    result[k] = sanitizeValue(v, ctx);
+  }
+  return result;
+}
+
 // Shallow equality helpers to avoid redundant state updates
 const shallowArrayEqual = <T,>(a: T[], b: T[]) =>
   a === b || (a.length === b.length && a.every((v, i) => Object.is(v, b[i])));
@@ -461,7 +494,12 @@ export function TanStackGridSheet({
           const doc = job.inputDocuments?.[col.id];
           valueMap[col.id] = doc?.fileName ?? doc?.textValue ?? null;
         } else {
-          valueMap[col.id] = job.results?.[col.id] ?? null;
+          const rawValue = job.results?.[col.id] ?? null;
+          valueMap[col.id] = sanitizeValue(rawValue, {
+            jobId: job.id,
+            columnId: col.id,
+            schemaId,
+          });
         }
       }
       return {
