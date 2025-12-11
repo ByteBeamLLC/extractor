@@ -241,9 +241,6 @@ export function TanStackGridSheet({
   );
   const debouncedSaveRef = useRef<((state: TableState) => void) | null>(null);
   const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
-  const [searchStateBySchema, setSearchStateBySchema] = useState<
-    Record<string, { query: string; jobIds: string[] }>
-  >({});
   const isMountedRef = useRef(true);
   useEffect(() => () => {
     isMountedRef.current = false;
@@ -366,45 +363,8 @@ export function TanStackGridSheet({
     []
   );
 
-  const currentSearchState = schemaId ? searchStateBySchema[schemaId] : undefined;
-  const searchMatchingIds = currentSearchState?.jobIds ?? EMPTY_SEARCH_RESULTS;
-  const currentSearchQuery = currentSearchState?.query ?? "";
-
-  const handleSearchResults = useCallback(
-    ({ jobIds, query }: { jobIds: string[]; query: string }) => {
-      if (!schemaId) return;
-      // Defer state updates to avoid render-phase updates if upstream callers invoke during render
-      queueMicrotask(() => {
-        if (!isMountedRef.current) return;
-
-        setSearchStateBySchema((prev) => {
-          const existing = prev[schemaId];
-          const sameQuery = existing?.query === query;
-          const sameIds = existing?.jobIds && shallowArrayEqual(existing.jobIds, jobIds);
-          if (sameQuery && sameIds) return prev;
-          return {
-            ...prev,
-            [schemaId]: { jobIds, query },
-          };
-        });
-      });
-    },
-    [schemaId]
-  );
-
-  // Debug logging disabled in production to avoid noisy console and potential loops
-  // useEffect(() => {
-  //   console.log(`[TanStackGridSheet] search state for schema ${schemaId}:`, {
-  //     query: currentSearchQuery,
-  //     matchCount: searchMatchingIds.length,
-  //   });
-  //   console.log(`[TanStackGridSheet] globalFilter:`, globalFilter);
-  //   console.log(`[TanStackGridSheet] Current table state:`, {
-  //     sorting: table?.getState?.()?.sorting,
-  //     columnFilters: table?.getState?.()?.columnFilters,
-  //     globalFilter: table?.getState?.()?.globalFilter,
-  //   });
-  // }, [schemaId, searchMatchingIds, currentSearchQuery, globalFilter]);
+  // Search results are now handled entirely via table global filter.
+  const handleSearchResults = useCallback(() => {}, []);
 
   // Transform jobs to grid rows with stable reference
   const rowData = useMemo<GridRow[]>(() => {
@@ -427,20 +387,7 @@ export function TanStackGridSheet({
     });
   }, [columns, jobs]);
 
-  const hasActiveSearch = currentSearchQuery.trim().length > 0;
-
-  const filteredRowData = useMemo<GridRow[]>(() => {
-    if (!hasActiveSearch) {
-      return rowData;
-    }
-
-    if (searchMatchingIds.length === 0) {
-      return [];
-    }
-
-    const matchSet = new Set(searchMatchingIds);
-    return rowData.filter((row) => matchSet.has(row.__job.id));
-  }, [rowData, searchMatchingIds, hasActiveSearch]);
+  const filteredRowData = useMemo<GridRow[]>(() => rowData, [rowData]);
 
   // Load table state from Supabase when schema changes
   useEffect(() => {

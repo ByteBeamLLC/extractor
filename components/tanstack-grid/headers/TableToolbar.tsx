@@ -218,12 +218,9 @@ export function TableToolbar({
     previousQueryRef.current = cachedQuery;
 
     // Only propagate if there is cached content to avoid mount-time churn
+    // Keep state local; parent no longer uses search results for filtering
     if (cachedQuery.trim() || cachedResults.length > 0) {
-      const ids = cachedResults.map((result) => result.jobId);
-      const newSearchResults = { jobIds: ids, query: cachedQuery };
-      previousSearchResultsRef.current = newSearchResults;
       setGlobalFilter(cachedQuery);
-      onSearchResults?.(newSearchResults);
     } else {
       previousSearchResultsRef.current = { jobIds: [], query: "" };
     }
@@ -242,7 +239,7 @@ export function TableToolbar({
     setGlobalFilter("");
     const emptyResults = { jobIds: [], query: "" };
     previousSearchResultsRef.current = emptyResults;
-    onSearchResults?.(emptyResults);
+    previousSearchResultsRef.current = emptyResults;
   }, [schemaId, setGlobalFilter, onSearchResults]);
 
   const clearFilters = useCallback(() => {
