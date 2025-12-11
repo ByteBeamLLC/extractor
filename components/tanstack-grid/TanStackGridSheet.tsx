@@ -253,6 +253,19 @@ export function TanStackGridSheet({
   const supabase = useSupabaseClient<Database>();
   const renderCountRef = useRef(0);
   const renderWindowStartRef = useRef<number>(Date.now());
+  const mountIdRef = useRef(Math.random().toString(36).substr(2, 9));
+
+  // Track component mount/unmount
+  useEffect(() => {
+    // #region agent log
+    console.error('[DEBUG-MOUNT] Component MOUNTED', {mountId: mountIdRef.current, schemaId});
+    // #endregion
+    return () => {
+      // #region agent log
+      console.error('[DEBUG-MOUNT] Component UNMOUNTED', {mountId: mountIdRef.current, schemaId});
+      // #endregion
+    };
+  }, [schemaId]);
 
   const logDebug = useCallback(
     (message: string, payload?: Record<string, unknown>) => {
@@ -1234,7 +1247,17 @@ export function TanStackGridSheet({
   };
   prevCallbacksRef.current = {setSorting, setColumnFilters, setColumnOrder, setColumnVisibility, setColumnPinning, setGlobalFilter, logDebug};
   
-  console.error('[DEBUG-B] Before useReactTable', {renderCount:renderCountRef.current, callbacksChanged});
+  // Log each callback change explicitly
+  console.error('[DEBUG-B] Before useReactTable', {
+    renderCount:renderCountRef.current,
+    setSorting_changed: callbacksChanged.setSorting,
+    setColumnFilters_changed: callbacksChanged.setColumnFilters,
+    setColumnOrder_changed: callbacksChanged.setColumnOrder,
+    setColumnVisibility_changed: callbacksChanged.setColumnVisibility,
+    setColumnPinning_changed: callbacksChanged.setColumnPinning,
+    setGlobalFilter_changed: callbacksChanged.setGlobalFilter,
+    logDebug_changed: callbacksChanged.logDebug
+  });
   // #endregion
 
   // Table instance with all features enabled.
