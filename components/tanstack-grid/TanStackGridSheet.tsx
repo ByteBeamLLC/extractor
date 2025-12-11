@@ -44,6 +44,7 @@ const DEFAULT_DATA_COL_WIDTH = 180; // Starting width for data columns
 const MIN_COL_WIDTH = 120; // Minimum width for readability
 const MAX_COL_WIDTH = 500; // Maximum width - prevent excessive expansion
 const EMPTY_SEARCH_RESULTS: string[] = [];
+const GRID_DEBUG_ENABLED = process.env.NEXT_PUBLIC_GRID_DEBUG !== "false";
 
 // Shallow equality helpers to avoid redundant state updates
 const shallowArrayEqual = <T,>(a: T[], b: T[]) =>
@@ -177,15 +178,51 @@ export function TanStackGridSheet({
   const [containerWidth, setContainerWidth] = useState<number>(0);
   const [columnSizes, setColumnSizes] = useState<Record<string, number>>({});
   const supabase = useSupabaseClient<Database>();
-  const microtask = useCallback((fn: () => void) => {
+  const renderCountRef = useRef(0);
+  const renderWindowStartRef = useRef<number>(Date.now());
+
+  const logDebug = useCallback(
+    (message: string, payload?: Record<string, unknown>) => {
+      if (!GRID_DEBUG_ENABLED) return;
+      const ts = new Date().toISOString();
+      if (payload) {
+        console.debug(`[TanStackGridSheet:${schemaId ?? "unknown"}] ${ts} ${message}`, payload);
+      } else {
+        console.debug(`[TanStackGridSheet:${schemaId ?? "unknown"}] ${ts} ${message}`);
+      }
+    },
+    [schemaId]
+  );
+
+  renderCountRef.current += 1;
+  if (GRID_DEBUG_ENABLED) {
+    const elapsed = Date.now() - renderWindowStartRef.current;
+    if (elapsed > 3000) {
+      renderWindowStartRef.current = Date.now();
+      renderCountRef.current = 1;
+    } else if (renderCountRef.current % 10 === 0) {
+      logDebug("render burst", {
+        renders: renderCountRef.current,
+        elapsedMs: elapsed,
+        columns: columns.length,
+        jobs: jobs.length,
+      });
+    }
+  }
+  const microtask = useCallback((fn: () => void, label?: string) => {
     // Always push table state updates out of the render phase to avoid React 301
     // when TanStack internally fires onChange during render.
+    const stack = GRID_DEBUG_ENABLED ? new Error().stack : undefined;
+    const runner = () => {
+      if (label && GRID_DEBUG_ENABLED) logDebug(`microtask:${label}`, { stack });
+      fn();
+    };
     if (typeof queueMicrotask === "function") {
-      queueMicrotask(fn);
+      queueMicrotask(runner);
     } else {
-      Promise.resolve().then(fn);
+      Promise.resolve().then(runner);
     }
-  }, []);
+  }, [logDebug]);
 
   // Table state management (guarded setters to avoid redundant updates)
   const [sorting, setSortingState] = useState<SortingState>([]);
@@ -194,10 +231,11 @@ export function TanStackGridSheet({
       microtask(() =>
         setSortingState((prev) => {
           const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+          if (GRID_DEBUG_ENABLED) logDebug("setSorting", { prev, next });
           return shallowArrayEqual(prev, next) ? prev : next;
-        })
+        }), "setSorting"
       ),
-    [microtask]
+    [microtask, logDebug]
   );
 
   const [columnFilters, setColumnFiltersState] = useState<ColumnFiltersState>([]);
@@ -206,10 +244,11 @@ export function TanStackGridSheet({
       microtask(() =>
         setColumnFiltersState((prev) => {
           const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+          if (GRID_DEBUG_ENABLED) logDebug("setColumnFilters", { prev, next });
           return shallowArrayEqual(prev, next) ? prev : next;
-        })
+        }), "setColumnFilters"
       ),
-    [microtask]
+    [microtask, logDebug]
   );
 
   const [columnOrder, setColumnOrderState] = useState<ColumnOrderState>([]);
@@ -218,10 +257,11 @@ export function TanStackGridSheet({
       microtask(() =>
         setColumnOrderState((prev) => {
           const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+          if (GRID_DEBUG_ENABLED) logDebug("setColumnOrder", { prev, next });
           return shallowArrayEqual(prev, next) ? prev : next;
-        })
+        }), "setColumnOrder"
       ),
-    [microtask]
+    [microtask, logDebug]
   );
 
   const [columnVisibility, setColumnVisibilityState] = useState<VisibilityState>({});
@@ -230,10 +270,11 @@ export function TanStackGridSheet({
       microtask(() =>
         setColumnVisibilityState((prev) => {
           const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+          if (GRID_DEBUG_ENABLED) logDebug("setColumnVisibility", { prev, next });
           return shallowObjectEqual(prev, next) ? prev : next;
-        })
+        }), "setColumnVisibility"
       ),
-    [microtask]
+    [microtask, logDebug]
   );
 
   const [columnPinning, setColumnPinningState] = useState<ColumnPinningState>({
@@ -245,10 +286,11 @@ export function TanStackGridSheet({
       microtask(() =>
         setColumnPinningState((prev) => {
           const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+          if (GRID_DEBUG_ENABLED) logDebug("setColumnPinning", { prev, next });
           return shallowObjectEqual(prev, next) ? prev : next;
-        })
+        }), "setColumnPinning"
       ),
-    [microtask]
+    [microtask, logDebug]
   );
 
   const [globalFilter, setGlobalFilterState] = useState<string>("");
@@ -257,10 +299,11 @@ export function TanStackGridSheet({
       microtask(() =>
         setGlobalFilterState((prev) => {
           const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+          if (GRID_DEBUG_ENABLED) logDebug("setGlobalFilter", { prev, next });
           return Object.is(prev, next) ? prev : next;
-        })
+        }), "setGlobalFilter"
       ),
-    [microtask]
+    [microtask, logDebug]
   );
   const debouncedSaveRef = useRef<((state: TableState) => void) | null>(null);
   const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
@@ -289,6 +332,12 @@ export function TanStackGridSheet({
 
   // Update refs when props change
   useEffect(() => {
+    if (GRID_DEBUG_ENABLED) {
+      logDebug("mount", {
+        columns: columns.length,
+        jobs: jobs.length,
+      });
+    }
     renderCellValueRef.current = renderCellValue;
     getStatusIconRef.current = getStatusIcon;
     renderStatusPillRef.current = renderStatusPill;
@@ -439,6 +488,7 @@ export function TanStackGridSheet({
         }
 
         const state = await loadTableState(supabase, schemaId);
+        if (GRID_DEBUG_ENABLED) logDebug("loaded table state", { state });
         if (state) {
           if (state.sorting) setSorting(state.sorting);
           if (state.columnFilters) setColumnFilters(state.columnFilters);
@@ -450,7 +500,7 @@ export function TanStackGridSheet({
         }
       } catch (err) {
         // Silently handle errors - already logged in loadTableState if needed
-        if (process.env.NODE_ENV === 'development') {
+        if (process.env.NODE_ENV === 'development' || GRID_DEBUG_ENABLED) {
           console.debug("[TanStackGridSheet] Error during table state load:", err);
         }
       }
@@ -490,6 +540,7 @@ export function TanStackGridSheet({
       globalFilter,
     };
 
+    if (GRID_DEBUG_ENABLED) logDebug("autosave state", state);
     debouncedSaveRef.current(state);
 
     // Notify parent if callback provided (always notify, even if persistence is disabled)
@@ -508,6 +559,8 @@ export function TanStackGridSheet({
       const calculatedWidth = calculateColumnWidth(col, jobs);
       newSizes[col.id] = calculatedWidth;
     }
+
+    if (GRID_DEBUG_ENABLED) logDebug("calculated column sizes", { newSizes });
 
     // Avoid pointless state updates that can trigger extra renders
     const sameKeys =
@@ -853,6 +906,13 @@ export function TanStackGridSheet({
   // Table instance with all features enabled.
   // useReactTable must be called at the top level (not inside other hooks) to satisfy hook rules.
   const table = useReactTable(tableOptions);
+  if (GRID_DEBUG_ENABLED) {
+    logDebug("tableOptions", {
+      dataRows: filteredRowData.length,
+      columns: columnDefs.length,
+      state: tableState,
+    });
+  }
 
   const tableRows = table.getRowModel().rows;
 
@@ -875,9 +935,19 @@ export function TanStackGridSheet({
     }
   }, [filteredRowData, columns, schemaId]);
 
+  useEffect(() => {
+    if (!GRID_DEBUG_ENABLED) return;
+    const handleError = (event: ErrorEvent) => {
+      console.error(`[TanStackGridSheet:${schemaId}] window error`, event.message, event.error?.stack);
+    };
+    window.addEventListener("error", handleError);
+    return () => window.removeEventListener("error", handleError);
+  }, [schemaId]);
+
   // Handle column drag and drop for reordering
   const handleColumnDragStart = useCallback((columnId: string, e: React.DragEvent) => {
     if (!e.dataTransfer) return;
+    if (GRID_DEBUG_ENABLED) logDebug("dragStart", { columnId });
     setDraggedColumn(columnId);
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", columnId);
@@ -891,6 +961,7 @@ export function TanStackGridSheet({
   const handleColumnDrop = useCallback((targetColumnId: string, e: React.DragEvent) => {
     e.preventDefault();
     const sourceColumnId = e.dataTransfer.getData("text/plain");
+    if (GRID_DEBUG_ENABLED) logDebug("drop", { sourceColumnId, targetColumnId });
 
     if (!sourceColumnId || sourceColumnId === targetColumnId) {
       setDraggedColumn(null);
@@ -937,6 +1008,9 @@ export function TanStackGridSheet({
 
     return items;
   }, [tableRows, expandedRowId]);
+  if (GRID_DEBUG_ENABLED) {
+    logDebug("virtualized rows", { count: virtualizedRows.length, expandedRowId });
+  }
 
   const rowVirtualizer = useVirtualizer({
     count: virtualizedRows.length,
