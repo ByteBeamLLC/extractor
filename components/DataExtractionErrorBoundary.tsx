@@ -22,6 +22,21 @@ export class DataExtractionErrorBoundary extends React.Component<BoundaryProps, 
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
+    let gridSnapshot: any = undefined
+    let gridScan: any = undefined
+    if (typeof window !== "undefined") {
+      try {
+        gridSnapshot = (window as any).__GRID_LAST_ROWS__
+      } catch (_) {
+        gridSnapshot = undefined
+      }
+      try {
+        gridScan = (window as any).__GRID_SCAN__
+      } catch (_) {
+        gridScan = undefined
+      }
+    }
+
     const payload = {
       message: error?.message,
       name: error?.name,
@@ -29,6 +44,8 @@ export class DataExtractionErrorBoundary extends React.Component<BoundaryProps, 
       componentStack: info?.componentStack,
       context: this.props.context ?? {},
       timestamp: new Date().toISOString(),
+      gridSnapshot,
+      gridScan,
     }
 
     // Log to console for quick inspection in Vercel prod.

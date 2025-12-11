@@ -46,6 +46,24 @@ const MAX_COL_WIDTH = 500; // Maximum width - prevent excessive expansion
 const EMPTY_SEARCH_RESULTS: string[] = [];
 const GRID_DEBUG_ENABLED = process.env.NEXT_PUBLIC_GRID_DEBUG !== "false";
 
+type ValueShape =
+  | "promise"
+  | "function"
+  | "symbol"
+  | "bigint"
+  | "object"
+  | "array"
+  | "primitive";
+
+type ScanLog = {
+  schemaId?: string;
+  jobId: string;
+  columnId: string;
+  columnType: string;
+  valueShape: ValueShape;
+  sample: any;
+};
+
 // Replace any Promises (or Promises nested in objects/arrays) with a safe placeholder
 // to avoid React error 301 in production builds.
 function sanitizeValue(
@@ -53,13 +71,29 @@ function sanitizeValue(
   ctx?: { jobId?: string; columnId?: string; schemaId?: string }
 ): unknown {
   if (value instanceof Promise) {
-    if (GRID_DEBUG_ENABLED) {
-      console.error("[TanStackGridSheet] Promise value detected", {
-        ...ctx,
-        value,
-      });
-    }
+    console.error("[TanStackGridSheet] Promise value detected", {
+      ...ctx,
+      value,
+    });
     return "[promise]";
+  }
+
+  if (typeof value === "function") {
+    console.error("[TanStackGridSheet] Function value detected", {
+      ...ctx,
+    });
+    return "[function]";
+  }
+
+  if (typeof value === "symbol") {
+    console.error("[TanStackGridSheet] Symbol value detected", {
+      ...ctx,
+    });
+    return value.toString();
+  }
+
+  if (typeof value === "bigint") {
+    return value.toString();
   }
 
   // Preserve primitives and Dates as-is
@@ -495,6 +529,26 @@ export function TanStackGridSheet({
           valueMap[col.id] = doc?.fileName ?? doc?.textValue ?? null;
         } else {
           const rawValue = job.results?.[col.id] ?? null;
+          // If a non-structured column receives an object, coerce to string to avoid React 301
+          if (
+            rawValue &&
+            typeof rawValue === "object" &&
+            !(rawValue instanceof Date) &&
+            !Array.isArray(rawValue) &&
+            col.type !== "object" &&
+            col.type !== "list" &&
+            col.type !== "table"
+          ) {
+            console.error("[TanStackGridSheet] Object value in primitive column", {
+              schemaId,
+              jobId: job.id,
+              columnId: col.id,
+              value: rawValue,
+            });
+            valueMap[col.id] = "[object]";
+            continue;
+          }
+
           valueMap[col.id] = sanitizeValue(rawValue, {
             jobId: job.id,
             columnId: col.id,
@@ -512,6 +566,80 @@ export function TanStackGridSheet({
   }, [columns, jobs]);
 
   const filteredRowData = useMemo<GridRow[]>(() => rowData, [rowData]);
+
+  // Deep scan of grid values to help diagnose React 301 in prod
+  useEffect(() => {
+    const scans: ScanLog[] = [];
+    for (const row of filteredRowData) {
+      const jobId = row.__job.id;
+      for (const col of columns) {
+        const val = (row as any)[col.id];
+        let valueShape: ValueShape = "primitive";
+        if (val instanceof Promise) valueShape = "promise";
+        else if (typeof val === "function") valueShape = "function";
+        else if (typeof val === "symbol") valueShape = "symbol";
+        else if (typeof val === "bigint") valueShape = "bigint";
+        else if (Array.isArray(val)) valueShape = "array";
+        else if (val && typeof val === "object") valueShape = "object";
+
+        // Log suspicious values for primitive columns
+        const isPrimitiveColumn =
+          col.type !== "object" && col.type !== "list" && col.type !== "table";
+        if (
+          isPrimitiveColumn &&
+          (valueShape === "object" ||
+            valueShape === "function" ||
+            valueShape === "symbol" ||
+            valueShape === "promise")
+        ) {
+          console.error("[TanStackGridSheet] Invalid shape in primitive column", {
+            schemaId,
+            jobId,
+            columnId: col.id,
+            columnType: col.type,
+            valueShape,
+            sample: val,
+          });
+          scans.push({
+            schemaId,
+            jobId,
+            columnId: col.id,
+            columnType: col.type,
+            valueShape,
+            sample: val,
+          });
+        }
+      }
+    }
+
+    if (typeof window !== "undefined") {
+      (window as any).__GRID_SCAN__ = {
+        schemaId,
+        scannedAt: new Date().toISOString(),
+        rows: filteredRowData.length,
+        columns: columns.length,
+        issues: scans,
+      };
+    }
+  }, [filteredRowData, columns, schemaId]);
+
+  // Expose a small snapshot for post-mortem debugging in prod
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      (window as any).__GRID_LAST_ROWS__ = {
+        schemaId,
+        columns: columns.map((c) => ({ id: c.id, type: c.type })),
+        sampleRows: filteredRowData.slice(0, 3).map((r) => ({
+          jobId: r.__job.id,
+          fileName: r.fileName,
+          status: r.status,
+          values: Object.fromEntries(
+            columns.map((c) => [c.id, (r as any)[c.id]])
+          ),
+        })),
+      };
+    }
+  }, [filteredRowData, columns, schemaId]);
 
   // Load table state from Supabase when schema changes
   useEffect(() => {
