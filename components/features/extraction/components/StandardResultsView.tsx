@@ -95,65 +95,73 @@ export function StandardResultsView({
   renderStatusPill,
 }: StandardResultsViewProps) {
   // #region agent log
-  // Track render count to detect loops
   const renderCountRef = React.useRef(0);
   renderCountRef.current += 1;
   
-  // Track prop changes
-  const prevPropsRef = React.useRef<{
-    activeSchemaId?: string;
-    displayColumnsLength?: number;
-    jobsLength?: number;
-    viewMode?: 'grid' | 'gallery';
-    selectedJobId?: string | null;
-    expandedRowId?: string | null;
-    callbacks?: string[];
+  // Track callback identities to detect when they change
+  const callbackIdsRef = React.useRef<{
+    onSelectJob?: Function;
+    onRowDoubleClick?: Function;
+    onDeleteJob?: Function;
+    onAddColumn?: Function;
+    onEditColumn?: Function;
+    onDeleteColumn?: Function;
+    renderCellValue?: Function;
+    getStatusIcon?: Function;
+    renderStatusPill?: Function;
   }>({});
   
+  // Log render and detect which callbacks changed identity
   React.useEffect(() => {
-    const changedProps: string[] = [];
-    const currentProps = {
-      activeSchemaId,
-      displayColumnsLength: displayColumns.length,
-      jobsLength: jobs.length,
-      viewMode,
-      selectedJobId,
-      expandedRowId,
-      callbacks: [
-        onSelectJob.toString().substring(0, 50),
-        onRowDoubleClick.toString().substring(0, 50),
-        onDeleteJob.toString().substring(0, 50),
-      ]
-    };
-    
-    const prev = prevPropsRef.current;
-    if (prev.activeSchemaId !== currentProps.activeSchemaId) changedProps.push('activeSchemaId');
-    if (prev.displayColumnsLength !== currentProps.displayColumnsLength) changedProps.push('displayColumns');
-    if (prev.jobsLength !== currentProps.jobsLength) changedProps.push('jobs');
-    if (prev.viewMode !== currentProps.viewMode) changedProps.push('viewMode');
-    if (prev.selectedJobId !== currentProps.selectedJobId) changedProps.push('selectedJobId');
-    if (prev.expandedRowId !== currentProps.expandedRowId) changedProps.push('expandedRowId');
-    if (JSON.stringify(prev.callbacks) !== JSON.stringify(currentProps.callbacks)) changedProps.push('callbacks');
+    const changedCallbacks: string[] = [];
+    if (callbackIdsRef.current.onSelectJob !== onSelectJob) changedCallbacks.push('onSelectJob');
+    if (callbackIdsRef.current.onRowDoubleClick !== onRowDoubleClick) changedCallbacks.push('onRowDoubleClick');
+    if (callbackIdsRef.current.onDeleteJob !== onDeleteJob) changedCallbacks.push('onDeleteJob');
+    if (callbackIdsRef.current.onAddColumn !== onAddColumn) changedCallbacks.push('onAddColumn');
+    if (callbackIdsRef.current.onEditColumn !== onEditColumn) changedCallbacks.push('onEditColumn');
+    if (callbackIdsRef.current.onDeleteColumn !== onDeleteColumn) changedCallbacks.push('onDeleteColumn');
+    if (callbackIdsRef.current.renderCellValue !== renderCellValue) changedCallbacks.push('renderCellValue');
+    if (callbackIdsRef.current.getStatusIcon !== getStatusIcon) changedCallbacks.push('getStatusIcon');
+    if (callbackIdsRef.current.renderStatusPill !== renderStatusPill) changedCallbacks.push('renderStatusPill');
     
     if (renderCountRef.current > 1) {
-      fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'StandardResultsView.tsx:97',message:'StandardResultsView render',data:{renderCount:renderCountRef.current,changedProps,currentProps},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'PARENT_LOOP'})}).catch(()=>{});
+      console.error(`[H1/H3] StandardResultsView render #${renderCountRef.current}`, {
+        changedCallbacks,
+        hasChanges: changedCallbacks.length > 0,
+        jobsLength: jobs.length,
+        columnsLength: displayColumns.length,
+      });
     }
     
-    prevPropsRef.current = currentProps;
+    // Update refs
+    callbackIdsRef.current = {
+      onSelectJob, onRowDoubleClick, onDeleteJob, onAddColumn, onEditColumn,
+      onDeleteColumn, renderCellValue, getStatusIcon, renderStatusPill
+    };
   });
   
-  if (renderCountRef.current === 30) {
-    console.warn('[StandardResultsView] Render loop detected!', {
+  if (renderCountRef.current >= 25) {
+    console.error('[H1/H3] RENDER LOOP DETECTED!', {
       renderCount: renderCountRef.current,
-      activeSchemaId,
-      jobsLength: jobs.length,
-      displayColumnsLength: displayColumns.length
+      activeSchemaId
     });
   }
   // #endregion
   
+  // #region agent log - track memoization
+  const prevJobsRef = React.useRef<ExtractionJob[]>(jobs);
+  const jobsIdentityChanged = prevJobsRef.current !== jobs;
+  const prevSortedJobsRef = React.useRef<ExtractionJob[]>();
+  // #endregion
+
   // Sort jobs by creation date - memoized to prevent re-sorting on every render
   const sortedJobs = React.useMemo(() => {
+    // #region agent log
+    console.error(`[H4] sortedJobs recomputed (render #${renderCountRef.current})`, {
+      jobsIdentityChanged,
+      jobsLength: jobs.length
+    });
+    // #endregion
     return [...jobs].sort((a, b) => {
       const aTime = a.createdAt?.getTime() ?? 0
       const bTime = b.createdAt?.getTime() ?? 0
@@ -161,11 +169,37 @@ export function StandardResultsView({
     })
   }, [jobs])
 
+  // #region agent log - track sortedJobs identity
+  React.useEffect(() => {
+    const sortedJobsIdentityChanged = prevSortedJobsRef.current !== sortedJobs;
+    if (sortedJobsIdentityChanged && renderCountRef.current > 1) {
+      console.error(`[H4] sortedJobs identity changed (render #${renderCountRef.current})`);
+    }
+    prevSortedJobsRef.current = sortedJobs;
+    prevJobsRef.current = jobs;
+  });
+  
+  const prevHandleSelectRowRef = React.useRef<Function>();
+  // #endregion
+
   // Memoize onSelectRow callback to prevent unnecessary re-renders of TanStackGridSheet
   const handleSelectRow = React.useCallback((id: string) => {
+    // #region agent log
+    console.error(`[H2] handleSelectRow invoked (render #${renderCountRef.current})`, { id });
+    // #endregion
     const job = sortedJobs.find((j) => j.id === id)
     onSelectJob(job ?? null)
   }, [sortedJobs, onSelectJob])
+
+  // #region agent log - track handleSelectRow identity
+  React.useEffect(() => {
+    const handleSelectRowChanged = prevHandleSelectRowRef.current !== handleSelectRow;
+    if (handleSelectRowChanged && renderCountRef.current > 1) {
+      console.error(`[H2] handleSelectRow identity changed (render #${renderCountRef.current})`);
+    }
+    prevHandleSelectRowRef.current = handleSelectRow;
+  });
+  // #endregion
 
   return (
     <div className="flex-1 overflow-hidden min-h-0 relative">
