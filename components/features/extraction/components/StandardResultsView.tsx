@@ -94,6 +94,64 @@ export function StandardResultsView({
   getStatusIcon,
   renderStatusPill,
 }: StandardResultsViewProps) {
+  // #region agent log
+  // Track render count to detect loops
+  const renderCountRef = React.useRef(0);
+  renderCountRef.current += 1;
+  
+  // Track prop changes
+  const prevPropsRef = React.useRef<{
+    activeSchemaId?: string;
+    displayColumnsLength?: number;
+    jobsLength?: number;
+    viewMode?: 'grid' | 'gallery';
+    selectedJobId?: string | null;
+    expandedRowId?: string | null;
+    callbacks?: string[];
+  }>({});
+  
+  React.useEffect(() => {
+    const changedProps: string[] = [];
+    const currentProps = {
+      activeSchemaId,
+      displayColumnsLength: displayColumns.length,
+      jobsLength: jobs.length,
+      viewMode,
+      selectedJobId,
+      expandedRowId,
+      callbacks: [
+        onSelectJob.toString().substring(0, 50),
+        onRowDoubleClick.toString().substring(0, 50),
+        onDeleteJob.toString().substring(0, 50),
+      ]
+    };
+    
+    const prev = prevPropsRef.current;
+    if (prev.activeSchemaId !== currentProps.activeSchemaId) changedProps.push('activeSchemaId');
+    if (prev.displayColumnsLength !== currentProps.displayColumnsLength) changedProps.push('displayColumns');
+    if (prev.jobsLength !== currentProps.jobsLength) changedProps.push('jobs');
+    if (prev.viewMode !== currentProps.viewMode) changedProps.push('viewMode');
+    if (prev.selectedJobId !== currentProps.selectedJobId) changedProps.push('selectedJobId');
+    if (prev.expandedRowId !== currentProps.expandedRowId) changedProps.push('expandedRowId');
+    if (JSON.stringify(prev.callbacks) !== JSON.stringify(currentProps.callbacks)) changedProps.push('callbacks');
+    
+    if (renderCountRef.current > 1) {
+      fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'StandardResultsView.tsx:97',message:'StandardResultsView render',data:{renderCount:renderCountRef.current,changedProps,currentProps},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'PARENT_LOOP'})}).catch(()=>{});
+    }
+    
+    prevPropsRef.current = currentProps;
+  });
+  
+  if (renderCountRef.current === 30) {
+    console.warn('[StandardResultsView] Render loop detected!', {
+      renderCount: renderCountRef.current,
+      activeSchemaId,
+      jobsLength: jobs.length,
+      displayColumnsLength: displayColumns.length
+    });
+  }
+  // #endregion
+  
   // Sort jobs by creation date - memoized to prevent re-sorting on every render
   const sortedJobs = React.useMemo(() => {
     return [...jobs].sort((a, b) => {

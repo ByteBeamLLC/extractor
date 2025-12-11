@@ -245,9 +245,6 @@ export function TanStackGridSheet({
   visualGroups: [],
   enableTableStatePersistence: true,
 }) {
-  // #region agent log
-  console.error('[GRID_DEBUG:ENTRY]', JSON.stringify({location:'TanStackGridSheet.tsx:247',message:'Function entry',data:{schemaId,columnsLength:columns?.length,jobsLength:jobs?.length,propsReceived:{hasSchemaId:!!schemaId,columnsIsArray:Array.isArray(columns),jobsIsArray:Array.isArray(jobs)},isClient:typeof window!=='undefined'},timestamp:Date.now(),hypothesisId:'F,G'}));
-  // #endregion
   // Search is disabled per request; keep table simple and avoid global filter churn.
   const enableSearch = false;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -256,10 +253,6 @@ export function TanStackGridSheet({
   const supabase = useSupabaseClient<Database>();
   const renderCountRef = useRef(0);
   const renderWindowStartRef = useRef<number>(Date.now());
-  // #region agent log
-  const columnsRef = useRef(columns);
-  const jobsRef = useRef(jobs);
-  // #endregion
 
   const logDebug = useCallback(
     (message: string, payload?: Record<string, unknown>) => {
@@ -281,29 +274,6 @@ export function TanStackGridSheet({
     return visualGroups;
   }, [visualGroups.length, visualGroups.map((g) => `${g.id}:${g.fieldIds.join(',')}`).join('|')]);
 
-  // #region agent log
-  const prevCallbacksRef = useRef<any>({});
-  renderCountRef.current += 1;
-  if (renderCountRef.current <= 30) {
-    console.error('[GRID_DEBUG:RENDER]', JSON.stringify({location:'TanStackGridSheet.tsx:273',renderCount:renderCountRef.current,columnsLength:columns?.length,jobsLength:jobs?.length,schemaId,propsIdentity:{columnsRef:columns===columnsRef.current,jobsRef:jobs===jobsRef.current},timestamp:Date.now(),hypothesisId:'A,F,G,H'}));
-  }
-  if (renderCountRef.current === 30) {
-    console.error('[GRID_DEBUG:LOOP_DETECTED]', 'Render loop detected! 30 renders reached.');
-  }
-  // Log containerWidth to track ResizeObserver
-  fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:295',message:'containerWidth state',data:{containerWidth,renderCount:renderCountRef.current},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
-  // Track callback identity changes
-  const callbackIdentities = {
-    onEditColumn: onEditColumn === prevCallbacksRef.current.onEditColumn,
-    onDeleteColumn: onDeleteColumn === prevCallbacksRef.current.onDeleteColumn,
-    onAddColumn: onAddColumn === prevCallbacksRef.current.onAddColumn,
-    onUpdateReviewStatus: onUpdateReviewStatus === prevCallbacksRef.current.onUpdateReviewStatus,
-    onTableStateChange: onTableStateChange === prevCallbacksRef.current.onTableStateChange,
-    renderCellValue: renderCellValue === prevCallbacksRef.current.renderCellValue,
-  };
-  prevCallbacksRef.current = { onEditColumn, onDeleteColumn, onAddColumn, onUpdateReviewStatus, onTableStateChange, renderCellValue };
-  fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:310',message:'Callback identities',data:{callbackIdentities,renderCount:renderCountRef.current},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'E'})}).catch(()=>{});
-  // #endregion
   if (GRID_DEBUG_ENABLED) {
     const elapsed = Date.now() - renderWindowStartRef.current;
     if (elapsed > 3000) {
@@ -331,9 +301,6 @@ export function TanStackGridSheet({
     // when TanStack internally fires onChange during render.
     const stack = GRID_DEBUG_ENABLED ? new Error().stack : undefined;
     const runner = () => {
-      // #region agent log
-      if (label) console.error('[GRID_DEBUG:MICROTASK]', JSON.stringify({location:'TanStackGridSheet.tsx:303',label,timestamp:Date.now(),hypothesisId:'C'}));
-      // #endregion
       if (label && GRID_DEBUG_ENABLED) logDebug(`microtask:${label}`, { stack });
       fn();
     };
@@ -459,16 +426,6 @@ export function TanStackGridSheet({
         jobs: jobs.length,
       });
     }
-    // #region agent log
-    if (columns !== columnsRef.current) {
-      console.error('[GRID_DEBUG:PROPS_CHANGED]', JSON.stringify({location:'columns changed',oldLength:columnsRef.current?.length,newLength:columns?.length,timestamp:Date.now(),hypothesisId:'H'}));
-      columnsRef.current = columns;
-    }
-    if (jobs !== jobsRef.current) {
-      console.error('[GRID_DEBUG:PROPS_CHANGED]', JSON.stringify({location:'jobs changed',oldLength:jobsRef.current?.length,newLength:jobs?.length,timestamp:Date.now(),hypothesisId:'H'}));
-      jobsRef.current = jobs;
-    }
-    // #endregion
     renderCellValueRef.current = renderCellValue;
     getStatusIconRef.current = getStatusIcon;
     renderStatusPillRef.current = renderStatusPill;
@@ -809,10 +766,6 @@ export function TanStackGridSheet({
     if (GRID_DEBUG_ENABLED) logDebug("autosave state", state);
     debouncedSaveRef.current(state);
 
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:797',message:'Table state change effect fired',data:{hasSorting:sorting?.length>0,hasFilters:columnFilters?.length>0,renderCount:renderCountRef.current},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C,D'})}).catch(()=>{});
-    // #endregion
-
     // Notify parent if callback provided (always notify, even if persistence is disabled)
     if (onTableStateChangeRef.current) {
       onTableStateChangeRef.current(state);
@@ -866,45 +819,7 @@ export function TanStackGridSheet({
   
   const tableWidth = baseTableWidth + fillerWidth;
   // Define column definitions
-  // #region agent log - track dependency identities
-  const prevDepsRef = useRef<any>(null);
-  const currentDeps = {
-    columns,
-    columnSizes,
-    stableVisualGroups,
-    stableOnEditColumn,
-    stableOnDeleteColumn,
-    stableOnAddColumn,
-    stableOnUpdateReviewStatus,
-    stableOnColumnRightClick,
-    stableGetStatusIcon,
-    stableRenderStatusPill,
-    stableRenderCellValue,
-    expandedRowId,
-    stableOnToggleRowExpansion,
-    stableOnUpdateCell,
-    stableOnOpenTableModal,
-    hasInputColumns,
-    draggedColumn,
-  };
-  if (prevDepsRef.current) {
-    const changed: string[] = [];
-    Object.keys(currentDeps).forEach((key) => {
-      if (currentDeps[key as keyof typeof currentDeps] !== prevDepsRef.current[key]) {
-        changed.push(key);
-      }
-    });
-    if (changed.length > 0) {
-      console.error('[GRID_DEBUG:DEPS_IDENTITY]', JSON.stringify({location:'TanStackGridSheet.tsx:841',message:'columnDefs deps changed',changedDeps:changed,expandedRowId,hasInputColumns,draggedColumn,columnsLen:columns?.length,visualGroupsLen:stableVisualGroups?.length,timestamp:Date.now(),hypothesisId:'IDENTITY'}));
-    }
-  }
-  prevDepsRef.current = currentDeps;
-  // #endregion
-
   const columnDefs = useMemo<ColumnDef<GridRow>[]>(() => {
-    // #region agent log
-    console.error('[GRID_DEBUG:COLUMNDEFS_MEMO]', JSON.stringify({location:'TanStackGridSheet.tsx:832',message:'columnDefs recomputing',columnsLength:columns?.length,fillerWidth,hasInputColumns,draggedColumn,expandedRowId,visualGroupsLength:stableVisualGroups?.length,timestamp:Date.now(),hypothesisId:'B,D,H'}));
-    // #endregion
     const defs: ColumnDef<GridRow>[] = [
       // Row index column with expand/collapse icon - FIXED
       {
@@ -1179,9 +1094,6 @@ export function TanStackGridSheet({
   // Memoize table options object to ensure all inputs are stable
   // This ensures the table instance remains stable when inputs haven't changed
   const tableOptions = useMemo(() => {
-    // #region agent log
-    console.error('[GRID_DEBUG:TABLEOPTIONS_MEMO]', JSON.stringify({location:'TanStackGridSheet.tsx:1104',message:'tableOptions recomputing',dataRows:filteredRowData?.length,columnDefsLength:columnDefs?.length,enableSearch,stateSnapshot:{sorting:sorting?.length,filters:columnFilters?.length,order:columnOrder?.length},timestamp:Date.now(),hypothesisId:'D,H'}));
-    // #endregion
     return {
     data: filteredRowData,
     columns: columnDefs,
@@ -1243,15 +1155,7 @@ export function TanStackGridSheet({
 
   // Table instance with all features enabled.
   // useReactTable must be called at the top level (not inside other hooks) to satisfy hook rules.
-  // #region agent log
-  console.error('[GRID_DEBUG:BEFORE_TABLE]', JSON.stringify({location:'TanStackGridSheet.tsx:1165',dataLength:tableOptions?.data?.length,columnsLength:tableOptions?.columns?.length,timestamp:Date.now(),hypothesisId:'A,D,F'}));
-  // #endregion
   const table = useReactTable(tableOptions);
-  // #region agent log
-  console.error('[GRID_DEBUG:AFTER_TABLE]', JSON.stringify({location:'TanStackGridSheet.tsx:1169',tableCreated:!!table,timestamp:Date.now(),hypothesisId:'A,D,F'}));
-  const tableStateAfter = {sorting:table.getState().sorting?.length,filters:table.getState().columnFilters?.length,order:table.getState().columnOrder?.length};
-  fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1251',message:'Table state after creation',data:{tableStateAfter,renderCount:renderCountRef.current},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A,C'})}).catch(()=>{});
-  // #endregion
   if (GRID_DEBUG_ENABLED) {
     logDebug("tableOptions", {
       dataRows: filteredRowData.length,
@@ -1405,10 +1309,6 @@ export function TanStackGridSheet({
     if (!el) return;
 
     const updateWidth = () => {
-      // #region agent log
-      const newWidth = el.clientWidth;
-      fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1390',message:'ResizeObserver updateWidth called',data:{newWidth,prevWidth:containerWidth},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
       setContainerWidth(el.clientWidth);
     };
 
