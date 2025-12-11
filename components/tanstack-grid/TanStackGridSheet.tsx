@@ -315,6 +315,9 @@ export function TanStackGridSheet({
   const [sorting, setSortingState] = useState<SortingState>([]);
   const setSorting = useCallback(
     (updater: SortingState | ((prev: SortingState) => SortingState)) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:318',message:'setSorting CALLED',data:{updaterType:typeof updater,renderCount:renderCountRef.current},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       setSortingState((prev) => {
         const next = typeof updater === "function" ? (updater as any)(prev) : updater;
         if (GRID_DEBUG_ENABLED) logDebug("setSorting", { prev, next });
@@ -327,6 +330,9 @@ export function TanStackGridSheet({
   const [columnFilters, setColumnFiltersState] = useState<ColumnFiltersState>([]);
   const setColumnFilters = useCallback(
     (updater: ColumnFiltersState | ((prev: ColumnFiltersState) => ColumnFiltersState)) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:333',message:'setColumnFilters CALLED',data:{updaterType:typeof updater,renderCount:renderCountRef.current},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       setColumnFiltersState((prev) => {
         const next = typeof updater === "function" ? (updater as any)(prev) : updater;
         if (GRID_DEBUG_ENABLED) logDebug("setColumnFilters", { prev, next });
@@ -339,6 +345,9 @@ export function TanStackGridSheet({
   const [columnOrder, setColumnOrderState] = useState<ColumnOrderState>([]);
   const setColumnOrder = useCallback(
     (updater: ColumnOrderState | ((prev: ColumnOrderState) => ColumnOrderState)) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:348',message:'setColumnOrder CALLED',data:{updaterType:typeof updater,renderCount:renderCountRef.current},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       setColumnOrderState((prev) => {
         const next = typeof updater === "function" ? (updater as any)(prev) : updater;
         if (GRID_DEBUG_ENABLED) logDebug("setColumnOrder", { prev, next });
@@ -351,6 +360,9 @@ export function TanStackGridSheet({
   const [columnVisibility, setColumnVisibilityState] = useState<VisibilityState>({});
   const setColumnVisibility = useCallback(
     (updater: VisibilityState | ((prev: VisibilityState) => VisibilityState)) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:363',message:'setColumnVisibility CALLED',data:{updaterType:typeof updater,renderCount:renderCountRef.current},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       setColumnVisibilityState((prev) => {
         const next = typeof updater === "function" ? (updater as any)(prev) : updater;
         if (GRID_DEBUG_ENABLED) logDebug("setColumnVisibility", { prev, next });
@@ -366,6 +378,9 @@ export function TanStackGridSheet({
   });
   const setColumnPinning = useCallback(
     (updater: ColumnPinningState | ((prev: ColumnPinningState) => ColumnPinningState)) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:381',message:'setColumnPinning CALLED',data:{updaterType:typeof updater,renderCount:renderCountRef.current},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       setColumnPinningState((prev) => {
         const next = typeof updater === "function" ? (updater as any)(prev) : updater;
         if (GRID_DEBUG_ENABLED) logDebug("setColumnPinning", { prev, next });
@@ -378,6 +393,9 @@ export function TanStackGridSheet({
   const [globalFilter, setGlobalFilterState] = useState<string>("");
   const setGlobalFilter = useCallback(
     (updater: string | ((prev: string) => string)) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:396',message:'setGlobalFilter CALLED',data:{updaterType:typeof updater,renderCount:renderCountRef.current},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       setGlobalFilterState((prev) => {
         const next = typeof updater === "function" ? (updater as any)(prev) : updater;
         if (GRID_DEBUG_ENABLED) logDebug("setGlobalFilter", { prev, next });
@@ -1098,14 +1116,19 @@ export function TanStackGridSheet({
   // Memoize table options to ensure stable table instance
   const getRowId = useCallback((row: GridRow) => row.__job.id, []);
   
-  const tableState = useMemo(() => ({
-    sorting,
-    columnFilters,
-    columnOrder,
-    columnVisibility,
-    columnPinning,
-    globalFilter,
-  }), [sorting, columnFilters, columnOrder, columnVisibility, columnPinning, globalFilter]);
+  const tableState = useMemo(() => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1115',message:'tableState recomputing',data:{renderCount:renderCountRef.current},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
+    return {
+      sorting,
+      columnFilters,
+      columnOrder,
+      columnVisibility,
+      columnPinning,
+      globalFilter,
+    };
+  }, [sorting, columnFilters, columnOrder, columnVisibility, columnPinning, globalFilter]);
 
   const defaultColumnConfig = useMemo(() => ({
     size: DEFAULT_DATA_COL_WIDTH,
@@ -1197,6 +1220,21 @@ export function TanStackGridSheet({
       schemaId
     });
   }
+  
+  // Track callback identities across renders
+  const prevCallbacksRef = useRef<any>({});
+  const callbacksChanged = {
+    setSorting: prevCallbacksRef.current.setSorting !== setSorting,
+    setColumnFilters: prevCallbacksRef.current.setColumnFilters !== setColumnFilters,
+    setColumnOrder: prevCallbacksRef.current.setColumnOrder !== setColumnOrder,
+    setColumnVisibility: prevCallbacksRef.current.setColumnVisibility !== setColumnVisibility,
+    setColumnPinning: prevCallbacksRef.current.setColumnPinning !== setColumnPinning,
+    setGlobalFilter: prevCallbacksRef.current.setGlobalFilter !== setGlobalFilter,
+    logDebug: prevCallbacksRef.current.logDebug !== logDebug,
+  };
+  prevCallbacksRef.current = {setSorting, setColumnFilters, setColumnOrder, setColumnVisibility, setColumnPinning, setGlobalFilter, logDebug};
+  
+  fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1200',message:'Before useReactTable',data:{renderCount:renderCountRef.current,callbacksChanged},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
   // #endregion
 
   // Table instance with all features enabled.
@@ -1204,6 +1242,7 @@ export function TanStackGridSheet({
   const table = useReactTable(tableOptions);
   // #region agent log
   console.error('[H5] useReactTable called', { renderCount: renderCountRef.current });
+  fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1220',message:'After useReactTable',data:{renderCount:renderCountRef.current},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
   // #endregion
   if (GRID_DEBUG_ENABLED) {
     logDebug("tableOptions", {
@@ -1213,7 +1252,13 @@ export function TanStackGridSheet({
     });
   }
 
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1230',message:'Before getRowModel',data:{renderCount:renderCountRef.current},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
+  // #endregion
   const tableRows = table.getRowModel().rows;
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1236',message:'After getRowModel',data:{renderCount:renderCountRef.current,rowsLength:tableRows.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
+  // #endregion
 
   // Detect any Promise values in row data early to avoid React 301
   useEffect(() => {
