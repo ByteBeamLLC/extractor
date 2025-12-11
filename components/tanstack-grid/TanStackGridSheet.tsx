@@ -612,6 +612,15 @@ export function TanStackGridSheet({
       }
     }
 
+    if (GRID_DEBUG_ENABLED) {
+      console.info("[TanStackGridSheet] grid scan", {
+        schemaId,
+        rows: filteredRowData.length,
+        columns: columns.length,
+        issues: scans.length,
+      });
+    }
+
     if (typeof window !== "undefined") {
       (window as any).__GRID_SCAN__ = {
         schemaId,
@@ -638,8 +647,33 @@ export function TanStackGridSheet({
           ),
         })),
       };
+      (window as any).__GRID_TYPES__ = {
+        schemaId,
+        columns: columns.map((c) => ({
+          id: c.id,
+          type: c.type,
+          size: columnSizes[c.id] ?? DEFAULT_DATA_COL_WIDTH,
+        })),
+        rows: filteredRowData.slice(0, 3).map((r) => ({
+          jobId: r.__job.id,
+          valueTypes: Object.fromEntries(
+            columns.map((c) => {
+              const v = (r as any)[c.id];
+              const type =
+                v instanceof Promise
+                  ? "promise"
+                  : Array.isArray(v)
+                  ? "array"
+                  : v === null
+                  ? "null"
+                  : typeof v;
+              return [c.id, type];
+            })
+          ),
+        })),
+      };
     }
-  }, [filteredRowData, columns, schemaId]);
+  }, [filteredRowData, columns, schemaId, columnSizes]);
 
   // Load table state from Supabase when schema changes
   useEffect(() => {
@@ -1080,6 +1114,26 @@ export function TanStackGridSheet({
     filteredRowModel,
     enableSearch,
   ]);
+
+  // Surface lightweight meta for debugging
+  useEffect(() => {
+    if (GRID_DEBUG_ENABLED) {
+      console.info("[TanStackGridSheet] table meta", {
+        schemaId,
+        columns: columns.map((c) => c.id),
+        jobs: filteredRowData.map((r) => r.__job.id),
+      });
+    }
+    if (typeof window !== "undefined") {
+      (window as any).__GRID_META__ = {
+        schemaId,
+        columnCount: columns.length,
+        jobCount: filteredRowData.length,
+        columnIds: columns.map((c) => c.id),
+        jobIds: filteredRowData.map((r) => r.__job.id),
+      };
+    }
+  }, [columns, filteredRowData, schemaId]);
 
   // Table instance with all features enabled.
   // useReactTable must be called at the top level (not inside other hooks) to satisfy hook rules.
