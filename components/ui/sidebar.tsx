@@ -61,11 +61,11 @@ function SidebarProvider({
   style,
   children,
   ...props
-}: React.ComponentProps<'div'> & {
+}: (React.ComponentProps<'div'> & {
   defaultOpen?: boolean
   open?: boolean
   onOpenChange?: (open: boolean) => void
-}) {
+}) = {}) {
   const isMobile = useIsMobile()
   const [openMobile, setOpenMobile] = React.useState(false)
 
@@ -304,7 +304,7 @@ function SidebarRail({ className, ...props }: React.ComponentProps<'button'>) {
   )
 }
 
-function SidebarInset({ className, ...props }: React.ComponentProps<'main'>) {
+function SidebarInset({ className, ...props }: React.ComponentProps<'main'> = {}) {
   return (
     <main
       data-slot="sidebar-inset"

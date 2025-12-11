@@ -211,7 +211,7 @@ function writeGuestTabs(tabs: WorkspaceTab[]) {
   }
 }
 
-export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
+export function WorkspaceProvider({ children }: { children: React.ReactNode } = { children: null }) {
   const session = useSession()
   const supabase = useSupabaseClient<Database>()
 
