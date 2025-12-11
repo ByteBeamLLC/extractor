@@ -274,6 +274,13 @@ export function TanStackGridSheet({
     [schemaId]
   );
 
+  // FIX: Stabilize visualGroups reference to prevent unnecessary re-renders
+  // The parent component may pass a new [] on every render if not memoized
+  const stableVisualGroups = useMemo(() => {
+    // Return stable reference if content is the same
+    return visualGroups;
+  }, [visualGroups.length, visualGroups.map((g) => `${g.id}:${g.fieldIds.join(',')}`).join('|')]);
+
   // #region agent log
   renderCountRef.current += 1;
   if (renderCountRef.current <= 30) {
@@ -843,7 +850,7 @@ export function TanStackGridSheet({
   const currentDeps = {
     columns,
     columnSizes,
-    visualGroups,
+    stableVisualGroups,
     stableOnEditColumn,
     stableOnDeleteColumn,
     stableOnAddColumn,
@@ -867,7 +874,7 @@ export function TanStackGridSheet({
       }
     });
     if (changed.length > 0) {
-      console.error('[GRID_DEBUG:DEPS_IDENTITY]', JSON.stringify({location:'TanStackGridSheet.tsx:841',message:'columnDefs deps changed',changedDeps:changed,expandedRowId,hasInputColumns,draggedColumn,columnsLen:columns?.length,visualGroupsLen:visualGroups?.length,timestamp:Date.now(),hypothesisId:'IDENTITY'}));
+      console.error('[GRID_DEBUG:DEPS_IDENTITY]', JSON.stringify({location:'TanStackGridSheet.tsx:841',message:'columnDefs deps changed',changedDeps:changed,expandedRowId,hasInputColumns,draggedColumn,columnsLen:columns?.length,visualGroupsLen:stableVisualGroups?.length,timestamp:Date.now(),hypothesisId:'IDENTITY'}));
     }
   }
   prevDepsRef.current = currentDeps;
@@ -875,7 +882,7 @@ export function TanStackGridSheet({
 
   const columnDefs = useMemo<ColumnDef<GridRow>[]>(() => {
     // #region agent log
-    console.error('[GRID_DEBUG:COLUMNDEFS_MEMO]', JSON.stringify({location:'TanStackGridSheet.tsx:832',message:'columnDefs recomputing',columnsLength:columns?.length,fillerWidth,hasInputColumns,draggedColumn,expandedRowId,visualGroupsLength:visualGroups?.length,timestamp:Date.now(),hypothesisId:'B,D,H'}));
+    console.error('[GRID_DEBUG:COLUMNDEFS_MEMO]', JSON.stringify({location:'TanStackGridSheet.tsx:832',message:'columnDefs recomputing',columnsLength:columns?.length,fillerWidth,hasInputColumns,draggedColumn,expandedRowId,visualGroupsLength:stableVisualGroups?.length,timestamp:Date.now(),hypothesisId:'B,D,H'}));
     // #endregion
     const defs: ColumnDef<GridRow>[] = [
       // Row index column with expand/collapse icon - FIXED
@@ -945,7 +952,7 @@ export function TanStackGridSheet({
     const groupedFieldIds = new Set<string>();
     const fieldIdToGroup = new Map();
 
-    for (const group of visualGroups) {
+    for (const group of stableVisualGroups) {
       for (const fieldId of group.fieldIds) {
         groupedFieldIds.add(fieldId);
         fieldIdToGroup.set(fieldId, group);
@@ -953,7 +960,7 @@ export function TanStackGridSheet({
     }
 
     // Add visual group columns
-    for (const group of visualGroups) {
+    for (const group of stableVisualGroups) {
       const groupColumns = columns.filter((col) =>
         group.fieldIds.includes(col.id)
       );
@@ -1106,7 +1113,7 @@ export function TanStackGridSheet({
   }, [
     columns,
     columnSizes,
-    visualGroups,
+    stableVisualGroups,
     // Avoid tying column definition identity to data to keep table stable
     stableOnEditColumn,
     stableOnDeleteColumn,
