@@ -1234,7 +1234,7 @@ export function TanStackGridSheet({
   };
   prevCallbacksRef.current = {setSorting, setColumnFilters, setColumnOrder, setColumnVisibility, setColumnPinning, setGlobalFilter, logDebug};
   
-  fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1200',message:'Before useReactTable',data:{renderCount:renderCountRef.current,callbacksChanged},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
+  console.error('[DEBUG-B] Before useReactTable', {renderCount:renderCountRef.current, callbacksChanged});
   // #endregion
 
   // Table instance with all features enabled.
@@ -1242,7 +1242,7 @@ export function TanStackGridSheet({
   const table = useReactTable(tableOptions);
   // #region agent log
   console.error('[H5] useReactTable called', { renderCount: renderCountRef.current });
-  fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1220',message:'After useReactTable',data:{renderCount:renderCountRef.current},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
+  console.error('[DEBUG-D] After useReactTable', {renderCount:renderCountRef.current});
   // #endregion
   if (GRID_DEBUG_ENABLED) {
     logDebug("tableOptions", {
@@ -1253,11 +1253,11 @@ export function TanStackGridSheet({
   }
 
   // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1230',message:'Before getRowModel',data:{renderCount:renderCountRef.current},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
+  console.error('[DEBUG-D] Before getRowModel', {renderCount:renderCountRef.current});
   // #endregion
   const tableRows = table.getRowModel().rows;
   // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1236',message:'After getRowModel',data:{renderCount:renderCountRef.current,rowsLength:tableRows.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
+  console.error('[DEBUG-D] After getRowModel', {renderCount:renderCountRef.current, rowsLength:tableRows.length});
   // #endregion
 
   // Detect any Promise values in row data early to avoid React 301
