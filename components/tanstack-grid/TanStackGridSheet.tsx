@@ -838,6 +838,41 @@ export function TanStackGridSheet({
   
   const tableWidth = baseTableWidth + fillerWidth;
   // Define column definitions
+  // #region agent log - track dependency identities
+  const prevDepsRef = useRef<any>(null);
+  const currentDeps = {
+    columns,
+    columnSizes,
+    visualGroups,
+    stableOnEditColumn,
+    stableOnDeleteColumn,
+    stableOnAddColumn,
+    stableOnUpdateReviewStatus,
+    stableOnColumnRightClick,
+    stableGetStatusIcon,
+    stableRenderStatusPill,
+    stableRenderCellValue,
+    expandedRowId,
+    stableOnToggleRowExpansion,
+    stableOnUpdateCell,
+    stableOnOpenTableModal,
+    hasInputColumns,
+    draggedColumn,
+  };
+  if (prevDepsRef.current) {
+    const changed: string[] = [];
+    Object.keys(currentDeps).forEach((key) => {
+      if (currentDeps[key as keyof typeof currentDeps] !== prevDepsRef.current[key]) {
+        changed.push(key);
+      }
+    });
+    if (changed.length > 0) {
+      console.error('[GRID_DEBUG:DEPS_IDENTITY]', JSON.stringify({location:'TanStackGridSheet.tsx:841',message:'columnDefs deps changed',changedDeps:changed,expandedRowId,hasInputColumns,draggedColumn,columnsLen:columns?.length,visualGroupsLen:visualGroups?.length,timestamp:Date.now(),hypothesisId:'IDENTITY'}));
+    }
+  }
+  prevDepsRef.current = currentDeps;
+  // #endregion
+
   const columnDefs = useMemo<ColumnDef<GridRow>[]>(() => {
     // #region agent log
     console.error('[GRID_DEBUG:COLUMNDEFS_MEMO]', JSON.stringify({location:'TanStackGridSheet.tsx:832',message:'columnDefs recomputing',columnsLength:columns?.length,fillerWidth,hasInputColumns,draggedColumn,expandedRowId,visualGroupsLength:visualGroups?.length,timestamp:Date.now(),hypothesisId:'B,D,H'}));
