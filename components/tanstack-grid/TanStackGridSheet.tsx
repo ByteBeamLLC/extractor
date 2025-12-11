@@ -171,6 +171,8 @@ export function TanStackGridSheet({
   onTableStateChange,
   enableTableStatePersistence = true, // Default to true for backward compatibility
 }: TanStackGridSheetProps) {
+  // Search is disabled per request; keep table simple and avoid global filter churn.
+  const enableSearch = false;
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState<number>(0);
   const [columnSizes, setColumnSizes] = useState<Record<string, number>>({});
@@ -794,19 +796,19 @@ export function TanStackGridSheet({
     getSortedRowModel: sortedRowModel,
     getFilteredRowModel: filteredRowModel,
     getRowId,
-    state: tableState,
+    state: enableSearch ? tableState : { ...tableState, globalFilter: "" },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnOrderChange: setColumnOrder,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnPinningChange: setColumnPinning,
-    onGlobalFilterChange: setGlobalFilter,
+    onGlobalFilterChange: enableSearch ? setGlobalFilter : undefined,
     enableColumnResizing: true,
     enableSorting: true,
     enableFilters: true,
     enableColumnOrdering: true,
     enableColumnPinning: true,
-    enableGlobalFilter: true,
+    enableGlobalFilter: enableSearch,
     columnResizeMode: 'onChange' as const,
     defaultColumn: defaultColumnConfig,
   }), [
@@ -824,6 +826,7 @@ export function TanStackGridSheet({
     coreRowModel,
     sortedRowModel,
     filteredRowModel,
+    enableSearch,
   ]);
 
   // Table instance with all features enabled.
@@ -929,6 +932,7 @@ export function TanStackGridSheet({
 
   const virtualItems = rowVirtualizer.getVirtualItems();
   const totalVirtualSize = rowVirtualizer.getTotalSize();
+  const hasActiveSearch = false;
   const paddingTop =
     virtualItems.length > 0 ? virtualItems[0].start : 0;
   const paddingBottom =
@@ -979,6 +983,7 @@ export function TanStackGridSheet({
         table={table}
         schemaId={schemaId}
         onSearchResults={handleSearchResults}
+        enableSearch={enableSearch}
       />
 
       {/* Grid container */}
