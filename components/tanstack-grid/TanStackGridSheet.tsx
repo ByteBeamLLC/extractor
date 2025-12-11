@@ -567,7 +567,6 @@ export function TanStackGridSheet({
   useEffect(() => {
     // We calculate widths even if jobs is empty, to ensure headers are sized correctly
     // based on their text length.
-
     const newSizes: Record<string, number> = {};
     for (const col of columns) {
       const calculatedWidth = calculateColumnWidth(col, jobs);
@@ -577,14 +576,14 @@ export function TanStackGridSheet({
     if (GRID_DEBUG_ENABLED) logDebug("calculated column sizes", { newSizes });
 
     // Avoid pointless state updates that can trigger extra renders
-    const sameKeys =
-      Object.keys(newSizes).length === Object.keys(columnSizes).length &&
-      Object.keys(newSizes).every((key) => columnSizes[key] === newSizes[key]);
+    setColumnSizes((prev) => {
+      const sameKeys =
+        Object.keys(newSizes).length === Object.keys(prev).length &&
+        Object.keys(newSizes).every((key) => prev[key] === newSizes[key]);
 
-    if (!sameKeys) {
-      setColumnSizes(newSizes);
-    }
-  }, [columns, jobs, columnSizes]);
+      return sameKeys ? prev : newSizes;
+    });
+  }, [columns, jobs, logDebug]);
 
   const pinnedColumnsWidth = 60 + (hasInputColumns ? 0 : 200); // row index + optional file column
   const addColumnWidth = 56;

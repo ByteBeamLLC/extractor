@@ -1,4 +1,30 @@
-<!-- f90f11a6-5ab5-4622-a1d8-e3f27edb282e e35dfe70-c03e-42de-b2a6-7234942e6f17 -->
+---
+name: Knowledge Hub Integration for Transformations
+overview: ""
+todos:
+  - id: d87c7b1e-7312-4b05-a8c9-3bd5d12f5ed7
+    content: Add getKnowledgeContentForTransformation to knowledge-actions
+    status: pending
+  - id: ffcdc806-bfe1-4cf0-bb67-4e52c9faa6fe
+    content: Extend MentionTextarea to support knowledge items with icons
+    status: pending
+  - id: d535e65e-bae6-46e7-bd13-bd2e3e0588de
+    content: Update TransformBuilder to fetch and display knowledge options
+    status: pending
+  - id: 0bc630cd-26a8-49b4-8d7d-2be334be23bf
+    content: Parse knowledge references from transformation prompts
+    status: pending
+  - id: 48dc15d7-838c-4b1c-80ad-95cdc485e888
+    content: Inject knowledge content into LLM prompt context
+    status: pending
+  - id: a81719d1-7c69-40d7-b13a-b67f8cd4ced6
+    content: Add token counting and size warnings for large knowledge
+    status: pending
+  - id: cacf6d11-575c-4c31-a460-9ee164448379
+    content: Test with real knowledge documents and transformations
+    status: pending
+---
+
 # Knowledge Hub Integration for Transformations
 
 ## Context
@@ -88,13 +114,3 @@ Update `app/api/transform/route.ts`:
 - Transformations produce accurate results grounded in knowledge
 - System handles typical policy/guideline documents (5-50 pages)
 - Clear path to upgrade if more sophistication neededok
-
-### To-dos
-
-- [ ] Add getKnowledgeContentForTransformation to knowledge-actions
-- [ ] Extend MentionTextarea to support knowledge items with icons
-- [ ] Update TransformBuilder to fetch and display knowledge options
-- [ ] Parse knowledge references from transformation prompts
-- [ ] Inject knowledge content into LLM prompt context
-- [ ] Add token counting and size warnings for large knowledge
-- [ ] Test with real knowledge documents and transformations
