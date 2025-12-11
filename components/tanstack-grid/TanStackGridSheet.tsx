@@ -149,29 +149,35 @@ function calculateColumnWidth(
   return optimalWidth;
 }
 
-export function TanStackGridSheet({
-  schemaId,
-  columns,
-  jobs,
-  selectedRowId,
-  onSelectRow,
-  onRowDoubleClick,
-  onAddColumn,
-  renderCellValue,
-  getStatusIcon,
-  renderStatusPill,
-  onEditColumn,
-  onDeleteColumn,
-  onUpdateCell,
-  onUpdateReviewStatus,
-  onColumnRightClick,
-  onOpenTableModal,
-  visualGroups = [],
-  expandedRowId,
-  onToggleRowExpansion,
-  onTableStateChange,
-  enableTableStatePersistence = true, // Default to true for backward compatibility
-}: TanStackGridSheetProps) {
+export function TanStackGridSheet(inputProps: TanStackGridSheetProps | undefined) {
+  if (!inputProps) {
+    console.error("[TanStackGridSheet] props were undefined; rendering null to avoid crash");
+    return null;
+  }
+
+  const {
+    schemaId,
+    columns = [],
+    jobs = [],
+    selectedRowId,
+    onSelectRow,
+    onRowDoubleClick,
+    onAddColumn,
+    renderCellValue,
+    getStatusIcon,
+    renderStatusPill,
+    onEditColumn,
+    onDeleteColumn,
+    onUpdateCell,
+    onUpdateReviewStatus,
+    onColumnRightClick,
+    onOpenTableModal,
+    visualGroups = [],
+    expandedRowId,
+    onToggleRowExpansion,
+    onTableStateChange,
+    enableTableStatePersistence = true, // Default to true for backward compatibility
+  } = inputProps;
   // Search is disabled per request; keep table simple and avoid global filter churn.
   const enableSearch = false;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -208,6 +214,14 @@ export function TanStackGridSheet({
         jobs: jobs.length,
       });
     }
+  }
+
+  if (!Array.isArray(columns) || !Array.isArray(jobs)) {
+    console.error("[TanStackGridSheet] Invalid props: columns or jobs not array", {
+      columnsType: typeof columns,
+      jobsType: typeof jobs,
+    });
+    return null;
   }
   const microtask = useCallback((fn: () => void, label?: string) => {
     // Always push table state updates out of the render phase to avoid React 301
