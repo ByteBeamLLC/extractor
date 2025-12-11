@@ -693,21 +693,7 @@ export function DataExtractionPlatform({
       ),
     [schemas],
   )
-  useEffect(() => {
-    try {
-      appDebug("Active schema", {
-        id: activeSchema.id,
-        name: activeSchema.name,
-        fieldCount: fields.length,
-        jobCount: jobs.length,
-        viewMode,
-        selectedRowId,
-      })
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.warn("[DataExtraction] failed to log active schema", err)
-    }
-  }, [activeSchema.id, activeSchema.name, fields.length, jobs.length, viewMode, selectedRowId])
+  // Active schema logging moved below after selectedRowId is defined to avoid TDZ.
   useEffect(() => {
     const handler = (event: ErrorEvent) => {
       try {
@@ -1042,6 +1028,22 @@ export function DataExtractionPlatform({
     () => [...jobs].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()),
     [jobs],
   )
+
+  useEffect(() => {
+    try {
+      appDebug("Active schema", {
+        id: activeSchema.id,
+        name: activeSchema.name,
+        fieldCount: fields.length,
+        jobCount: jobs.length,
+        viewMode,
+        selectedRowId,
+      })
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn("[DataExtraction] failed to log active schema", err)
+    }
+  }, [activeSchema.id, activeSchema.name, fields.length, jobs.length, viewMode, selectedRowId])
 
 
   const isSchemaFresh = (s: SchemaDefinition) => (s.fields?.length ?? 0) === 0 && (s.jobs?.length ?? 0) === 0
