@@ -1221,11 +1221,12 @@ export function TanStackGridSheet({
 
   // #region agent log
   renderCountRef.current += 1;
-  console.error('[H5] TanStackGridSheet render', {
+  console.error('[H5] TanStackGridSheet render START', {
     renderCount: renderCountRef.current,
     columnsLength: columns.length,
     jobsLength: jobs.length
   });
+  fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1224',message:'Render START',data:{renderCount:renderCountRef.current,columnsLength:columns.length,jobsLength:jobs.length,hypothesisId:'ALL'},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
   
   if (renderCountRef.current >= 25) {
     console.error('[H5] RENDER LOOP DETECTED IN GRID!', {
@@ -1420,6 +1421,16 @@ export function TanStackGridSheet({
     logDebug("virtualized rows", { count: virtualizedRows.length, expandedRowId });
   }
 
+  // #region agent log
+  const virtualizerOptionsRef = useRef(0);
+  virtualizerOptionsRef.current += 1;
+  console.error('[DEBUG-G] Creating rowVirtualizer', {
+    renderCount: renderCountRef.current,
+    virtualizerCallCount: virtualizerOptionsRef.current,
+    rowsCount: virtualizedRows.length
+  });
+  fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1423',message:'useVirtualizer called',data:{renderCount:renderCountRef.current,virtualizerCallCount:virtualizerOptionsRef.current,hypothesisId:'H5'},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
+  // #endregion
   const rowVirtualizer = useVirtualizer({
     count: virtualizedRows.length,
     getScrollElement: () => containerRef.current,
@@ -1433,8 +1444,16 @@ export function TanStackGridSheet({
         : 0,
   });
 
+  // #region agent log
+  console.error('[DEBUG-G] Before getVirtualItems', {renderCount:renderCountRef.current});
+  fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1447',message:'Before getVirtualItems',data:{renderCount:renderCountRef.current,hypothesisId:'H5'},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
+  // #endregion
   const virtualItems = rowVirtualizer.getVirtualItems();
   const totalVirtualSize = rowVirtualizer.getTotalSize();
+  // #region agent log
+  console.error('[DEBUG-G] After getVirtualItems', {renderCount:renderCountRef.current, itemsCount:virtualItems.length});
+  fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1454',message:'After getVirtualItems',data:{renderCount:renderCountRef.current,itemsCount:virtualItems.length,hypothesisId:'H5'},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
+  // #endregion
   const hasActiveSearch = false;
   const paddingTop =
     virtualItems.length > 0 ? virtualItems[0].start : 0;
@@ -1467,24 +1486,46 @@ export function TanStackGridSheet({
     console.error('[H7] Container width effect firing', {
       renderCount: renderCountRef.current
     });
+    fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1467',message:'Container width effect FIRED',data:{renderCount:renderCountRef.current,hypothesisId:'H7'},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
     // #endregion
 
     const el = containerRef.current;
     if (!el) return;
 
     const updateWidth = () => {
+      const newWidth = el.clientWidth;
       // #region agent log
-      console.error('[H7] setContainerWidth called - will trigger re-render', {
+      console.error('[H7] ResizeObserver callback fired', {
         renderCount: renderCountRef.current,
-        width: el.clientWidth
+        width: newWidth,
+        currentStateValue: containerWidth
       });
+      fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1478',message:'ResizeObserver callback',data:{renderCount:renderCountRef.current,newWidth,currentStateValue:containerWidth,hypothesisId:'H7_H8'},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
       // #endregion
-      setContainerWidth(el.clientWidth);
+      
+      setContainerWidth((prev) => {
+        // #region agent log
+        console.error('[H7] setContainerWidth updater function', {
+          renderCount: renderCountRef.current,
+          prevValue: prev,
+          newValue: newWidth,
+          willUpdate: prev !== newWidth
+        });
+        fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1485',message:'setContainerWidth updater',data:{renderCount:renderCountRef.current,prevValue:prev,newValue:newWidth,willUpdate:prev!==newWidth,hypothesisId:'H7_H8'},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
+        // #endregion
+        return prev === newWidth ? prev : newWidth;
+      });
     };
 
     updateWidth();
 
     const ro = new ResizeObserver(() => {
+      // #region agent log
+      console.error('[H7] ResizeObserver TRIGGERED', {
+        renderCount: renderCountRef.current
+      });
+      fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1502',message:'ResizeObserver TRIGGERED',data:{renderCount:renderCountRef.current,hypothesisId:'H7'},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
+      // #endregion
       updateWidth();
     });
 
@@ -1502,10 +1543,21 @@ export function TanStackGridSheet({
       oldValue: prevContainerWidthRef.current,
       newValue: containerWidth
     });
+    fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1512',message:'containerWidth VALUE changed',data:{renderCount:renderCountRef.current,oldValue:prevContainerWidthRef.current,newValue:containerWidth,hypothesisId:'H1'},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
   }
   prevContainerWidthRef.current = containerWidth;
   console.error('[DEBUG-F] Before JSX render', {renderCount:renderCountRef.current});
+  fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1518',message:'Before JSX render',data:{renderCount:renderCountRef.current,hypothesisId:'ALL'},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
   // #endregion
+
+  // Track render completion
+  const renderEndMarker = useMemo(() => {
+    // #region agent log
+    console.error('[DEBUG-H] Render phase COMPLETING', {renderCount:renderCountRef.current});
+    fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1524',message:'Render phase COMPLETING',data:{renderCount:renderCountRef.current,hypothesisId:'ALL'},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
+    // #endregion
+    return true;
+  }, []);
   
   return (
     <div className="tanstack-grid-wrapper flex h-full w-full flex-col">
@@ -1531,6 +1583,9 @@ export function TanStackGridSheet({
             {headerGroups.map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
+                  // #region agent log
+                  fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1547',message:'header.getSize() about to be called',data:{renderCount:renderCountRef.current,headerId:header.id,hypothesisId:'H6'},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
+                  // #endregion
                   const headerWidth = header.getSize();
                   const headerStyle: CSSProperties = {
                     position: "relative",
@@ -1560,10 +1615,15 @@ export function TanStackGridSheet({
                     >
                       {header.isPlaceholder
                         ? null
-                        : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                        : (() => {
+                            // #region agent log
+                            fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1580',message:'header.getContext() about to be called',data:{renderCount:renderCountRef.current,headerId:header.id,hypothesisId:'H6'},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
+                            // #endregion
+                            return flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            );
+                          })()}
                       {canResize && (
                         <div
                           onMouseDown={header.getResizeHandler()}
