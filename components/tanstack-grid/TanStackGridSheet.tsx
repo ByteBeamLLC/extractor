@@ -149,35 +149,46 @@ function calculateColumnWidth(
   return optimalWidth;
 }
 
-export function TanStackGridSheet(inputProps: TanStackGridSheetProps | undefined) {
-  if (!inputProps) {
-    console.error("[TanStackGridSheet] props were undefined; rendering null to avoid crash");
+export function TanStackGridSheet({
+  schemaId,
+  columns = [],
+  jobs = [],
+  selectedRowId,
+  onSelectRow,
+  onRowDoubleClick,
+  onAddColumn,
+  renderCellValue,
+  getStatusIcon,
+  renderStatusPill,
+  onEditColumn,
+  onDeleteColumn,
+  onUpdateCell,
+  onUpdateReviewStatus,
+  onColumnRightClick,
+  onOpenTableModal,
+  visualGroups = [],
+  expandedRowId,
+  onToggleRowExpansion,
+  onTableStateChange,
+  enableTableStatePersistence = true, // Default to true for backward compatibility
+}: TanStackGridSheetProps = {
+  schemaId: undefined as any,
+  columns: [],
+  jobs: [],
+  visualGroups: [],
+  enableTableStatePersistence: true,
+}) {
+  // If required callbacks are missing, bail early to avoid undefined accesses.
+  if (!renderCellValue || !getStatusIcon || !renderStatusPill) {
+    if (GRID_DEBUG_ENABLED) {
+      console.error("[TanStackGridSheet] required props missing; rendering null", {
+        hasRenderCellValue: !!renderCellValue,
+        hasGetStatusIcon: !!getStatusIcon,
+        hasRenderStatusPill: !!renderStatusPill,
+      });
+    }
     return null;
   }
-
-  const {
-    schemaId,
-    columns = [],
-    jobs = [],
-    selectedRowId,
-    onSelectRow,
-    onRowDoubleClick,
-    onAddColumn,
-    renderCellValue,
-    getStatusIcon,
-    renderStatusPill,
-    onEditColumn,
-    onDeleteColumn,
-    onUpdateCell,
-    onUpdateReviewStatus,
-    onColumnRightClick,
-    onOpenTableModal,
-    visualGroups = [],
-    expandedRowId,
-    onToggleRowExpansion,
-    onTableStateChange,
-    enableTableStatePersistence = true, // Default to true for backward compatibility
-  } = inputProps;
   // Search is disabled per request; keep table simple and avoid global filter churn.
   const enableSearch = false;
   const containerRef = useRef<HTMLDivElement>(null);
