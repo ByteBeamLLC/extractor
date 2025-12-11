@@ -1247,25 +1247,36 @@ export function TanStackGridSheet({
   };
   prevCallbacksRef.current = {setSorting, setColumnFilters, setColumnOrder, setColumnVisibility, setColumnPinning, setGlobalFilter, logDebug};
   
+  // Track tableOptions and table instance identity
+  const prevTableOptionsRef = useRef<any>(null);
+  const prevTableRef = useRef<any>(null);
+  const tableOptionsChanged = prevTableOptionsRef.current !== tableOptions;
+  
   // Log each callback change explicitly
   console.error('[DEBUG-B] Before useReactTable', {
     renderCount:renderCountRef.current,
-    setSorting_changed: callbacksChanged.setSorting,
-    setColumnFilters_changed: callbacksChanged.setColumnFilters,
-    setColumnOrder_changed: callbacksChanged.setColumnOrder,
-    setColumnVisibility_changed: callbacksChanged.setColumnVisibility,
-    setColumnPinning_changed: callbacksChanged.setColumnPinning,
-    setGlobalFilter_changed: callbacksChanged.setGlobalFilter,
-    logDebug_changed: callbacksChanged.logDebug
+    setSorting_changed:callbacksChanged.setSorting,
+    setColumnFilters_changed:callbacksChanged.setColumnFilters,
+    setColumnOrder_changed:callbacksChanged.setColumnOrder,
+    setColumnVisibility_changed:callbacksChanged.setColumnVisibility,
+    setColumnPinning_changed:callbacksChanged.setColumnPinning,
+    setGlobalFilter_changed:callbacksChanged.setGlobalFilter,
+    logDebug_changed:callbacksChanged.logDebug,
+    tableOptions_changed:tableOptionsChanged
   });
+  prevTableOptionsRef.current = tableOptions;
   // #endregion
 
   // Table instance with all features enabled.
   // useReactTable must be called at the top level (not inside other hooks) to satisfy hook rules.
   const table = useReactTable(tableOptions);
   // #region agent log
-  console.error('[H5] useReactTable called', { renderCount: renderCountRef.current });
-  console.error('[DEBUG-D] After useReactTable', {renderCount:renderCountRef.current});
+  const tableInstanceChanged = prevTableRef.current !== table;
+  prevTableRef.current = table;
+  console.error('[DEBUG-D] After useReactTable', {
+    renderCount:renderCountRef.current,
+    table_instance_changed:tableInstanceChanged
+  });
   // #endregion
   if (GRID_DEBUG_ENABLED) {
     logDebug("tableOptions", {
