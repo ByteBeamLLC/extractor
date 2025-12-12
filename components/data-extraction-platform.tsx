@@ -170,7 +170,7 @@ import type { Database } from "@/lib/supabase/types"
 import { useAuthDialog } from "@/components/auth/AuthDialogContext"
 import { useToast } from "@/components/ui/use-toast"
 import type { SchemaTemplateDefinition } from "@/lib/schema-templates"
-import { cloneSchemaFields, getStaticSchemaTemplates } from "@/lib/schema-templates"
+import { cloneSchemaFields, getStaticSchemaTemplates, STATIC_SCHEMA_TEMPLATES } from "@/lib/schema-templates"
 
 // Types moved to lib/schema
 
@@ -399,6 +399,7 @@ function schemaDefinitionToRow(schema: SchemaDefinition, userId: string): Schema
     fields: schema.fields as unknown as SchemaRow["fields"],
     template_id: schema.templateId ?? null,
     visual_groups: (schema.visualGroups ?? null) as unknown as SchemaRow["visual_groups"],
+    table_state: null,
     created_at: schema.createdAt ? schema.createdAt.toISOString() : null,
     updated_at: new Date().toISOString(),
   }
@@ -579,27 +580,72 @@ export function DataExtractionPlatform({
   const [schemas, setSchemas] = useState<SchemaDefinition[]>([initialSchemaRef.current])
   const schemasRef = useRef<SchemaDefinition[]>([initialSchemaRef.current])
   const [activeSchemaId, setActiveSchemaId] = useState<string>(initialSchemaRef.current.id)
-  
-  // Use ref to stabilize activeSchema - only update when content actually changes
-  const prevActiveSchemaRef = useRef<SchemaDefinition>(initialSchemaRef.current)
-  const activeSchemaCandidate = schemas.find((s) => s.id === activeSchemaId) || initialSchemaRef.current
-  
-  // Only update the ref if the schema content has meaningfully changed (using serialization as a proxy)
-  const activeSchemaKey = `${activeSchemaCandidate.id}-${activeSchemaCandidate.fields?.length}-${activeSchemaCandidate.jobs?.length}`
-  const prevKey = useRef(activeSchemaKey)
-  if (prevKey.current !== activeSchemaKey) {
-    prevActiveSchemaRef.current = activeSchemaCandidate
-    prevKey.current = activeSchemaKey
-  }
-  const activeSchema = prevActiveSchemaRef.current
-  
+
+  // Build an early template map that doesn't depend on session - needed for activeSchema useMemo
+  // Note: There's a more complete templateMap defined later that includes static templates
+  const earlyTemplateMap = useMemo(() => {
+    const map = new Map<string, SchemaTemplateDefinition>()
+    // Include static templates
+    for (const tpl of STATIC_SCHEMA_TEMPLATES) {
+      map.set(tpl.id, tpl)
+    }
+    // Include templates passed via props
+    if (templateLibrary) {
+      for (const tpl of templateLibrary) {
+        map.set(tpl.id, tpl)
+      }
+    }
+    return map
+  }, [templateLibrary])
+
+  // Find the active schema in the array, or fall back appropriately
+  // IMPORTANT: Don't fall back to initialSchemaRef if we have a pendingSchemaCreate matching activeSchemaId
+  // This handles the race condition where schema is being added but not yet in the array
+  const activeSchema = useMemo(() => {
+    // First, try to find the schema in the array
+    const fromArray = schemas.find((s) => s.id === activeSchemaId)
+    if (fromArray) {
+      return fromArray
+    }
+
+    // Schema not in array - check if it's a pending schema being created
+    if (pendingSchemaCreate && pendingSchemaCreate.id === activeSchemaId) {
+      // Create a placeholder with template fields if available
+      const templateDef = pendingSchemaCreate.templateId ? earlyTemplateMap.get(pendingSchemaCreate.templateId) : null
+      return {
+        id: pendingSchemaCreate.id,
+        name: pendingSchemaCreate.name,
+        fields: templateDef?.fields ? cloneSchemaFields(templateDef.fields) : [],
+        jobs: [] as ExtractionJob[],
+        templateId: pendingSchemaCreate.templateId ?? undefined,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+    }
+
+    // Check if this is an external schema not yet loaded
+    if (externalActiveSchemaId && externalActiveSchemaId === activeSchemaId) {
+      return {
+        id: externalActiveSchemaId,
+        name: "Loading...",
+        fields: [] as SchemaField[],
+        jobs: [] as ExtractionJob[],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+    }
+
+    // True fallback - use initial schema
+    return initialSchemaRef.current
+  }, [schemas, activeSchemaId, pendingSchemaCreate, externalActiveSchemaId, earlyTemplateMap])
+
   const isEmbeddedInWorkspace = Boolean(externalActiveSchemaId)
   const [selectedAgent, setSelectedAgent] = useState<AgentType>("standard")
   const [viewMode, setViewMode] = useState<'grid' | 'gallery'>('grid')
   const [showGallery, setShowGallery] = useState(true)
   const [selectedJob, setSelectedJob] = useState<ExtractionJob | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
-  
+
   const fields = activeSchema.fields
   const jobs = activeSchema.jobs
   const displayColumns = useMemo(() => flattenFields(fields), [fields])
@@ -681,17 +727,28 @@ export function DataExtractionPlatform({
   }, [isEmbedded, activeSchema.templateId])
   const applySchemaUpdate = useCallback(
     (schemaId: string, updater: (schema: SchemaDefinition) => SchemaDefinition): SchemaDefinition | null => {
+      // Use ref to get the absolute latest state (including sync updates from other calls)
+      const currentSchemas = schemasRef.current
       let updatedSchema: SchemaDefinition | null = null
-      setSchemas((prev) =>
-        prev.map((schema) => {
-          if (schema.id !== schemaId) return schema
-          const draft = { ...schema }
-          const updated = updater(draft)
-          const next = { ...updated, updatedAt: new Date(), createdAt: updated.createdAt ?? schema.createdAt }
-          updatedSchema = next
-          return next
-        }),
-      )
+
+      const nextSchemas = currentSchemas.map((schema) => {
+        if (schema.id !== schemaId) return schema
+        const draft = { ...schema }
+        const updated = updater(draft)
+        const next = { ...updated, updatedAt: new Date(), createdAt: updated.createdAt ?? schema.createdAt }
+        updatedSchema = next
+        return next
+      })
+
+      if (updatedSchema) {
+        // synchronously update ref so next calls see it immediately
+        schemasRef.current = nextSchemas
+        console.log(`[bytebeam-trace] applySchemaUpdate: Setting new schemas state. Schema ${schemaId} job count: ${updatedSchema.jobs?.length ?? 0}`)
+        setSchemas(nextSchemas)
+      } else {
+        console.warn(`[bytebeam-trace] applySchemaUpdate: No update applied for schema ${schemaId}`)
+      }
+
       return updatedSchema
     },
     [],
@@ -890,6 +947,20 @@ export function DataExtractionPlatform({
           if (syncStatus === 'saving' || localUpdatedAt > remoteUpdatedAt) {
             return local
           }
+
+          // Preserve locally created jobs (e.g. pending uploads) that aren't in the remote snapshot yet
+          if (local.jobs && local.jobs.length > 0) {
+            const remoteJobIds = new Set(remote.jobs?.map((j) => j.id) ?? [])
+            const missingLocalJobs = local.jobs.filter((j) => !remoteJobIds.has(j.id))
+
+            if (missingLocalJobs.length > 0) {
+              const combinedJobs = [...(remote.jobs ?? []), ...missingLocalJobs]
+              // Sort by creation time to maintain consistent order
+              combinedJobs.sort((a, b) => (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0))
+              return { ...remote, jobs: combinedJobs }
+            }
+          }
+
           return remote
         })
 
@@ -943,21 +1014,19 @@ export function DataExtractionPlatform({
       cancelled = true
     }
   }, [session?.user?.id, supabase])
-  const schemaIdsKey = useMemo(() => {
-    if (!session?.user?.id) return ""
-    const ids = schemas.map((schema) => schema.id).sort()
-    return ids.join(",")
-  }, [schemas, session?.user?.id])
+  const userId = session?.user?.id
+
+  const inflightSchemaIds = useMemo(() => {
+    if (!userId) return []
+    return schemas
+      .filter((schema) => (schema.jobs ?? []).some((job) => job.status === 'pending' || job.status === 'processing'))
+      .map((schema) => schema.id)
+  }, [schemas, userId])
 
   useEffect(() => {
-    if (!session?.user?.id) return
-    if (!schemaIdsKey) return
+    if (!userId) return
 
-    const schemaIds = schemaIdsKey.split(",").filter((id) => id.length > 0)
-    if (schemaIds.length === 0) return
-
-    const filterList = schemaIds.map((id) => `'${id}'`).join(",")
-    const channelName = `job-sync-${schemaIdsKey.replace(/,/g, "-")}`
+    const channelName = `job-sync-${userId}`
 
     const channel = supabase
       .channel(channelName)
@@ -967,14 +1036,26 @@ export function DataExtractionPlatform({
           event: '*',
           schema: 'public',
           table: 'extraction_jobs',
-          filter: `schema_id=in.(${filterList})`,
+          filter: `user_id=eq.${userId}`,
         },
         (payload) => {
           const eventType = payload.eventType
+          console.debug('[DataExtraction] Supabase realtime event', {
+            eventType,
+            jobId: (payload.new as any)?.id ?? (payload.old as any)?.id,
+            status: (payload.new as any)?.status
+          });
           if (eventType === 'INSERT' || eventType === 'UPDATE') {
             const row = payload.new as ExtractionJobRow | null
             if (!row?.schema_id) return
             const mapped = extractionJobRowToJob(row)
+            console.debug('[DataExtraction] Updating job in schema', {
+              jobId: mapped.id,
+              schemaId: row.schema_id,
+              status: mapped.status,
+              hasResults: !!mapped.results,
+              resultKeys: mapped.results ? Object.keys(mapped.results).length : 0
+            });
             setSchemas((prev) =>
               prev.map((schema) => {
                 if (schema.id !== row.schema_id) return schema
@@ -995,12 +1076,101 @@ export function DataExtractionPlatform({
         },
       )
 
-    channel.subscribe()
+    channel.subscribe((status) => {
+      if (status !== 'SUBSCRIBED') {
+        console.warn('[DataExtraction] Realtime channel status', { status, channel: channelName })
+      } else {
+        console.debug('[DataExtraction] Realtime channel subscribed', { channel: channelName })
+      }
+    })
 
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [schemaIdsKey, session?.user?.id, supabase])
+  }, [userId, supabase])
+
+  useEffect(() => {
+    if (!userId) return
+    if (inflightSchemaIds.length === 0) return
+
+    let cancelled = false
+
+    const pollJobs = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("extraction_jobs")
+          .select("*")
+          .eq("user_id", userId)
+          .in("schema_id", inflightSchemaIds)
+
+        if (error) {
+          console.warn("[DataExtraction] Job poll failed", error)
+          return
+        }
+
+        if (!data || cancelled) return
+
+        const rows = data as ExtractionJobRow[]
+        if (rows.length === 0) return
+
+        setSchemas((prev) => {
+          const inflightSet = new Set(inflightSchemaIds)
+          let hasChange = false
+
+          const nextSchemas = prev.map((schema) => {
+            if (!inflightSet.has(schema.id)) return schema
+            const relevant = rows.filter((row) => row.schema_id === schema.id)
+            if (relevant.length === 0) return schema
+
+            const existing = schema.jobs ?? []
+            const existingMap = new Map(existing.map((job) => [job.id, job]))
+            let nextJobs = existing
+            let schemaChanged = false
+
+            // Apply updates from DB, preserving existing order
+            existing.forEach((job, index) => {
+              const updatedRow = relevant.find((row) => row.id === job.id)
+              if (!updatedRow) return
+              const mapped = extractionJobRowToJob(updatedRow)
+              if (jobsShallowEqual(job, mapped)) return
+              if (nextJobs === existing) nextJobs = [...existing]
+              nextJobs[index] = mapped
+              schemaChanged = true
+            })
+
+            // Append any new jobs from DB that we don't have locally
+            relevant.forEach((row) => {
+              if (existingMap.has(row.id)) return
+              const mapped = extractionJobRowToJob(row)
+              if (nextJobs === existing) nextJobs = [...existing, mapped]
+              else nextJobs.push(mapped)
+              schemaChanged = true
+            })
+
+            if (schemaChanged) {
+              hasChange = true
+              return { ...schema, jobs: nextJobs }
+            }
+            return schema
+          })
+
+          return hasChange ? nextSchemas : prev
+        })
+      } catch (error) {
+        if (!cancelled) {
+          console.warn("[DataExtraction] Job poll threw", error)
+        }
+      }
+    }
+
+    const interval = window.setInterval(pollJobs, 3000)
+    void pollJobs()
+
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+    }
+  }, [userId, supabase, inflightSchemaIds])
 
   // UI state for modern grid behaviors
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null)
@@ -2012,7 +2182,8 @@ export function DataExtractionPlatform({
       updater: ExtractionJob[] | ((prev: ExtractionJob[]) => ExtractionJob[]),
       options?: { persistSchema?: boolean; syncJobs?: boolean },
     ) => {
-      const previousSchema = schemas.find((schema) => schema.id === schemaId)
+      // Use schemasRef to get the CURRENT schemas, not stale closure value
+      const previousSchema = schemasRef.current.find((schema) => schema.id === schemaId)
       const previousJobs = previousSchema?.jobs ?? []
       let nextJobs = previousJobs
 
@@ -2043,7 +2214,7 @@ export function DataExtractionPlatform({
 
       return updated?.jobs ?? null
     },
-    [commitSchemaUpdate, schemas, session?.user?.id, syncJobRecords],
+    [commitSchemaUpdate, session?.user?.id, syncJobRecords],
   )
 
   const setJobs = (
@@ -2407,49 +2578,61 @@ export function DataExtractionPlatform({
     // 2. Schema is opened from tab but not yet loaded (externalActiveSchemaId)
     let targetSchemaId = activeSchemaId
     let targetSchema = activeSchema
-    
+
+    // Track if we need to add a new schema (for race condition fix)
+    let isAddingNewSchema = false
+    // Track if we need to set activeSchemaId AFTER adding schema to array
+    let pendingActiveSchemaId: string | null = null
+
     // Priority 1: externalActiveSchemaId (when opening from tab)
     if (externalActiveSchemaId) {
       console.log(`[bytebeam] Upload: externalActiveSchemaId=${externalActiveSchemaId}, activeSchemaId=${activeSchemaId}`)
-      if (externalActiveSchemaId !== activeSchemaId) {
-        console.log(`[bytebeam] Upload: Switching to external schema ${externalActiveSchemaId}`)
-        setActiveSchemaId(externalActiveSchemaId)
-      }
       targetSchemaId = externalActiveSchemaId
       const externalSchema = schemas.find((s) => s.id === externalActiveSchemaId)
       if (externalSchema) {
         targetSchema = externalSchema
         console.log(`[bytebeam] Upload: Found external schema in array: ${externalSchema.name}`)
+        // Set active schema ID now since schema exists
+        if (externalActiveSchemaId !== activeSchemaId) {
+          setActiveSchemaId(externalActiveSchemaId)
+        }
       } else {
-        // Schema not loaded yet - try to find it in the database or use a placeholder
-        // For now, create minimal schema - fields will be loaded from the actual schema during extraction
-        // The important thing is that the job is saved to the correct schema_id
+        // Schema not loaded yet - create placeholder
+        // Jobs will be added directly to this schema before inserting into array
+        // IMPORTANT: Don't set activeSchemaId yet - wait until schema is in array
+        isAddingNewSchema = true
+        pendingActiveSchemaId = externalActiveSchemaId
         targetSchema = {
           id: externalActiveSchemaId,
           name: "Loading...",
           fields: [],
-          jobs: [],
+          jobs: [], // Jobs will be added below before inserting into schemas array
           createdAt: new Date(),
           updatedAt: new Date(),
         }
-        console.warn(`[bytebeam] Upload: Schema ${externalActiveSchemaId} not in schemas array yet - job will be saved but fields may be empty`)
+        console.log(`[bytebeam] Upload: Schema ${externalActiveSchemaId} not in schemas array yet, will add with jobs`)
       }
     }
-    
+
     // Priority 2: pendingSchemaCreate (when schema was just created)
     if (pendingSchemaCreate && pendingSchemaCreate.id !== targetSchemaId) {
       console.log(`[bytebeam] Upload: Using pending schema ${pendingSchemaCreate.id} instead of ${targetSchemaId}`)
-      if (pendingSchemaCreate.id !== activeSchemaId) {
-        setActiveSchemaId(pendingSchemaCreate.id)
-      }
       targetSchemaId = pendingSchemaCreate.id
-      
+
       // Try to find the schema in the array, or create one with fields from template
       const pendingSchemaExists = schemas.find((s) => s.id === pendingSchemaCreate.id)
       if (pendingSchemaExists) {
         targetSchema = pendingSchemaExists
+        // Set active schema ID now since schema exists
+        if (pendingSchemaCreate.id !== activeSchemaId) {
+          setActiveSchemaId(pendingSchemaCreate.id)
+        }
       } else {
         // Schema not in array yet - load fields from template if available
+        // Jobs will be added directly to this schema before inserting into array
+        // IMPORTANT: Don't set activeSchemaId yet - wait until schema is in array
+        isAddingNewSchema = true
+        pendingActiveSchemaId = pendingSchemaCreate.id
         let fieldsFromTemplate: SchemaField[] = []
         if (pendingSchemaCreate.templateId) {
           const templateDef = templateMap.get(pendingSchemaCreate.templateId)
@@ -2458,20 +2641,20 @@ export function DataExtractionPlatform({
             console.log(`[bytebeam] Upload: Loaded ${fieldsFromTemplate.length} fields from template ${pendingSchemaCreate.templateId}`)
           }
         }
-        
+
         targetSchema = {
           id: pendingSchemaCreate.id,
           name: pendingSchemaCreate.name,
           fields: fieldsFromTemplate,
-          jobs: [],
+          jobs: [], // Jobs will be added below before inserting into schemas array
           templateId: pendingSchemaCreate.templateId ?? undefined,
           createdAt: new Date(),
           updatedAt: new Date(),
         }
-        console.log(`[bytebeam] Upload: Pending schema ${pendingSchemaCreate.id} not in schemas array yet, using template fields`)
+        console.log(`[bytebeam] Upload: Pending schema ${pendingSchemaCreate.id} not in schemas array yet, will add with jobs`)
       }
     }
-    
+
     const agentSnapshot = selectedAgent
     const templateIdSnapshot = targetSchema.templateId
     const fieldsSnapshot = targetSchema.fields
@@ -2540,7 +2723,56 @@ export function DataExtractionPlatform({
       }))
 
     if (jobsToCreate.length > 0) {
-      updateSchemaJobs(targetSchemaId, (prev) => [...prev, ...jobsToCreate])
+      if (isAddingNewSchema) {
+        // CRITICAL FIX: For new schemas, add jobs directly to the schema before adding to array
+        // This avoids the race condition where updateSchemaJobs can't find the schema
+        // because React state updates are async
+        const schemaWithJobs = {
+          ...targetSchema,
+          jobs: [...(targetSchema.jobs ?? []), ...jobsToCreate],
+        }
+        console.log(`[bytebeam] Upload: Adding new schema ${targetSchemaId} with ${jobsToCreate.length} jobs directly to state`)
+
+        // Add schema with jobs to array AND set active schema ID together
+        // React batches these state updates, so on re-render both are updated
+        setSchemas((prev) => {
+          // Double-check it wasn't added by another process
+          if (prev.some((s) => s.id === targetSchemaId)) {
+            // Schema was added by another process, just update its jobs
+            const updated = prev.map((s) =>
+              s.id === targetSchemaId
+                ? { ...s, jobs: [...(s.jobs ?? []), ...jobsToCreate] }
+                : s
+            )
+            // CRITICAL: Update schemasRef synchronously so processEntry's updateSchemaJobs works
+            schemasRef.current = updated
+            return updated
+          }
+          const updated = [...prev, schemaWithJobs]
+          // CRITICAL: Update schemasRef synchronously so processEntry's updateSchemaJobs works
+          schemasRef.current = updated
+          return updated
+        })
+
+        // Set active schema ID - React batches this with setSchemas above
+        if (pendingActiveSchemaId) {
+          setActiveSchemaId(pendingActiveSchemaId)
+        }
+
+        // Also sync jobs to database if user is logged in
+        if (session?.user?.id) {
+          const rows = jobsToCreate.map((job) => extractionJobToRow(job, targetSchemaId, session.user!.id))
+          void supabase.from("extraction_jobs").upsert(rows).then(({ error }) => {
+            if (error) console.error('[bytebeam] Failed to sync new schema jobs:', error)
+          })
+        }
+
+        // Update targetSchema reference for processEntry
+        targetSchema = schemaWithJobs
+      } else {
+        // Existing schema - use normal updateSchemaJobs flow
+        updateSchemaJobs(targetSchemaId, (prev) => [...prev, ...jobsToCreate])
+      }
       setSelectedRowId(jobsToCreate[jobsToCreate.length - 1].id)
     }
 
@@ -2569,7 +2801,7 @@ export function DataExtractionPlatform({
       if (session?.user?.id) {
         jobMeta.userId = session.user.id
       }
-      
+
       console.log(`[bytebeam] Processing job ${job.id} for schema ${targetSchemaId} (file: ${job.fileName})`)
 
       const updateJobsForSchema = (
@@ -2722,7 +2954,7 @@ export function DataExtractionPlatform({
             const completedAt = new Date()
 
             console.log(`[bytebeam] Pharma extraction completed for job ${job.id}, saving to schema ${targetSchemaId}`)
-            
+
             updateJobsForSchema((prev) =>
               prev.map((existing) =>
                 existing.id === job.id
@@ -3837,8 +4069,8 @@ export function DataExtractionPlatform({
                     {columnHeaders.map((header) => (
                       <th key={header.key} className="bg-white/70 px-2 py-1 text-left font-medium first:rounded-l-md last:rounded-r-md shadow-sm">{header.label}</th>
                     ))}
-                    
-                  </tr> 
+
+                  </tr>
                 </thead>
                 <tbody>
                   {rows.slice(0, Math.min(rows.length, 5)).map((row, idx) => (

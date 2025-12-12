@@ -151,24 +151,24 @@ export function TanStackGridSheet({
   renderCellValue = () => null,
   getStatusIcon = () => null,
   renderStatusPill = () => null,
-  onEditColumn = () => {},
-  onDeleteColumn = () => {},
-  onUpdateCell = () => {},
-  onUpdateReviewStatus = () => {},
-  onColumnRightClick = () => {},
-  onOpenTableModal = () => {},
+  onEditColumn = () => { },
+  onDeleteColumn = () => { },
+  onUpdateCell = () => { },
+  onUpdateReviewStatus = () => { },
+  onColumnRightClick = () => { },
+  onOpenTableModal = () => { },
   visualGroups = [],
   expandedRowId,
-  onToggleRowExpansion = () => {},
-  onTableStateChange = () => {},
+  onToggleRowExpansion = () => { },
+  onTableStateChange = () => { },
   enableTableStatePersistence = true, // Default to true for backward compatibility
 }: TanStackGridSheetProps = {
-  schemaId: undefined as any,
-  columns: [],
-  jobs: [],
-  visualGroups: [],
-  enableTableStatePersistence: true,
-}) {
+    schemaId: undefined as any,
+    columns: [],
+    jobs: [],
+    visualGroups: [],
+    enableTableStatePersistence: true,
+  }) {
   // Search is disabled per request; keep table simple and avoid global filter churn.
   const enableSearch = false;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -181,13 +181,8 @@ export function TanStackGridSheet({
 
   // Track component mount/unmount
   useEffect(() => {
-    // #region agent log
-    console.error('[DEBUG-MOUNT] Component MOUNTED', {mountId: mountIdRef.current, schemaId});
-    // #endregion
     return () => {
-      // #region agent log
-      console.error('[DEBUG-MOUNT] Component UNMOUNTED', {mountId: mountIdRef.current, schemaId});
-      // #endregion
+      // Cleanup on unmount
     };
   }, [schemaId]);
 
@@ -255,9 +250,6 @@ export function TanStackGridSheet({
   const [sorting, setSortingState] = useState<SortingState>([]);
   const setSorting = useCallback(
     (updater: SortingState | ((prev: SortingState) => SortingState)) => {
-      // #region agent log
-      console.error('[DEBUG-A] setSorting CALLED', {updaterType:typeof updater, renderCount:renderCountRef.current});
-      // #endregion
       setSortingState((prev) => {
         const next = typeof updater === "function" ? (updater as any)(prev) : updater;
         if (GRID_DEBUG_ENABLED) logDebug("setSorting", { prev, next });
@@ -270,9 +262,6 @@ export function TanStackGridSheet({
   const [columnFilters, setColumnFiltersState] = useState<ColumnFiltersState>([]);
   const setColumnFilters = useCallback(
     (updater: ColumnFiltersState | ((prev: ColumnFiltersState) => ColumnFiltersState)) => {
-      // #region agent log
-      console.error('[DEBUG-A] setColumnFilters CALLED', {updaterType:typeof updater, renderCount:renderCountRef.current});
-      // #endregion
       setColumnFiltersState((prev) => {
         const next = typeof updater === "function" ? (updater as any)(prev) : updater;
         if (GRID_DEBUG_ENABLED) logDebug("setColumnFilters", { prev, next });
@@ -285,9 +274,6 @@ export function TanStackGridSheet({
   const [columnOrder, setColumnOrderState] = useState<ColumnOrderState>([]);
   const setColumnOrder = useCallback(
     (updater: ColumnOrderState | ((prev: ColumnOrderState) => ColumnOrderState)) => {
-      // #region agent log
-      console.error('[DEBUG-A] setColumnOrder CALLED', {updaterType:typeof updater, renderCount:renderCountRef.current});
-      // #endregion
       setColumnOrderState((prev) => {
         const next = typeof updater === "function" ? (updater as any)(prev) : updater;
         if (GRID_DEBUG_ENABLED) logDebug("setColumnOrder", { prev, next });
@@ -300,9 +286,6 @@ export function TanStackGridSheet({
   const [columnVisibility, setColumnVisibilityState] = useState<VisibilityState>({});
   const setColumnVisibility = useCallback(
     (updater: VisibilityState | ((prev: VisibilityState) => VisibilityState)) => {
-      // #region agent log
-      console.error('[DEBUG-A] setColumnVisibility CALLED', {updaterType:typeof updater, renderCount:renderCountRef.current});
-      // #endregion
       setColumnVisibilityState((prev) => {
         const next = typeof updater === "function" ? (updater as any)(prev) : updater;
         if (GRID_DEBUG_ENABLED) logDebug("setColumnVisibility", { prev, next });
@@ -318,9 +301,6 @@ export function TanStackGridSheet({
   });
   const setColumnPinning = useCallback(
     (updater: ColumnPinningState | ((prev: ColumnPinningState) => ColumnPinningState)) => {
-      // #region agent log
-      console.error('[DEBUG-A] setColumnPinning CALLED', {updaterType:typeof updater, renderCount:renderCountRef.current});
-      // #endregion
       setColumnPinningState((prev) => {
         const next = typeof updater === "function" ? (updater as any)(prev) : updater;
         if (GRID_DEBUG_ENABLED) logDebug("setColumnPinning", { prev, next });
@@ -333,9 +313,6 @@ export function TanStackGridSheet({
   const [globalFilter, setGlobalFilterState] = useState<string>("");
   const setGlobalFilter = useCallback(
     (updater: string | ((prev: string) => string)) => {
-      // #region agent log
-      console.error('[DEBUG-A] setGlobalFilter CALLED', {updaterType:typeof updater, renderCount:renderCountRef.current});
-      // #endregion
       setGlobalFilterState((prev) => {
         const next = typeof updater === "function" ? (updater as any)(prev) : updater;
         if (GRID_DEBUG_ENABLED) logDebug("setGlobalFilter", { prev, next });
@@ -478,10 +455,11 @@ export function TanStackGridSheet({
   );
 
   // Search results are now handled entirely via table global filter.
-  const handleSearchResults = useCallback(() => {}, []);
+  const handleSearchResults = useCallback(() => { }, []);
 
   // Transform jobs to grid rows with stable reference
   const rowData = useMemo<GridRow[]>(() => {
+    console.log(`[bytebeam-trace] TanStackGridSheet: calculating rowData for ${jobs.length} jobs`)
     return jobs.map((job) => {
       const valueMap: Record<string, unknown> = {};
       for (const col of columns) {
@@ -526,6 +504,11 @@ export function TanStackGridSheet({
     });
   }, [columns, jobs]);
 
+  // Debug effect for rowData
+  useEffect(() => {
+    console.log(`[bytebeam-trace] TanStackGridSheet: rowData updated. Count: ${rowData.length}`)
+  }, [rowData])
+
   // Deep scan disabled - was causing performance issues with re-renders
 
   // Debug window objects disabled - was causing re-renders on every data change
@@ -533,7 +516,7 @@ export function TanStackGridSheet({
   // Load table state from Supabase when schema changes
   useEffect(() => {
     if (!schemaId) return;
-    
+
     if (!enableTableStatePersistence) {
       if (process.env.NODE_ENV === 'development') {
         console.info("[TanStackGridSheet] Table state persistence is disabled for schema:", schemaId);
@@ -546,7 +529,7 @@ export function TanStackGridSheet({
         // Check if user is authenticated before attempting to load table state
         // This prevents 406 errors from appearing in console on initial page load
         const { data: { session } } = await supabase.auth.getSession();
-        
+
         // Only attempt to load if user is authenticated
         // Unauthenticated users will use default table state
         if (!session?.user) {
@@ -632,7 +615,7 @@ export function TanStackGridSheet({
   const baseTableWidth = pinnedColumnsWidth + dataColumnsWidth + addColumnWidth;
   const effectiveContainerWidth =
     containerWidth > 0 ? containerWidth : baseTableWidth;
-  
+
   // Use a ref to track fillerWidth to avoid re-rendering columnDefs
   // This prevents infinite loop when ResizeObserver updates containerWidth
   const fillerWidthRef = useRef(0);
@@ -641,7 +624,7 @@ export function TanStackGridSheet({
       ? effectiveContainerWidth - baseTableWidth
       : 0;
   fillerWidthRef.current = fillerWidth;
-  
+
   const tableWidth = baseTableWidth + fillerWidth;
 
   // Define column definitions
@@ -898,11 +881,8 @@ export function TanStackGridSheet({
 
   // Memoize table options to ensure stable table instance
   const getRowId = useCallback((row: GridRow) => row.__job.id, []);
-  
+
   const tableState = useMemo(() => {
-    // #region agent log
-    console.error('[DEBUG-C] tableState recomputing', {renderCount:renderCountRef.current});
-    // #endregion
     return {
       sorting,
       columnFilters,
@@ -931,27 +911,28 @@ export function TanStackGridSheet({
     console.error('[H5] tableOptions recomputing', { renderCount: renderCountRef.current });
     // #endregion
     return {
-    data: rowData,
-    columns: columnDefs,
-    getCoreRowModel: coreRowModel,
-    getSortedRowModel: sortedRowModel,
-    getFilteredRowModel: filteredRowModel,
-    getRowId,
-    state: tableState,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    onColumnOrderChange: setColumnOrder,
-    onColumnVisibilityChange: setColumnVisibility,
-    onColumnPinningChange: setColumnPinning,
-    onGlobalFilterChange: enableSearch ? setGlobalFilter : undefined,
-    enableColumnResizing: false, // Disable resizing to avoid runtime issues in prod
-    enableSorting: true,
-    enableFilters: true,
-    enableColumnOrdering: true,
-    enableColumnPinning: true,
-    enableGlobalFilter: enableSearch,
-    defaultColumn: defaultColumnConfig,
-  };}, [
+      data: rowData,
+      columns: columnDefs,
+      getCoreRowModel: coreRowModel,
+      getSortedRowModel: sortedRowModel,
+      getFilteredRowModel: filteredRowModel,
+      getRowId,
+      state: tableState,
+      onSortingChange: setSorting,
+      onColumnFiltersChange: setColumnFilters,
+      onColumnOrderChange: setColumnOrder,
+      onColumnVisibilityChange: setColumnVisibility,
+      onColumnPinningChange: setColumnPinning,
+      onGlobalFilterChange: enableSearch ? setGlobalFilter : undefined,
+      enableColumnResizing: false, // Disable resizing to avoid runtime issues in prod
+      enableSorting: true,
+      enableFilters: true,
+      enableColumnOrdering: true,
+      enableColumnPinning: true,
+      enableGlobalFilter: enableSearch,
+      defaultColumn: defaultColumnConfig,
+    };
+  }, [
     rowData,
     columnDefs,
     getRowId,
@@ -978,13 +959,13 @@ export function TanStackGridSheet({
     columnsLength: columns.length,
     jobsLength: jobs.length
   });
-  
+
   if (renderCountRef.current >= 25) {
     console.error('[H5] RENDER LOOP DETECTED IN GRID!', {
       renderCount: renderCountRef.current,
       schemaId
     });
-    
+
     // Emergency stop to prevent browser freeze
     if (renderCountRef.current >= 50) {
       console.error('[H5] EMERGENCY STOP - Too many renders!', {
@@ -996,7 +977,7 @@ export function TanStackGridSheet({
       throw new Error(`[TanStackGridSheet] Render loop detected (${renderCountRef.current} renders). Emergency stop to prevent freeze.`);
     }
   }
-  
+
   // Track callback identities across renders
   const prevCallbacksRef = useRef<any>({});
   const callbacksChanged = {
@@ -1008,38 +989,27 @@ export function TanStackGridSheet({
     setGlobalFilter: prevCallbacksRef.current.setGlobalFilter !== setGlobalFilter,
     logDebug: prevCallbacksRef.current.logDebug !== logDebug,
   };
-  prevCallbacksRef.current = {setSorting, setColumnFilters, setColumnOrder, setColumnVisibility, setColumnPinning, setGlobalFilter, logDebug};
-  
+  prevCallbacksRef.current = { setSorting, setColumnFilters, setColumnOrder, setColumnVisibility, setColumnPinning, setGlobalFilter, logDebug };
+
   // Track tableOptions and table instance identity
   const prevTableOptionsRef = useRef<any>(null);
   const prevTableRef = useRef<any>(null);
   const tableOptionsChanged = prevTableOptionsRef.current !== tableOptions;
-  
+
   // Log tableOptions change separately for visibility
   console.error('[CRITICAL] tableOptions_changed:', tableOptionsChanged, 'render:', renderCountRef.current);
-  
-  // Log each callback change explicitly
-  console.error('[DEBUG-B] callbacks:', {
-    renderCount:renderCountRef.current,
-    setSorting_changed:callbacksChanged.setSorting,
-    setColumnFilters_changed:callbacksChanged.setColumnFilters,
-    setColumnOrder_changed:callbacksChanged.setColumnOrder,
-    setColumnVisibility_changed:callbacksChanged.setColumnVisibility,
-    setColumnPinning_changed:callbacksChanged.setColumnPinning,
-    setGlobalFilter_changed:callbacksChanged.setGlobalFilter,
-    logDebug_changed:callbacksChanged.logDebug
-  });
+
   prevTableOptionsRef.current = tableOptions;
   // #endregion
 
   // Table instance with all features enabled.
   // useReactTable must be called at the top level (not inside other hooks) to satisfy hook rules.
   const table = useReactTable(tableOptions);
-  
+
   // Store table instance in ref for stable access in callbacks
   const tableRef = useRef(table);
   tableRef.current = table;
-  
+
   // #region agent log
   const tableInstanceChanged = prevTableRef.current !== table;
   prevTableRef.current = table;
@@ -1053,44 +1023,17 @@ export function TanStackGridSheet({
     });
   }
 
-  // #region agent log
-  console.error('[DEBUG-E] Before table method calls', {renderCount:renderCountRef.current});
-  // #endregion
   // CRITICAL FIX: Memoize table method calls to prevent repeated invocations
   // These methods might trigger internal TanStack subscriptions in production mode
   const tableRows = useMemo(() => {
-    console.error('[DEBUG-E] Computing tableRows', {renderCount:renderCountRef.current});
     return table.getRowModel().rows;
   }, [table]);
   const headerGroups = useMemo(() => {
-    console.error('[DEBUG-E] Computing headerGroups', {renderCount:renderCountRef.current});
     return table.getHeaderGroups();
   }, [table]);
   const leafColumns = useMemo(() => {
-    console.error('[DEBUG-E] Computing leafColumns', {renderCount:renderCountRef.current});
     return table.getAllLeafColumns();
   }, [table]);
-  // #region agent log
-  // Track if these extracted values have stable identities
-  const prevTableRowsRef = useRef(tableRows);
-  const prevHeaderGroupsRef = useRef(headerGroups);
-  const prevLeafColumnsRef = useRef(leafColumns);
-  const tableRowsIdentityChanged = prevTableRowsRef.current !== tableRows;
-  const headerGroupsIdentityChanged = prevHeaderGroupsRef.current !== headerGroups;
-  const leafColumnsIdentityChanged = prevLeafColumnsRef.current !== leafColumns;
-  prevTableRowsRef.current = tableRows;
-  prevHeaderGroupsRef.current = headerGroups;
-  prevLeafColumnsRef.current = leafColumns;
-  console.error('[DEBUG-E] After table method calls', {
-    renderCount:renderCountRef.current,
-    rowsLength:tableRows.length,
-    headerGroupsLength:headerGroups.length,
-    leafColumnsLength:leafColumns.length,
-    tableRowsIdentityChanged,
-    headerGroupsIdentityChanged,
-    leafColumnsIdentityChanged
-  });
-  // #endregion
 
   // Promise detection disabled - was causing re-renders on every data change
 
@@ -1185,25 +1128,10 @@ export function TanStackGridSheet({
         : 0,
   }), [virtualizedRows]);
 
-  // #region agent log
-  const virtualizerOptionsRef = useRef(0);
-  virtualizerOptionsRef.current += 1;
-  console.error('[DEBUG-G] Creating rowVirtualizer', {
-    renderCount: renderCountRef.current,
-    virtualizerCallCount: virtualizerOptionsRef.current,
-    rowsCount: virtualizedRows.length
-  });
-  // #endregion
   const rowVirtualizer = useVirtualizer(virtualizerOptions);
 
-  // #region agent log
-  console.error('[DEBUG-G] Before getVirtualItems', {renderCount:renderCountRef.current});
-  // #endregion
   const virtualItems = rowVirtualizer.getVirtualItems();
   const totalVirtualSize = rowVirtualizer.getTotalSize();
-  // #region agent log
-  console.error('[DEBUG-G] After getVirtualItems', {renderCount:renderCountRef.current, itemsCount:virtualItems.length});
-  // #endregion
   const hasActiveSearch = false;
   const paddingTop =
     virtualItems.length > 0 ? virtualItems[0].start : 0;
@@ -1237,10 +1165,10 @@ export function TanStackGridSheet({
 
     // Throttle resize updates to prevent rapid-fire state changes
     let resizeTimeout: NodeJS.Timeout | null = null;
-    
+
     const updateWidth = () => {
       const newWidth = el.clientWidth;
-      
+
       setContainerWidth((prev) => {
         // Only update if width changed by more than 20px to reduce noise
         const diff = Math.abs(newWidth - prev);
@@ -1268,12 +1196,9 @@ export function TanStackGridSheet({
 
   // Track render completion
   const renderEndMarker = useMemo(() => {
-    // #region agent log
-    console.error('[DEBUG-H] Render phase COMPLETING', {renderCount:renderCountRef.current});
-    // #endregion
     return true;
   }, []);
-  
+
   return (
     <div className="tanstack-grid-wrapper flex h-full w-full flex-col">
       {/* Table toolbar */}
@@ -1285,7 +1210,11 @@ export function TanStackGridSheet({
       />
 
       {/* Grid container */}
-      <div ref={containerRef} className="tanstack-grid h-full w-full overflow-auto">
+      <div
+        ref={containerRef}
+        className="tanstack-grid h-full w-full overflow-auto"
+        data-testid="grid-container"
+      >
         <table
           className="border-collapse"
           style={{
@@ -1294,13 +1223,10 @@ export function TanStackGridSheet({
             tableLayout: "fixed",
           }}
         >
-          <thead>
+          <thead className="sticky top-0 z-20 bg-background shadow-sm">
             {headerGroups.map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
-                  // #region agent log
-                  console.error('[DEBUG-I] header.getSize() called', {renderCount:renderCountRef.current, headerId:header.id});
-                  // #endregion
                   const headerWidth = header.getSize();
                   const headerStyle: CSSProperties = {
                     position: "relative",
@@ -1309,6 +1235,7 @@ export function TanStackGridSheet({
 
                   const isPinnedRight = header.id === "bb-add-field";
                   const isFillerColumn = header.id === "bb-spacer";
+                  // Add high z-index to pinned columns in header to stay above other headers
                   const finalStyle: CSSProperties = isPinnedRight
                     ? { ...headerStyle, position: 'sticky' as const, right: 0, zIndex: 30 }
                     : headerStyle;
@@ -1331,14 +1258,11 @@ export function TanStackGridSheet({
                       {header.isPlaceholder
                         ? null
                         : (() => {
-                            // #region agent log
-                            console.error('[DEBUG-I] header.getContext() called', {renderCount:renderCountRef.current, headerId:header.id});
-                            // #endregion
-                            return flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            );
-                          })()}
+                          return flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          );
+                        })()}
                       {canResize && (
                         <div
                           onMouseDown={header.getResizeHandler()}
@@ -1422,6 +1346,7 @@ export function TanStackGridSheet({
                               position: "sticky",
                               right: 0,
                               zIndex: 25,
+                              backgroundColor: "inherit" // Ensure background covers scrolled content
                             }),
                           };
 
@@ -1482,3 +1407,4 @@ export function TanStackGridSheet({
     </div>
   );
 }
+

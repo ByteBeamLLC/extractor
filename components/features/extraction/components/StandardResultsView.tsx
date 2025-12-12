@@ -97,7 +97,7 @@ export function StandardResultsView({
   // #region agent log
   const renderCountRef = React.useRef(0);
   renderCountRef.current += 1;
-  
+
   // Track callback identities to detect when they change
   const callbackIdsRef = React.useRef<{
     onSelectJob?: Function;
@@ -110,7 +110,7 @@ export function StandardResultsView({
     getStatusIcon?: Function;
     renderStatusPill?: Function;
   }>({});
-  
+
   // Log render and detect which callbacks changed identity
   React.useEffect(() => {
     const changedCallbacks: string[] = [];
@@ -123,7 +123,7 @@ export function StandardResultsView({
     if (callbackIdsRef.current.renderCellValue !== renderCellValue) changedCallbacks.push('renderCellValue');
     if (callbackIdsRef.current.getStatusIcon !== getStatusIcon) changedCallbacks.push('getStatusIcon');
     if (callbackIdsRef.current.renderStatusPill !== renderStatusPill) changedCallbacks.push('renderStatusPill');
-    
+
     if (renderCountRef.current > 1) {
       console.error(`[H1/H3] StandardResultsView render #${renderCountRef.current}`, {
         changedCallbacks,
@@ -132,35 +132,41 @@ export function StandardResultsView({
         columnsLength: displayColumns.length,
       });
     }
-    
+
     // Update refs
     callbackIdsRef.current = {
       onSelectJob, onRowDoubleClick, onDeleteJob, onAddColumn, onEditColumn,
       onDeleteColumn, renderCellValue, getStatusIcon, renderStatusPill
     };
   });
-  
+
   if (renderCountRef.current >= 25) {
     console.error('[H1/H3] RENDER LOOP DETECTED!', {
       renderCount: renderCountRef.current,
       activeSchemaId
     });
   }
+
+  // Debug log for jobs prop
+  React.useEffect(() => {
+    console.log(`[bytebeam-trace] StandardResultsView: received jobs update. Count: ${jobs.length}. IDs: ${jobs.slice(0, 3).map(j => j.id).join(',')}${jobs.length > 3 ? '...' : ''}`)
+    jobs.forEach(j => {
+      console.log(`[bytebeam-trace] StandardResultsView Job ${j.id}: status=${j.status}, hasResults=${!!j.results}`)
+    })
+  }, [jobs])
   // #endregion
-  
+
   // #region agent log - track memoization
   const prevJobsRef = React.useRef<ExtractionJob[]>(jobs);
   const jobsIdentityChanged = prevJobsRef.current !== jobs;
   const prevSortedJobsRef = React.useRef<ExtractionJob[]>([]);
   // #endregion
 
-  // Helper to check if jobs array actually changed (by IDs and timestamps)
+  // Helper to check if jobs array actually changed using reference equality
+  // Since we use immutable updates, a changed job will always be a new reference
   const shallowJobsEqual = (a: ExtractionJob[], b: ExtractionJob[]): boolean => {
     if (a.length !== b.length) return false;
-    return a.every((job, i) => {
-      const bJob = b[i];
-      return job.id === bJob?.id && job.createdAt?.getTime() === bJob?.createdAt?.getTime();
-    });
+    return a.every((job, i) => job === b[i]);
   };
 
   // Sort jobs by creation date - memoized with deep comparison to prevent unnecessary re-sorting
@@ -171,20 +177,20 @@ export function StandardResultsView({
       jobsLength: jobs.length
     });
     // #endregion
-    
+
     // Only re-sort if jobs array content actually changed
     if (shallowJobsEqual(prevSortedJobsRef.current, jobs)) {
       console.error(`[H4] sortedJobs REUSING previous (render #${renderCountRef.current})`);
       return prevSortedJobsRef.current;
     }
-    
+
     console.error(`[H4] sortedJobs COMPUTING new (render #${renderCountRef.current})`);
     const sorted = [...jobs].sort((a, b) => {
       const aTime = a.createdAt?.getTime() ?? 0
       const bTime = b.createdAt?.getTime() ?? 0
       return aTime - bTime
     });
-    
+
     prevSortedJobsRef.current = sorted;
     return sorted;
   }, [jobs])
@@ -198,7 +204,7 @@ export function StandardResultsView({
     prevSortedJobsRef.current = sortedJobs;
     prevJobsRef.current = jobs;
   });
-  
+
   const prevHandleSelectRowRef = React.useRef<Function>();
   // #endregion
 
