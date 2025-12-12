@@ -1226,7 +1226,6 @@ export function TanStackGridSheet({
     columnsLength: columns.length,
     jobsLength: jobs.length
   });
-  fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1224',message:'Render START',data:{renderCount:renderCountRef.current,columnsLength:columns.length,jobsLength:jobs.length,hypothesisId:'ALL'},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
   
   if (renderCountRef.current >= 25) {
     console.error('[H5] RENDER LOOP DETECTED IN GRID!', {
@@ -1429,7 +1428,6 @@ export function TanStackGridSheet({
     virtualizerCallCount: virtualizerOptionsRef.current,
     rowsCount: virtualizedRows.length
   });
-  fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1423',message:'useVirtualizer called',data:{renderCount:renderCountRef.current,virtualizerCallCount:virtualizerOptionsRef.current,hypothesisId:'H5'},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
   // #endregion
   const rowVirtualizer = useVirtualizer({
     count: virtualizedRows.length,
@@ -1446,13 +1444,11 @@ export function TanStackGridSheet({
 
   // #region agent log
   console.error('[DEBUG-G] Before getVirtualItems', {renderCount:renderCountRef.current});
-  fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1447',message:'Before getVirtualItems',data:{renderCount:renderCountRef.current,hypothesisId:'H5'},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
   // #endregion
   const virtualItems = rowVirtualizer.getVirtualItems();
   const totalVirtualSize = rowVirtualizer.getTotalSize();
   // #region agent log
   console.error('[DEBUG-G] After getVirtualItems', {renderCount:renderCountRef.current, itemsCount:virtualItems.length});
-  fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1454',message:'After getVirtualItems',data:{renderCount:renderCountRef.current,itemsCount:virtualItems.length,hypothesisId:'H5'},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
   // #endregion
   const hasActiveSearch = false;
   const paddingTop =
@@ -1486,7 +1482,6 @@ export function TanStackGridSheet({
     console.error('[H7] Container width effect firing', {
       renderCount: renderCountRef.current
     });
-    fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1467',message:'Container width effect FIRED',data:{renderCount:renderCountRef.current,hypothesisId:'H7'},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
     // #endregion
 
     const el = containerRef.current;
@@ -1500,7 +1495,6 @@ export function TanStackGridSheet({
         width: newWidth,
         currentStateValue: containerWidth
       });
-      fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1478',message:'ResizeObserver callback',data:{renderCount:renderCountRef.current,newWidth,currentStateValue:containerWidth,hypothesisId:'H7_H8'},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
       // #endregion
       
       setContainerWidth((prev) => {
@@ -1511,7 +1505,6 @@ export function TanStackGridSheet({
           newValue: newWidth,
           willUpdate: prev !== newWidth
         });
-        fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1485',message:'setContainerWidth updater',data:{renderCount:renderCountRef.current,prevValue:prev,newValue:newWidth,willUpdate:prev!==newWidth,hypothesisId:'H7_H8'},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
         // #endregion
         return prev === newWidth ? prev : newWidth;
       });
@@ -1524,7 +1517,6 @@ export function TanStackGridSheet({
       console.error('[H7] ResizeObserver TRIGGERED', {
         renderCount: renderCountRef.current
       });
-      fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1502',message:'ResizeObserver TRIGGERED',data:{renderCount:renderCountRef.current,hypothesisId:'H7'},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
       // #endregion
       updateWidth();
     });
@@ -1543,18 +1535,15 @@ export function TanStackGridSheet({
       oldValue: prevContainerWidthRef.current,
       newValue: containerWidth
     });
-    fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1512',message:'containerWidth VALUE changed',data:{renderCount:renderCountRef.current,oldValue:prevContainerWidthRef.current,newValue:containerWidth,hypothesisId:'H1'},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
   }
   prevContainerWidthRef.current = containerWidth;
   console.error('[DEBUG-F] Before JSX render', {renderCount:renderCountRef.current});
-  fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1518',message:'Before JSX render',data:{renderCount:renderCountRef.current,hypothesisId:'ALL'},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
   // #endregion
 
   // Track render completion
   const renderEndMarker = useMemo(() => {
     // #region agent log
     console.error('[DEBUG-H] Render phase COMPLETING', {renderCount:renderCountRef.current});
-    fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1524',message:'Render phase COMPLETING',data:{renderCount:renderCountRef.current,hypothesisId:'ALL'},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
     // #endregion
     return true;
   }, []);
@@ -1584,7 +1573,7 @@ export function TanStackGridSheet({
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   // #region agent log
-                  fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1547',message:'header.getSize() about to be called',data:{renderCount:renderCountRef.current,headerId:header.id,hypothesisId:'H6'},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
+                  console.error('[DEBUG-I] header.getSize() called', {renderCount:renderCountRef.current, headerId:header.id});
                   // #endregion
                   const headerWidth = header.getSize();
                   const headerStyle: CSSProperties = {
@@ -1617,7 +1606,7 @@ export function TanStackGridSheet({
                         ? null
                         : (() => {
                             // #region agent log
-                            fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TanStackGridSheet.tsx:1580',message:'header.getContext() about to be called',data:{renderCount:renderCountRef.current,headerId:header.id,hypothesisId:'H6'},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
+                            console.error('[DEBUG-I] header.getContext() called', {renderCount:renderCountRef.current, headerId:header.id});
                             // #endregion
                             return flexRender(
                               header.column.columnDef.header,
