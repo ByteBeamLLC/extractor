@@ -359,8 +359,8 @@ export const STATIC_SCHEMA_TEMPLATES: SchemaTemplateDefinition[] = [
     description: "Compare original drug leaflet against a reference drug.",
     agentType: "standard",
     fields: [
-      { id: "original_drug", name: "original_drug", type: "richtext", description: "Original drug leaflet content." },
-      { id: "reference_drug", name: "reference_drug", type: "richtext", description: "Reference drug leaflet content." },
+      { id: "original_drug", name: "original_drug", type: "input", inputType: "document", description: "Original drug leaflet file." },
+      { id: "reference_drug", name: "reference_drug", type: "input", inputType: "document", description: "Reference drug leaflet file." },
       {
         id: "original_drug_trade_name",
         name: "original_drug_trade_name",
