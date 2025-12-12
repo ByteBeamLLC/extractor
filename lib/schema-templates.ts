@@ -405,49 +405,7 @@ export const STATIC_SCHEMA_TEMPLATES: SchemaTemplateDefinition[] = [
       },
     ],
   },
-  {
-    id: "sfda-content-generation",
-    name: "SFDA Content Generation",
-    description: "Three-field standard agent to paste SFDA listing content and generate safety/storage tabs.",
-    agentType: "standard",
-    fields: [
-      {
-        id: "sfda_listing_raw",
-        name: "sfda_listing_raw",
-        type: "richtext",
-        description: "Raw SFDA listing HTML/text (Drug Data + PIL/SPC) pasted in.",
-        extractionInstructions: "Paste the SFDA listing content exactly as retrieved (English/Arabic). Do not rewrite or summarize here.",
-      },
-      {
-        id: "tab_possible_side_effects",
-        name: "tab_possible_side_effects",
-        type: "richtext",
-        description: "Possible Side Effects tab content sourced only from the SFDA listing.",
-        isTransformation: true,
-        transformationType: "gemini_api",
-        transformationSource: "column",
-        transformationConfig: {
-          prompt: "Using only {sfda_listing_raw}, extract Possible Side Effects (adverse reactions/contraindications). Read all tabs; prefer English. If not present, return 'not found'. Never add model knowledge.",
-          sourceFields: ["sfda_listing_raw"],
-          selectedTools: [],
-        },
-      },
-      {
-        id: "tab_storage",
-        name: "tab_storage",
-        type: "richtext",
-        description: "Storage/handling tab content sourced only from the SFDA listing.",
-        isTransformation: true,
-        transformationType: "gemini_api",
-        transformationSource: "column",
-        transformationConfig: {
-          prompt: "Using only {sfda_listing_raw}, extract Storage/handling. Read all tabs; prefer English. If not present, return 'not found'. Never add model knowledge.",
-          sourceFields: ["sfda_listing_raw"],
-          selectedTools: [],
-        },
-      },
-    ],
-  },
+ 
   {
     id: "fmcg-localization",
     name: "FMCG Localization",
