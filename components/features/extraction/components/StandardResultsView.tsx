@@ -94,15 +94,6 @@ export function StandardResultsView({
   getStatusIcon,
   renderStatusPill,
 }: StandardResultsViewProps) {
-  // Debug: Log every render unconditionally
-  console.log('[bytebeam-debug] StandardResultsView render', {
-    viewMode,
-    jobsLength: jobs.length,
-    jobIds: jobs.map(j => j.id.slice(0, 8)),
-    jobStatuses: jobs.map(j => j.status),
-    activeSchemaId,
-  })
-
   // #region agent log
   const renderCountRef = React.useRef(0);
   renderCountRef.current += 1;

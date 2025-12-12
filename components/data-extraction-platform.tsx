@@ -1025,13 +1025,10 @@ export function DataExtractionPlatform({
     setTemplateNameInput(activeSchema.name || "New template")
   }, [activeSchema.name, isTemplateDialogOpen])
   const completedJobsCount = jobs.filter((j) => j.status === 'completed').length
-  const sortedJobs = useMemo(() => {
-    console.log('[bytebeam-debug] sortedJobs memo recomputing', {
-      jobsLength: jobs.length,
-      statuses: jobs.map(j => ({ id: j.id.slice(0, 8), status: j.status })),
-    })
-    return [...jobs].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
-  }, [jobs])
+  const sortedJobs = useMemo(
+    () => [...jobs].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()),
+    [jobs],
+  )
 
   useEffect(() => {
     try {
@@ -4559,13 +4556,6 @@ export function DataExtractionPlatform({
                   // Determine display mode based on job agent types or selected agent
                   const selectedJob = sortedJobs.find((j) => j.id === selectedRowId) || sortedJobs[sortedJobs.length - 1]
                   const displayMode = selectedJob?.agentType || selectedAgent
-                  console.log('[bytebeam-debug] View selection', {
-                    displayMode,
-                    selectedAgent,
-                    selectedJobAgentType: selectedJob?.agentType,
-                    templateId: activeSchema.templateId,
-                    sortedJobsLength: sortedJobs.length,
-                  })
                   return displayMode
                 })() === 'pharma' ? (
                   <PharmaResultsView
