@@ -579,19 +579,10 @@ export function DataExtractionPlatform({
   const [schemas, setSchemas] = useState<SchemaDefinition[]>([initialSchemaRef.current])
   const schemasRef = useRef<SchemaDefinition[]>([initialSchemaRef.current])
   const [activeSchemaId, setActiveSchemaId] = useState<string>(initialSchemaRef.current.id)
-  
-  // Use ref to stabilize activeSchema - only update when content actually changes
-  const prevActiveSchemaRef = useRef<SchemaDefinition>(initialSchemaRef.current)
-  const activeSchemaCandidate = schemas.find((s) => s.id === activeSchemaId) || initialSchemaRef.current
-  
-  // Only update the ref if the schema content has meaningfully changed (using serialization as a proxy)
-  const activeSchemaKey = `${activeSchemaCandidate.id}-${activeSchemaCandidate.fields?.length}-${activeSchemaCandidate.jobs?.length}`
-  const prevKey = useRef(activeSchemaKey)
-  if (prevKey.current !== activeSchemaKey) {
-    prevActiveSchemaRef.current = activeSchemaCandidate
-    prevKey.current = activeSchemaKey
-  }
-  const activeSchema = prevActiveSchemaRef.current
+
+  const activeSchema =
+    schemas.find((schema) => schema.id === activeSchemaId) ??
+    (initialSchemaRef.current as SchemaDefinition)
   
   const isEmbeddedInWorkspace = Boolean(externalActiveSchemaId)
   const [selectedAgent, setSelectedAgent] = useState<AgentType>("standard")
@@ -601,7 +592,7 @@ export function DataExtractionPlatform({
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   
   const fields = activeSchema.fields
-  const jobs = activeSchema.jobs
+  const jobs = activeSchema.jobs ?? []
   const displayColumns = useMemo(() => flattenFields(fields), [fields])
   const session = useSession()
   const supabase = useSupabaseClient()
@@ -1034,10 +1025,13 @@ export function DataExtractionPlatform({
     setTemplateNameInput(activeSchema.name || "New template")
   }, [activeSchema.name, isTemplateDialogOpen])
   const completedJobsCount = jobs.filter((j) => j.status === 'completed').length
-  const sortedJobs = useMemo(
-    () => [...jobs].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()),
-    [jobs],
-  )
+  const sortedJobs = useMemo(() => {
+    console.log('[bytebeam-debug] sortedJobs memo recomputing', {
+      jobsLength: jobs.length,
+      statuses: jobs.map(j => ({ id: j.id.slice(0, 8), status: j.status })),
+    })
+    return [...jobs].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+  }, [jobs])
 
   useEffect(() => {
     try {
@@ -2471,7 +2465,17 @@ export function DataExtractionPlatform({
         console.log(`[bytebeam] Upload: Pending schema ${pendingSchemaCreate.id} not in schemas array yet, using template fields`)
       }
     }
-    
+
+    const schemaExistsInMemory = schemas.some((schema) => schema.id === targetSchemaId)
+    if (!schemaExistsInMemory) {
+      toast({
+        title: "Schema is still loading",
+        description: "Please wait a moment and retry the upload.",
+        variant: "destructive",
+      })
+      return
+    }
+
     const agentSnapshot = selectedAgent
     const templateIdSnapshot = targetSchema.templateId
     const fieldsSnapshot = targetSchema.fields
@@ -4463,6 +4467,7 @@ export function DataExtractionPlatform({
               <Button
                 variant="default"
                 size="sm"
+                disabled={isWorkspaceLoading || activeSchema.id !== activeSchemaId}
                 onClick={() => {
                   const inputFieldsCount = getInputFields(fields).length
                   if (inputFieldsCount > 0) {
@@ -4554,6 +4559,13 @@ export function DataExtractionPlatform({
                   // Determine display mode based on job agent types or selected agent
                   const selectedJob = sortedJobs.find((j) => j.id === selectedRowId) || sortedJobs[sortedJobs.length - 1]
                   const displayMode = selectedJob?.agentType || selectedAgent
+                  console.log('[bytebeam-debug] View selection', {
+                    displayMode,
+                    selectedAgent,
+                    selectedJobAgentType: selectedJob?.agentType,
+                    templateId: activeSchema.templateId,
+                    sortedJobsLength: sortedJobs.length,
+                  })
                   return displayMode
                 })() === 'pharma' ? (
                   <PharmaResultsView

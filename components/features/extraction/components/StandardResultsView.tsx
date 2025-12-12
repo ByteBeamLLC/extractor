@@ -94,6 +94,15 @@ export function StandardResultsView({
   getStatusIcon,
   renderStatusPill,
 }: StandardResultsViewProps) {
+  // Debug: Log every render unconditionally
+  console.log('[bytebeam-debug] StandardResultsView render', {
+    viewMode,
+    jobsLength: jobs.length,
+    jobIds: jobs.map(j => j.id.slice(0, 8)),
+    jobStatuses: jobs.map(j => j.status),
+    activeSchemaId,
+  })
+
   // #region agent log
   const renderCountRef = React.useRef(0);
   renderCountRef.current += 1;
@@ -154,12 +163,17 @@ export function StandardResultsView({
   const prevSortedJobsRef = React.useRef<ExtractionJob[]>([]);
   // #endregion
 
-  // Helper to check if jobs array actually changed (by IDs and timestamps)
+  // Helper to check if jobs array actually changed (by IDs, timestamps, status, and completedAt)
   const shallowJobsEqual = (a: ExtractionJob[], b: ExtractionJob[]): boolean => {
     if (a.length !== b.length) return false;
     return a.every((job, i) => {
       const bJob = b[i];
-      return job.id === bJob?.id && job.createdAt?.getTime() === bJob?.createdAt?.getTime();
+      return (
+        job.id === bJob?.id &&
+        job.status === bJob?.status &&
+        job.createdAt?.getTime() === bJob?.createdAt?.getTime() &&
+        job.completedAt?.getTime() === bJob?.completedAt?.getTime()
+      );
     });
   };
 

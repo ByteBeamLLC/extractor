@@ -169,6 +169,14 @@ export function TanStackGridSheet({
   visualGroups: [],
   enableTableStatePersistence: true,
 }) {
+  // Debug: Log props on every render
+  console.log('[bytebeam-debug] TanStackGridSheet render', {
+    schemaId,
+    jobsLength: jobs.length,
+    jobIds: jobs.map(j => j.id.slice(0, 8)),
+    columnsLength: columns.length,
+  })
+
   // Search is disabled per request; keep table simple and avoid global filter churn.
   const enableSearch = false;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1058,18 +1066,21 @@ export function TanStackGridSheet({
   // #endregion
   // CRITICAL FIX: Memoize table method calls to prevent repeated invocations
   // These methods might trigger internal TanStack subscriptions in production mode
+  // NOTE: Must include rowData in deps because table instance reference stays stable
+  // even when data changes - TanStack Table updates internally
   const tableRows = useMemo(() => {
-    console.error('[DEBUG-E] Computing tableRows', {renderCount:renderCountRef.current});
+    console.error('[DEBUG-E] Computing tableRows', {renderCount:renderCountRef.current, rowDataLength: rowData.length});
     return table.getRowModel().rows;
-  }, [table]);
+  }, [table, rowData]);
+  // NOTE: Must include columnDefs in deps because table instance reference stays stable
   const headerGroups = useMemo(() => {
     console.error('[DEBUG-E] Computing headerGroups', {renderCount:renderCountRef.current});
     return table.getHeaderGroups();
-  }, [table]);
+  }, [table, columnDefs]);
   const leafColumns = useMemo(() => {
     console.error('[DEBUG-E] Computing leafColumns', {renderCount:renderCountRef.current});
     return table.getAllLeafColumns();
-  }, [table]);
+  }, [table, columnDefs]);
   // #region agent log
   // Track if these extracted values have stable identities
   const prevTableRowsRef = useRef(tableRows);

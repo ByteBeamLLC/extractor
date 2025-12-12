@@ -24,6 +24,9 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useSupabaseClient } from '@/lib/supabase/hooks'
 import { formatDistanceToNow } from 'date-fns'
+import type { Database } from '@/lib/supabase/types'
+
+type ExtractionJobRow = Database["public"]["Tables"]["extraction_jobs"]["Row"]
 import { TanStackGridSheet } from '@/components/tanstack-grid/TanStackGridSheet'
 import {
     SchemaDefinition,
@@ -151,6 +154,100 @@ export function JobDetailView({ jobName, schemaId }: JobDetailViewProps) {
         }
 
         fetchData()
+    }, [schemaId, supabase])
+
+    // Real-time subscription for job updates
+    useEffect(() => {
+        if (!schemaId) return
+
+        const channelName = `job-detail-${schemaId}`
+
+        const channel = supabase
+            .channel(channelName)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'extraction_jobs',
+                    filter: `schema_id=eq.${schemaId}`,
+                },
+                (payload) => {
+                    const eventType = payload.eventType
+                    if (eventType === 'INSERT' || eventType === 'UPDATE') {
+                        const row = payload.new as ExtractionJobRow | null
+                        if (!row) return
+
+                        // Map row to ExtractionJob
+                        const raw = (row.results as Record<string, any> | null) ?? undefined
+                        const { values, meta } = extractResultsMeta(raw)
+                        const mappedJob: ExtractionJob = {
+                            id: row.id,
+                            fileName: row.file_name,
+                            status: row.status,
+                            results: values ?? undefined,
+                            review: meta?.review ?? undefined,
+                            createdAt: row.created_at ? new Date(row.created_at) : new Date(),
+                            completedAt: row.completed_at ? new Date(row.completed_at) : undefined,
+                            agentType: row.agent_type ?? undefined,
+                            ocrMarkdown: row.ocr_markdown ?? null,
+                            ocrAnnotatedImageUrl: row.ocr_annotated_image_url ?? null,
+                            originalFileUrl: row.original_file_url ?? null,
+                        }
+
+                        // Map to JobResult for display
+                        const mappedJobResult: JobResult = {
+                            id: mappedJob.id,
+                            filename: mappedJob.fileName,
+                            title: mappedJob.fileName,
+                            status: mappedJob.status,
+                            createdAt: mappedJob.createdAt ? formatDistanceToNow(mappedJob.createdAt, { addSuffix: true }) : 'Unknown',
+                            type: mappedJob.fileName.toLowerCase().endsWith('.pdf') ? 'pdf' : 'image',
+                            previewUrl: mappedJob.ocrAnnotatedImageUrl || undefined,
+                            originalJob: mappedJob
+                        }
+
+                        // Update extractionJobs state
+                        setExtractionJobs(prev => {
+                            const existingIndex = prev.findIndex(j => j.id === mappedJob.id)
+                            if (existingIndex >= 0) {
+                                // Update existing
+                                const updated = [...prev]
+                                updated[existingIndex] = mappedJob
+                                return updated
+                            } else {
+                                // Insert new at beginning
+                                return [mappedJob, ...prev]
+                            }
+                        })
+
+                        // Update jobs state
+                        setJobs(prev => {
+                            const existingIndex = prev.findIndex(j => j.id === mappedJobResult.id)
+                            if (existingIndex >= 0) {
+                                // Update existing
+                                const updated = [...prev]
+                                updated[existingIndex] = mappedJobResult
+                                return updated
+                            } else {
+                                // Insert new at beginning
+                                return [mappedJobResult, ...prev]
+                            }
+                        })
+                    } else if (eventType === 'DELETE') {
+                        const row = payload.old as ExtractionJobRow | null
+                        if (!row?.id) return
+                        setExtractionJobs(prev => prev.filter(j => j.id !== row.id))
+                        setJobs(prev => prev.filter(j => j.id !== row.id))
+                    }
+                },
+            )
+
+        channel.subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
     }, [schemaId, supabase])
 
     const flattenedFields = useMemo(() => {
