@@ -579,13 +579,27 @@ export function DataExtractionPlatform({
   const [schemas, setSchemas] = useState<SchemaDefinition[]>([initialSchemaRef.current])
   const schemasRef = useRef<SchemaDefinition[]>([initialSchemaRef.current])
   const [activeSchemaId, setActiveSchemaId] = useState<string>(initialSchemaRef.current.id)
-  const activeSchema = schemas.find((s) => s.id === activeSchemaId) || initialSchemaRef.current
+  
+  // Use ref to stabilize activeSchema - only update when content actually changes
+  const prevActiveSchemaRef = useRef<SchemaDefinition>(initialSchemaRef.current)
+  const activeSchemaCandidate = schemas.find((s) => s.id === activeSchemaId) || initialSchemaRef.current
+  
+  // Only update the ref if the schema content has meaningfully changed (using serialization as a proxy)
+  const activeSchemaKey = `${activeSchemaCandidate.id}-${activeSchemaCandidate.fields?.length}-${activeSchemaCandidate.jobs?.length}`
+  const prevKey = useRef(activeSchemaKey)
+  if (prevKey.current !== activeSchemaKey) {
+    prevActiveSchemaRef.current = activeSchemaCandidate
+    prevKey.current = activeSchemaKey
+  }
+  const activeSchema = prevActiveSchemaRef.current
+  
   const isEmbeddedInWorkspace = Boolean(externalActiveSchemaId)
   const [selectedAgent, setSelectedAgent] = useState<AgentType>("standard")
   const [viewMode, setViewMode] = useState<'grid' | 'gallery'>('grid')
   const [showGallery, setShowGallery] = useState(true)
   const [selectedJob, setSelectedJob] = useState<ExtractionJob | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
+  
   const fields = activeSchema.fields
   const jobs = activeSchema.jobs
   const displayColumns = useMemo(() => flattenFields(fields), [fields])
@@ -1061,24 +1075,24 @@ export function DataExtractionPlatform({
     [],
   )
 
-  const formatNumericValue = (raw: unknown): string | null => {
+  const formatNumericValue = useCallback((raw: unknown): string | null => {
     const candidate = typeof raw === 'number' ? raw : Number(raw)
     if (!Number.isFinite(candidate)) return null
     return numberFormatter.format(candidate)
-  }
+  }, [numberFormatter])
 
-  const formatDateValue = (raw: unknown): string | null => {
+  const formatDateValue = useCallback((raw: unknown): string | null => {
     if (!raw) return null
     const date = raw instanceof Date ? raw : new Date(raw as any)
     if (Number.isNaN(date.getTime())) return null
     return dateFormatter.format(date)
-  }
+  }, [dateFormatter])
 
-  const toggleRowExpansion = (jobId: string | null) => {
+  const toggleRowExpansion = useCallback((jobId: string | null) => {
     setExpandedRowId((prev) => (prev === jobId ? null : jobId))
-  }
+  }, [])
 
-  const openTableModal = (
+  const openTableModal = useCallback((
     column: SchemaField,
     job: ExtractionJob,
     rows: Record<string, any>[],
@@ -1086,9 +1100,9 @@ export function DataExtractionPlatform({
   ) => {
     setTableModalData({ column, job, rows, columnHeaders })
     setTableModalOpen(true)
-  }
+  }, [])
 
-  const findChildLabel = (column: SchemaField, key: string): string | undefined => {
+  const findChildLabel = useCallback((column: SchemaField, key: string): string | undefined => {
     if (column.type === 'object') {
       const objectColumn = column as Extract<SchemaField, { type: 'object' }>
       const child = objectColumn.children?.find((childField) => childField.id === key || childField.name === key)
@@ -1109,20 +1123,20 @@ export function DataExtractionPlatform({
       }
     }
     return undefined
-  }
+  }, [])
 
-  const prettifyKey = (key: string) => key.replace(/[_-]/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
+  const prettifyKey = useCallback((key: string) => key.replace(/[_-]/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase()), [])
 
-  const getObjectEntries = (column: SchemaField, value: Record<string, any>) => {
+  const getObjectEntries = useCallback((column: SchemaField, value: Record<string, any>) => {
     return Object.entries(value)
       .filter(([, v]) => v !== null && v !== undefined && v !== '')
       .map(([key, v]) => ({
         label: findChildLabel(column, key) ?? prettifyKey(key),
         value: v,
       }))
-  }
+  }, [findChildLabel, prettifyKey])
 
-  const firstNonEmptyText = (value: Record<string, any>) => {
+  const firstNonEmptyText = useCallback((value: Record<string, any>) => {
     for (const v of Object.values(value)) {
       if (v && typeof v === 'string') {
         const trimmed = v.trim()
@@ -1130,7 +1144,7 @@ export function DataExtractionPlatform({
       }
     }
     return null
-  }
+  }, [])
 
   const createLeafField = (name = 'field', type: DataPrimitive = 'string'): LeafField => ({
     id: `field_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
@@ -1336,11 +1350,11 @@ export function DataExtractionPlatform({
     setIsGroupDialogOpen(true)
   }
 
-  const handleColumnRightClick = (columnId: string, event: React.MouseEvent) => {
+  const handleColumnRightClick = useCallback((columnId: string, event: React.MouseEvent) => {
     event.preventDefault()
     setContextMenuColumn(columnId)
     setContextMenuPosition({ x: event.clientX, y: event.clientY })
-  }
+  }, [])
 
   const startGroupingFromContext = () => {
     if (!contextMenuColumn) return
@@ -3398,7 +3412,7 @@ export function DataExtractionPlatform({
     }
   }
 
-  const getStatusIcon = (status: ExtractionJob["status"]) => {
+  const getStatusIcon = useCallback((status: ExtractionJob["status"]) => {
     const iconSizing = "h-3.5 w-3.5"
     switch (status) {
       case "completed":
@@ -3410,9 +3424,9 @@ export function DataExtractionPlatform({
       default:
         return <Clock className={`${iconSizing} text-muted-foreground`} />
     }
-  }
+  }, [])
 
-  const renderStatusPill = (
+  const renderStatusPill = useCallback((
     status: ExtractionJob["status"],
     opts?: { size?: 'default' | 'compact' },
   ) => {
@@ -3444,7 +3458,7 @@ export function DataExtractionPlatform({
       )
     }
     return <span className={cn(base, 'bg-muted text-muted-foreground')}>Pending</span>
-  }
+  }, [])
 
   const getCellAlignClasses = (type: DataType) => {
     if (type === 'number' || type === 'decimal') return 'text-right [font-variant-numeric:tabular-nums]'
@@ -3460,7 +3474,13 @@ export function DataExtractionPlatform({
     value: any
   } | null>(null)
 
-  const renderCellValue = (
+  // Stabilize setNestedFieldView using ref to prevent renderCellValue from recreating
+  const setNestedFieldViewRef = useRef(setNestedFieldView)
+  useEffect(() => {
+    setNestedFieldViewRef.current = setNestedFieldView
+  }, [setNestedFieldView])
+
+  const renderCellValue = useCallback((
     column: SchemaField,
     job: ExtractionJob,
     opts?: {
@@ -3527,7 +3547,7 @@ export function DataExtractionPlatform({
             mode={mode}
             onUpdateCell={opts.onUpdateCell}
             onOpenNestedGrid={({ column: nestedColumn, job: nestedJob, value: nestedValue }) => {
-              setNestedFieldView({ column: nestedColumn, job: nestedJob, value: nestedValue })
+              setNestedFieldViewRef.current({ column: nestedColumn, job: nestedJob, value: nestedValue })
             }}
           />
         )
@@ -3545,7 +3565,7 @@ export function DataExtractionPlatform({
             onUpdateCell={opts.onUpdateCell}
             mode={mode}
             onOpenNestedGrid={({ column: nestedColumn, job: nestedJob, value: nestedValue }) => {
-              setNestedFieldView({ column: nestedColumn, job: nestedJob, value: nestedValue })
+              setNestedFieldViewRef.current({ column: nestedColumn, job: nestedJob, value: nestedValue })
             }}
           />
         )
@@ -3562,7 +3582,7 @@ export function DataExtractionPlatform({
             onUpdateCell={opts.onUpdateCell}
             mode={mode}
             onOpenNestedGrid={({ column: nestedColumn, job: nestedJob, value: nestedValue }) => {
-              setNestedFieldView({ column: nestedColumn, job: nestedJob, value: nestedValue })
+              setNestedFieldViewRef.current({ column: nestedColumn, job: nestedJob, value: nestedValue })
             }}
           />
         )
@@ -3910,7 +3930,7 @@ export function DataExtractionPlatform({
         {String(value)}
       </span>
     )
-  }
+  }, [formatNumericValue, formatDateValue, getObjectEntries, firstNonEmptyText, prettifyKey, openTableModal])
 
   const exportToCSV = () => {
     const formatCell = (val: unknown): string => {
@@ -4253,6 +4273,81 @@ export function DataExtractionPlatform({
     setEditingSchemaName(false);
   }, [schemaNameInput, activeSchema.name, activeSchemaId, commitSchemaUpdate]);
 
+  // Stabilized props for StandardResultsView / grid (placed after function defs to avoid TDZ)
+  const memoVisualGroups = useMemo(
+    () => activeSchema.visualGroups || [],
+    [activeSchema.visualGroups],
+  );
+
+  const memoOnSelectJob = useCallback(
+    (job: ExtractionJob | null) => setSelectedJob(job),
+    [],
+  );
+
+  const memoOnRowDoubleClick = useCallback(
+    (job: ExtractionJob) => {
+      if (activeSchema.templateId === "gcc-food-label" || activeSchema.name.toLowerCase().includes("gcc")) {
+        setLabelMakerJob(job);
+        setIsLabelMakerNewRecord(false);
+      } else {
+        setSelectedJob(job);
+        setIsDetailOpen(true);
+      }
+    },
+    [activeSchema.templateId, activeSchema.name],
+  );
+
+  const memoOnAddColumn = useCallback(() => {
+    addColumn();
+  }, [addColumn]);
+
+  const memoOnEditColumn = useCallback((col: SchemaField) => {
+    setColumnDialogMode("edit");
+    setSelectedColumn(col);
+    setDraftColumn(col);
+    setIsColumnDialogOpen(true);
+  }, []);
+
+  const memoOnDeleteColumn = useCallback(
+    (colId: string) => {
+      commitSchemaUpdate(activeSchemaId, (schema) => {
+        const newFields = removeFieldById(schema.fields, colId);
+        const updatedGroups = (schema.visualGroups || [])
+          .map((group) => ({
+            ...group,
+            fieldIds: group.fieldIds.filter((id) => id !== colId),
+          }))
+          .filter((group) => group.fieldIds.length > 0);
+        return {
+          ...schema,
+          fields: newFields,
+          visualGroups: updatedGroups,
+        };
+      });
+    },
+    [activeSchemaId, commitSchemaUpdate],
+  );
+
+  const memoOnToggleRowExpansion = useCallback(
+    (rowId: string | null) => toggleRowExpansion(rowId),
+    [toggleRowExpansion],
+  );
+
+  const memoOnOpenTableModal = useCallback(
+    (
+      column: SchemaField,
+      job: ExtractionJob,
+      rows: Record<string, unknown>[],
+      columnHeaders: Array<{ key: string; label: string }>,
+    ) => openTableModal(column as any, job, rows, columnHeaders),
+    [openTableModal],
+  );
+
+  const memoOnColumnRightClick = useCallback(
+    (columnId: string, event: React.MouseEvent) => handleColumnRightClick(columnId, event),
+    [handleColumnRightClick],
+  );
+
   return (
     <div className={cn("flex flex-col bg-background", isEmbedded ? "h-full" : "h-screen")}>
       {/* Hidden file input for Upload Files button */}
@@ -4499,49 +4594,21 @@ export function DataExtractionPlatform({
                     viewMode={viewMode}
                     selectedJobId={selectedJob?.id ?? null}
                     expandedRowId={expandedRowId}
-                    onSelectJob={setSelectedJob}
-                    onRowDoubleClick={(job) => {
-                      // For GCC Food Label, use ExtractionDetailDialog with Label Maker
-                      if (activeSchema.templateId === 'gcc-food-label' || activeSchema.name.toLowerCase().includes('gcc')) {
-                        setLabelMakerJob(job)
-                        setIsLabelMakerNewRecord(false)
-                      } else {
-                        setSelectedJob(job)
-                        setIsDetailOpen(true)
-                      }
-                    }}
+                    onSelectJob={memoOnSelectJob}
+                    onRowDoubleClick={memoOnRowDoubleClick}
                     onDeleteJob={handleDeleteJob}
-                    onToggleRowExpansion={toggleRowExpansion}
-                    onAddColumn={addColumn}
-                    onEditColumn={(col) => {
-                      setColumnDialogMode('edit')
-                      setSelectedColumn(col)
-                      setDraftColumn(col)
-                      setIsColumnDialogOpen(true)
-                    }}
-                    onDeleteColumn={(colId) => {
-                      commitSchemaUpdate(activeSchemaId, (schema) => {
-                        const newFields = removeFieldById(schema.fields, colId)
-                        const updatedGroups = (schema.visualGroups || [])
-                          .map(group => ({
-                            ...group,
-                            fieldIds: group.fieldIds.filter(id => id !== colId)
-                          }))
-                          .filter(group => group.fieldIds.length > 0)
-                        return {
-                          ...schema,
-                          fields: newFields,
-                          visualGroups: updatedGroups,
-                        }
-                      })
-                    }}
+                    onToggleRowExpansion={memoOnToggleRowExpansion}
+                    onAddColumn={memoOnAddColumn}
+                    onEditColumn={memoOnEditColumn}
+                    onDeleteColumn={memoOnDeleteColumn}
                     onUpdateCell={handleUpdateCell}
                     onUpdateReviewStatus={handleUpdateReviewStatus}
-                    onColumnRightClick={handleColumnRightClick}
-                    onOpenTableModal={openTableModal}
+                    onColumnRightClick={memoOnColumnRightClick}
+                    onOpenTableModal={memoOnOpenTableModal}
                     renderCellValue={renderCellValue}
                     getStatusIcon={getStatusIcon}
                     renderStatusPill={renderStatusPill}
+                    visualGroups={memoVisualGroups}
                   />
                 )
                 }

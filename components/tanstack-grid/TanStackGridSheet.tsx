@@ -137,84 +137,8 @@ type VirtualizedGridRow =
     row: Row<GridRow>;
   };
 
-// Helper to calculate optimal column width based on content
-function calculateColumnWidth(
-  column: any,
-  jobs: any[],
-  minWidth: number = DEFAULT_DATA_COL_WIDTH,
-  maxWidth: number = MAX_COL_WIDTH
-): number {
-  // Calculate width needed for header text to be fully visible
-  const headerLength = column.name?.length || 0;
-  // 8px per character is a safe estimate for typical UI fonts
-  const textWidth = headerLength * 8;
-  // Space for drag handle, sort icon, menu, padding. Increased to ensure full visibility.
-  const headerUIElements = 80;
-  const calculatedHeaderWidth = textWidth + headerUIElements;
-
-  // Ensure width is at least the default/min width, but allows expansion up to max
-  // The base width is determined by the header text or the minimum width, whichever is larger
-  let optimalWidth = Math.max(minWidth, Math.min(calculatedHeaderWidth, maxWidth));
-
-  // If we have data, we can check if content needs more space, but header readability is priority
-  if (jobs.length > 0) {
-    // Calculate content width from actual data (sample first 10 rows for performance)
-    let maxContentWidth = optimalWidth;
-    const sampleSize = Math.min(jobs.length, 10);
-
-    for (let i = 0; i < sampleSize; i++) {
-      const job = jobs[i];
-      const value = job.results?.[column.id];
-      if (value == null || value === '-') continue;
-
-      let contentLength = 0;
-
-      if (column.type === 'object') {
-        // For objects, estimate based on field count and sample values
-        const obj = value as Record<string, any>;
-        const nonNullFields = Object.entries(obj).filter(([_, v]) => v != null && v !== '-');
-        const fieldCount = nonNullFields.length;
-
-        // Estimate width: "N data" or field preview
-        if (fieldCount === 0) {
-          contentLength = 80;
-        } else {
-          // Sample first value to estimate
-          const sampleValue = nonNullFields[0]?.[1];
-          const sampleStr = sampleValue ? String(sampleValue).slice(0, 30) : '';
-          contentLength = Math.max(
-            fieldCount * 12 + 80, // "N data" + icon space
-            sampleStr.length * 7 + 100 // Sample content
-          );
-        }
-      } else if (column.type === 'list') {
-        // For lists, show item count
-        const items = Array.isArray(value) ? value : [];
-        contentLength = Math.max(100, items.length.toString().length * 8 + 100); // "N items"
-      } else if (column.type === 'table') {
-        // For tables, show row count
-        const rows = Array.isArray(value) ? value : [];
-        contentLength = Math.max(100, rows.length.toString().length * 8 + 100); // "N items"
-      } else if (column.type === 'single_select' || column.type === 'multi_select') {
-        // For select fields, base on option text length
-        const stringValue = Array.isArray(value) ? value.join(', ') : String(value);
-        contentLength = Math.min(stringValue.length * 8 + 60, maxWidth);
-      } else {
-        // For primitives (string, number, date, etc), base on string length
-        const stringValue = String(value);
-        const displayLength = Math.min(stringValue.length, 80); // Cap at 80 chars for calculation
-        contentLength = displayLength * 8 + 50;
-      }
-
-      maxContentWidth = Math.max(maxContentWidth, contentLength);
-    }
-
-    // Use the larger of header width or content width, capped at max
-    optimalWidth = Math.max(optimalWidth, Math.min(Math.ceil(maxContentWidth + 40), maxWidth));
-  }
-
-  return optimalWidth;
-}
+// Column width calculation removed - using fixed default widths for performance
+// This prevents infinite re-render loops caused by dynamic width calculations
 
 export function TanStackGridSheet({
   schemaId,
@@ -267,25 +191,28 @@ export function TanStackGridSheet({
     };
   }, [schemaId]);
 
+  // Use ref for schemaId to avoid recreating logDebug callback
+  const schemaIdRef = useRef(schemaId);
+  schemaIdRef.current = schemaId;
+
   const logDebug = useCallback(
     (message: string, payload?: Record<string, unknown>) => {
       if (!GRID_DEBUG_ENABLED) return;
       const ts = new Date().toISOString();
       if (payload) {
-        console.debug(`[TanStackGridSheet:${schemaId ?? "unknown"}] ${ts} ${message}`, payload);
+        console.debug(`[TanStackGridSheet:${schemaIdRef.current ?? "unknown"}] ${ts} ${message}`, payload);
       } else {
-        console.debug(`[TanStackGridSheet:${schemaId ?? "unknown"}] ${ts} ${message}`);
+        console.debug(`[TanStackGridSheet:${schemaIdRef.current ?? "unknown"}] ${ts} ${message}`);
       }
     },
-    [schemaId]
+    [] // Stable - no dependencies
   );
 
   // FIX: Stabilize visualGroups reference to prevent unnecessary re-renders
-  // The parent component may pass a new [] on every render if not memoized
+  // Simplified to only depend on length to avoid array recreation in dependency
   const stableVisualGroups = useMemo(() => {
-    // Return stable reference if content is the same
     return visualGroups;
-  }, [visualGroups.length, visualGroups.map((g) => `${g.id}:${g.fieldIds.join(',')}`).join('|')]);
+  }, [visualGroups.length]);
 
   if (GRID_DEBUG_ENABLED) {
     const elapsed = Date.now() - renderWindowStartRef.current;
@@ -337,7 +264,7 @@ export function TanStackGridSheet({
         return shallowArrayEqual(prev, next) ? prev : next;
       });
     },
-    [logDebug]
+    [] // Stable - no dependencies
   );
 
   const [columnFilters, setColumnFiltersState] = useState<ColumnFiltersState>([]);
@@ -352,7 +279,7 @@ export function TanStackGridSheet({
         return shallowArrayEqual(prev, next) ? prev : next;
       });
     },
-    [logDebug]
+    [] // Stable - no dependencies
   );
 
   const [columnOrder, setColumnOrderState] = useState<ColumnOrderState>([]);
@@ -367,7 +294,7 @@ export function TanStackGridSheet({
         return shallowArrayEqual(prev, next) ? prev : next;
       });
     },
-    [logDebug]
+    [] // Stable - no dependencies
   );
 
   const [columnVisibility, setColumnVisibilityState] = useState<VisibilityState>({});
@@ -382,7 +309,7 @@ export function TanStackGridSheet({
         return shallowObjectEqual(prev, next) ? prev : next;
       });
     },
-    [logDebug]
+    [] // Stable - no dependencies
   );
 
   const [columnPinning, setColumnPinningState] = useState<ColumnPinningState>({
@@ -400,7 +327,7 @@ export function TanStackGridSheet({
         return shallowObjectEqual(prev, next) ? prev : next;
       });
     },
-    [logDebug]
+    [] // Stable - no dependencies
   );
 
   const [globalFilter, setGlobalFilterState] = useState<string>("");
@@ -415,7 +342,7 @@ export function TanStackGridSheet({
         return Object.is(prev, next) ? prev : next;
       });
     },
-    [logDebug]
+    [] // Stable - no dependencies
   );
   const debouncedSaveRef = useRef<((state: TableState) => void) | null>(null);
   const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
@@ -599,115 +526,9 @@ export function TanStackGridSheet({
     });
   }, [columns, jobs]);
 
-  const filteredRowData = useMemo<GridRow[]>(() => rowData, [rowData]);
+  // Deep scan disabled - was causing performance issues with re-renders
 
-  // Deep scan of grid values to help diagnose React 301 in prod
-  useEffect(() => {
-    const scans: ScanLog[] = [];
-    for (const row of filteredRowData) {
-      const jobId = row.__job.id;
-      for (const col of columns) {
-        const val = (row as any)[col.id];
-        let valueShape: ValueShape = "primitive";
-        if (val instanceof Promise) valueShape = "promise";
-        else if (typeof val === "function") valueShape = "function";
-        else if (typeof val === "symbol") valueShape = "symbol";
-        else if (typeof val === "bigint") valueShape = "bigint";
-        else if (Array.isArray(val)) valueShape = "array";
-        else if (val && typeof val === "object") valueShape = "object";
-
-        // Log suspicious values for primitive columns
-        const isPrimitiveColumn =
-          col.type !== "object" && col.type !== "list" && col.type !== "table";
-        if (
-          isPrimitiveColumn &&
-          (valueShape === "object" ||
-            valueShape === "function" ||
-            valueShape === "symbol" ||
-            valueShape === "promise")
-        ) {
-          console.error("[TanStackGridSheet] Invalid shape in primitive column", {
-            schemaId,
-            jobId,
-            columnId: col.id,
-            columnType: col.type,
-            valueShape,
-            sample: val,
-          });
-          scans.push({
-            schemaId,
-            jobId,
-            columnId: col.id,
-            columnType: col.type,
-            valueShape,
-            sample: val,
-          });
-        }
-      }
-    }
-
-    if (GRID_DEBUG_ENABLED) {
-      console.info("[TanStackGridSheet] grid scan", {
-        schemaId,
-        rows: filteredRowData.length,
-        columns: columns.length,
-        issues: scans.length,
-      });
-    }
-
-    if (typeof window !== "undefined") {
-      (window as any).__GRID_SCAN__ = {
-        schemaId,
-        scannedAt: new Date().toISOString(),
-        rows: filteredRowData.length,
-        columns: columns.length,
-        issues: scans,
-      };
-    }
-  }, [filteredRowData, columns, schemaId]);
-
-  // Expose a small snapshot for post-mortem debugging in prod
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      (window as any).__GRID_LAST_ROWS__ = {
-        schemaId,
-        columns: columns.map((c) => ({ id: c.id, type: c.type })),
-        sampleRows: filteredRowData.slice(0, 3).map((r) => ({
-          jobId: r.__job.id,
-          fileName: r.fileName,
-          status: r.status,
-          values: Object.fromEntries(
-            columns.map((c) => [c.id, (r as any)[c.id]])
-          ),
-        })),
-      };
-      (window as any).__GRID_TYPES__ = {
-        schemaId,
-        columns: columns.map((c) => ({
-          id: c.id,
-          type: c.type,
-          size: columnSizes[c.id] ?? DEFAULT_DATA_COL_WIDTH,
-        })),
-        rows: filteredRowData.slice(0, 3).map((r) => ({
-          jobId: r.__job.id,
-          valueTypes: Object.fromEntries(
-            columns.map((c) => {
-              const v = (r as any)[c.id];
-              const type =
-                v instanceof Promise
-                  ? "promise"
-                  : Array.isArray(v)
-                  ? "array"
-                  : v === null
-                  ? "null"
-                  : typeof v;
-              return [c.id, type];
-            })
-          ),
-        })),
-      };
-    }
-  }, [filteredRowData, columns, schemaId, columnSizes]);
+  // Debug window objects disabled - was causing re-renders on every data change
 
   // Load table state from Supabase when schema changes
   useEffect(() => {
@@ -743,7 +564,7 @@ export function TanStackGridSheet({
           if (state.columnOrder) setColumnOrder(state.columnOrder);
           if (state.columnVisibility) setColumnVisibility(state.columnVisibility);
           if (state.columnPinning) setColumnPinning(state.columnPinning);
-          if (state.columnSizes) setColumnSizes(state.columnSizes);
+          // columnSizes not loaded - using fixed default widths
           setGlobalFilter(state.globalFilter ?? "");
         }
       } catch (err) {
@@ -784,7 +605,7 @@ export function TanStackGridSheet({
       columnOrder,
       columnVisibility,
       columnPinning,
-      columnSizes,
+      columnSizes: {}, // Empty - using fixed default widths
       globalFilter,
     };
 
@@ -795,57 +616,18 @@ export function TanStackGridSheet({
     if (onTableStateChangeRef.current) {
       onTableStateChangeRef.current(state);
     }
-  }, [sorting, columnFilters, columnOrder, columnVisibility, columnPinning, columnSizes, globalFilter, enableTableStatePersistence]);
+  }, [sorting, columnFilters, columnOrder, columnVisibility, columnPinning, globalFilter, enableTableStatePersistence]);
 
-  // Calculate optimal column widths when data changes
-  useEffect(() => {
-    // #region agent log
-    console.error('[H6] Column size calculation effect firing', {
-      renderCount: renderCountRef.current,
-      columnsLength: columns.length,
-      jobsLength: jobs.length
-    });
-    // #endregion
-
-    // We calculate widths even if jobs is empty, to ensure headers are sized correctly
-    // based on their text length.
-    const newSizes: Record<string, number> = {};
-    for (const col of columns) {
-      const calculatedWidth = calculateColumnWidth(col, jobs);
-      newSizes[col.id] = calculatedWidth;
-    }
-
-    if (GRID_DEBUG_ENABLED) logDebug("calculated column sizes", { newSizes });
-
-    // Avoid pointless state updates that can trigger extra renders
-    setColumnSizes((prev) => {
-      const sameKeys =
-        Object.keys(newSizes).length === Object.keys(prev).length &&
-        Object.keys(newSizes).every((key) => prev[key] === newSizes[key]);
-
-      // #region agent log
-      if (!sameKeys) {
-        console.error('[H6] setColumnSizes called - will trigger re-render', {
-          renderCount: renderCountRef.current,
-          prevKeys: Object.keys(prev).length,
-          newKeys: Object.keys(newSizes).length
-        });
-      }
-      // #endregion
-
-      return sameKeys ? prev : newSizes;
-    });
-  }, [columns, jobs, logDebug]);
+  // Column width calculation removed - using fixed default widths
+  // This prevents infinite re-render loops from dynamic width recalculation
 
   const pinnedColumnsWidth = 60 + (hasInputColumns ? 0 : 200); // row index + optional file column
   const addColumnWidth = 56;
 
-  // Calculate total width of data columns using dynamic sizes
+  // Calculate total width of data columns using fixed default width
   const dataColumnsWidth = useMemo(() => {
-    return columns.reduce((sum, col) => {
-      return sum + (columnSizes[col.id] || DEFAULT_DATA_COL_WIDTH);
-    }, 0);
-  }, [columns, columnSizes]);
+    return columns.length * DEFAULT_DATA_COL_WIDTH;
+  }, [columns.length]);
 
   const baseTableWidth = pinnedColumnsWidth + dataColumnsWidth + addColumnWidth;
   const effectiveContainerWidth =
@@ -861,17 +643,6 @@ export function TanStackGridSheet({
   fillerWidthRef.current = fillerWidth;
   
   const tableWidth = baseTableWidth + fillerWidth;
-  // #region agent log
-  const prevColumnSizesRef = useRef(columnSizes);
-  const columnSizesChanged = prevColumnSizesRef.current !== columnSizes;
-  if (columnSizesChanged) {
-    console.error('[H5] columnSizes changed during render', {
-      renderCount: renderCountRef.current,
-      newSizes: Object.keys(columnSizes).length
-    });
-  }
-  prevColumnSizesRef.current = columnSizes;
-  // #endregion
 
   // Define column definitions
   const columnDefs = useMemo<ColumnDef<GridRow>[]>(() => {
@@ -888,9 +659,8 @@ export function TanStackGridSheet({
         maxSize: 60,
         enableResizing: false,
         cell: ({ row }) => {
-          const rowIndex = filteredRowData.findIndex(
-            (r) => r.__job.id === row.original.__job.id
-          );
+          // Use row.index directly from TanStack Table instead of findIndex
+          const rowIndex = row.index;
           const isExpanded = row.original.__job.id === expandedRowId;
           const hasAdvancedFields = columns.some(
             (col) => col.type === "object" || col.type === "list" || col.type === "table"
@@ -980,7 +750,7 @@ export function TanStackGridSheet({
             />
           </div>
         ),
-        size: columnSizes[column.id] || DEFAULT_DATA_COL_WIDTH,
+        size: DEFAULT_DATA_COL_WIDTH,
         minSize: MIN_COL_WIDTH,
         maxSize: MAX_COL_WIDTH,
         enableResizing: false,
@@ -1047,7 +817,7 @@ export function TanStackGridSheet({
             />
           </div>
         ),
-        size: columnSizes[column.id] || DEFAULT_DATA_COL_WIDTH,
+        size: DEFAULT_DATA_COL_WIDTH,
         minSize: MIN_COL_WIDTH,
         maxSize: MAX_COL_WIDTH,
         enableResizing: false,
@@ -1106,7 +876,7 @@ export function TanStackGridSheet({
     return defs;
   }, [
     columns,
-    columnSizes,
+    // columnSizes removed - using fixed default widths
     stableVisualGroups,
     // Avoid tying column definition identity to data to keep table stable
     stableOnEditColumn,
@@ -1118,7 +888,7 @@ export function TanStackGridSheet({
     stableRenderStatusPill,
     stableRenderCellValue,
     // REMOVED fillerWidth - using ref to prevent infinite loop from ResizeObserver
-    expandedRowId,
+    // REMOVED expandedRowId - value is captured in closure, no need to recreate columnDefs
     stableOnToggleRowExpansion,
     stableOnUpdateCell,
     stableOnOpenTableModal,
@@ -1161,13 +931,13 @@ export function TanStackGridSheet({
     console.error('[H5] tableOptions recomputing', { renderCount: renderCountRef.current });
     // #endregion
     return {
-    data: filteredRowData,
+    data: rowData,
     columns: columnDefs,
     getCoreRowModel: coreRowModel,
     getSortedRowModel: sortedRowModel,
     getFilteredRowModel: filteredRowModel,
     getRowId,
-    state: enableSearch ? tableState : { ...tableState, globalFilter: "" },
+    state: tableState,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnOrderChange: setColumnOrder,
@@ -1182,7 +952,7 @@ export function TanStackGridSheet({
     enableGlobalFilter: enableSearch,
     defaultColumn: defaultColumnConfig,
   };}, [
-    filteredRowData,
+    rowData,
     columnDefs,
     getRowId,
     tableState,
@@ -1199,25 +969,7 @@ export function TanStackGridSheet({
     enableSearch,
   ]);
 
-  // Surface lightweight meta for debugging
-  useEffect(() => {
-    if (GRID_DEBUG_ENABLED) {
-      console.info("[TanStackGridSheet] table meta", {
-        schemaId,
-        columns: columns.map((c) => c.id),
-        jobs: filteredRowData.map((r) => r.__job.id),
-      });
-    }
-    if (typeof window !== "undefined") {
-      (window as any).__GRID_META__ = {
-        schemaId,
-        columnCount: columns.length,
-        jobCount: filteredRowData.length,
-        columnIds: columns.map((c) => c.id),
-        jobIds: filteredRowData.map((r) => r.__job.id),
-      };
-    }
-  }, [columns, filteredRowData, schemaId]);
+  // Debug meta disabled - was causing re-renders
 
   // #region agent log
   renderCountRef.current += 1;
@@ -1232,6 +984,17 @@ export function TanStackGridSheet({
       renderCount: renderCountRef.current,
       schemaId
     });
+    
+    // Emergency stop to prevent browser freeze
+    if (renderCountRef.current >= 50) {
+      console.error('[H5] EMERGENCY STOP - Too many renders!', {
+        renderCount: renderCountRef.current,
+        schemaId,
+        columnsLength: columns.length,
+        jobsLength: jobs.length
+      });
+      throw new Error(`[TanStackGridSheet] Render loop detected (${renderCountRef.current} renders). Emergency stop to prevent freeze.`);
+    }
   }
   
   // Track callback identities across renders
@@ -1272,6 +1035,11 @@ export function TanStackGridSheet({
   // Table instance with all features enabled.
   // useReactTable must be called at the top level (not inside other hooks) to satisfy hook rules.
   const table = useReactTable(tableOptions);
+  
+  // Store table instance in ref for stable access in callbacks
+  const tableRef = useRef(table);
+  tableRef.current = table;
+  
   // #region agent log
   const tableInstanceChanged = prevTableRef.current !== table;
   prevTableRef.current = table;
@@ -1279,7 +1047,7 @@ export function TanStackGridSheet({
   // #endregion
   if (GRID_DEBUG_ENABLED) {
     logDebug("tableOptions", {
-      dataRows: filteredRowData.length,
+      dataRows: rowData.length,
       columns: columnDefs.length,
       state: tableState,
     });
@@ -1324,24 +1092,7 @@ export function TanStackGridSheet({
   });
   // #endregion
 
-  // Detect any Promise values in row data early to avoid React 301
-  useEffect(() => {
-    for (const row of filteredRowData) {
-      const jobId = row.__job.id;
-      for (const col of columns) {
-        const cellValue = (row as any)[col.id];
-        if (cellValue instanceof Promise) {
-          console.error("Promise value detected in grid data", {
-            schemaId,
-            jobId,
-            columnId: col.id,
-            value: cellValue,
-          });
-          return;
-        }
-      }
-    }
-  }, [filteredRowData, columns, schemaId]);
+  // Promise detection disabled - was causing re-renders on every data change
 
   useEffect(() => {
     if (!GRID_DEBUG_ENABLED) return;
@@ -1376,9 +1127,9 @@ export function TanStackGridSheet({
       return;
     }
 
-    // Get current column order
-    const currentOrder = table.getState().columnOrder;
-    const allColumns = table.getAllLeafColumns().map(col => col.id);
+    // Get current column order using ref for stable callback
+    const currentOrder = tableRef.current.getState().columnOrder;
+    const allColumns = tableRef.current.getAllLeafColumns().map(col => col.id);
     const activeOrder = Array.isArray(currentOrder) && currentOrder.length > 0 ? currentOrder : allColumns;
 
     // Find indices
@@ -1395,9 +1146,9 @@ export function TanStackGridSheet({
     newOrder.splice(sourceIndex, 1);
     newOrder.splice(targetIndex, 0, sourceColumnId);
 
-    table.setColumnOrder(newOrder);
+    tableRef.current.setColumnOrder(newOrder);
     setDraggedColumn(null);
-  }, [table]);
+  }, []);
 
   const handleColumnDragEnd = useCallback(() => {
     setDraggedColumn(null);
@@ -1420,6 +1171,20 @@ export function TanStackGridSheet({
     logDebug("virtualized rows", { count: virtualizedRows.length, expandedRowId });
   }
 
+  // Memoize virtualizer options to prevent recreating virtualizer
+  const virtualizerOptions = useMemo(() => ({
+    count: virtualizedRows.length,
+    getScrollElement: () => containerRef.current,
+    estimateSize: (index: number) =>
+      virtualizedRows[index]?.type === "detail" ? 320 : 64,
+    getItemKey: (index: number) => virtualizedRows[index]?.key ?? index,
+    overscan: 8,
+    measureElement: (element: Element | undefined) =>
+      element instanceof HTMLElement
+        ? element.getBoundingClientRect().height
+        : 0,
+  }), [virtualizedRows]);
+
   // #region agent log
   const virtualizerOptionsRef = useRef(0);
   virtualizerOptionsRef.current += 1;
@@ -1429,18 +1194,7 @@ export function TanStackGridSheet({
     rowsCount: virtualizedRows.length
   });
   // #endregion
-  const rowVirtualizer = useVirtualizer({
-    count: virtualizedRows.length,
-    getScrollElement: () => containerRef.current,
-    estimateSize: (index) =>
-      virtualizedRows[index]?.type === "detail" ? 320 : 64,
-    getItemKey: (index) => virtualizedRows[index]?.key ?? index,
-    overscan: 8,
-    measureElement: (element) =>
-      element instanceof HTMLElement
-        ? element.getBoundingClientRect().height
-        : 0,
-  });
+  const rowVirtualizer = useVirtualizer(virtualizerOptions);
 
   // #region agent log
   console.error('[DEBUG-G] Before getVirtualItems', {renderCount:renderCountRef.current});
@@ -1478,67 +1232,39 @@ export function TanStackGridSheet({
 
   // Calculate total table width and handle column overflow
   useEffect(() => {
-    // #region agent log
-    console.error('[H7] Container width effect firing', {
-      renderCount: renderCountRef.current
-    });
-    // #endregion
-
     const el = containerRef.current;
     if (!el) return;
 
+    // Throttle resize updates to prevent rapid-fire state changes
+    let resizeTimeout: NodeJS.Timeout | null = null;
+    
     const updateWidth = () => {
       const newWidth = el.clientWidth;
-      // #region agent log
-      console.error('[H7] ResizeObserver callback fired', {
-        renderCount: renderCountRef.current,
-        width: newWidth,
-        currentStateValue: containerWidth
-      });
-      // #endregion
       
       setContainerWidth((prev) => {
-        // #region agent log
-        console.error('[H7] setContainerWidth updater function', {
-          renderCount: renderCountRef.current,
-          prevValue: prev,
-          newValue: newWidth,
-          willUpdate: prev !== newWidth
-        });
-        // #endregion
-        return prev === newWidth ? prev : newWidth;
+        // Only update if width changed by more than 20px to reduce noise
+        const diff = Math.abs(newWidth - prev);
+        return diff > 20 ? newWidth : prev;
       });
     };
 
+    // Initial width
     updateWidth();
 
     const ro = new ResizeObserver(() => {
-      // #region agent log
-      console.error('[H7] ResizeObserver TRIGGERED', {
-        renderCount: renderCountRef.current
-      });
-      // #endregion
-      updateWidth();
+      // Throttle updates to max once per 250ms
+      if (resizeTimeout) clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        updateWidth();
+      }, 250);
     });
 
     ro.observe(el);
-    return () => ro.disconnect();
+    return () => {
+      ro.disconnect();
+      if (resizeTimeout) clearTimeout(resizeTimeout);
+    };
   }, []);
-  
-  // #region agent log
-  // Track if containerWidth state value changes across renders
-  const prevContainerWidthRef = useRef(containerWidth);
-  const containerWidthValueChanged = prevContainerWidthRef.current !== containerWidth;
-  if (containerWidthValueChanged) {
-    console.error('[CRITICAL] containerWidth VALUE changed', {
-      renderCount: renderCountRef.current,
-      oldValue: prevContainerWidthRef.current,
-      newValue: containerWidth
-    });
-  }
-  prevContainerWidthRef.current = containerWidth;
-  console.error('[DEBUG-F] Before JSX render', {renderCount:renderCountRef.current});
-  // #endregion
 
   // Track render completion
   const renderEndMarker = useMemo(() => {

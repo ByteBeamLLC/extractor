@@ -151,22 +151,42 @@ export function StandardResultsView({
   // #region agent log - track memoization
   const prevJobsRef = React.useRef<ExtractionJob[]>(jobs);
   const jobsIdentityChanged = prevJobsRef.current !== jobs;
-  const prevSortedJobsRef = React.useRef<ExtractionJob[]>();
+  const prevSortedJobsRef = React.useRef<ExtractionJob[]>([]);
   // #endregion
 
-  // Sort jobs by creation date - memoized to prevent re-sorting on every render
+  // Helper to check if jobs array actually changed (by IDs and timestamps)
+  const shallowJobsEqual = (a: ExtractionJob[], b: ExtractionJob[]): boolean => {
+    if (a.length !== b.length) return false;
+    return a.every((job, i) => {
+      const bJob = b[i];
+      return job.id === bJob?.id && job.createdAt?.getTime() === bJob?.createdAt?.getTime();
+    });
+  };
+
+  // Sort jobs by creation date - memoized with deep comparison to prevent unnecessary re-sorting
   const sortedJobs = React.useMemo(() => {
     // #region agent log
-    console.error(`[H4] sortedJobs recomputed (render #${renderCountRef.current})`, {
+    console.error(`[H4] sortedJobs memo evaluating (render #${renderCountRef.current})`, {
       jobsIdentityChanged,
       jobsLength: jobs.length
     });
     // #endregion
-    return [...jobs].sort((a, b) => {
+    
+    // Only re-sort if jobs array content actually changed
+    if (shallowJobsEqual(prevSortedJobsRef.current, jobs)) {
+      console.error(`[H4] sortedJobs REUSING previous (render #${renderCountRef.current})`);
+      return prevSortedJobsRef.current;
+    }
+    
+    console.error(`[H4] sortedJobs COMPUTING new (render #${renderCountRef.current})`);
+    const sorted = [...jobs].sort((a, b) => {
       const aTime = a.createdAt?.getTime() ?? 0
       const bTime = b.createdAt?.getTime() ?? 0
       return aTime - bTime
-    })
+    });
+    
+    prevSortedJobsRef.current = sorted;
+    return sorted;
   }, [jobs])
 
   // #region agent log - track sortedJobs identity
@@ -182,14 +202,18 @@ export function StandardResultsView({
   const prevHandleSelectRowRef = React.useRef<Function>();
   // #endregion
 
+  // Use ref to avoid recreating handleSelectRow when sortedJobs changes
+  const sortedJobsRef = React.useRef(sortedJobs);
+  sortedJobsRef.current = sortedJobs;
+
   // Memoize onSelectRow callback to prevent unnecessary re-renders of TanStackGridSheet
   const handleSelectRow = React.useCallback((id: string) => {
     // #region agent log
     console.error(`[H2] handleSelectRow invoked (render #${renderCountRef.current})`, { id });
     // #endregion
-    const job = sortedJobs.find((j) => j.id === id)
+    const job = sortedJobsRef.current.find((j) => j.id === id)
     onSelectJob(job ?? null)
-  }, [sortedJobs, onSelectJob])
+  }, [onSelectJob])
 
   // #region agent log - track handleSelectRow identity
   React.useEffect(() => {
