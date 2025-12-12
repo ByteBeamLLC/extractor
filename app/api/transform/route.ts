@@ -414,6 +414,127 @@ async function performWebReader(url: string) {
   }
 }
 
+interface ImageSearchResult {
+  url: string
+  alt?: string
+  caption?: string
+  sourceUrl?: string
+  sourceTitle?: string
+}
+
+async function performImageSearch(query: string): Promise<{
+  query: string
+  images: ImageSearchResult[]
+  error?: string
+}> {
+  const apiKey = process.env.JINA_API_KEY
+  console.log(`[bytebeam] Image search requested for "${query}" (API key ${apiKey ? "present" : "missing"})`)
+
+  if (!apiKey) {
+    return {
+      error: "JINA_API_KEY not configured. Please set the JINA_API_KEY environment variable to enable image search.",
+      query,
+      images: []
+    }
+  }
+
+  try {
+    const response = await fetch(`https://s.jina.ai/${encodeURIComponent(query)}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        Accept: "application/json",
+        "X-With-Images-Summary": "all",  // Include images with captions
+      },
+    })
+
+    const rawText = await response.text()
+    console.log(`[bytebeam] Jina image search raw response (${response.status}):`, truncateBody(rawText) || "<empty body>")
+
+    if (!response.ok) {
+      return { error: `Jina API error: ${response.status} ${rawText || response.statusText}`, query, images: [] }
+    }
+
+    let data: any
+    try {
+      data = rawText ? JSON.parse(rawText) : {}
+    } catch (parseError) {
+      console.error("[bytebeam] Jina image search JSON parse error:", parseError)
+      return { error: "Jina API returned non-JSON response", query, images: [] }
+    }
+
+    // Extract images from the search results
+    const images: ImageSearchResult[] = []
+    const results = data.data || []
+
+    for (const result of results) {
+      // Check if the result has images array
+      if (result.images && Array.isArray(result.images)) {
+        for (const img of result.images) {
+          if (img.url || img.src) {
+            images.push({
+              url: img.url || img.src,
+              alt: img.alt || img.title || "",
+              caption: img.caption || img.description || "",
+              sourceUrl: result.url || "",
+              sourceTitle: result.title || "",
+            })
+          }
+        }
+      }
+
+      // Also check for image property (single image)
+      if (result.image) {
+        images.push({
+          url: typeof result.image === "string" ? result.image : result.image.url || result.image.src,
+          alt: result.image?.alt || "",
+          caption: result.image?.caption || "",
+          sourceUrl: result.url || "",
+          sourceTitle: result.title || "",
+        })
+      }
+
+      // Check content for image references (markdown format)
+      if (result.content) {
+        const imgRegex = /!\[([^\]]*)\]\(([^)]+)\)/g
+        let match
+        while ((match = imgRegex.exec(result.content)) !== null) {
+          const [, alt, url] = match
+          if (url && !images.some(img => img.url === url)) {
+            images.push({
+              url,
+              alt: alt || "",
+              caption: "",
+              sourceUrl: result.url || "",
+              sourceTitle: result.title || "",
+            })
+          }
+        }
+      }
+    }
+
+    console.log(`[bytebeam] Image search found ${images.length} images for "${query}"`)
+
+    // Log first few images for debugging
+    if (images.length > 0) {
+      console.log("[bytebeam] First 5 images found:")
+      images.slice(0, 5).forEach((img, idx) => {
+        console.log(`  ${idx + 1}. ${img.url}`)
+        console.log(`     Alt: ${img.alt || '(none)'}`)
+        console.log(`     Source: ${img.sourceTitle || img.sourceUrl || '(unknown)'}`)
+      })
+    }
+
+    return {
+      query,
+      images: images.slice(0, 20), // Limit to 20 images
+    }
+  } catch (error) {
+    console.error("[bytebeam] Jina image search error:", error)
+    return { error: error instanceof Error ? error.message : "Image search failed", query, images: [] }
+  }
+}
+
 function evaluateExpression(expr: string): number {
   expr = expr.trim().toLowerCase()
 
@@ -753,6 +874,7 @@ export async function POST(request: NextRequest) {
       // Execute web tools server-side (OpenRouter tool calls are disabled)
       let webSearchData: any = null
       let webReaderData: any = null
+      let imageSearchData: any = null
 
       if (selectedTools.includes('webSearch') && !hasExplicitUrl) {
         const queryCandidate =
@@ -787,6 +909,48 @@ export async function POST(request: NextRequest) {
           }
         } else {
           console.warn("[bytebeam] Transform - No URL found in prompt for web reader tool")
+        }
+      }
+
+      // Execute image search if selected
+      if (selectedTools.includes('imageSearch')) {
+        const queryCandidate =
+          primitiveSubstitutions['image_query'] ??
+          primitiveSubstitutions['image_search_query'] ??
+          primitiveSubstitutions['sfda_search_query'] ??
+          primitiveSubstitutions['search_query'] ??
+          primitiveSubstitutions['query'] ??
+          Object.values(primitiveSubstitutions).filter(v => typeof v === 'string' && v.length > 0)[0]
+
+        if (queryCandidate) {
+          // Extract contextual keywords from the prompt to enhance image search
+          const promptLower = promptWithResolvedUrls.toLowerCase()
+          const contextKeywords: string[] = []
+
+          // Regional/market context
+          if (promptLower.includes('saudi') || promptLower.includes('ksa')) contextKeywords.push('Saudi Arabia')
+          if (promptLower.includes('gcc') || promptLower.includes('gulf')) contextKeywords.push('GCC')
+          if (promptLower.includes('arabic') || promptLower.includes('arab')) contextKeywords.push('Arabic')
+          if (promptLower.includes('middle east') || promptLower.includes('mena')) contextKeywords.push('Middle East')
+          if (promptLower.includes('uae') || promptLower.includes('emirates')) contextKeywords.push('UAE')
+          if (promptLower.includes('sfda')) contextKeywords.push('SFDA')
+          if (promptLower.includes('localized') || promptLower.includes('local')) contextKeywords.push('local market')
+
+          // Product type context
+          if (promptLower.includes('packaging') || promptLower.includes('package')) contextKeywords.push('packaging')
+          if (promptLower.includes('box')) contextKeywords.push('box')
+          if (promptLower.includes('label')) contextKeywords.push('label')
+          if (promptLower.includes('product')) contextKeywords.push('product')
+
+          // Build enhanced query
+          const contextString = contextKeywords.length > 0 ? contextKeywords.join(' ') : 'product image'
+          const imageQuery = `${queryCandidate} ${contextString}`
+
+          console.log("[bytebeam] Transform - Running image search for:", imageQuery)
+          console.log("[bytebeam] Transform - Context keywords extracted:", contextKeywords)
+          imageSearchData = await performImageSearch(imageQuery)
+        } else {
+          console.warn("[bytebeam] Transform - No query found for image search tool")
         }
       }
 
@@ -894,6 +1058,18 @@ export async function POST(request: NextRequest) {
         } else {
           const readerContent = webReaderData.content || webReaderData.description || ""
           toolContextParts.push(`Web reader content from ${webReaderData.url}:\n${truncateBody(readerContent)}`)
+        }
+      }
+      if (imageSearchData) {
+        if (imageSearchData.error) {
+          toolContextParts.push(`Image search error${imageSearchData.query ? ` for "${imageSearchData.query}"` : ""}: ${imageSearchData.error}`)
+        } else {
+          const imageList = (imageSearchData.images || [])
+            .map((img: ImageSearchResult, idx: number) =>
+              `${idx + 1}. URL: ${img.url}\n   Alt: ${img.alt || "(none)"}\n   Caption: ${img.caption || "(none)"}\n   Source: ${img.sourceTitle || img.sourceUrl || "(unknown)"}`
+            )
+            .join('\n')
+          toolContextParts.push(`Image search results for "${imageSearchData.query}" (${imageSearchData.images?.length || 0} images found):\n${imageList || "(no images found)"}`)
         }
       }
       if (toolContextParts.length > 0) {

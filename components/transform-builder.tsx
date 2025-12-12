@@ -310,6 +310,19 @@ export function TransformBuilder(props: {
               Braille - Convert text to Braille format
             </label>
           </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="tool-imagesearch"
+              checked={selectedTools.includes('imageSearch')}
+              onCheckedChange={() => toggleTool('imageSearch')}
+            />
+            <label
+              htmlFor="tool-imagesearch"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+            >
+              Image Search - Find and collect images from the web
+            </label>
+          </div>
         </div>
         <p className="text-xs text-muted-foreground">
           Select which tools the AI can use. Only selected tools will be available during transformation.
