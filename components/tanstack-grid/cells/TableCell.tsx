@@ -171,7 +171,7 @@ export function TableCell({
           className="h-7 px-2 text-xs w-full"
         >
           <Maximize2 className="mr-1 h-3 w-3" />
-          View Full Table
+          
           <span className="ml-1 px-1 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
             {rows.length}
           </span>
@@ -203,7 +203,7 @@ export function TableCell({
             className="h-7 px-2 text-xs"
           >
             <Maximize2 className="mr-1 h-3 w-3" />
-            View Full Table
+            {/* View Full Table */}
           </Button>
         )}
       </div>
