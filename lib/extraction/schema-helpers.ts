@@ -331,14 +331,118 @@ export function diffJobLists(prevJobs: ExtractionJob[], nextJobs: ExtractionJob[
 }
 
 /**
+ * Count the number of non-empty result values in a job
+ */
+function countNonEmptyResults(results: Record<string, unknown> | undefined): number {
+  if (!results) return 0
+  return Object.values(results).filter((v) => {
+    if (v === undefined || v === null) return false
+    if (typeof v === "string" && (v.trim() === "" || v === "-")) return false
+    if (Array.isArray(v) && v.length === 0) return false
+    return true
+  }).length
+}
+
+/**
+ * Merge two result objects, preferring non-empty values
+ */
+function mergeResults(
+  existing: Record<string, unknown> | undefined,
+  incoming: Record<string, unknown> | undefined
+): Record<string, unknown> | undefined {
+  if (!existing && !incoming) return undefined
+  if (!existing) return incoming
+  if (!incoming) return existing
+
+  const merged: Record<string, unknown> = { ...incoming }
+
+  // For each key in existing, keep the existing value if incoming is empty
+  for (const key of Object.keys(existing)) {
+    const existingVal = existing[key]
+    const incomingVal = merged[key]
+
+    // Check if incoming value is empty
+    const incomingEmpty =
+      incomingVal === undefined ||
+      incomingVal === null ||
+      (typeof incomingVal === "string" && (incomingVal.trim() === "" || incomingVal === "-")) ||
+      (Array.isArray(incomingVal) && incomingVal.length === 0)
+
+    // Check if existing value is non-empty
+    const existingNonEmpty =
+      existingVal !== undefined &&
+      existingVal !== null &&
+      !(typeof existingVal === "string" && (existingVal.trim() === "" || existingVal === "-")) &&
+      !(Array.isArray(existingVal) && existingVal.length === 0)
+
+    // Prefer existing non-empty value over incoming empty value
+    if (incomingEmpty && existingNonEmpty) {
+      merged[key] = existingVal
+    }
+  }
+
+  return merged
+}
+
+/**
+ * Merge two InputDocument records
+ */
+function mergeInputDocuments(
+  existing: Record<string, InputDocument> | undefined,
+  incoming: Record<string, InputDocument> | undefined
+): Record<string, InputDocument> | undefined {
+  if (!existing && !incoming) return undefined
+  if (!existing) return incoming
+  if (!incoming) return existing
+
+  // Merge both, preferring incoming but keeping existing entries not in incoming
+  return { ...existing, ...incoming }
+}
+
+/**
  * Upsert a job into a list (add or replace)
+ * When replacing, intelligently merges data to preserve:
+ * - Transformation results from local state
+ * - inputDocuments from database updates
+ * - Other metadata from whichever source has it
  */
 export function upsertJobInList(list: ExtractionJob[], job: ExtractionJob): ExtractionJob[] {
   const index = list.findIndex((existing) => existing.id === job.id)
   if (index === -1) {
     return [...list, job]
   }
+
+  const existing = list[index]
+
+  // If incoming job is not completed but existing is, keep existing (don't regress status)
+  if (job.status !== "completed" && existing.status === "completed") {
+    return list
+  }
+
+  // Merge the jobs intelligently
+  const mergedJob: ExtractionJob = {
+    ...job,
+    // Merge results - prefer the version with more non-empty values
+    results: countNonEmptyResults(existing.results) > countNonEmptyResults(job.results)
+      ? mergeResults(job.results, existing.results)
+      : mergeResults(existing.results, job.results),
+    // Merge inputDocuments from both sources
+    inputDocuments: mergeInputDocuments(existing.inputDocuments, job.inputDocuments),
+    // Merge review metadata
+    review: existing.review || job.review
+      ? { ...(existing.review ?? {}), ...(job.review ?? {}) }
+      : undefined,
+    // Prefer non-null values for other fields
+    ocrMarkdown: job.ocrMarkdown ?? existing.ocrMarkdown,
+    ocrAnnotatedImageUrl: job.ocrAnnotatedImageUrl ?? existing.ocrAnnotatedImageUrl,
+    originalFileUrl: job.originalFileUrl ?? existing.originalFileUrl,
+    // Use the later completedAt
+    completedAt: (job.completedAt?.getTime() ?? 0) > (existing.completedAt?.getTime() ?? 0)
+      ? job.completedAt
+      : existing.completedAt,
+  }
+
   const next = [...list]
-  next[index] = job
+  next[index] = mergedJob
   return next
 }

@@ -1277,7 +1277,7 @@ export function TanStackGridSheet({
       />
 
       {/* Grid container */}
-      <div ref={containerRef} className="tanstack-grid h-full w-full overflow-auto">
+      <div ref={containerRef} className="tanstack-grid flex-1 w-full overflow-auto min-h-0">
         <table
           className="border-collapse"
           style={{

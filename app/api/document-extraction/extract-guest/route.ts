@@ -234,6 +234,12 @@ async function renderPdfPagesToImages(base64: string): Promise<Array<{
 
   const pdfjsLib = (pdfjsModule as any).default ?? pdfjsModule
 
+  // CRITICAL: Disable worker by setting workerSrc to empty string BEFORE getDocument()
+  // This prevents pdfjs-dist from trying to load the worker file in serverless environments
+  if (pdfjsLib.GlobalWorkerOptions) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = ""
+  }
+
   class NodeCanvasFactory {
     create(width: number, height: number) {
       const canvas = createCanvas(width, height)
