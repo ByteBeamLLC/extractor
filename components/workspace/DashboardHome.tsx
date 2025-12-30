@@ -10,9 +10,11 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 
 import type { AgentType, SchemaSummary } from "./types"
+import { DocumentExtractionDashboard } from "@/components/document-extraction/DocumentExtractionDashboard"
 
 const agentBadgeClass: Record<AgentType, string> = {
   standard: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-200",
@@ -36,6 +38,7 @@ export function DashboardHome({
   onOpenSchema,
   onCreateNew,
 }: DashboardHomeProps) {
+  const [mode, setMode] = useState<"work-automation" | "document-extraction">("work-automation")
   const [searchQuery, setSearchQuery] = useState("")
   const [sortKey, setSortKey] = useState<"recent" | "name">("recent")
 
@@ -58,8 +61,35 @@ export function DashboardHome({
     })
   }, [schemas, searchQuery, sortKey])
 
+  // If document extraction mode, render that dashboard
+  if (mode === "document-extraction") {
+    return (
+      <div className="flex h-full flex-col">
+        <div className="flex flex-col gap-4 px-6 py-4 lg:px-10 border-b">
+          <Tabs value={mode} onValueChange={(v) => setMode(v as typeof mode)}>
+            <TabsList>
+              <TabsTrigger value="work-automation">Work Automation</TabsTrigger>
+              <TabsTrigger value="document-extraction">Document Extraction</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+        <div className="flex-1 overflow-hidden">
+          <DocumentExtractionDashboard />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex h-full flex-col">
+      <div className="flex flex-col gap-4 px-6 py-4 lg:px-10 border-b">
+        <Tabs value={mode} onValueChange={(v) => setMode(v as typeof mode)}>
+          <TabsList>
+            <TabsTrigger value="work-automation">Work Automation</TabsTrigger>
+            <TabsTrigger value="document-extraction">Document Extraction</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
       <div className="flex flex-col gap-6 px-6 py-8 lg:px-10">
         <section className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>

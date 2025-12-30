@@ -11,13 +11,35 @@ import type { SchemaDefinition } from "@/lib/schema"
 import type { SchemaTemplateDefinition } from "@/lib/schema-templates"
 import { cloneSchemaFields } from "@/lib/schema-templates"
 import type { AgentType } from "@/components/workspace/types"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { DocumentExtractionDashboard } from "@/components/document-extraction/DocumentExtractionDashboard"
 
 export function HomeView() {
+    const [mode, setMode] = useState<"work-automation" | "document-extraction">("work-automation")
+
     if (ENABLE_DASHBOARD) {
         return <WorkspaceApp isEmbedded={true} />
     }
 
-    return <StandaloneDataExtractor />
+    return (
+        <div className="flex h-full flex-col">
+            <div className="flex flex-col gap-4 px-6 py-4 lg:px-10 border-b">
+                <Tabs value={mode} onValueChange={(v) => setMode(v as typeof mode)}>
+                    <TabsList>
+                        <TabsTrigger value="work-automation">Work Automation</TabsTrigger>
+                        <TabsTrigger value="document-extraction">Document Extraction</TabsTrigger>
+                    </TabsList>
+                </Tabs>
+            </div>
+            <div className="flex-1 overflow-hidden">
+                {mode === "document-extraction" ? (
+                    <DocumentExtractionDashboard />
+                ) : (
+                    <StandaloneDataExtractor />
+                )}
+            </div>
+        </div>
+    )
 }
 
 function StandaloneDataExtractor() {

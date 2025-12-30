@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    serverComponentsExternalPackages: ['@ai-sdk/google'],
+    serverComponentsExternalPackages: ['@ai-sdk/google', 'pdfjs-dist', 'canvas', '@napi-rs/canvas'],
   },
 
 
