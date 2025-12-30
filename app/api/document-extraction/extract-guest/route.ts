@@ -1,10 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { callDotsOcr, extractLayoutBlocks } from "@/lib/replicate"
+import { callDatalabChandra, extractLayoutBlocks as extractDatalabBlocks } from "@/lib/datalab"
 import { generateText } from "@/lib/openrouter"
 
-// Set longer timeout for extraction (10 minutes)
+// Set timeout for extraction (4 minutes)
 export const runtime = 'nodejs'
-export const maxDuration = 600 // 10 minutes in seconds
+export const maxDuration = 240 // 4 minutes in seconds
 
 // Concurrency configuration for parallel text extraction
 const INITIAL_CONCURRENCY = 5
@@ -15,6 +16,23 @@ const BASE_BACKOFF_MS = 1000
 
 // Gemini model for text extraction
 const GEMINI_MODEL = "google/gemini-2.5-pro-preview"
+
+// ============================================================================
+// Types for dual extraction results
+// ============================================================================
+
+interface GeminiFullTextResult {
+  success: boolean
+  fullText?: string
+  error?: string
+}
+
+interface LayoutExtractionResult {
+  success: boolean
+  layout_data?: any
+  extracted_text?: any
+  error?: string
+}
 
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
@@ -292,122 +310,236 @@ function isPDFFile(mimeType: string, fileName: string): boolean {
   )
 }
 
-export async function POST(request: NextRequest) {
+// ============================================================================
+// Gemini Full-Text Extraction (Pipeline 2)
+// ============================================================================
+
+async function extractFullImageWithGemini(imageDataUrl: string): Promise<string> {
+  const prompt = `Extract all text content from this document image and format it using Markdown syntax.
+
+Formatting guidelines:
+- Use **bold** for emphasized or important text
+- Use headers (# ## ###) for titles and section headers
+- Use bullet points (-) or numbered lists where appropriate
+- Use tables (| col1 | col2 |) for tabular data
+- Use > blockquotes for quoted text or notes
+- Preserve the structure, hierarchy and layout of the original document
+
+Return ONLY the markdown-formatted text. No explanations, meta-commentary, or descriptions of the image.`
+
+  const result = await generateText({
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: prompt },
+          { type: "image_url", image_url: { url: imageDataUrl } },
+        ],
+      },
+    ],
+    temperature: 0.1,
+    model: GEMINI_MODEL,
+  })
+
+  return result.text.trim()
+}
+
+async function runGeminiFullTextExtractionGuest(
+  base64: string,
+  mimeType: string,
+  fileName: string
+): Promise<GeminiFullTextResult> {
+  console.log(`[document-extraction] Starting Gemini full-text extraction (Pipeline 2)`)
+
   try {
-    const body = await request.json()
-    const { file_id, file_name, mime_type, file_data } = body
+    const isPdf = isPDFFile(mimeType, fileName)
+    let fullText: string
 
-    if (!file_id || !file_data) {
-      return NextResponse.json({ error: "File ID and file data are required" }, { status: 400 })
-    }
+    if (isPdf) {
+      // For PDFs, render pages and extract from each
+      console.log(`[document-extraction] Rendering PDF pages for Gemini full-text...`)
+      const pageImages = await renderPdfPagesToImages(base64)
+      console.log(`[document-extraction] Extracting text from ${pageImages.length} pages with Gemini...`)
 
-    // Check if REPLICATE_API_TOKEN is configured
-    if (!process.env.REPLICATE_API_TOKEN && !process.env.REPLICATE_API_KEY) {
-      console.error("[document-extraction] REPLICATE_API_TOKEN is not configured")
-      return NextResponse.json(
-        {
-          error: "REPLICATE_API_TOKEN is not configured. Please set REPLICATE_API_TOKEN in your .env file.",
-          details: "Get your API key from https://replicate.com/"
-        },
-        { status: 500 }
-      )
-    }
-
-    try {
-      console.log("[document-extraction] Starting dots.ocr extraction for file:", file_name)
-
-      const isPdf = isPDFFile(mime_type || "", file_name || "")
-
-      // For multi-page data structure
-      interface PageData {
-        pageIndex: number
-        pageNumber: number
-        width?: number
-        height?: number
-        imageDataUrl: string
-        blocks: Array<{
-          blockIndex: number
-          globalBlockIndex: number
-          type: string
-          content?: string
-          text?: string
-          bbox: [number, number, number, number]
-          originalBbox?: [number, number, number, number]
-          category?: string
-        }>
+      const pageTexts: string[] = []
+      for (const pageImage of pageImages) {
+        console.log(`[document-extraction] Gemini extracting page ${pageImage.pageNumber}...`)
+        const pageText = await extractFullImageWithGemini(pageImage.imageDataUrl)
+        pageTexts.push(`## Page ${pageImage.pageNumber}\n\n${pageText}`)
       }
+      fullText = pageTexts.join('\n\n---\n\n')
+    } else {
+      // For images, extract directly
+      const imageDataUrl = `data:${mimeType};base64,${base64}`
+      console.log(`[document-extraction] Extracting text from image with Gemini...`)
+      fullText = await extractFullImageWithGemini(imageDataUrl)
+    }
 
-      const pages: PageData[] = []
-      let globalBlockIndex = 0
-      let dotsOcrFailed = false
+    console.log(`[document-extraction] ✅ Gemini full-text extraction completed`)
+    return { success: true, fullText }
+  } catch (error: any) {
+    console.error(`[document-extraction] Gemini full-text extraction failed:`, error)
+    return { success: false, error: error.message || String(error) }
+  }
+}
 
-      // Try dots.ocr first
-      try {
-        if (isPdf) {
-          // Render PDF pages to images and process each with dots.ocr
-          console.log("[document-extraction] Rendering PDF pages to images...")
-          const pageImages = await renderPdfPagesToImages(file_data)
-          console.log(`[document-extraction] Rendered ${pageImages.length} PDF pages`)
+// ============================================================================
+// Layout-based Extraction (Pipeline 1)
+// ============================================================================
 
-          for (const pageImage of pageImages) {
-            console.log(`[document-extraction] Processing page ${pageImage.pageNumber} with dots.ocr...`)
+async function runLayoutExtractionGuest(
+  base64: string,
+  mimeType: string,
+  fileName: string,
+  extractionMethod: string
+): Promise<LayoutExtractionResult> {
+  console.log(`[document-extraction] Starting layout extraction (Pipeline 1) using method: ${extractionMethod}`)
 
-            const dotsOcrOutput = await callDotsOcr(
-              { image: pageImage.imageBase64, file_name: `${file_name}-page-${pageImage.pageNumber}.png`, mime_type: "image/png" },
-              { timeout: 600_000 }
-            )
+  try {
+    const isPdf = isPDFFile(mimeType, fileName)
 
-            console.log(`[document-extraction] dots.ocr page ${pageImage.pageNumber} response:`, {
-              hasBlocks: !!dotsOcrOutput.blocks,
-              blocksCount: dotsOcrOutput.blocks?.length || 0,
-            })
+    // For multi-page data structure
+    interface PageData {
+      pageIndex: number
+      pageNumber: number
+      width?: number
+      height?: number
+      imageDataUrl: string
+      blocks: Array<{
+        blockIndex: number
+        globalBlockIndex: number
+        type: string
+        content?: string
+        text?: string
+        bbox: [number, number, number, number]
+        originalBbox?: [number, number, number, number]
+        category?: string
+      }>
+    }
 
-            const blocks = dotsOcrOutput.blocks || []
+    const pages: PageData[] = []
+    let globalBlockIndex = 0
 
-            pages.push({
-              pageIndex: pageImage.pageIndex,
-              pageNumber: pageImage.pageNumber,
-              width: pageImage.width,
-              height: pageImage.height,
-              imageDataUrl: pageImage.imageDataUrl,
-              blocks: blocks.map((block: any, i: number) => ({
-                blockIndex: i,
-                globalBlockIndex: globalBlockIndex + i,
-                type: block.type || block.category || "TEXT",
-                content: block.content || block.text || "",
-                text: block.content || block.text || "",
-                bbox: block.bbox || [0, 0, 0, 0],
-                originalBbox: block.originalBbox,
-                category: block.category,
-              })),
-            })
+    if (extractionMethod === 'datalab') {
+      // Use Datalab Marker (Chandra) with accurate mode for block type classification
+      console.log("[document-extraction] Processing with Datalab Marker (Chandra) in accurate mode...")
 
-            globalBlockIndex += blocks.length
+      const datalabOutput = await callDatalabChandra(
+        {
+          file: base64,
+          file_name: fileName,
+          mime_type: mimeType,
+          output_format: 'json',
+          mode: 'accurate'
+        },
+        { timeout: 240_000 }
+      )
+
+      console.log("[document-extraction] Datalab Marker response:", {
+        hasJson: !!datalabOutput.json,
+        hasBlocks: !!datalabOutput.blocks,
+        hasPages: !!datalabOutput.pages,
+      })
+
+      // Extract blocks with types from Datalab output
+      const extractedBlocks = extractDatalabBlocks(datalabOutput)
+      console.log(`[document-extraction] Extracted ${extractedBlocks.length} blocks with types`)
+
+      if (isPdf) {
+        // For PDFs, render pages for visualization
+        console.log("[document-extraction] Rendering PDF pages for visualization...")
+        const pageImages = await renderPdfPagesToImages(base64)
+        console.log(`[document-extraction] Rendered ${pageImages.length} PDF pages`)
+
+        // Group blocks by page if available
+        const blocksByPage = new Map<number, any[]>()
+
+        extractedBlocks.forEach((block: any) => {
+          const pageIndex = block.pageIndex ?? 0
+          if (!blocksByPage.has(pageIndex)) {
+            blocksByPage.set(pageIndex, [])
           }
-        } else {
-          // Single image - process directly with dots.ocr
-          console.log("[document-extraction] Processing image with dots.ocr...")
+          blocksByPage.get(pageIndex)!.push(block)
+        })
+
+        // Create page data with blocks
+        pageImages.forEach((pageImage, idx) => {
+          const pageBlocks = blocksByPage.get(idx) || []
+
+          pages.push({
+            pageIndex: pageImage.pageIndex,
+            pageNumber: pageImage.pageNumber,
+            width: pageImage.width,
+            height: pageImage.height,
+            imageDataUrl: pageImage.imageDataUrl,
+            blocks: pageBlocks.map((block: any, i: number) => ({
+              blockIndex: i,
+              globalBlockIndex: globalBlockIndex + i,
+              type: block.type || "TEXT",
+              content: block.content || "",
+              text: block.content || "",
+              bbox: block.bbox || [0, 0, 0, 0],
+              originalBbox: block.originalBbox || (block.bbox ? [block.bbox[0], block.bbox[1], block.bbox[0] + block.bbox[2], block.bbox[1] + block.bbox[3]] : undefined),
+              polygon: block.polygon,
+              category: block.type,
+            })),
+          })
+
+          globalBlockIndex += pageBlocks.length
+        })
+      } else {
+        // Single image
+        const imageDataUrl = `data:${mimeType || "image/png"};base64,${base64}`
+
+        pages.push({
+          pageIndex: 0,
+          pageNumber: 1,
+          imageDataUrl,
+          blocks: extractedBlocks.map((block: any, i: number) => ({
+            blockIndex: i,
+            globalBlockIndex: i,
+            type: block.type || "TEXT",
+            content: block.content || "",
+            text: block.content || "",
+            bbox: block.bbox || [0, 0, 0, 0],
+            originalBbox: block.originalBbox || (block.bbox ? [block.bbox[0], block.bbox[1], block.bbox[0] + block.bbox[2], block.bbox[1] + block.bbox[3]] : undefined),
+            polygon: block.polygon,
+            category: block.type,
+          })),
+        })
+      }
+    } else {
+      // Use dots.ocr (default)
+      if (isPdf) {
+        // Render PDF pages to images and process each with dots.ocr
+        console.log("[document-extraction] Rendering PDF pages to images...")
+        const pageImages = await renderPdfPagesToImages(base64)
+        console.log(`[document-extraction] Rendered ${pageImages.length} PDF pages`)
+
+        for (const pageImage of pageImages) {
+          console.log(`[document-extraction] Processing page ${pageImage.pageNumber} with dots.ocr...`)
 
           const dotsOcrOutput = await callDotsOcr(
-            { image: file_data, file_name: file_name, mime_type: mime_type },
-            { timeout: 600_000 }
+            { image: pageImage.imageBase64, file_name: `${fileName}-page-${pageImage.pageNumber}.png`, mime_type: "image/png" },
+            { timeout: 240_000 }
           )
 
-          console.log("[document-extraction] dots.ocr response:", {
+          console.log(`[document-extraction] dots.ocr page ${pageImage.pageNumber} response:`, {
             hasBlocks: !!dotsOcrOutput.blocks,
             blocksCount: dotsOcrOutput.blocks?.length || 0,
           })
 
           const blocks = dotsOcrOutput.blocks || []
-          const imageDataUrl = `data:${mime_type || "image/png"};base64,${file_data}`
 
           pages.push({
-            pageIndex: 0,
-            pageNumber: 1,
-            imageDataUrl,
+            pageIndex: pageImage.pageIndex,
+            pageNumber: pageImage.pageNumber,
+            width: pageImage.width,
+            height: pageImage.height,
+            imageDataUrl: pageImage.imageDataUrl,
             blocks: blocks.map((block: any, i: number) => ({
               blockIndex: i,
-              globalBlockIndex: i,
+              globalBlockIndex: globalBlockIndex + i,
               type: block.type || block.category || "TEXT",
               content: block.content || block.text || "",
               text: block.content || block.text || "",
@@ -416,295 +548,228 @@ export async function POST(request: NextRequest) {
               category: block.category,
             })),
           })
+
+          globalBlockIndex += blocks.length
         }
-      } catch (dotsOcrError) {
-        console.warn("[document-extraction] dots.ocr failed, falling back to direct Gemini extraction:", dotsOcrError)
-        dotsOcrFailed = true
+      } else {
+        // Single image - process directly with dots.ocr
+        console.log("[document-extraction] Processing image with dots.ocr...")
 
-        // Fallback: Pass entire file to Gemini
-        if (isPdf) {
-          // For PDFs, render pages and pass all to Gemini
-          console.log("[document-extraction] Rendering PDF pages for Gemini fallback...")
-          const pageImages = await renderPdfPagesToImages(file_data)
-          console.log(`[document-extraction] Rendered ${pageImages.length} PDF pages for Gemini`)
+        const dotsOcrOutput = await callDotsOcr(
+          { image: base64, file_name: fileName, mime_type: mimeType },
+          { timeout: 240_000 }
+        )
 
-          // Pass all pages to Gemini in one call
-          const imageContents = pageImages.map(pageImage => ({
-            type: "image_url" as const,
-            image_url: { url: pageImage.imageDataUrl }
-          }))
+        console.log("[document-extraction] dots.ocr response:", {
+          hasBlocks: !!dotsOcrOutput.blocks,
+          blocksCount: dotsOcrOutput.blocks?.length || 0,
+        })
 
-          const prompt = `Extract all text content from this ${pageImages.length}-page document.
-For each page, preserve the layout, structure, and meaning of the data.
+        const blocks = dotsOcrOutput.blocks || []
+        const imageDataUrl = `data:${mimeType || "image/png"};base64,${base64}`
 
-Return a JSON array where each element represents a page with this structure:
-{
-  "pageNumber": <page number starting from 1>,
-  "content": "<extracted text with preserved formatting>"
+        pages.push({
+          pageIndex: 0,
+          pageNumber: 1,
+          imageDataUrl,
+          blocks: blocks.map((block: any, i: number) => ({
+            blockIndex: i,
+            globalBlockIndex: i,
+            type: block.type || block.category || "TEXT",
+            content: block.content || block.text || "",
+            text: block.content || block.text || "",
+            bbox: block.bbox || [0, 0, 0, 0],
+            originalBbox: block.originalBbox,
+            category: block.category,
+          })),
+        })
+      }
+    }
+
+    // Collect all blocks for parallel text extraction
+    const allBlocks = pages.flatMap(p => p.blocks)
+    console.log(`[document-extraction] Total blocks extracted: ${allBlocks.length}`)
+
+    // Prepare tasks for parallel text extraction
+    const tasks: BlockExtractionTask[] = []
+
+    for (const page of pages) {
+      for (const block of page.blocks) {
+        const [, , width, height] = block.bbox
+        const ocrText = block.content || block.text || ""
+
+        if (width > 0 && height > 0) {
+          tasks.push({
+            index: block.globalBlockIndex,
+            block,
+            ocrText,
+            bbox: block.bbox,
+            imageDataUrl: page.imageDataUrl,
+          })
+        }
+      }
+    }
+
+    // Extract text from blocks in parallel
+    let extractedTexts: BlockExtractionResult[] = []
+
+    if (tasks.length > 0) {
+      console.log(`[document-extraction] Extracting text from ${tasks.length} blocks in parallel...`)
+      extractedTexts = await extractBlocksInParallel(tasks)
+    } else if (allBlocks.length > 0) {
+      // Use OCR text directly for blocks without valid bbox
+      extractedTexts = pages.flatMap(p => p.blocks.map(block => ({
+        blockIndex: block.globalBlockIndex,
+        type: block.type,
+        text: block.content || block.text || "",
+        ocrText: block.content || block.text || "",
+        bbox: block.bbox,
+        originalBbox: block.originalBbox,
+      })))
+    } else {
+      // No blocks found - extract from full image
+      console.log("[document-extraction] No blocks found, extracting from full document")
+      const firstPageImageUrl = pages[0]?.imageDataUrl || `data:${mimeType || "image/png"};base64,${base64}`
+      const fullText = await extractFullImageWithGemini(firstPageImageUrl)
+
+      pages[0] = pages[0] || {
+        pageIndex: 0,
+        pageNumber: 1,
+        imageDataUrl: firstPageImageUrl,
+        blocks: [],
+      }
+
+      pages[0].blocks.push({
+        blockIndex: 0,
+        globalBlockIndex: 0,
+        type: "TEXT",
+        content: fullText,
+        text: fullText,
+        bbox: [0, 0, 0, 0],
+      })
+
+      extractedTexts = [{
+        blockIndex: 0,
+        type: "TEXT",
+        text: fullText,
+        ocrText: fullText,
+        bbox: [0, 0, 0, 0],
+      }]
+    }
+
+    // Build result structures
+    const layout_data = {
+      pages: pages.map(p => ({
+        pageIndex: p.pageIndex,
+        pageNumber: p.pageNumber,
+        width: p.width,
+        height: p.height,
+        imageDataUrl: p.imageDataUrl,
+        blocks: p.blocks,
+      })),
+      totalPages: pages.length,
+      totalBlocks: allBlocks.length,
+    }
+
+    const extracted_text = {
+      pages: pages.map(p => ({
+        pageIndex: p.pageIndex,
+        pageNumber: p.pageNumber,
+        blocks: extractedTexts
+          .filter(et => {
+            const block = allBlocks.find(b => b.globalBlockIndex === et.blockIndex)
+            return block && pages.find(pg => pg.blocks.includes(block))?.pageIndex === p.pageIndex
+          })
+          .map(et => ({
+            blockIndex: et.blockIndex,
+            globalBlockIndex: et.blockIndex,
+            type: et.type,
+            text: et.text,
+            ocrText: et.ocrText,
+            bbox: et.bbox,
+            originalBbox: et.originalBbox,
+          })),
+      })),
+      totalBlocks: extractedTexts.length,
+    }
+
+    console.log(`[document-extraction] ✅ Layout extraction completed`)
+    return { success: true, layout_data, extracted_text }
+  } catch (error: any) {
+    console.error(`[document-extraction] Layout extraction failed:`, error)
+    return { success: false, error: error.message || String(error) }
+  }
 }
 
-Rules:
-- Preserve headers, titles, bullet points, lists, tables, and structure
-- Format tables as markdown tables or HTML if complex
-- Maintain reading order
-- Keep the original language (no translation)
-- No explanations or metadata - just the structured extraction
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { file_id, file_name, mime_type, file_data, extraction_method = 'dots.ocr' } = body
 
-Output ONLY the JSON array, nothing else.`
+    console.log("[document-extraction] Received extraction request:", {
+      file_name,
+      extraction_method_received: extraction_method,
+      extraction_method_type: typeof extraction_method,
+    })
 
-          const result = await generateText({
-            messages: [
-              {
-                role: "user",
-                content: [
-                  { type: "text", text: prompt },
-                  ...imageContents
-                ],
-              },
-            ],
-            temperature: 0.1,
-            model: GEMINI_MODEL,
-          })
-
-          // Parse Gemini's response
-          try {
-            const parsedPages = JSON.parse(result.text.trim())
-            if (Array.isArray(parsedPages)) {
-              for (let i = 0; i < parsedPages.length; i++) {
-                const pageData = parsedPages[i]
-                const pageImage = pageImages[i]
-                
-                pages.push({
-                  pageIndex: i,
-                  pageNumber: pageData.pageNumber || (i + 1),
-                  width: pageImage?.width,
-                  height: pageImage?.height,
-                  imageDataUrl: pageImage?.imageDataUrl || "",
-                  blocks: [{
-                    blockIndex: 0,
-                    globalBlockIndex: globalBlockIndex++,
-                    type: "TEXT",
-                    content: pageData.content || "",
-                    text: pageData.content || "",
-                    bbox: [0, 0, 0, 0],
-                  }],
-                })
-              }
-            }
-          } catch (parseError) {
-            console.warn("[document-extraction] Failed to parse Gemini JSON, using raw text")
-            // Fallback: treat as single text block per page
-            for (let i = 0; i < pageImages.length; i++) {
-              const pageImage = pageImages[i]
-              pages.push({
-                pageIndex: i,
-                pageNumber: i + 1,
-                width: pageImage.width,
-                height: pageImage.height,
-                imageDataUrl: pageImage.imageDataUrl,
-                blocks: [{
-                  blockIndex: 0,
-                  globalBlockIndex: globalBlockIndex++,
-                  type: "TEXT",
-                  content: result.text.trim(),
-                  text: result.text.trim(),
-                  bbox: [0, 0, 0, 0],
-                }],
-              })
-            }
-          }
-        } else {
-          // Single image - pass to Gemini
-          console.log("[document-extraction] Using Gemini for single image extraction...")
-          const imageDataUrl = `data:${mime_type || "image/png"};base64,${file_data}`
-
-          const prompt = `Extract all text content from this document image.
-Preserve the layout, structure, context, and meaning of the data.
-
-Rules:
-- Maintain headers, titles, bullet points, lists, tables, and structure
-- Format tables as markdown tables or HTML if complex
-- Keep reading order
-- Preserve the original language (no translation)
-- No explanations or metadata
-
-Return ONLY the extracted text with preserved formatting.`
-
-          const result = await generateText({
-            messages: [
-              {
-                role: "user",
-                content: [
-                  { type: "text", text: prompt },
-                  { type: "image_url", image_url: { url: imageDataUrl } },
-                ],
-              },
-            ],
-            temperature: 0.1,
-            model: GEMINI_MODEL,
-          })
-
-          pages.push({
-            pageIndex: 0,
-            pageNumber: 1,
-            imageDataUrl,
-            blocks: [{
-              blockIndex: 0,
-              globalBlockIndex: 0,
-              type: "TEXT",
-              content: result.text.trim(),
-              text: result.text.trim(),
-              bbox: [0, 0, 0, 0],
-            }],
-          })
-        }
-      }
-
-      // Collect all blocks for parallel text extraction
-      const allBlocks = pages.flatMap(p => p.blocks)
-      console.log(`[document-extraction] Total blocks extracted: ${allBlocks.length}`)
-
-      // If dots.ocr failed and we used Gemini fallback, skip parallel extraction
-      // because Gemini already extracted all the text
-      let extractedTexts: BlockExtractionResult[] = []
-
-      if (dotsOcrFailed) {
-        console.log("[document-extraction] Using Gemini-extracted text directly (dots.ocr fallback)")
-        // Use the text already extracted by Gemini in the fallback
-        extractedTexts = pages.flatMap(p => p.blocks.map(block => ({
-          blockIndex: block.globalBlockIndex,
-          type: block.type,
-          text: block.content || block.text || "",
-          ocrText: block.content || block.text || "",
-          bbox: block.bbox,
-          originalBbox: block.originalBbox,
-        })))
-      } else {
-        // If no blocks from dots.ocr, extract from full image
-        if (allBlocks.length === 0) {
-          console.log("[document-extraction] No blocks found, extracting from full document")
-
-          const firstPageImageUrl = pages[0]?.imageDataUrl || `data:${mime_type || "image/png"};base64,${file_data}`
-
-          const prompt = `Extract all text content from this document image.
-Return only the extracted text, preserving the structure and layout as much as possible.
-Format the output appropriately (use headers for titles, bullet points for lists, etc.).
-No explanations or metadata - just the extracted text.`
-
-          const result = await generateText({
-            messages: [
-              {
-                role: "user",
-                content: [
-                  { type: "text", text: prompt },
-                  { type: "image_url", image_url: { url: firstPageImageUrl } },
-                ],
-              },
-            ],
-            temperature: 0.1,
-            model: GEMINI_MODEL,
-          })
-
-          // Add as single block
-          pages[0].blocks.push({
-            blockIndex: 0,
-            globalBlockIndex: 0,
-            type: "TEXT",
-            content: result.text.trim(),
-            text: result.text.trim(),
-            bbox: [0, 0, 0, 0],
-          })
-        }
-
-        // Prepare tasks for parallel text extraction
-        const tasks: BlockExtractionTask[] = []
-
-        for (const page of pages) {
-          for (const block of page.blocks) {
-            const [, , width, height] = block.bbox
-            const ocrText = block.content || block.text || ""
-
-            if (width > 0 && height > 0) {
-              tasks.push({
-                index: block.globalBlockIndex,
-                block,
-                ocrText,
-                bbox: block.bbox,
-                imageDataUrl: page.imageDataUrl,
-              })
-            }
-          }
-        }
-
-        // Extract text from blocks in parallel
-        if (tasks.length > 0) {
-          console.log(`[document-extraction] Extracting text from ${tasks.length} blocks in parallel...`)
-          extractedTexts = await extractBlocksInParallel(tasks)
-        } else {
-          // Use OCR text directly for blocks without valid bbox
-          extractedTexts = pages.flatMap(p => p.blocks.map(block => ({
-            blockIndex: block.globalBlockIndex,
-            type: block.type,
-            text: block.content || block.text || "",
-            ocrText: block.content || block.text || "",
-            bbox: block.bbox,
-            originalBbox: block.originalBbox,
-          })))
-        }
-      }
-
-      // Return multi-page data structure
-      return NextResponse.json({
-        success: true,
-        file_id,
-        layout_data: {
-          pages: pages.map(p => ({
-            pageIndex: p.pageIndex,
-            pageNumber: p.pageNumber,
-            width: p.width,
-            height: p.height,
-            imageDataUrl: p.imageDataUrl,
-            blocks: p.blocks,
-          })),
-          totalPages: pages.length,
-          totalBlocks: allBlocks.length,
-        },
-        extracted_text: {
-          pages: pages.map(p => ({
-            pageIndex: p.pageIndex,
-            pageNumber: p.pageNumber,
-            blocks: extractedTexts
-              .filter(et => {
-                const block = allBlocks.find(b => b.globalBlockIndex === et.blockIndex)
-                return block && pages.find(pg => pg.blocks.includes(block))?.pageIndex === p.pageIndex
-              })
-              .map(et => ({
-                blockIndex: et.blockIndex,
-                globalBlockIndex: et.blockIndex,
-                type: et.type,
-                text: et.text,
-                ocrText: et.ocrText,
-                bbox: et.bbox,
-                originalBbox: et.originalBbox,
-              })),
-          })),
-          totalBlocks: extractedTexts.length,
-        },
-      })
-    } catch (extractionError) {
-      console.error("[document-extraction] Extraction error:", extractionError)
-      const errorMessage = extractionError instanceof Error ? extractionError.message : String(extractionError)
-      const errorStack = extractionError instanceof Error ? extractionError.stack : undefined
-
-      return NextResponse.json(
-        {
-          error: "Extraction failed",
-          details: errorMessage,
-          stack: process.env.NODE_ENV === "development" ? errorStack : undefined,
-        },
-        { status: 500 }
-      )
+    if (!file_id || !file_data) {
+      return NextResponse.json({ error: "File ID and file data are required" }, { status: 400 })
     }
+
+    // Validate extraction method
+    const method = extraction_method === 'datalab' ? 'datalab' : 'dots.ocr'
+
+    console.log("[document-extraction] Using extraction method:", method)
+    console.log("[document-extraction] Starting PARALLEL dual extraction (Gemini full-text + Layout blocks)")
+
+    // Run BOTH extraction pipelines in PARALLEL
+    const [geminiResult, layoutResult] = await Promise.allSettled([
+      runGeminiFullTextExtractionGuest(file_data, mime_type || "image/png", file_name || "document"),
+      runLayoutExtractionGuest(file_data, mime_type || "image/png", file_name || "document", method),
+    ])
+
+    // Process results
+    const geminiSuccess = geminiResult.status === 'fulfilled' && geminiResult.value.success
+    const layoutSuccess = layoutResult.status === 'fulfilled' && layoutResult.value.success
+
+    // Extract data from results
+    const geminiData = geminiResult.status === 'fulfilled' ? geminiResult.value : null
+    const layoutData = layoutResult.status === 'fulfilled' ? layoutResult.value : null
+
+    // Determine overall success (at least one pipeline succeeded)
+    const success = geminiSuccess || layoutSuccess
+
+    // Build error message if both failed
+    let errorMessage: string | undefined
+    if (!success) {
+      const geminiError = geminiResult.status === 'rejected'
+        ? geminiResult.reason?.message
+        : geminiData?.error
+      const layoutError = layoutResult.status === 'rejected'
+        ? layoutResult.reason?.message
+        : layoutData?.error
+      errorMessage = `Gemini: ${geminiError || 'unknown'}; Layout: ${layoutError || 'unknown'}`
+    }
+
+    console.log(`[document-extraction] ✅ Dual extraction completed`)
+    console.log(`[document-extraction] Gemini: ${geminiSuccess ? 'success' : 'failed'}, Layout: ${layoutSuccess ? 'success' : 'failed'}`)
+
+    // Return combined results from both pipelines
+    return NextResponse.json({
+      success,
+      file_id,
+      // Pipeline 1: Layout-based extraction results
+      layout_data: layoutData?.layout_data || null,
+      extracted_text: layoutData?.extracted_text || null,
+      layout_extraction_status: layoutSuccess ? 'completed' : 'error',
+      layout_error_message: layoutSuccess ? null : (layoutData?.error || 'Unknown error'),
+      // Pipeline 2: Gemini full-text extraction results
+      gemini_full_text: geminiData?.fullText || null,
+      gemini_extraction_status: geminiSuccess ? 'completed' : 'error',
+      gemini_error_message: geminiSuccess ? null : (geminiData?.error || 'Unknown error'),
+      // Overall status
+      error_message: errorMessage,
+    })
   } catch (error) {
     console.error("[document-extraction] Unexpected error:", error)
     return NextResponse.json(

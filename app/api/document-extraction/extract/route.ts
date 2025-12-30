@@ -20,9 +20,10 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { file_id } = body
+    const { file_id, extraction_method } = body
+    const extractionMethod = extraction_method || "dots.ocr"
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'extract/route.ts:22',message:'Extract route received file_id',data:{file_id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H5'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'extract/route.ts:22',message:'Extract route received file_id',data:{file_id, extraction_method: extractionMethod},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H5'})}).catch(()=>{});
     // #endregion
 
     if (!file_id) {
@@ -47,6 +48,7 @@ export async function POST(request: NextRequest) {
         fileId: file_id,
         userId: user.id,
         supabase,
+        extractionMethod,
       })
 
       return NextResponse.json(result)

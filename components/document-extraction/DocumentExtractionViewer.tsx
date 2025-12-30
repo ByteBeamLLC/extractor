@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { X, FileText, Maximize2, Minimize2, ChevronLeft, ChevronRight } from "lucide-react"
+import { X, FileText, Maximize2, Minimize2, ChevronLeft, ChevronRight, Loader2, CheckCircle2, XCircle, FileTextIcon, LayoutGrid, ZoomIn, ZoomOut, Maximize, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   ResizableHandle,
@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import type { DocumentExtractionFile } from "./DocumentExtractionFileCard"
@@ -25,6 +26,7 @@ interface DocumentExtractionViewerProps {
   onClose: () => void
 }
 
+type ExtractionMode = "full-text" | "blocks"
 type ViewFormat = "blocks" | "json" | "html" | "markdown" | "render-html"
 
 // Block type colors for bounding boxes (simplified categories)
@@ -74,6 +76,13 @@ export function DocumentExtractionViewer({
   onClose,
 }: DocumentExtractionViewerProps) {
   const [isMaximized, setIsMaximized] = React.useState(false)
+  const [extractionMode, setExtractionMode] = React.useState<ExtractionMode>(() => {
+    // Default to whichever extraction completed first/is available
+    if (file.gemini_extraction_status === "completed" && file.gemini_full_text) {
+      return "full-text"
+    }
+    return "blocks"
+  })
   const [viewFormat, setViewFormat] = React.useState<ViewFormat>("blocks")
   const [hoveredBlockIndex, setHoveredBlockIndex] = React.useState<number | null>(null)
   const [currentPageIndex, setCurrentPageIndex] = React.useState(0)
@@ -81,8 +90,11 @@ export function DocumentExtractionViewer({
     natural: { width: number; height: number }
     displayed: { width: number; height: number }
   } | null>(null)
+  const [zoomLevel, setZoomLevel] = React.useState(100) // percentage
+  const [fitMode, setFitMode] = React.useState<"fit" | "width" | "height" | "manual">("fit")
   const imageRef = React.useRef<HTMLImageElement>(null)
   const imageContainerRef = React.useRef<HTMLDivElement>(null)
+  const documentContainerRef = React.useRef<HTMLDivElement>(null)
 
   const layoutData = file.layout_data as MultiPageLayoutData | null
   const extractedTextData = file.extracted_text
@@ -194,6 +206,13 @@ export function DocumentExtractionViewer({
     }
   }, [updateImageDimensions])
 
+  // Update dimensions when zoom changes
+  React.useEffect(() => {
+    // Small delay to let the image resize
+    const timeoutId = setTimeout(updateImageDimensions, 50)
+    return () => clearTimeout(timeoutId)
+  }, [zoomLevel, fitMode, updateImageDimensions])
+
   // Get color for block type
   const getBlockColor = (type: string) => {
     return BLOCK_TYPE_COLORS[type?.toUpperCase()] || BLOCK_TYPE_COLORS.DEFAULT
@@ -263,14 +282,19 @@ export function DocumentExtractionViewer({
     const img = imageRef.current
     if (!img.complete) return
 
+    // Calculate scale factor from reference coordinates to natural image coordinates
+    // Datalab coordinates are in reference space (page width), but we need to crop from natural image
+    const referenceWidth = currentPage?.width || imageDimensions.natural.width
+    const cropScale = imageDimensions.natural.width / referenceWidth
+
     const newCroppedImages: Record<number, string> = {}
 
     combinedBlocks.forEach((block, index) => {
+      const originalBbox = block.originalBbox
       const bbox = block.bbox
       const polygon = block.polygon
 
-      if (!bbox && !polygon) return
-      if (bbox && bbox[2] <= 0 && bbox[3] <= 0) return
+      if (!originalBbox && !bbox && !polygon) return
 
       try {
         const canvas = document.createElement("canvas")
@@ -279,23 +303,38 @@ export function DocumentExtractionViewer({
 
         let x: number, y: number, width: number, height: number
 
-        if (bbox && bbox[2] > 0 && bbox[3] > 0) {
-          x = bbox[0]
-          y = bbox[1]
-          width = bbox[2]
-          height = bbox[3]
+        // Prefer originalBbox [x1, y1, x2, y2] format (from dots.ocr or Datalab)
+        if (originalBbox && originalBbox.length === 4) {
+          const [x1, y1, x2, y2] = originalBbox
+          x = x1
+          y = y1
+          width = x2 - x1
+          height = y2 - y1
         } else if (polygon && polygon.length >= 8) {
+          // Use polygon as fallback
           const xs = polygon.filter((_: number, i: number) => i % 2 === 0)
           const ys = polygon.filter((_: number, i: number) => i % 2 === 1)
           x = Math.min(...xs)
           y = Math.min(...ys)
           width = Math.max(...xs) - x
           height = Math.max(...ys) - y
+        } else if (bbox && bbox[2] > 0 && bbox[3] > 0) {
+          // Fallback to bbox [x, y, width, height] format
+          x = bbox[0]
+          y = bbox[1]
+          width = bbox[2]
+          height = bbox[3]
         } else {
           return
         }
 
         if (width <= 0 || height <= 0) return
+
+        // Scale coordinates from reference space to natural image space
+        x = x * cropScale
+        y = y * cropScale
+        width = width * cropScale
+        height = height * cropScale
 
         const padding = 5
         x = Math.max(0, x - padding)
@@ -317,7 +356,7 @@ export function DocumentExtractionViewer({
     })
 
     setCroppedImages(newCroppedImages)
-  }, [imageDimensions, combinedBlocks, isImage, hasPageImage])
+  }, [imageDimensions, combinedBlocks, isImage, hasPageImage, currentPage?.width])
 
   // Page navigation
   const goToPreviousPage = () => {
@@ -341,6 +380,47 @@ export function DocumentExtractionViewer({
     }
   }
 
+  // Zoom controls
+  const zoomIn = () => {
+    setFitMode("manual")
+    setZoomLevel((prev) => Math.min(prev + 25, 400))
+  }
+
+  const zoomOut = () => {
+    setFitMode("manual")
+    setZoomLevel((prev) => Math.max(prev - 25, 25))
+  }
+
+  const fitToContainer = () => {
+    setFitMode("fit")
+    setZoomLevel(100)
+  }
+
+  const resetZoom = () => {
+    setFitMode("manual")
+    setZoomLevel(100)
+  }
+
+  // Calculate actual zoom based on fit mode
+  const getImageStyle = React.useCallback(() => {
+    if (fitMode === "fit") {
+      return {
+        maxWidth: "100%",
+        maxHeight: "100%",
+        width: "auto",
+        height: "auto",
+        objectFit: "contain" as const,
+      }
+    }
+    return {
+      width: `${zoomLevel}%`,
+      maxWidth: "none",
+      maxHeight: "none",
+      height: "auto",
+      objectFit: "contain" as const,
+    }
+  }, [fitMode, zoomLevel])
+
   const renderBlocksView = () => {
     if (combinedBlocks.length === 0) {
       return (
@@ -357,7 +437,13 @@ export function DocumentExtractionViewer({
         {combinedBlocks.map((block, index) => {
           const blockColor = getBlockColor(block.type)
           const croppedImageUrl = isImageFile ? croppedImages[index] : null
-          const hasBbox = block.bbox && (block.bbox[2] > 0 || block.bbox[3] > 0)
+          // Prefer originalBbox [x1, y1, x2, y2] format for display
+          const displayBbox = block.originalBbox || block.bbox
+          const hasBbox = displayBbox && displayBbox.length === 4 && (
+            block.originalBbox
+              ? (displayBbox[2] > displayBbox[0] && displayBbox[3] > displayBbox[1]) // [x1, y1, x2, y2]
+              : (displayBbox[2] > 0 || displayBbox[3] > 0) // [x, y, width, height]
+          )
 
           return (
             <div
@@ -382,9 +468,9 @@ export function DocumentExtractionViewer({
                 {totalPages > 1 && (
                   <span className="opacity-75 font-normal">Page {currentPageIndex + 1}</span>
                 )}
-                {hasBbox && (
+                {hasBbox && displayBbox && (
                   <span className="opacity-75 font-normal ml-auto">
-                    ({Math.round(block.bbox[0])}, {Math.round(block.bbox[1])}, {Math.round(block.bbox[2])}, {Math.round(block.bbox[3])})
+                    ({Math.round(displayBbox[0])}, {Math.round(displayBbox[1])}, {Math.round(displayBbox[2])}, {Math.round(displayBbox[3])})
                   </span>
                 )}
               </div>
@@ -401,19 +487,22 @@ export function DocumentExtractionViewer({
                 </div>
               )}
 
-              {/* Block content */}
+              {/* Block content - rendered as markdown */}
               <div className="p-3 space-y-2">
-                <div className="text-sm whitespace-pre-wrap break-words">
-                  {block.extractedText || block.content || block.text || ""}
+                <div className="prose prose-sm dark:prose-invert max-w-none break-words">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {block.extractedText || block.content || block.text || ""}
+                  </ReactMarkdown>
                 </div>
 
-                {/* Show OCR text if different */}
+                {/* Show OCR text if different - render as HTML */}
                 {block.ocrText && block.ocrText !== block.extractedText && (
                   <div className="mt-2 pt-2 border-t border-dashed">
                     <div className="text-xs text-muted-foreground mb-1">OCR (original):</div>
-                    <div className="text-xs text-muted-foreground whitespace-pre-wrap break-words">
-                      {block.ocrText}
-                    </div>
+                    <div
+                      className="text-xs text-muted-foreground prose prose-xs dark:prose-invert max-w-none break-words [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded [&_img]:border [&_img]:shadow-sm"
+                      dangerouslySetInnerHTML={{ __html: block.ocrText }}
+                    />
                   </div>
                 )}
               </div>
@@ -516,7 +605,58 @@ export function DocumentExtractionViewer({
     )
   }
 
+  // Render full-text view (Gemini extracted markdown)
+  const renderFullTextView = () => {
+    const geminiStatus = file.gemini_extraction_status || "pending"
+
+    if (geminiStatus === "processing") {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+          <Loader2 className="h-8 w-8 animate-spin mb-4" />
+          <p>Extracting full text with Gemini...</p>
+        </div>
+      )
+    }
+
+    if (geminiStatus === "error") {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-red-500">
+          <XCircle className="h-8 w-8 mb-4" />
+          <p>Failed to extract full text</p>
+          {file.gemini_error_message && (
+            <p className="text-sm text-muted-foreground mt-2">{file.gemini_error_message}</p>
+          )}
+        </div>
+      )
+    }
+
+    if (!file.gemini_full_text) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+          <FileTextIcon className="h-8 w-8 mb-4 opacity-50" />
+          <p>No full text available yet</p>
+        </div>
+      )
+    }
+
+    return (
+      <div className="p-6 max-w-4xl mx-auto">
+        <div className="prose prose-sm dark:prose-invert max-w-none">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {file.gemini_full_text}
+          </ReactMarkdown>
+        </div>
+      </div>
+    )
+  }
+
   const renderParseView = () => {
+    // If in full-text mode, render the Gemini full text
+    if (extractionMode === "full-text") {
+      return renderFullTextView()
+    }
+
+    // Otherwise render the blocks view based on viewFormat
     switch (viewFormat) {
       case "blocks":
         return renderBlocksView()
@@ -533,9 +673,48 @@ export function DocumentExtractionViewer({
     }
   }
 
+  // Helper to render status badge
+  const renderStatusBadge = (status: string | undefined, label: string) => {
+    if (!status || status === "pending") {
+      return (
+        <Badge variant="secondary" className="text-xs gap-1">
+          <Loader2 className="h-3 w-3" />
+          {label}: Pending
+        </Badge>
+      )
+    }
+    if (status === "processing") {
+      return (
+        <Badge variant="secondary" className="text-xs gap-1 bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          {label}: Processing
+        </Badge>
+      )
+    }
+    if (status === "completed") {
+      return (
+        <Badge variant="secondary" className="text-xs gap-1 bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-200">
+          <CheckCircle2 className="h-3 w-3" />
+          {label}: Ready
+        </Badge>
+      )
+    }
+    if (status === "error") {
+      return (
+        <Badge variant="secondary" className="text-xs gap-1 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200">
+          <XCircle className="h-3 w-3" />
+          {label}: Error
+        </Badge>
+      )
+    }
+    return null
+  }
+
   // Calculate scale for bounding box overlays
+  // Use page dimensions if available (from OCR/extraction), otherwise fall back to natural image dimensions
+  const referenceWidth = currentPage?.width || imageDimensions?.natural.width || 1
   const scale = imageDimensions
-    ? imageDimensions.displayed.width / imageDimensions.natural.width
+    ? imageDimensions.displayed.width / referenceWidth
     : 1
 
   // Render bounding box overlays (works for both images and PDFs with page images)
@@ -754,7 +933,6 @@ export function DocumentExtractionViewer({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <PageNavigation />
             <Button
               variant="ghost"
               size="icon"
@@ -778,13 +956,88 @@ export function DocumentExtractionViewer({
             {/* Document Pane */}
             <ResizablePanel defaultSize={50} minSize={30}>
               <div className="h-full flex flex-col bg-muted/10">
-                <div className="h-9 border-b flex items-center justify-between px-4 text-xs font-medium text-muted-foreground bg-muted/5">
-                  <span>Document</span>
-                  {totalPages > 1 && (
-                    <span>Page {currentPageIndex + 1} of {totalPages}</span>
-                  )}
+                {/* Document Header with Zoom Controls */}
+                <div className="h-10 border-b flex items-center justify-between px-3 text-xs font-medium text-muted-foreground bg-muted/5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">Document</span>
+                    {totalPages > 1 && (
+                      <>
+                        <span className="text-muted-foreground/50">|</span>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={goToPreviousPage}
+                            disabled={currentPageIndex === 0}
+                          >
+                            <ChevronLeft className="h-3.5 w-3.5" />
+                          </Button>
+                          <span className="min-w-[60px] text-center">
+                            {currentPageIndex + 1} / {totalPages}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={goToNextPage}
+                            disabled={currentPageIndex === totalPages - 1}
+                          >
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  {/* Zoom Controls */}
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={zoomOut}
+                      title="Zoom Out"
+                    >
+                      <ZoomOut className="h-3.5 w-3.5" />
+                    </Button>
+                    <span className="min-w-[45px] text-center text-xs tabular-nums">
+                      {fitMode === "fit" ? "Fit" : `${zoomLevel}%`}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={zoomIn}
+                      title="Zoom In"
+                    >
+                      <ZoomIn className="h-3.5 w-3.5" />
+                    </Button>
+                    <div className="w-px h-4 bg-border mx-1" />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={fitToContainer}
+                      title="Fit to Container"
+                    >
+                      <Maximize className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={resetZoom}
+                      title="Reset to 100%"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex-1 overflow-auto flex items-center justify-center p-4">
+                {/* Document Content */}
+                <div
+                  ref={documentContainerRef}
+                  className={`flex-1 overflow-auto ${fitMode === "fit" ? "flex items-center justify-center" : ""} p-4`}
+                >
                   {isImage ? (
                     <div ref={imageContainerRef} className="relative inline-block">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -792,7 +1045,8 @@ export function DocumentExtractionViewer({
                         ref={imageRef}
                         src={file.file_url}
                         alt={file.name}
-                        className="max-w-full max-h-full object-contain shadow-sm rounded-md"
+                        style={getImageStyle()}
+                        className="shadow-sm rounded-md"
                         crossOrigin="anonymous"
                       />
                       {renderBoundingBoxOverlays()}
@@ -805,7 +1059,8 @@ export function DocumentExtractionViewer({
                         ref={imageRef}
                         src={currentPageImageUrl}
                         alt={`${file.name} - Page ${currentPageIndex + 1}`}
-                        className="max-w-full max-h-full object-contain shadow-sm rounded-md"
+                        style={getImageStyle()}
+                        className="shadow-sm rounded-md"
                         crossOrigin="anonymous"
                       />
                       {renderBoundingBoxOverlays()}
@@ -832,28 +1087,61 @@ export function DocumentExtractionViewer({
             {/* Parse Pane */}
             <ResizablePanel defaultSize={50} minSize={30}>
               <div className="h-full flex flex-col bg-background">
-                <div className="h-9 border-b flex items-center px-4 text-xs font-medium text-muted-foreground bg-muted/5">
-                  <span className="mr-4">Parse</span>
-                  <Tabs value={viewFormat} onValueChange={(v) => setViewFormat(v as ViewFormat)}>
-                    <TabsList className="h-7">
-                      <TabsTrigger value="blocks" className="text-xs px-2 py-1">
-                        Blocks ({combinedBlocks.length})
-                      </TabsTrigger>
-                      <TabsTrigger value="json" className="text-xs px-2 py-1">
-                        JSON
-                      </TabsTrigger>
-                      <TabsTrigger value="html" className="text-xs px-2 py-1">
-                        HTML
-                      </TabsTrigger>
-                      <TabsTrigger value="markdown" className="text-xs px-2 py-1">
-                        Markdown
-                      </TabsTrigger>
-                      <TabsTrigger value="render-html" className="text-xs px-2 py-1">
-                        Render
-                      </TabsTrigger>
-                    </TabsList>
-                  </Tabs>
+                {/* Mode Toggle Header */}
+                <div className="border-b flex items-center justify-between px-4 py-2 bg-muted/5">
+                  <div className="flex items-center gap-2">
+                    <Tabs value={extractionMode} onValueChange={(v) => setExtractionMode(v as ExtractionMode)}>
+                      <TabsList className="h-8">
+                        <TabsTrigger
+                          value="full-text"
+                          className="text-xs px-3 py-1.5 gap-1.5"
+                          disabled={file.gemini_extraction_status === "pending"}
+                        >
+                          <FileTextIcon className="h-3.5 w-3.5" />
+                          Full Text
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="blocks"
+                          className="text-xs px-3 py-1.5 gap-1.5"
+                          disabled={file.layout_extraction_status === "pending" && !file.layout_data}
+                        >
+                          <LayoutGrid className="h-3.5 w-3.5" />
+                          Blocks
+                        </TabsTrigger>
+                      </TabsList>
+                    </Tabs>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {renderStatusBadge(file.gemini_extraction_status, "Full Text")}
+                    {renderStatusBadge(file.layout_extraction_status, "Blocks")}
+                  </div>
                 </div>
+
+                {/* Sub-tabs for blocks mode */}
+                {extractionMode === "blocks" && (
+                  <div className="h-9 border-b flex items-center px-4 text-xs font-medium text-muted-foreground bg-muted/5">
+                    <Tabs value={viewFormat} onValueChange={(v) => setViewFormat(v as ViewFormat)}>
+                      <TabsList className="h-7">
+                        <TabsTrigger value="blocks" className="text-xs px-2 py-1">
+                          Blocks ({combinedBlocks.length})
+                        </TabsTrigger>
+                        <TabsTrigger value="json" className="text-xs px-2 py-1">
+                          JSON
+                        </TabsTrigger>
+                        <TabsTrigger value="html" className="text-xs px-2 py-1">
+                          HTML
+                        </TabsTrigger>
+                        <TabsTrigger value="markdown" className="text-xs px-2 py-1">
+                          Markdown
+                        </TabsTrigger>
+                        <TabsTrigger value="render-html" className="text-xs px-2 py-1">
+                          Render
+                        </TabsTrigger>
+                      </TabsList>
+                    </Tabs>
+                  </div>
+                )}
+
                 <div className="flex-1 overflow-y-auto">
                   {renderParseView()}
                 </div>

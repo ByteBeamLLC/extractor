@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS workspace_preferences (
   last_opened_schema UUID,
   last_route TEXT DEFAULT '/home',
   open_tabs JSONB DEFAULT '[]'::jsonb,
+  extraction_method TEXT DEFAULT 'dots.ocr' CHECK (extraction_method IN ('dots.ocr', 'datalab')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

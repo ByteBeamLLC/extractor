@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { DocumentExtractionFolderTree, type DocumentExtractionFolder } from "./DocumentExtractionFolderTree"
 import { DocumentExtractionFileCard, type DocumentExtractionFile } from "./DocumentExtractionFileCard"
 import { DocumentExtractionViewer } from "./DocumentExtractionViewer"
+import { ExtractionMethodSelector, useExtractionMethod } from "./ExtractionMethodSelector"
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser"
 import { useSession } from "@/lib/supabase/hooks"
 
@@ -24,6 +25,7 @@ export function DocumentExtractionDashboard() {
   const [isLoading, setIsLoading] = React.useState(true)
   const [searchQuery, setSearchQuery] = React.useState("")
   const [viewMode, setViewMode] = React.useState<"grid" | "list">("grid")
+  const [extractionMethod, setExtractionMethod] = useExtractionMethod()
 
   // Dialog states
   const [isCreateFolderOpen, setIsCreateFolderOpen] = React.useState(false)
@@ -227,6 +229,7 @@ export function DocumentExtractionDashboard() {
           mime_type: uploadFile.type || null,
           file_size: uploadFile.size,
           extraction_status: "pending",
+          extraction_method: extractionMethod,
           layout_data: null,
           extracted_text: null,
           error_message: null,
@@ -255,6 +258,8 @@ export function DocumentExtractionDashboard() {
         const base64 = btoa(binary)
         
         // Call extraction API (it will handle guest mode)
+        console.log("[document-extraction] Sending extraction request with method:", extractionMethod)
+        
         fetch("/api/document-extraction/extract-guest", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -263,6 +268,7 @@ export function DocumentExtractionDashboard() {
             file_name: uploadFile.name,
             mime_type: uploadFile.type,
             file_data: base64,
+            extraction_method: extractionMethod, // Pass extraction method preference
           }),
         })
           .then(async (response) => {
@@ -328,6 +334,7 @@ export function DocumentExtractionDashboard() {
       if (selectedFolderId) {
         formData.append("folder_id", selectedFolderId)
       }
+      formData.append("extraction_method", extractionMethod)
 
       const response = await fetch("/api/document-extraction/upload", {
         method: "POST",
@@ -461,6 +468,14 @@ export function DocumentExtractionDashboard() {
                       accept="image/*,.pdf"
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label>Extraction Method</Label>
+                    <ExtractionMethodSelector 
+                      value={extractionMethod}
+                      onChange={setExtractionMethod}
+                      className="w-full"
+                    />
+                  </div>
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setIsUploadOpen(false)}>
@@ -549,6 +564,7 @@ export function DocumentExtractionDashboard() {
                   key={file.id}
                   file={file}
                   onOpen={() => setSelectedFile(file)}
+                  onDelete={() => handleDeleteFile(file.id)}
                 />
               ))}
             </div>

@@ -145,7 +145,7 @@ export async function callDotsOcr(
   options?: { timeout?: number }
 ): Promise<ReplicateDotsOcrOutput> {
   const apiKey = getApiKey()
-  const timeout = options?.timeout ?? 600_000 // 10 minutes default (increased from 5 minutes)
+  const timeout = options?.timeout ?? 240_000 // 4 minutes default
 
   // Prepare image - strip data URL prefix if present
   const imageBase64 = stripDataUrlPrefix(input.image)
@@ -342,7 +342,7 @@ export async function callRealEsrgan(
   options?: { timeout?: number }
 ): Promise<ReplicateRealEsrganOutput> {
   const apiKey = getApiKey()
-  const timeout = options?.timeout ?? 600_000 // 10 minutes default
+  const timeout = options?.timeout ?? 240_000 // 4 minutes default
 
   const imageBase64 = stripDataUrlPrefix(input.image)
   const modelVersion = await getLatestModelVersion(REAL_ESRGAN_MODEL)

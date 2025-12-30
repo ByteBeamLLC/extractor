@@ -51,6 +51,16 @@ interface DatalabChandraOutput {
   [key: string]: any
 }
 
+// OCR endpoint input
+interface DatalabOCRInput {
+  file: string // base64 encoded file or data URL
+  file_name?: string
+  mime_type?: string
+  mode?: 'fast' | 'balanced' | 'accurate' // accurate mode for better layout detection
+  max_pages?: number
+  page_range?: string
+}
+
 // OCR endpoint response with text lines and bounding boxes
 interface DatalabOCROutput {
   text_lines?: Array<{
@@ -110,7 +120,7 @@ export async function callDatalabChandra(
   options?: { timeout?: number }
 ): Promise<DatalabChandraOutput> {
   const apiKey = getApiKey()
-  const timeout = options?.timeout ?? 300_000 // 5 minutes default
+  const timeout = options?.timeout ?? 240_000 // 4 minutes default
 
   // Prepare file - strip data URL prefix if present
   const fileBase64 = stripDataUrlPrefix(input.file)
@@ -253,7 +263,7 @@ export async function callDatalabOCR(
   options?: { timeout?: number }
 ): Promise<DatalabOCROutput> {
   const apiKey = getApiKey()
-  const timeout = options?.timeout ?? 300_000 // 5 minutes default
+  const timeout = options?.timeout ?? 240_000 // 4 minutes default
 
   // Prepare file - strip data URL prefix if present
   const fileBase64 = stripDataUrlPrefix(input.file)
@@ -263,6 +273,7 @@ export async function callDatalabOCR(
   console.log(`[datalab-ocr] File info:`, {
     fileName: input.file_name,
     mimeType,
+    mode: input.mode || 'fast',
     fileSize: Math.round(fileBase64.length * 0.75 / 1024), // Approximate KB
   })
 
@@ -273,6 +284,11 @@ export async function callDatalabOCR(
   const formData = new FormData()
   const blob = new Blob([fileBuffer], { type: mimeType })
   formData.append('file', blob, input.file_name || 'document')
+
+  // Add mode if specified - 'accurate' for better layout detection
+  if (input.mode) {
+    formData.append('mode', input.mode)
+  }
 
   // Add optional parameters
   if (input.max_pages) {
@@ -438,7 +454,8 @@ function extractBlocksFromJson(node: any, pageIndex?: number, depth: number = 0)
   }
 
   // If this node has a block_type, it's a block
-  if (node.block_type) {
+  // Skip container block types like 'Page' - they cover the entire page and aren't actual content
+  if (node.block_type && node.block_type !== 'Page') {
     const block: any = {
       type: node.block_type,
       content: node.html || node.markdown || node.text || '',
@@ -484,14 +501,18 @@ function extractBlocksFromJson(node: any, pageIndex?: number, depth: number = 0)
         const minY = Math.min(...ys)
         const maxX = Math.max(...xs)
         const maxY = Math.max(...ys)
-        // Store bbox as [x, y, width, height] for our UI
+        // Store originalBbox as [x1, y1, x2, y2] for consistent coordinate handling
+        block.originalBbox = [minX, minY, maxX, maxY]
+        // Store bbox as [x, y, width, height] for backward compatibility
         block.bbox = [minX, minY, maxX - minX, maxY - minY]
       }
     }
     // Fallback to bbox if no polygon - Datalab bbox is [x1, y1, x2, y2]
     else if (node.bbox && Array.isArray(node.bbox) && node.bbox.length === 4) {
       const [x1, y1, x2, y2] = node.bbox
-      // Convert from [x1, y1, x2, y2] to [x, y, width, height]
+      // Store originalBbox as [x1, y1, x2, y2] for consistent coordinate handling
+      block.originalBbox = [x1, y1, x2, y2]
+      // Convert from [x1, y1, x2, y2] to [x, y, width, height] for backward compatibility
       block.bbox = [x1, y1, x2 - x1, y2 - y1]
       // Create polygon from bbox corners
       block.polygon = [x1, y1, x2, y1, x2, y2, x1, y2]
@@ -533,6 +554,8 @@ export function extractLayoutBlocks(output: DatalabChandraOutput): Array<{
     hasJson: !!output.json,
     hasMarkdown: !!output.markdown,
     hasPages: Array.isArray(output.pages),
+    hasMetadata: !!output.metadata,
+    metadata: output.metadata,
     outputKeys: Object.keys(output),
   })
 

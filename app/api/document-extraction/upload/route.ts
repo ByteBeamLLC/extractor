@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData()
     const file = formData.get("file") as File | null
     const folderId = formData.get("folder_id") as string | null
+    const extractionMethod = (formData.get("extraction_method") as string) || "dots.ocr"
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 })
@@ -78,6 +79,7 @@ export async function POST(request: NextRequest) {
         mime_type: file.type || null,
         file_size: buffer.length,
         extraction_status: "pending",
+        extraction_method: extractionMethod,
       })
       .select()
       .single()
@@ -99,6 +101,7 @@ export async function POST(request: NextRequest) {
       fileId,
       userId: user.id,
       supabase,
+      extractionMethod,
     }).catch((error) => {
       // #region agent log
       fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'upload/route.ts:99',message:'Extraction error',data:{error:error.message,fileId},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'H1,H4'})}).catch(()=>{});

@@ -1,10 +1,16 @@
 "use client"
 
 import * as React from "react"
-import { FileText, Loader2, CheckCircle2, XCircle, Image as ImageIcon } from "lucide-react"
+import { FileText, Loader2, CheckCircle2, XCircle, Image as ImageIcon, Trash2, MoreVertical } from "lucide-react"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { formatDistanceToNow } from "date-fns"
 import { cn } from "@/lib/utils"
 
@@ -16,9 +22,16 @@ export interface DocumentExtractionFile {
   mime_type: string | null
   file_size: number | null
   extraction_status: "pending" | "processing" | "completed" | "error"
+  extraction_method?: "dots.ocr" | "datalab"
   layout_data: any
   extracted_text: any
   error_message: string | null
+  // Dual extraction fields
+  gemini_full_text?: string | null
+  gemini_extraction_status?: "pending" | "processing" | "completed" | "error"
+  gemini_error_message?: string | null
+  layout_extraction_status?: "pending" | "processing" | "completed" | "error"
+  layout_error_message?: string | null
   created_at: string
   updated_at: string
 }
@@ -26,6 +39,7 @@ export interface DocumentExtractionFile {
 interface DocumentExtractionFileCardProps {
   file: DocumentExtractionFile
   onOpen: () => void
+  onDelete?: () => void
 }
 
 const statusConfig = {
@@ -66,9 +80,15 @@ function formatFileSize(bytes: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
+function getModelName(method: "dots.ocr" | "datalab" | undefined): string {
+  if (method === "datalab") return "Model 2"
+  return "Model 1"
+}
+
 export function DocumentExtractionFileCard({
   file,
   onOpen,
+  onDelete,
 }: DocumentExtractionFileCardProps) {
   const status = statusConfig[file.extraction_status]
   const StatusIcon = status.icon
@@ -77,15 +97,45 @@ export function DocumentExtractionFileCard({
   const timeAgo = formatDistanceToNow(createdAt, { addSuffix: true })
 
   return (
-    <Card className="flex h-full flex-col overflow-hidden transition hover:shadow-md">
+    <Card className="group flex h-full flex-col overflow-hidden transition hover:shadow-md">
       <CardHeader className="space-y-2 p-4">
-        <CardTitle className="line-clamp-2 text-base font-semibold">{file.name}</CardTitle>
-        <div className="flex items-center gap-2">
+        <div className="flex items-start justify-between gap-2">
+          <CardTitle className="line-clamp-2 text-base font-semibold flex-1">{file.name}</CardTitle>
+          {onDelete && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem 
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onDelete()
+                  }}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
           <Badge className={cn("font-medium text-xs", status.className)}>
             <StatusIcon
               className={cn("h-3 w-3 mr-1", status.spinning && "animate-spin")}
             />
             {status.label}
+          </Badge>
+          <Badge variant="secondary" className="font-medium text-xs">
+            {getModelName(file.extraction_method)}
           </Badge>
         </div>
       </CardHeader>
