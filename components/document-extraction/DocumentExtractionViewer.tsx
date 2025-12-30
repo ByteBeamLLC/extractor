@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { X, FileText, Maximize2, Minimize2, ChevronLeft, ChevronRight, Loader2, CheckCircle2, XCircle, FileTextIcon, LayoutGrid, ZoomIn, ZoomOut, Maximize, RotateCcw } from "lucide-react"
+import { X, FileText, Maximize2, Minimize2, ChevronLeft, ChevronRight, Loader2, CheckCircle2, XCircle, FileTextIcon, LayoutGrid, ZoomIn, ZoomOut, Maximize, RotateCcw, Languages } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   ResizableHandle,
@@ -28,6 +28,20 @@ interface DocumentExtractionViewerProps {
 
 type ExtractionMode = "full-text" | "blocks"
 type ViewFormat = "blocks" | "json" | "html" | "markdown" | "render-html"
+type TextDirection = "ltr" | "rtl" | "auto"
+
+// Detect if text contains significant RTL characters (Arabic, Hebrew, Persian, etc.)
+const detectTextDirection = (text: string): "ltr" | "rtl" => {
+  if (!text) return "ltr"
+  // RTL Unicode ranges: Arabic, Hebrew, Persian, Urdu, etc.
+  const rtlChars = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\u0590-\u05FF\uFB50-\uFDFF\uFE70-\uFEFF]/g
+  const matches = text.match(rtlChars)
+  // If more than 10% of text is RTL characters, consider it RTL
+  if (matches && matches.length > text.length * 0.1) {
+    return "rtl"
+  }
+  return "ltr"
+}
 
 // Block type colors for bounding boxes (simplified categories)
 const BLOCK_TYPE_COLORS: Record<string, string> = {
@@ -92,6 +106,7 @@ export function DocumentExtractionViewer({
   } | null>(null)
   const [zoomLevel, setZoomLevel] = React.useState(100) // percentage
   const [fitMode, setFitMode] = React.useState<"fit" | "width" | "height" | "manual">("fit")
+  const [textDirection, setTextDirection] = React.useState<TextDirection>("auto")
   const imageRef = React.useRef<HTMLImageElement>(null)
   const imageContainerRef = React.useRef<HTMLDivElement>(null)
   const documentContainerRef = React.useRef<HTMLDivElement>(null)
@@ -266,6 +281,41 @@ export function DocumentExtractionViewer({
       }
     })
   }, [currentPageBlocks, currentPageExtractedTexts])
+
+  // Compute effective text direction (auto-detect from content)
+  const effectiveDirection = React.useMemo((): "ltr" | "rtl" => {
+    if (textDirection !== "auto") return textDirection
+
+    // Sample text from different sources for detection
+    let sampleText = ""
+
+    // Check Gemini full text
+    if (file.gemini_full_text) {
+      sampleText += file.gemini_full_text.slice(0, 500)
+    }
+
+    // Check block content
+    combinedBlocks.forEach((block) => {
+      const text = block.extractedText || block.content || ""
+      sampleText += text.slice(0, 100)
+    })
+
+    return detectTextDirection(sampleText)
+  }, [textDirection, file.gemini_full_text, combinedBlocks])
+
+  // Toggle through direction options
+  const cycleTextDirection = () => {
+    setTextDirection((prev) => {
+      if (prev === "auto") return "ltr"
+      if (prev === "ltr") return "rtl"
+      return "auto"
+    })
+  }
+
+  // Direction label for button
+  const directionLabel = textDirection === "auto"
+    ? `Auto (${effectiveDirection.toUpperCase()})`
+    : textDirection.toUpperCase()
 
   // State for cropped images
   const [croppedImages, setCroppedImages] = React.useState<Record<number, string>>({})
@@ -489,7 +539,10 @@ export function DocumentExtractionViewer({
 
               {/* Block content - rendered as markdown */}
               <div className="p-3 space-y-2">
-                <div className="prose prose-sm dark:prose-invert max-w-none break-words">
+                <div
+                  dir={effectiveDirection}
+                  className={`prose prose-sm dark:prose-invert max-w-none break-words ${effectiveDirection === "rtl" ? "text-right" : ""}`}
+                >
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {block.extractedText || block.content || block.text || ""}
                   </ReactMarkdown>
@@ -498,9 +551,10 @@ export function DocumentExtractionViewer({
                 {/* Show OCR text if different - render as HTML */}
                 {block.ocrText && block.ocrText !== block.extractedText && (
                   <div className="mt-2 pt-2 border-t border-dashed">
-                    <div className="text-xs text-muted-foreground mb-1">OCR (original):</div>
+                    <div className={`text-xs text-muted-foreground mb-1 ${effectiveDirection === "rtl" ? "text-right" : ""}`}>OCR (original):</div>
                     <div
-                      className="text-xs text-muted-foreground prose prose-xs dark:prose-invert max-w-none break-words [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded [&_img]:border [&_img]:shadow-sm"
+                      dir={effectiveDirection}
+                      className={`text-xs text-muted-foreground prose prose-xs dark:prose-invert max-w-none break-words [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded [&_img]:border [&_img]:shadow-sm ${effectiveDirection === "rtl" ? "text-right" : ""}`}
                       dangerouslySetInnerHTML={{ __html: block.ocrText }}
                     />
                   </div>
@@ -551,7 +605,10 @@ export function DocumentExtractionViewer({
 
     return (
       <div className="p-4">
-        <pre className="text-xs font-mono overflow-auto bg-muted p-4 rounded-lg whitespace-pre-wrap">
+        <pre
+          dir={effectiveDirection}
+          className={`text-xs font-mono overflow-auto bg-muted p-4 rounded-lg whitespace-pre-wrap ${effectiveDirection === "rtl" ? "text-right" : ""}`}
+        >
           {htmlContent}
         </pre>
       </div>
@@ -575,7 +632,10 @@ export function DocumentExtractionViewer({
 
     return (
       <div className="p-4">
-        <pre className="text-xs font-mono overflow-auto bg-muted p-4 rounded-lg whitespace-pre-wrap">
+        <pre
+          dir={effectiveDirection}
+          className={`text-xs font-mono overflow-auto bg-muted p-4 rounded-lg whitespace-pre-wrap ${effectiveDirection === "rtl" ? "text-right" : ""}`}
+        >
           {markdown}
         </pre>
       </div>
@@ -597,7 +657,10 @@ export function DocumentExtractionViewer({
       .join("\n\n")
 
     return (
-      <div className="p-8 max-w-3xl mx-auto prose dark:prose-invert prose-sm">
+      <div
+        dir={effectiveDirection}
+        className={`p-8 max-w-3xl mx-auto prose dark:prose-invert prose-sm ${effectiveDirection === "rtl" ? "text-right" : ""}`}
+      >
         <ReactMarkdown remarkPlugins={[remarkGfm]}>
           {markdown || "*No content extracted yet.*"}
         </ReactMarkdown>
@@ -641,7 +704,10 @@ export function DocumentExtractionViewer({
 
     return (
       <div className="p-6 max-w-4xl mx-auto">
-        <div className="prose prose-sm dark:prose-invert max-w-none">
+        <div
+          dir={effectiveDirection}
+          className={`prose prose-sm dark:prose-invert max-w-none ${effectiveDirection === "rtl" ? "text-right" : ""}`}
+        >
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {file.gemini_full_text}
           </ReactMarkdown>
@@ -1112,6 +1178,18 @@ export function DocumentExtractionViewer({
                     </Tabs>
                   </div>
                   <div className="flex items-center gap-2">
+                    {/* Text Direction Toggle */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={cycleTextDirection}
+                      className="h-7 text-xs gap-1.5 px-2"
+                      title={`Text direction: ${directionLabel}. Click to cycle between Auto, LTR, and RTL.`}
+                    >
+                      <Languages className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">{directionLabel}</span>
+                    </Button>
+                    <div className="w-px h-4 bg-border" />
                     {renderStatusBadge(file.gemini_extraction_status, "Full Text")}
                     {renderStatusBadge(file.layout_extraction_status, "Blocks")}
                   </div>

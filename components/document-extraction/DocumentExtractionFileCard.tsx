@@ -85,16 +85,48 @@ function getModelName(method: "dots.ocr" | "datalab" | undefined): string {
   return "Model 1"
 }
 
+// Check if file can be opened (at least one pipeline has results)
+function canOpenFile(file: DocumentExtractionFile): boolean {
+  // Can open if gemini full text is available
+  if (file.gemini_extraction_status === "completed" && file.gemini_full_text) {
+    return true
+  }
+  // Can open if layout/blocks are available
+  if (file.layout_extraction_status === "completed" && file.layout_data) {
+    return true
+  }
+  // Legacy: check old extraction_status for backward compatibility
+  if (file.extraction_status === "completed") {
+    return true
+  }
+  return false
+}
+
+// Check if any pipeline is still processing
+function isAnyPipelineProcessing(file: DocumentExtractionFile): boolean {
+  return (
+    file.gemini_extraction_status === "processing" ||
+    file.layout_extraction_status === "processing" ||
+    (file.extraction_status === "processing" && !file.gemini_extraction_status && !file.layout_extraction_status)
+  )
+}
+
 export function DocumentExtractionFileCard({
   file,
   onOpen,
   onDelete,
 }: DocumentExtractionFileCardProps) {
-  const status = statusConfig[file.extraction_status]
-  const StatusIcon = status.icon
   const FileIcon = getFileIcon(file.mime_type)
   const createdAt = new Date(file.created_at)
   const timeAgo = formatDistanceToNow(createdAt, { addSuffix: true })
+
+  // Determine overall display status
+  const canOpen = canOpenFile(file)
+  const hasProcessing = isAnyPipelineProcessing(file)
+
+  // Get status for each pipeline
+  const geminiStatus = file.gemini_extraction_status || "pending"
+  const layoutStatus = file.layout_extraction_status || file.extraction_status || "pending"
 
   return (
     <Card className="group flex h-full flex-col overflow-hidden transition hover:shadow-md">
@@ -127,15 +159,44 @@ export function DocumentExtractionFileCard({
             </DropdownMenu>
           )}
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Badge className={cn("font-medium text-xs", status.className)}>
-            <StatusIcon
-              className={cn("h-3 w-3 mr-1", status.spinning && "animate-spin")}
-            />
-            {status.label}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {/* Full Text Pipeline Status */}
+          <Badge
+            className={cn(
+              "font-medium text-xs",
+              statusConfig[geminiStatus as keyof typeof statusConfig]?.className
+            )}
+            title="Full Text extraction status"
+          >
+            {geminiStatus === "processing" ? (
+              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+            ) : geminiStatus === "completed" ? (
+              <CheckCircle2 className="h-3 w-3 mr-1" />
+            ) : geminiStatus === "error" ? (
+              <XCircle className="h-3 w-3 mr-1" />
+            ) : (
+              <Loader2 className="h-3 w-3 mr-1" />
+            )}
+            Text
           </Badge>
-          <Badge variant="secondary" className="font-medium text-xs">
-            {getModelName(file.extraction_method)}
+          {/* Layout/Blocks Pipeline Status */}
+          <Badge
+            className={cn(
+              "font-medium text-xs",
+              statusConfig[layoutStatus as keyof typeof statusConfig]?.className
+            )}
+            title="Blocks extraction status"
+          >
+            {layoutStatus === "processing" ? (
+              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+            ) : layoutStatus === "completed" ? (
+              <CheckCircle2 className="h-3 w-3 mr-1" />
+            ) : layoutStatus === "error" ? (
+              <XCircle className="h-3 w-3 mr-1" />
+            ) : (
+              <Loader2 className="h-3 w-3 mr-1" />
+            )}
+            Blocks
           </Badge>
         </div>
       </CardHeader>
@@ -154,21 +215,40 @@ export function DocumentExtractionFileCard({
           <FileIcon className="h-8 w-8 text-muted-foreground" />
         </div>
       )}
-      <CardContent className="flex flex-1 flex-col justify-between p-4">
+      <CardContent className="flex flex-1 flex-col justify-between p-4 gap-2">
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <span>{formatFileSize(file.file_size)}</span>
           <span>•</span>
           <span>{timeAgo}</span>
         </div>
+        <Badge variant="outline" className="w-fit text-xs font-medium">
+          {getModelName(file.extraction_method)}
+        </Badge>
       </CardContent>
       <CardFooter className="flex items-center justify-between p-4 border-t">
         <Button
           size="sm"
-          className="w-full"
+          className="w-full gap-2"
           onClick={onOpen}
-          disabled={file.extraction_status === "processing"}
+          disabled={!canOpen}
         >
-          {file.extraction_status === "completed" ? "View" : "Open"}
+          {canOpen ? (
+            hasProcessing ? (
+              <>
+                View
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              </>
+            ) : (
+              "View"
+            )
+          ) : hasProcessing ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            "Pending"
+          )}
         </Button>
       </CardFooter>
     </Card>
