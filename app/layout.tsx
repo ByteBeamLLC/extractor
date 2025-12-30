@@ -54,7 +54,7 @@ export default async function RootLayout({
   className="flex items-center transition hover:opacity-80"
 >
   <img
-    src="/sheetit-logo-nobg.png"
+    src="/bytebeam_logo.png"
     alt="SheetIT by ByteBeam"
     className="h-12"
   />

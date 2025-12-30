@@ -35,11 +35,11 @@ export function AppSidebar({ onNavigate, activeView }: AppSidebarProps) {
             icon: LayoutDashboard,
             value: 'home',
         },
-        {
-            title: 'Label Maker',
-            icon: Tag,
-            value: 'label-maker',
-        },
+        // {
+        //     title: 'Label Maker',
+        //     icon: Tag,
+        //     value: 'label-maker',
+        // },
         {
             title: 'Co-pilot',
             icon: Sparkles,

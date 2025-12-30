@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
+import { callDotsOcr } from "@/lib/replicate"
 
 const HUGGINGFACE_API_KEY = process.env.HUGGINGFACE_API_KEY
+const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || process.env.REPLICATE_API_KEY
 
 const rawDotsOcrEndpoint =
   process.env.HUGGINGFACE_DOTS_OCR_ENDPOINT ||
@@ -96,6 +98,35 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: "Request must include an `image_base64` (or `image_url`) field." },
       { status: 400 },
+    )
+  }
+
+  // Try Replicate first if available, then fallback to HuggingFace
+  if (REPLICATE_API_TOKEN) {
+    try {
+      const bodyData = body as any
+      const output = await callDotsOcr({
+        image: base64,
+        file_name: bodyData.file_name,
+        mime_type: bodyData.mime_type,
+      })
+
+      return NextResponse.json({
+        markdown: output.markdown,
+        blocks: output.blocks || [],
+        ...output,
+      })
+    } catch (replicateError) {
+      console.error("[dotsocr] Replicate error:", replicateError)
+      // Fall through to HuggingFace fallback
+    }
+  }
+
+  // Fallback to HuggingFace
+  if (!HUGGINGFACE_API_KEY) {
+    return NextResponse.json(
+      { error: "Neither REPLICATE_API_TOKEN nor HUGGINGFACE_API_KEY is configured." },
+      { status: 503 },
     )
   }
 
