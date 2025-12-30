@@ -767,7 +767,16 @@ export async function POST(request: NextRequest) {
     const isMultiDocumentMode = inputDocuments.size > 0
     console.log("[bytebeam] Multi-document mode:", isMultiDocumentMode, "documents:", inputDocuments.size)
 
-    const sanitizedInputDocuments =
+    // Create initial sanitized input documents (fileUrl will be updated after upload)
+    let sanitizedInputDocuments: Record<string, {
+      fieldId: string
+      fileName: string
+      fileUrl: string
+      textValue: string | null
+      mimeType: string | null
+      inputType: string | null
+      uploadedAt: string
+    }> | null =
       isMultiDocumentMode && inputDocuments.size > 0
         ? Object.fromEntries(
           Array.from(inputDocuments.entries()).map(([fieldId, doc]) => [
@@ -821,6 +830,38 @@ export async function POST(request: NextRequest) {
       } catch (syncError) {
         console.error("[bytebeam] Failed to sync job status:", syncError)
       }
+    }
+
+    // Upload input documents to storage and update fileUrls
+    if (isMultiDocumentMode && sanitizedInputDocuments && supabase && userId && jobMeta) {
+      console.log("[bytebeam] Uploading input documents to storage...")
+      const uploadPromises = Array.from(inputDocuments.entries()).map(async ([fieldId, doc]) => {
+        // Skip if no binary data (text-only documents don't need upload)
+        if (!doc.data) return null
+
+        try {
+          const docBytes = Buffer.from(String(doc.data), "base64")
+          const uploadedUrl = await uploadOriginalFile(supabase, {
+            userId,
+            jobId: jobMeta.jobId,
+            file: docBytes,
+            fileName: `input-${fieldId}-${doc.name}`,
+            contentType: doc.type || "application/octet-stream",
+          })
+
+          if (uploadedUrl && sanitizedInputDocuments[fieldId]) {
+            sanitizedInputDocuments[fieldId].fileUrl = uploadedUrl
+            console.log(`[bytebeam] Uploaded input document ${fieldId}: ${uploadedUrl}`)
+          }
+          return uploadedUrl
+        } catch (uploadError) {
+          console.error(`[bytebeam] Failed to upload input document ${fieldId}:`, uploadError)
+          return null
+        }
+      })
+
+      await Promise.all(uploadPromises)
+      console.log("[bytebeam] Input document uploads complete")
     }
 
     console.log("[bytebeam] Received file data:", fileData?.name, fileData?.type, fileData?.size)

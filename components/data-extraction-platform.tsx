@@ -1964,9 +1964,14 @@ export function DataExtractionPlatform({
       if (payload.upsert && payload.upsert.length > 0) {
         console.log(`[bytebeam] syncJobRecords: Upserting ${payload.upsert.length} jobs to schema ${schemaId}`)
         payload.upsert.forEach((job) => {
-          console.log(`[bytebeam] - Job ${job.id}: status=${job.status}, fileName=${job.fileName}, hasResults=${!!job.results}`)
+          console.log(`[bytebeam] - Job ${job.id}: status=${job.status}, fileName=${job.fileName}, resultKeys=${Object.keys(job.results ?? {})}`)
         })
         const rows = payload.upsert.map((job) => extractionJobToRow(job, schemaId, userId))
+        console.log('[bytebeam] Converted rows for upsert:', rows.map(r => ({
+          id: r.id,
+          status: r.status,
+          resultKeys: Object.keys((r.results as Record<string, unknown>) ?? {}).filter(k => k !== '__meta__'),
+        })))
         operations.push(supabase.from("extraction_jobs").upsert(rows))
       }
 
@@ -2003,20 +2008,30 @@ export function DataExtractionPlatform({
       updater: ExtractionJob[] | ((prev: ExtractionJob[]) => ExtractionJob[]),
       options?: { persistSchema?: boolean; syncJobs?: boolean },
     ) => {
-      const previousSchema = schemas.find((schema) => schema.id === schemaId)
-      const previousJobs = previousSchema?.jobs ?? []
-      let nextJobs = previousJobs
+      console.log('[bytebeam] updateSchemaJobs called for schema:', schemaId, 'options:', options)
+
+      // IMPORTANT: Capture previousJobs and nextJobs from inside commitSchemaUpdate callback
+      // to ensure we always use the real current state, not a potentially stale captured `schemas`
+      let previousJobs: ExtractionJob[] = []
+      let nextJobs: ExtractionJob[] = []
 
       const updated = commitSchemaUpdate(
         schemaId,
         (schema) => {
           const currentJobs = schema.jobs ?? []
+          // Make a shallow copy to ensure we capture the state BEFORE the update
+          previousJobs = [...currentJobs]
           nextJobs =
             typeof updater === "function"
               ? (updater as (prev: ExtractionJob[]) => ExtractionJob[])(currentJobs)
               : Array.isArray(updater)
                 ? updater
                 : currentJobs
+          console.log('[bytebeam] updateSchemaJobs - inside callback:', {
+            currentJobsCount: currentJobs.length,
+            previousJobsCount: previousJobs.length,
+            nextJobsCount: nextJobs.length,
+          })
           return {
             ...schema,
             jobs: nextJobs,
@@ -2025,16 +2040,36 @@ export function DataExtractionPlatform({
         { persistSchema: options?.persistSchema ?? false },
       )
 
+      console.log('[bytebeam] updateSchemaJobs - after commitSchemaUpdate:', {
+        updated: !!updated,
+        userId: session?.user?.id,
+        syncJobs: options?.syncJobs,
+      })
+
       if (updated && session?.user?.id && options?.syncJobs !== false) {
         const { upsert, deleted } = diffJobLists(previousJobs, nextJobs)
+        console.log('[bytebeam] diffJobLists result:', {
+          previousJobsCount: previousJobs.length,
+          nextJobsCount: nextJobs.length,
+          upsertCount: upsert.length,
+          deletedCount: deleted.length,
+          upsertIds: upsert.map(j => j.id),
+          upsertResultKeys: upsert.map(j => Object.keys(j.results ?? {})),
+        })
         if (upsert.length > 0 || deleted.length > 0) {
           void syncJobRecords(schemaId, { upsert, deleted })
         }
+      } else {
+        console.warn('[bytebeam] updateSchemaJobs - skipping sync:', {
+          updated: !!updated,
+          userId: session?.user?.id,
+          syncJobs: options?.syncJobs,
+        })
       }
 
       return updated?.jobs ?? null
     },
-    [commitSchemaUpdate, schemas, session?.user?.id, syncJobRecords],
+    [commitSchemaUpdate, session?.user?.id, syncJobRecords],
   )
 
   const setJobs = (

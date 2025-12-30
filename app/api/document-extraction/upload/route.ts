@@ -93,9 +93,6 @@ export async function POST(request: NextRequest) {
 
     // Trigger extraction asynchronously (don't wait for it)
     // Call extraction function directly instead of HTTP fetch to avoid auth issues
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'upload/route.ts:91',message:'Triggering extraction directly',data:{fileId,userId:user.id},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'H3'})}).catch(()=>{});
-    // #endregion
     // Run extraction in background (don't await)
     extractDocumentFile({
       fileId,
@@ -103,9 +100,6 @@ export async function POST(request: NextRequest) {
       supabase,
       extractionMethod,
     }).catch((error) => {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'upload/route.ts:99',message:'Extraction error',data:{error:error.message,fileId},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'H1,H4'})}).catch(()=>{});
-      // #endregion
       console.error("[document-extraction] Error during extraction:", error)
     })
 
