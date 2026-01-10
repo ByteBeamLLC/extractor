@@ -13,6 +13,7 @@ import type { NutrientValue } from '../types'
 interface TrafficLightLabelProps {
   servingSize: number
   nutrition: Record<string, NutrientValue>
+  hideHeader?: boolean
 }
 
 // Traffic light thresholds per 100g (UK guidelines)
@@ -105,25 +106,25 @@ function NutrientCan({
   const bottomTextColor = level === 'MEDIUM' ? 'text-black' : isEnergy ? 'text-gray-700' : 'text-white'
 
   return (
-    <div className="flex flex-col w-[90px]">
+    <div className="flex flex-col w-[70px] min-w-[60px]">
       {/* Top section - white with rounded top (can shape) */}
       <div
-        className="bg-white border border-gray-300 border-b-0 rounded-t-[40px] pt-4 pb-2 px-2 text-center"
+        className="bg-white border border-gray-300 border-b-0 rounded-t-[30px] pt-3 pb-1.5 px-1 text-center"
         style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}
       >
-        <div className="text-xs font-bold text-gray-800 uppercase tracking-wide">
+        <div className="text-[10px] font-bold text-gray-800 uppercase tracking-wide leading-tight">
           {label}
         </div>
-        <div className="text-base font-bold text-gray-900 mt-1">
+        <div className="text-sm font-bold text-gray-900 mt-0.5">
           {value}{unit}
         </div>
         {secondaryValue && (
-          <div className="text-sm text-gray-600">
+          <div className="text-xs text-gray-600">
             {secondaryValue}
           </div>
         )}
         {levelText && (
-          <div className="text-xs font-medium text-gray-700 uppercase mt-0.5">
+          <div className="text-[10px] font-medium text-gray-700 uppercase mt-0.5">
             {levelText}
           </div>
         )}
@@ -131,7 +132,7 @@ function NutrientCan({
 
       {/* Bottom section - colored percentage bar */}
       <div
-        className={`${bottomBgColor} ${bottomTextColor} border border-gray-300 border-t-0 py-2 text-center font-bold text-sm`}
+        className={`${bottomBgColor} ${bottomTextColor} border border-gray-300 border-t-0 py-1.5 text-center font-bold text-xs`}
       >
         {riPercent}%
       </div>
@@ -142,6 +143,7 @@ function NutrientCan({
 export function TrafficLightLabel({
   servingSize,
   nutrition,
+  hideHeader = false,
 }: TrafficLightLabelProps) {
   const energy = getNutrient(nutrition, 'Energy')
   const fat = getNutrient(nutrition, 'Total Fat')
@@ -158,9 +160,11 @@ export function TrafficLightLabel({
   return (
     <div className="inline-block">
       {/* Header */}
-      <div className="text-center mb-4">
-        <span className="text-sm text-gray-600">per serving ({servingSize}g)</span>
-      </div>
+      {!hideHeader && (
+        <div className="text-center mb-4">
+          <span className="text-sm text-gray-600">per serving ({servingSize}g)</span>
+        </div>
+      )}
 
       {/* Nutrient Cans Row */}
       <div className="flex gap-1">

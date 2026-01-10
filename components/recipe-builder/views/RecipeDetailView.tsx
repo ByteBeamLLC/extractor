@@ -42,6 +42,8 @@ import { useRecipes, useRecipeBuilderNavigation } from '../context/RecipeBuilder
 import { NutritionLabel } from '../components/NutritionLabel'
 import { TrafficLightLabel } from '../components/TrafficLightLabel'
 import { MacroChart } from '../components/MacroChart'
+import { NutritionQRCode } from '../components/NutritionQRCode'
+import { PackagingArtwork } from '../components/PackagingArtwork'
 import { formatBarcode, generateUniqueEAN13 } from '../utils'
 import type { Recipe, NutrientValue, RecipeInventory } from '../types'
 
@@ -100,9 +102,10 @@ interface RecipeDetailViewProps {
   recipeId: string
   onBack: () => void
   onEdit?: () => void
+  companyLogo?: string | null
 }
 
-export function RecipeDetailView({ recipeId, onBack, onEdit }: RecipeDetailViewProps) {
+export function RecipeDetailView({ recipeId, onBack, onEdit, companyLogo }: RecipeDetailViewProps) {
   const { getRecipeById, updateRecipe, recipes } = useRecipes()
   const recipe = getRecipeById(recipeId)
 
@@ -671,6 +674,21 @@ export function RecipeDetailView({ recipeId, onBack, onEdit }: RecipeDetailViewP
               </div>
             </CardContent>
           </Card>
+
+          {/* Packaging Artwork Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Packaging Artwork</CardTitle>
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
+              <div className="w-fit">
+                <PackagingArtwork
+                  recipe={recipe as Recipe}
+                  logoUrl={companyLogo}
+                />
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Right Column */}
@@ -773,8 +791,17 @@ export function RecipeDetailView({ recipeId, onBack, onEdit }: RecipeDetailViewP
               />
             </CardContent>
           </Card>
+
+          {/* QR Code for Nutrition Labels */}
+          {recipe.status === 'PUBLISHED' && (
+            <NutritionQRCode
+              recipeId={recipe.id}
+              recipeName={recipe.name}
+            />
+          )}
         </div>
       </div>
+
     </div>
   )
 }

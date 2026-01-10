@@ -42,6 +42,8 @@ import {
   SlidersHorizontal,
   Package,
   Minus,
+  Image,
+  X,
 } from 'lucide-react'
 import { useRecipes, useRecipeBuilderNavigation } from '../context/RecipeBuilderContext'
 import { RecipeDetailView } from './RecipeDetailView'
@@ -55,6 +57,9 @@ import type { Recipe, RecipeInventory } from '../types'
  */
 
 const RECIPES_PER_PAGE = 10
+
+// localStorage key for company logo
+const COMPANY_LOGO_KEY = 'recipe-builder-company-logo'
 
 export function RecipesView() {
   const { recipes, loading, createRecipe, updateRecipe } = useRecipes()
@@ -77,6 +82,40 @@ export function RecipesView() {
   const [stockUnit, setStockUnit] = useState('portions')
   const [stockAdjustment, setStockAdjustment] = useState(0)
   const [isUpdatingStock, setIsUpdatingStock] = useState(false)
+
+  // Company logo state
+  const [companyLogo, setCompanyLogo] = useState<string | null>(null)
+  const [logoModalOpen, setLogoModalOpen] = useState(false)
+
+  // Load company logo from localStorage on mount
+  React.useEffect(() => {
+    const savedLogo = localStorage.getItem(COMPANY_LOGO_KEY)
+    if (savedLogo) {
+      setCompanyLogo(savedLogo)
+    }
+  }, [])
+
+  // Handle logo upload
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const dataUrl = event.target?.result as string
+        setCompanyLogo(dataUrl)
+        localStorage.setItem(COMPANY_LOGO_KEY, dataUrl)
+        setLogoModalOpen(false)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  // Handle logo removal
+  const handleRemoveLogo = () => {
+    setCompanyLogo(null)
+    localStorage.removeItem(COMPANY_LOGO_KEY)
+    setLogoModalOpen(false)
+  }
 
   // Handle create new recipe
   const handleCreateRecipe = () => {
@@ -245,6 +284,7 @@ export function RecipesView() {
         recipeId={selectedRecipeId}
         onBack={goBack}
         onEdit={() => handleEditRecipe(selectedRecipeId)}
+        companyLogo={companyLogo}
       />
     )
   }
@@ -260,13 +300,41 @@ export function RecipesView() {
           </p>
         </div>
         <div className="flex gap-2">
-        
+          <Button variant="outline" size="sm" onClick={() => setLogoModalOpen(true)}>
+            <Image className="w-4 h-4 mr-2" />
+            {companyLogo ? 'Update Logo' : 'Upload Company Logo'}
+          </Button>
           <Button size="sm" onClick={handleCreateRecipe}>
             <Plus className="w-4 h-4 mr-2" />
             Add Recipe
           </Button>
         </div>
       </div>
+
+      {/* Company Logo Preview */}
+      {companyLogo && (
+        <Card className="bg-muted/30">
+          <CardContent className="py-3 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <img
+                src={companyLogo}
+                alt="Company Logo"
+                className="h-10 max-w-[150px] object-contain"
+              />
+              <span className="text-sm text-muted-foreground">
+                Company logo will appear on all packaging artwork
+              </span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLogoModalOpen(true)}
+            >
+              Change
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
  
 
@@ -625,6 +693,77 @@ export function RecipesView() {
             </Button>
             <Button onClick={handleUpdateStock} disabled={isUpdatingStock}>
               {isUpdatingStock ? 'Updating...' : 'Update Stock'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Company Logo Modal */}
+      <Dialog open={logoModalOpen} onOpenChange={setLogoModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Image className="w-5 h-5" />
+              Company Logo
+            </DialogTitle>
+            <DialogDescription>
+              Upload your company logo for packaging artwork. This logo will be used on all recipe packaging labels.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {companyLogo ? (
+              <div className="space-y-4">
+                <div className="border rounded-lg p-6 bg-gray-50 flex items-center justify-center">
+                  <img
+                    src={companyLogo}
+                    alt="Company Logo"
+                    className="max-h-[120px] max-w-full object-contain"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => document.getElementById('company-logo-upload')?.click()}
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Replace Logo
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={handleRemoveLogo}
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Remove
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div
+                className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => document.getElementById('company-logo-upload')?.click()}
+              >
+                <Upload className="w-8 h-8 mx-auto mb-3 text-muted-foreground" />
+                <p className="text-sm font-medium mb-1">Click to upload your logo</p>
+                <p className="text-xs text-muted-foreground">
+                  PNG or JPG, recommended 200x100px
+                </p>
+              </div>
+            )}
+
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/jpg"
+              className="hidden"
+              id="company-logo-upload"
+              onChange={handleLogoUpload}
+            />
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLogoModalOpen(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

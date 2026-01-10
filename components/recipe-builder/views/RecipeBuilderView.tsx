@@ -279,6 +279,7 @@ const createEmptyRecipe = (): Partial<Recipe> => ({
     is_imported_recipe: false,
     qr_image: null,
     cover_image: null,
+    packaging_logo: null,
   },
 })
 
@@ -642,7 +643,13 @@ export function RecipeBuilderView({ recipeId, onBack, onSave }: RecipeBuilderVie
                     onCheckedChange={(checked) =>
                       setRecipe((prev) => ({
                         ...prev,
-                        metadata: { ...prev.metadata!, is_sub_recipe: !!checked },
+                        metadata: {
+                          is_sub_recipe: !!checked,
+                          is_imported_recipe: prev.metadata?.is_imported_recipe ?? false,
+                          qr_image: prev.metadata?.qr_image ?? null,
+                          cover_image: prev.metadata?.cover_image ?? null,
+                          packaging_logo: prev.metadata?.packaging_logo ?? null,
+                        },
                       }))
                     }
                   />

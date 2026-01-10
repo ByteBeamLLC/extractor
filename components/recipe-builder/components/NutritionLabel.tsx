@@ -88,7 +88,7 @@ export function NutritionLabel({
       {/* Header */}
       <div className="text-3xl font-extrabold leading-none">Nutrition Facts</div>
       <div className="border-b border-black pb-1">
-        {servingsPerContainer && (
+        {servingsPerContainer != null && servingsPerContainer > 0 && (
           <div className="text-sm">{servingsPerContainer} servings per container</div>
         )}
         <div className="flex justify-between font-bold">

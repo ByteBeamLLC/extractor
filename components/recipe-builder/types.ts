@@ -90,6 +90,7 @@ export interface RecipeMetadata {
   is_imported_recipe: boolean
   qr_image: string | null
   cover_image: string | null
+  packaging_logo: string | null
 }
 
 // Inventory/Stock tracking
