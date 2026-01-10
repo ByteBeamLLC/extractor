@@ -3,10 +3,13 @@
 import * as React from 'react'
 import {
     LayoutDashboard,
-    Store,
     Library,
     Sparkles,
     Tag,
+    ChefHat,
+    ChevronRight,
+    ClipboardList,
+    Package,
 } from 'lucide-react'
 
 import {
@@ -16,12 +19,47 @@ import {
     SidebarGroup,
     SidebarGroupContent,
     SidebarGroupLabel,
-    SidebarHeader,
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    SidebarMenuSub,
+    SidebarMenuSubButton,
+    SidebarMenuSubItem,
     SidebarRail,
 } from '@/components/ui/sidebar'
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+
+// Types for navigation items
+interface NavItem {
+    title: string
+    icon: React.ComponentType<{ className?: string }>
+    value: string
+    hidden?: boolean
+}
+
+interface NavItemWithChildren {
+    title: string
+    icon: React.ComponentType<{ className?: string }>
+    value: string
+    children: NavSubItem[]
+}
+
+interface NavSubItem {
+    title: string
+    value: string
+    icon?: React.ComponentType<{ className?: string }>
+    children?: { title: string; value: string }[]
+}
+
+type NavigationItem = NavItem | NavItemWithChildren
+
+function hasChildren(item: NavigationItem): item is NavItemWithChildren {
+    return 'children' in item && Array.isArray(item.children)
+}
 
 interface AppSidebarProps {
     onNavigate: (view: string) => void
@@ -29,17 +67,42 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ onNavigate, activeView }: AppSidebarProps) {
-    const navItems = [
+    const [openMenus, setOpenMenus] = React.useState<string[]>(['recipe-builder'])
+
+    // Navigation items configuration
+    const navItems: NavigationItem[] = [
         {
             title: 'Home',
             icon: LayoutDashboard,
             value: 'home',
         },
-        // {
-        //     title: 'Label Maker',
-        //     icon: Tag,
-        //     value: 'label-maker',
-        // },
+        {
+            title: 'Recipe Builder',
+            icon: ChefHat,
+            value: 'recipe-builder',
+            children: [
+                {
+                    title: 'Dashboard',
+                    value: 'recipe-builder-dashboard',
+                    icon: LayoutDashboard,
+                },
+                {
+                    title: 'Recipes',
+                    value: 'recipe-builder-recipes',
+                    icon: ClipboardList,
+                },
+                {
+                    title: 'Ingredients',
+                    value: 'recipe-builder-ingredients',
+                    icon: Package,
+                    children: [
+                        { title: 'USDA Ingredients', value: 'recipe-builder-ingredients-usda' },
+                        { title: 'Manage Ingredients', value: 'recipe-builder-ingredients-manage' },
+                        { title: 'Custom Ingredients', value: 'recipe-builder-ingredients-custom' },
+                    ],
+                },
+            ],
+        },
         {
             title: 'Co-pilot',
             icon: Sparkles,
@@ -50,7 +113,125 @@ export function AppSidebar({ onNavigate, activeView }: AppSidebarProps) {
             icon: Library,
             value: 'knowledge',
         },
+        // Label Maker - hidden but kept for future use
+        {
+            title: 'Label Maker',
+            icon: Tag,
+            value: 'label-maker',
+            hidden: true,
+        },
     ]
+
+    const toggleMenu = (menuValue: string) => {
+        setOpenMenus((prev) =>
+            prev.includes(menuValue)
+                ? prev.filter((v) => v !== menuValue)
+                : [...prev, menuValue]
+        )
+    }
+
+    const isActiveInGroup = (item: NavItemWithChildren): boolean => {
+        return item.children.some((child) => {
+            if (activeView === child.value) return true
+            if (child.children) {
+                return child.children.some((subChild) => activeView === subChild.value)
+            }
+            return false
+        })
+    }
+
+    const renderNavItem = (item: NavigationItem) => {
+        // Skip hidden items
+        if ('hidden' in item && item.hidden) {
+            return null
+        }
+
+        if (hasChildren(item)) {
+            const isOpen = openMenus.includes(item.value)
+            const isActive = isActiveInGroup(item)
+
+            return (
+                <Collapsible
+                    key={item.value}
+                    open={isOpen}
+                    onOpenChange={() => toggleMenu(item.value)}
+                    className="group/collapsible"
+                >
+                    <SidebarMenuItem>
+                        <CollapsibleTrigger asChild>
+                            <SidebarMenuButton
+                                tooltip={item.title}
+                                isActive={isActive}
+                            >
+                                <item.icon className="size-4" />
+                                <span>{item.title}</span>
+                                <ChevronRight
+                                    className="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
+                                />
+                            </SidebarMenuButton>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                            <SidebarMenuSub>
+                                {item.children.map((child) => (
+                                    <React.Fragment key={child.value}>
+                                        {child.children ? (
+                                            // Nested sub-items (e.g., Ingredients > Manage/Custom)
+                                            <>
+                                                <SidebarMenuSubItem>
+                                                    <SidebarMenuSubButton
+                                                        onClick={() => onNavigate(child.value)}
+                                                        isActive={activeView === child.value}
+                                                        className="font-medium"
+                                                    >
+                                                        {child.icon && <child.icon className="size-4" />}
+                                                        <span>{child.title}</span>
+                                                    </SidebarMenuSubButton>
+                                                </SidebarMenuSubItem>
+                                                {child.children.map((subChild) => (
+                                                    <SidebarMenuSubItem key={subChild.value}>
+                                                        <SidebarMenuSubButton
+                                                            onClick={() => onNavigate(subChild.value)}
+                                                            isActive={activeView === subChild.value}
+                                                            className="pl-6"
+                                                        >
+                                                            <span>{subChild.title}</span>
+                                                        </SidebarMenuSubButton>
+                                                    </SidebarMenuSubItem>
+                                                ))}
+                                            </>
+                                        ) : (
+                                            <SidebarMenuSubItem>
+                                                <SidebarMenuSubButton
+                                                    onClick={() => onNavigate(child.value)}
+                                                    isActive={activeView === child.value}
+                                                >
+                                                    {child.icon && <child.icon className="size-4" />}
+                                                    <span>{child.title}</span>
+                                                </SidebarMenuSubButton>
+                                            </SidebarMenuSubItem>
+                                        )}
+                                    </React.Fragment>
+                                ))}
+                            </SidebarMenuSub>
+                        </CollapsibleContent>
+                    </SidebarMenuItem>
+                </Collapsible>
+            )
+        }
+
+        return (
+            <SidebarMenuItem key={item.value}>
+                <SidebarMenuButton
+                    onClick={() => onNavigate(item.value)}
+                    isActive={activeView === item.value}
+                    tooltip={item.title}
+                >
+                    <item.icon className="size-4" />
+                    <span>{item.title}</span>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+        )
+    }
 
     return (
         <Sidebar collapsible="icon" className="!top-14 !bottom-0 !h-[calc(100svh-3.5rem)]">
@@ -59,18 +240,7 @@ export function AppSidebar({ onNavigate, activeView }: AppSidebarProps) {
                     <SidebarGroupLabel>Navigation</SidebarGroupLabel>
                     <SidebarGroupContent>
                         <SidebarMenu>
-                            {navItems.map((item) => (
-                                <SidebarMenuItem key={item.value}>
-                                    <SidebarMenuButton
-                                        onClick={() => onNavigate(item.value)}
-                                        isActive={activeView === item.value}
-                                        tooltip={item.title}
-                                    >
-                                        <item.icon />
-                                        <span>{item.title}</span>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                            ))}
+                            {navItems.map(renderNavItem)}
                         </SidebarMenu>
                     </SidebarGroupContent>
                 </SidebarGroup>

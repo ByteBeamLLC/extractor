@@ -90,6 +90,7 @@
     "sonner": "^1.7.4",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
+    "unzipper": "^0.12.3",
     "vaul": "^0.9.9",
     "xlsx": "^0.18.5",
     "zod": "^3.25.76",

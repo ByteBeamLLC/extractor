@@ -14,11 +14,50 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
+    const fileId = searchParams.get("id")
     const folderId = searchParams.get("folder_id")
 
+    // If a specific file ID is requested, return full data for that file
+    if (fileId) {
+      const { data, error } = await supabase
+        .from("document_extraction_files")
+        .select("*")
+        .eq("id", fileId)
+        .eq("user_id", user.id)
+        .single()
+
+      if (error) {
+        console.error("[document-extraction] Error fetching file:", error)
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+
+      if (!data) {
+        return NextResponse.json({ error: "File not found" }, { status: 404 })
+      }
+
+      return NextResponse.json({ file: data })
+    }
+
+    // For file list, only select columns needed (exclude large layout_data and extracted_text)
     let query = supabase
       .from("document_extraction_files")
-      .select("*")
+      .select(`
+        id,
+        name,
+        file_url,
+        mime_type,
+        folder_id,
+        extraction_status,
+        gemini_extraction_status,
+        layout_extraction_status,
+        error_message,
+        gemini_error_message,
+        layout_error_message,
+        extraction_method,
+        created_at,
+        updated_at,
+        user_id
+      `)
       .eq("user_id", user.id)
 
     if (folderId) {
@@ -192,4 +231,8 @@ export async function DELETE(request: NextRequest) {
     )
   }
 }
+
+
+
+
 

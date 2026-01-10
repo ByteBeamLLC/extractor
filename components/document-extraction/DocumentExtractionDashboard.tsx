@@ -22,6 +22,7 @@ export function DocumentExtractionDashboard() {
   const [selectedFolderId, setSelectedFolderId] = React.useState<string | null>(null)
   const [expandedFolders, setExpandedFolders] = React.useState<Set<string>>(new Set())
   const [selectedFile, setSelectedFile] = React.useState<DocumentExtractionFile | null>(null)
+  const [isLoadingFile, setIsLoadingFile] = React.useState(false)
   const [isLoading, setIsLoading] = React.useState(true)
   const [searchQuery, setSearchQuery] = React.useState("")
   const [viewMode, setViewMode] = React.useState<"grid" | "list">("grid")
@@ -353,6 +354,30 @@ export function DocumentExtractionDashboard() {
     }
   }
 
+  // Fetch full file data when opening a file for viewing
+  const handleOpenFile = async (file: DocumentExtractionFile) => {
+    if (!session?.user?.id) {
+      // Guest user - file already has all data in localStorage
+      setSelectedFile(file)
+      return
+    }
+
+    // For authenticated users, fetch full file data including layout_data and gemini_full_text
+    setIsLoadingFile(true)
+    try {
+      const response = await fetch(`/api/document-extraction/files?id=${file.id}`)
+      if (!response.ok) throw new Error("Failed to fetch file")
+      const data = await response.json()
+      setSelectedFile(data.file || file)
+    } catch (error) {
+      console.error("Error fetching file data:", error)
+      // Fall back to the file from the list
+      setSelectedFile(file)
+    } finally {
+      setIsLoadingFile(false)
+    }
+  }
+
   const handleDeleteFile = async (fileId: string) => {
     if (!confirm("Are you sure you want to delete this file?")) return
 
@@ -563,7 +588,7 @@ export function DocumentExtractionDashboard() {
                 <DocumentExtractionFileCard
                   key={file.id}
                   file={file}
-                  onOpen={() => setSelectedFile(file)}
+                  onOpen={() => handleOpenFile(file)}
                   onDelete={() => handleDeleteFile(file.id)}
                 />
               ))}
@@ -572,7 +597,16 @@ export function DocumentExtractionDashboard() {
         </div>
       </div>
 
-      {selectedFile && (
+      {isLoadingFile && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center">
+          <div className="flex flex-col items-center gap-2">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            <p className="text-sm text-muted-foreground">Loading file...</p>
+          </div>
+        </div>
+      )}
+
+      {selectedFile && !isLoadingFile && (
         <DocumentExtractionViewer
           file={selectedFile}
           onClose={() => setSelectedFile(null)}
