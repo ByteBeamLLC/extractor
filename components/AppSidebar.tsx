@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { useState, useEffect } from 'react'
 import {
     LayoutDashboard,
     Library,
@@ -39,6 +40,7 @@ interface NavItem {
     icon: React.ComponentType<{ className?: string }>
     value: string
     hidden?: boolean
+    requiresAccess?: 'recipe-builder' // Add more access types as needed
 }
 
 interface NavItemWithChildren {
@@ -46,6 +48,7 @@ interface NavItemWithChildren {
     icon: React.ComponentType<{ className?: string }>
     value: string
     children: NavSubItem[]
+    requiresAccess?: 'recipe-builder'
 }
 
 interface NavSubItem {
@@ -67,7 +70,26 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ onNavigate, activeView }: AppSidebarProps) {
-    const [openMenus, setOpenMenus] = React.useState<string[]>(['recipe-builder'])
+    const [openMenus, setOpenMenus] = useState<string[]>(['recipe-builder'])
+    const [hasRecipeBuilderAccess, setHasRecipeBuilderAccess] = useState(false)
+    const [accessLoading, setAccessLoading] = useState(true)
+
+    // Check recipe builder access on mount
+    useEffect(() => {
+        async function checkAccess() {
+            try {
+                const response = await fetch('/api/recipe-builder/access')
+                const data = await response.json()
+                setHasRecipeBuilderAccess(data.hasAccess === true)
+            } catch (error) {
+                console.error('Failed to check recipe builder access:', error)
+                setHasRecipeBuilderAccess(false)
+            } finally {
+                setAccessLoading(false)
+            }
+        }
+        checkAccess()
+    }, [])
 
     // Navigation items configuration
     const navItems: NavigationItem[] = [
@@ -80,6 +102,7 @@ export function AppSidebar({ onNavigate, activeView }: AppSidebarProps) {
             title: 'Recipe Builder',
             icon: ChefHat,
             value: 'recipe-builder',
+            requiresAccess: 'recipe-builder',
             children: [
                 {
                     title: 'Dashboard',
@@ -143,6 +166,11 @@ export function AppSidebar({ onNavigate, activeView }: AppSidebarProps) {
     const renderNavItem = (item: NavigationItem) => {
         // Skip hidden items
         if ('hidden' in item && item.hidden) {
+            return null
+        }
+
+        // Check access requirements
+        if (item.requiresAccess === 'recipe-builder' && !hasRecipeBuilderAccess) {
             return null
         }
 

@@ -120,8 +120,8 @@ export function RecipeBuilderProvider({
 
       const data = await response.json()
 
-      // Handle both array response and object with recipes property
-      const recipes: Recipe[] = Array.isArray(data) ? data : (data.recipes || [])
+      // Handle both array response and object with data property
+      const recipes: Recipe[] = Array.isArray(data) ? data : (data.data || [])
 
       setState((prev) => ({
         ...prev,
