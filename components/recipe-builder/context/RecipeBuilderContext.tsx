@@ -104,24 +104,34 @@ export function RecipeBuilderProvider({
     currentView: initialView,
   })
 
-  // Load recipes from local data (will be replaced with Supabase)
+  // Load all recipes from Supabase (handles pagination)
   const loadRecipes = useCallback(async () => {
     try {
       setState((prev) => ({ ...prev, loading: true, error: null }))
 
-      // TODO: Replace with Supabase fetch
-      // For now, load from local JSON files via API route
-      const response = await fetch('/api/recipe-builder/recipes')
+      // Fetch all pages of recipes
+      let allRecipes: Recipe[] = []
+      let page = 1
+      let hasMore = true
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || 'Failed to fetch recipes')
+      while (hasMore) {
+        const response = await fetch(`/api/recipe-builder/recipes?page=${page}`)
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}))
+          throw new Error(errorData.error || 'Failed to fetch recipes')
+        }
+
+        const data = await response.json()
+        const recipes: Recipe[] = Array.isArray(data) ? data : (data.data || [])
+        allRecipes = [...allRecipes, ...recipes]
+
+        // Check if there are more pages
+        hasMore = data.pagination?.hasNext === true
+        page++
       }
 
-      const data = await response.json()
-
-      // Handle both array response and object with data property
-      const recipes: Recipe[] = Array.isArray(data) ? data : (data.data || [])
+      const recipes = allRecipes
 
       setState((prev) => ({
         ...prev,
