@@ -123,9 +123,15 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
 
+    // Set owner_email to current user's email
+    const recipeData = {
+      ...body,
+      owner_email: user.email,
+    }
+
     const { data: recipe, error } = await supabase
       .from('recipes')
-      .insert(body)
+      .insert(recipeData)
       .select()
       .single()
 
