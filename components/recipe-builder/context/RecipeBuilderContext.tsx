@@ -56,6 +56,8 @@ interface RecipeBuilderActions {
   searchRecipes: (query: string) => Recipe[]
   filterByCategory: (category: string) => Recipe[]
   filterByStatus: (status: string) => Recipe[]
+  createRecipe: (recipe: Partial<Recipe>) => Promise<Recipe | null>
+  updateRecipe: (id: string, recipe: Partial<Recipe>) => Promise<Recipe | null>
 
   // Ingredient operations
   getIngredientById: (id: string) => CustomIngredient | undefined
@@ -240,6 +242,64 @@ export function RecipeBuilderProvider({
     [state.customIngredients]
   )
 
+  // Create a new recipe
+  const createRecipe = useCallback(async (recipe: Partial<Recipe>): Promise<Recipe | null> => {
+    try {
+      const response = await fetch('/api/recipe-builder/recipes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(recipe),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to create recipe')
+      }
+
+      const { data: newRecipe } = await response.json()
+
+      // Update local state
+      setState((prev) => ({
+        ...prev,
+        recipes: [newRecipe, ...prev.recipes],
+      }))
+
+      return newRecipe
+    } catch (err) {
+      console.error('Failed to create recipe:', err)
+      return null
+    }
+  }, [])
+
+  // Update an existing recipe
+  const updateRecipe = useCallback(async (id: string, recipe: Partial<Recipe>): Promise<Recipe | null> => {
+    try {
+      const response = await fetch(`/api/recipe-builder/recipes?id=${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(recipe),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to update recipe')
+      }
+
+      const { data: updatedRecipe } = await response.json()
+
+      // Update local state
+      setState((prev) => ({
+        ...prev,
+        recipes: prev.recipes.map((r) => (r.id === id ? updatedRecipe : r)),
+      }))
+
+      return updatedRecipe
+    } catch (err) {
+      console.error('Failed to update recipe:', err)
+      return null
+    }
+  }, [])
+
   // Refresh data
   const refreshData = useCallback(async () => {
     await loadRecipes()
@@ -260,6 +320,8 @@ export function RecipeBuilderProvider({
     searchRecipes,
     filterByCategory,
     filterByStatus,
+    createRecipe,
+    updateRecipe,
     getIngredientById,
     refreshData,
   }
@@ -299,6 +361,8 @@ export function useRecipes() {
     searchRecipes,
     filterByCategory,
     filterByStatus,
+    createRecipe,
+    updateRecipe,
   } = useRecipeBuilder()
   return {
     recipes,
@@ -309,6 +373,8 @@ export function useRecipes() {
     searchRecipes,
     filterByCategory,
     filterByStatus,
+    createRecipe,
+    updateRecipe,
   }
 }
 

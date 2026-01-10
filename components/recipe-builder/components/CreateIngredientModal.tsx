@@ -200,6 +200,29 @@ export function CreateIngredientModal({
   const [dbSearchLoading, setDbSearchLoading] = useState(false)
   const [selectedDbIngredient, setSelectedDbIngredient] = useState<USDAIngredient | null>(null)
 
+  // User ingredients from localStorage
+  const [userIngredients, setUserIngredients] = useState<Ingredient[]>([])
+  const [userIngredientSearch, setUserIngredientSearch] = useState('')
+
+  // Load user ingredients from localStorage
+  useEffect(() => {
+    if (isOpen) {
+      const saved = localStorage.getItem('recipe_builder_user_ingredients')
+      if (saved) {
+        try {
+          setUserIngredients(JSON.parse(saved))
+        } catch (e) {
+          console.error('Failed to load user ingredients:', e)
+        }
+      }
+    }
+  }, [isOpen])
+
+  // Filter user ingredients by search
+  const filteredUserIngredients = userIngredients.filter((ing) =>
+    ing.name.toLowerCase().includes(userIngredientSearch.toLowerCase())
+  )
+
   // Reset state when modal opens/closes
   useEffect(() => {
     if (isOpen && !isEditing) {
@@ -207,6 +230,7 @@ export function CreateIngredientModal({
       setDbSearchQuery('')
       setDbSearchResults([])
       setSelectedDbIngredient(null)
+      setUserIngredientSearch('')
     } else if (isOpen && isEditing) {
       setActiveTab('basic')
     }
@@ -264,6 +288,25 @@ export function CreateIngredientModal({
       quantity: 100, // Default to 100g
       unit: 'G',
       yield_percent: 100,
+    })
+
+    // Switch to basic tab to let user adjust quantity
+    setActiveTab('basic')
+  }, [onChange])
+
+  // Handle selecting ingredient from user's saved ingredients
+  const handleSelectUserIngredient = useCallback((userIng: Ingredient) => {
+    onChange({
+      name: userIng.name,
+      source: userIng.source,
+      ingredient_id: userIng.ingredient_id,
+      nutrients: userIng.nutrients,
+      allergens: userIng.allergens,
+      may_contain_allergens: userIng.may_contain_allergens,
+      quantity: 100, // Default to 100g
+      unit: 'G',
+      yield_percent: userIng.yield_percent || 100,
+      cost: userIng.cost || 0,
     })
 
     // Switch to basic tab to let user adjust quantity
@@ -335,107 +378,174 @@ export function CreateIngredientModal({
           </TabsList>
 
           {/* Search Database Tab */}
-          <TabsContent value="search" className="flex-1 flex flex-col min-h-0 mt-4">
+          <TabsContent value="search" className="flex-1 flex flex-col min-h-0 mt-4 overflow-auto">
             <div className="space-y-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search USDA ingredients (e.g., chicken breast, olive oil)..."
-                  value={dbSearchQuery}
-                  onChange={(e) => setDbSearchQuery(e.target.value)}
-                  className="pl-9"
-                  autoFocus
-                />
-              </div>
-
-              {selectedDbIngredient && (
-                <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 p-3 rounded-lg flex items-center gap-2">
-                  <Check className="w-4 h-4 text-green-600" />
-                  <span className="text-sm text-green-700 dark:text-green-300">
-                    Selected: <strong>{selectedDbIngredient.name}</strong>
-                  </span>
+              {/* My Ingredients Section */}
+              {userIngredients.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-sm">My Ingredients ({userIngredients.length})</h4>
+                  </div>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search my ingredients..."
+                      value={userIngredientSearch}
+                      onChange={(e) => setUserIngredientSearch(e.target.value)}
+                      className="pl-9 h-9"
+                    />
+                  </div>
+                  <div className="border rounded-lg max-h-[150px] overflow-auto">
+                    {filteredUserIngredients.length === 0 ? (
+                      <div className="text-center py-4 text-sm text-muted-foreground">
+                        No matching ingredients found
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableBody>
+                          {filteredUserIngredients.map((userIng) => (
+                            <TableRow
+                              key={userIng.ingredient_id}
+                              className="cursor-pointer hover:bg-muted/50"
+                              onClick={() => handleSelectUserIngredient(userIng)}
+                            >
+                              <TableCell className="py-2">
+                                <div className="font-medium">{userIng.name}</div>
+                              </TableCell>
+                              <TableCell className="py-2 w-20">
+                                <Badge variant={userIng.source === 'USDA' ? 'default' : 'secondary'} className="text-xs">
+                                  {userIng.source}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="py-2 text-right w-24">
+                                {userIng.nutrients?.['Energy']?.quantity?.toFixed(0) || '--'} kcal
+                              </TableCell>
+                              <TableCell className="py-2 w-16">
+                                <Button variant="ghost" size="sm" className="h-7">
+                                  Use
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </div>
                 </div>
               )}
 
-              <div className="text-sm text-muted-foreground">
-                {dbSearchQuery.length < 2
-                  ? 'Type at least 2 characters to search'
-                  : dbSearchLoading
-                  ? 'Searching...'
-                  : `${dbSearchResults.length} results found`}
+              {/* USDA Search Section */}
+              <div className="space-y-2">
+                <h4 className="font-medium text-sm flex items-center gap-2">
+                  <Database className="w-4 h-4" />
+                  Search USDA Database
+                </h4>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search USDA ingredients (e.g., chicken breast, olive oil)..."
+                    value={dbSearchQuery}
+                    onChange={(e) => setDbSearchQuery(e.target.value)}
+                    className="pl-9"
+                    autoFocus={userIngredients.length === 0}
+                  />
+                </div>
+
+                {selectedDbIngredient && (
+                  <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 p-3 rounded-lg flex items-center gap-2">
+                    <Check className="w-4 h-4 text-green-600" />
+                    <span className="text-sm text-green-700 dark:text-green-300">
+                      Selected: <strong>{selectedDbIngredient.name}</strong>
+                    </span>
+                  </div>
+                )}
+
+                <div className="text-sm text-muted-foreground">
+                  {dbSearchQuery.length < 2
+                    ? 'Type at least 2 characters to search USDA'
+                    : dbSearchLoading
+                    ? 'Searching...'
+                    : `${dbSearchResults.length} results found`}
+                </div>
               </div>
-            </div>
 
-            <div className="flex-1 overflow-auto border rounded-lg mt-4">
-              {dbSearchLoading ? (
-                <div className="flex items-center justify-center h-32">
-                  <Loader2 className="w-6 h-6 animate-spin" />
+              {/* USDA Results */}
+              {(dbSearchResults.length > 0 || dbSearchLoading) && (
+                <div className="border rounded-lg max-h-[250px] overflow-auto">
+                  {dbSearchLoading ? (
+                    <div className="flex items-center justify-center h-32">
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Ingredient</TableHead>
+                          <TableHead className="w-20">Type</TableHead>
+                          <TableHead className="w-24 text-right">Calories</TableHead>
+                          <TableHead className="w-24 text-right">Protein</TableHead>
+                          <TableHead className="w-20"></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {dbSearchResults.map((food) => (
+                          <TableRow
+                            key={food.id}
+                            className={`cursor-pointer hover:bg-muted/50 ${
+                              selectedDbIngredient?.id === food.id ? 'bg-green-50 dark:bg-green-950' : ''
+                            }`}
+                            onClick={() => handleSelectDbIngredient(food)}
+                          >
+                            <TableCell>
+                              <div className="font-medium">{food.name}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {food.foodCategory || 'Unknown category'}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="secondary" className="text-xs">
+                                {food.dataType}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {food.nutrients['Energy']?.quantity?.toFixed(0) || '--'} kcal
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {food.nutrients['Protein']?.quantity?.toFixed(1) || '--'} g
+                            </TableCell>
+                            <TableCell>
+                              {selectedDbIngredient?.id === food.id ? (
+                                <Badge variant="default" className="bg-green-600">
+                                  <Check className="w-3 h-3 mr-1" />
+                                  Selected
+                                </Badge>
+                              ) : (
+                                <Button variant="ghost" size="sm">
+                                  Select
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
                 </div>
-              ) : dbSearchResults.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
-                  <Database className="w-8 h-8 mb-2" />
-                  <p>Search for ingredients in the USDA FoodData Central database</p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Ingredient</TableHead>
-                      <TableHead className="w-20">Type</TableHead>
-                      <TableHead className="w-24 text-right">Calories</TableHead>
-                      <TableHead className="w-24 text-right">Protein</TableHead>
-                      <TableHead className="w-20"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {dbSearchResults.map((food) => (
-                      <TableRow
-                        key={food.id}
-                        className={`cursor-pointer hover:bg-muted/50 ${
-                          selectedDbIngredient?.id === food.id ? 'bg-green-50 dark:bg-green-950' : ''
-                        }`}
-                        onClick={() => handleSelectDbIngredient(food)}
-                      >
-                        <TableCell>
-                          <div className="font-medium">{food.name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {food.foodCategory || 'Unknown category'}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary" className="text-xs">
-                            {food.dataType}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {food.nutrients['Energy']?.quantity?.toFixed(0) || '--'} kcal
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {food.nutrients['Protein']?.quantity?.toFixed(1) || '--'} g
-                        </TableCell>
-                        <TableCell>
-                          {selectedDbIngredient?.id === food.id ? (
-                            <Badge variant="default" className="bg-green-600">
-                              <Check className="w-3 h-3 mr-1" />
-                              Selected
-                            </Badge>
-                          ) : (
-                            <Button variant="ghost" size="sm">
-                              Select
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
               )}
-            </div>
 
-            <div className="mt-4 space-y-2 text-sm">
-              <p className="text-muted-foreground">All nutrition values are per 100g. After selecting, adjust the quantity in Basic Info.</p>
-              <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 p-2 rounded-lg text-amber-700 dark:text-amber-300">
-                <strong>Note:</strong> USDA does not provide allergen data. Please add allergens manually in the Allergens tab.
+              {/* Empty state when no search and no user ingredients */}
+              {dbSearchResults.length === 0 && !dbSearchLoading && userIngredients.length === 0 && (
+                <div className="border rounded-lg p-8 text-center">
+                  <Database className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-muted-foreground">Search for ingredients in the USDA FoodData Central database</p>
+                </div>
+              )}
+
+              <div className="text-sm space-y-2">
+                <p className="text-muted-foreground">All nutrition values are per 100g. After selecting, adjust the quantity in Basic Info.</p>
+                <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 p-2 rounded-lg text-amber-700 dark:text-amber-300">
+                  <strong>Note:</strong> USDA does not provide allergen data. Please add allergens manually in the Allergens tab.
+                </div>
               </div>
             </div>
           </TabsContent>

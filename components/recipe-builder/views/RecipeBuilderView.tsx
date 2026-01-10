@@ -34,12 +34,15 @@ import {
   Save,
   Send,
   Search,
+  RefreshCw,
+  Package,
 } from 'lucide-react'
 import { useRecipes } from '../context/RecipeBuilderContext'
 import { NutritionLabel } from '../components/NutritionLabel'
 import { TrafficLightLabel } from '../components/TrafficLightLabel'
 import { CreateIngredientModal } from '../components/CreateIngredientModal'
-import type { Recipe, Ingredient, NutrientValue, Serving, Nutrition, Costs } from '../types'
+import { generateEAN13, formatBarcode } from '../utils'
+import type { Recipe, Ingredient, NutrientValue, Serving, Nutrition, Costs, RecipeInventory } from '../types'
 
 /**
  * Recipe Builder View
@@ -218,11 +221,18 @@ const createEmptyRecipe = (): Partial<Recipe> => ({
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
   preparation_time_minutes: null,
+  barcode: null,
   diet_types: [],
   allergens: [],
   may_contain_allergens: [],
   ingredients: [],
   steps: [''],
+  inventory: {
+    stock_quantity: 0,
+    stock_unit: 'portions',
+    min_stock_alert: null,
+    last_stock_update: null,
+  },
   serving: {
     total_yield_grams: 0,
     serving_size_grams: 100,
@@ -658,6 +668,127 @@ export function RecipeBuilderView({ recipeId, onBack, onSave }: RecipeBuilderVie
                     Upload Photo
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Barcode</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex-1 space-y-2">
+                    <Label htmlFor="barcode">EAN-13 Barcode</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="barcode"
+                        value={recipe.barcode ? formatBarcode(recipe.barcode) : ''}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\s/g, '').replace(/\D/g, '').slice(0, 13)
+                          setRecipe((prev) => ({ ...prev, barcode: value || null }))
+                        }}
+                        placeholder="Enter or generate barcode"
+                        className="font-mono text-lg tracking-wider"
+                      />
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          const newBarcode = generateEAN13()
+                          setRecipe((prev) => ({ ...prev, barcode: newBarcode }))
+                        }}
+                      >
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Generate
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      13-digit EAN-13 barcode with automatic check digit calculation
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Package className="w-5 h-5" />
+                  Inventory Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="stock_quantity">Stock Quantity</Label>
+                    <Input
+                      id="stock_quantity"
+                      type="number"
+                      min="0"
+                      value={recipe.inventory?.stock_quantity || 0}
+                      onChange={(e) =>
+                        setRecipe((prev) => ({
+                          ...prev,
+                          inventory: {
+                            ...prev.inventory!,
+                            stock_quantity: parseInt(e.target.value) || 0,
+                            last_stock_update: new Date().toISOString(),
+                          },
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="stock_unit">Stock Unit</Label>
+                    <Select
+                      value={recipe.inventory?.stock_unit || 'portions'}
+                      onValueChange={(v) =>
+                        setRecipe((prev) => ({
+                          ...prev,
+                          inventory: { ...prev.inventory!, stock_unit: v },
+                        }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select unit" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="portions">Portions</SelectItem>
+                        <SelectItem value="units">Units</SelectItem>
+                        <SelectItem value="kg">Kilograms (kg)</SelectItem>
+                        <SelectItem value="g">Grams (g)</SelectItem>
+                        <SelectItem value="l">Liters (l)</SelectItem>
+                        <SelectItem value="ml">Milliliters (ml)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="min_stock_alert">Low Stock Alert</Label>
+                    <Input
+                      id="min_stock_alert"
+                      type="number"
+                      min="0"
+                      value={recipe.inventory?.min_stock_alert || ''}
+                      onChange={(e) =>
+                        setRecipe((prev) => ({
+                          ...prev,
+                          inventory: {
+                            ...prev.inventory!,
+                            min_stock_alert: e.target.value ? parseInt(e.target.value) : null,
+                          },
+                        }))
+                      }
+                      placeholder="Optional"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Alert when stock falls below this level
+                    </p>
+                  </div>
+                </div>
+                {recipe.inventory?.last_stock_update && (
+                  <p className="text-xs text-muted-foreground">
+                    Last updated: {new Date(recipe.inventory.last_stock_update).toLocaleString()}
+                  </p>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

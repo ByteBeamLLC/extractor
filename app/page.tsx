@@ -18,7 +18,6 @@ import {
   DashboardView as RecipeBuilderDashboard,
   RecipesView as RecipeBuilderRecipes,
   IngredientsView as RecipeBuilderIngredients,
-  USDAIngredientsView as RecipeBuilderUSDAIngredients,
 } from '@/components/recipe-builder'
 
 // Helper to check if a view is a Recipe Builder view
@@ -33,11 +32,7 @@ function getRecipeBuilderView(view: string) {
       return <RecipeBuilderDashboard />
     case 'recipe-builder-recipes':
       return <RecipeBuilderRecipes />
-    case 'recipe-builder-ingredients-usda':
-      return <RecipeBuilderUSDAIngredients />
     case 'recipe-builder-ingredients':
-    case 'recipe-builder-ingredients-manage':
-    case 'recipe-builder-ingredients-custom':
       return <RecipeBuilderIngredients />
     default:
       return <RecipeBuilderDashboard />
