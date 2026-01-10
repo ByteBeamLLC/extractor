@@ -11,7 +11,7 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     // Check authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
         hasAccess: false,
         role: null,
         email: null,
+        debug: { authError: authError?.message, step: 'auth' }
       })
     }
 
@@ -36,6 +37,7 @@ export async function GET(request: NextRequest) {
         hasAccess: false,
         role: null,
         email: user.email,
+        debug: { dbError: error?.message, code: error?.code, step: 'db_query' }
       })
     }
 
@@ -50,7 +52,7 @@ export async function GET(request: NextRequest) {
       hasAccess: false,
       role: null,
       email: null,
-      error: error.message,
+      debug: { error: error.message, step: 'catch' }
     })
   }
 }
