@@ -442,12 +442,6 @@ async function renderPdfPagesToImages(base64: string): Promise<Array<{
 
   const pdfjsLib = (pdfjsModule as any).default ?? pdfjsModule
 
-  // CRITICAL: Disable worker by setting workerSrc to empty string BEFORE getDocument()
-  // This prevents pdfjs-dist from trying to load the worker file in serverless environments
-  if (pdfjsLib.GlobalWorkerOptions) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = ""
-  }
-
   // Create a custom canvas factory for node-canvas compatibility
   class NodeCanvasFactory {
     create(width: number, height: number) {
@@ -469,9 +463,11 @@ async function renderPdfPagesToImages(base64: string): Promise<Array<{
 
   console.log(`[document-extraction] Loading PDF document...`)
 
+  // For pdfjs-dist v5 in Node.js, use workerPort: null to explicitly disable workers
+  // This avoids the "No GlobalWorkerOptions.workerSrc specified" error
   const loadingTask = pdfjsLib.getDocument({
     data,
-    disableWorker: true, // Disable worker for Node.js environment
+    workerPort: null, // Explicitly disable worker for Node.js environment (pdfjs-dist v5)
     isEvalSupported: false,
     useSystemFonts: true,
     canvasFactory: new NodeCanvasFactory(),

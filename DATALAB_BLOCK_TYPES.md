@@ -160,3 +160,7 @@ Potential improvements:
 5. **Table extraction** with proper cell structure
 6. **Section-aware search** across documents
 
+
+
+
+

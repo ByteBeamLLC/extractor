@@ -23,3 +23,6 @@ export function createSupabaseServerClient() {
 export function createSupabaseServerComponentClient() {
   return createServerComponentClient<Database>({ cookies })
 }
+
+// Alias for API routes
+export const createClient = createSupabaseServerClient
