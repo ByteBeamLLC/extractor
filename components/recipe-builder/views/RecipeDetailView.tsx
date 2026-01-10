@@ -1,10 +1,19 @@
 'use client'
 
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -21,12 +30,22 @@ import {
   Edit,
   Trash2,
   MoreVertical,
+  Package,
+  AlertTriangle,
+  Minus,
+  Plus,
+  Barcode,
+  Copy,
+  Check,
 } from 'lucide-react'
 import { useRecipes, useRecipeBuilderNavigation } from '../context/RecipeBuilderContext'
 import { NutritionLabel } from '../components/NutritionLabel'
 import { TrafficLightLabel } from '../components/TrafficLightLabel'
 import { MacroChart } from '../components/MacroChart'
-import type { Recipe, NutrientValue } from '../types'
+import { NutritionQRCode } from '../components/NutritionQRCode'
+import { PackagingArtwork } from '../components/PackagingArtwork'
+import { formatBarcode, generateUniqueEAN13 } from '../utils'
+import type { Recipe, NutrientValue, RecipeInventory } from '../types'
 
 /**
  * Recipe Detail View
@@ -83,11 +102,105 @@ interface RecipeDetailViewProps {
   recipeId: string
   onBack: () => void
   onEdit?: () => void
+  companyLogo?: string | null
 }
 
-export function RecipeDetailView({ recipeId, onBack, onEdit }: RecipeDetailViewProps) {
-  const { getRecipeById } = useRecipes()
+export function RecipeDetailView({ recipeId, onBack, onEdit, companyLogo }: RecipeDetailViewProps) {
+  const { getRecipeById, updateRecipe, recipes } = useRecipes()
   const recipe = getRecipeById(recipeId)
+
+  // Stock management state
+  const [isUpdatingStock, setIsUpdatingStock] = useState(false)
+  const [stockAdjustment, setStockAdjustment] = useState(0)
+
+  // Barcode state
+  const [isGeneratingBarcode, setIsGeneratingBarcode] = useState(false)
+  const [barcodeCopied, setBarcodeCopied] = useState(false)
+
+  // Auto-generate barcode if recipe doesn't have one
+  React.useEffect(() => {
+    const generateBarcodeIfMissing = async () => {
+      if (!recipe || recipe.barcode || isGeneratingBarcode) return
+
+      setIsGeneratingBarcode(true)
+      try {
+        // Get all existing barcodes from recipes
+        const existingBarcodes = recipes
+          .map((r) => r.barcode)
+          .filter((b): b is string => !!b)
+
+        // Generate unique barcode
+        const newBarcode = generateUniqueEAN13(existingBarcodes)
+
+        // Save to database
+        await updateRecipe(recipe.id, { barcode: newBarcode })
+      } catch (error) {
+        console.error('Failed to generate barcode:', error)
+      } finally {
+        setIsGeneratingBarcode(false)
+      }
+    }
+
+    generateBarcodeIfMissing()
+  }, [recipe?.id, recipe?.barcode, recipes, updateRecipe, isGeneratingBarcode])
+
+  // Copy barcode to clipboard
+  const handleCopyBarcode = async () => {
+    if (!recipe?.barcode) return
+
+    try {
+      await navigator.clipboard.writeText(recipe.barcode)
+      setBarcodeCopied(true)
+      setTimeout(() => setBarcodeCopied(false), 2000)
+    } catch (error) {
+      console.error('Failed to copy barcode:', error)
+    }
+  }
+
+  // Handle quick stock adjustment
+  const handleQuickAdjust = async (amount: number) => {
+    if (!recipe) return
+
+    const currentStock = recipe.inventory?.stock_quantity || 0
+    const newStock = Math.max(0, currentStock + amount)
+
+    setIsUpdatingStock(true)
+    try {
+      await updateRecipe(recipe.id, {
+        inventory: {
+          stock_quantity: newStock,
+          stock_unit: recipe.inventory?.stock_unit || 'portions',
+          min_stock_alert: recipe.inventory?.min_stock_alert || null,
+          last_stock_update: new Date().toISOString(),
+        },
+      })
+    } catch (error) {
+      console.error('Failed to update stock:', error)
+    } finally {
+      setIsUpdatingStock(false)
+    }
+  }
+
+  // Handle manual stock set
+  const handleSetStock = async (newStock: number) => {
+    if (!recipe) return
+
+    setIsUpdatingStock(true)
+    try {
+      await updateRecipe(recipe.id, {
+        inventory: {
+          stock_quantity: Math.max(0, newStock),
+          stock_unit: recipe.inventory?.stock_unit || 'portions',
+          min_stock_alert: recipe.inventory?.min_stock_alert || null,
+          last_stock_update: new Date().toISOString(),
+        },
+      })
+    } catch (error) {
+      console.error('Failed to update stock:', error)
+    } finally {
+      setIsUpdatingStock(false)
+    }
+  }
 
   // Get per 100g values - use existing data if available, otherwise calculate from per_recipe_total
   const per100gValues = useMemo(() => {
@@ -170,7 +283,7 @@ export function RecipeDetailView({ recipeId, onBack, onEdit }: RecipeDetailViewP
       </div>
 
       {/* Quick Info Bar */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-5 gap-4">
         <Card>
           <CardContent className="flex items-center gap-3 p-4">
             <Clock className="w-5 h-5 text-muted-foreground" />
@@ -206,7 +319,184 @@ export function RecipeDetailView({ recipeId, onBack, onEdit }: RecipeDetailViewP
             </div>
           </CardContent>
         </Card>
+        <Card>
+          <CardContent className="flex items-center gap-3 p-4">
+            {recipe.inventory?.min_stock_alert &&
+            (recipe.inventory?.stock_quantity || 0) <= recipe.inventory.min_stock_alert ? (
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+            ) : (
+              <Package className="w-5 h-5 text-muted-foreground" />
+            )}
+            <div>
+              <p className="text-sm text-muted-foreground">Stock</p>
+              <p className={`font-medium ${
+                recipe.inventory?.min_stock_alert &&
+                (recipe.inventory?.stock_quantity || 0) <= recipe.inventory.min_stock_alert
+                  ? 'text-amber-600'
+                  : ''
+              }`}>
+                {recipe.inventory?.stock_quantity || 0} {recipe.inventory?.stock_unit || 'portions'}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-3 p-4">
+            <Barcode className="w-5 h-5 text-muted-foreground" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-muted-foreground">Barcode</p>
+              {isGeneratingBarcode ? (
+                <p className="text-sm text-muted-foreground">Generating...</p>
+              ) : recipe.barcode ? (
+                <div className="flex items-center gap-2">
+                  <p className="font-mono text-sm font-medium truncate">
+                    {formatBarcode(recipe.barcode)}
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 shrink-0"
+                    onClick={handleCopyBarcode}
+                  >
+                    {barcodeCopied ? (
+                      <Check className="w-3 h-3 text-green-500" />
+                    ) : (
+                      <Copy className="w-3 h-3" />
+                    )}
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">--</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Inventory Quick Actions */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Package className="w-5 h-5" />
+            Quick Stock Update
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            {/* Quick adjustment buttons */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleQuickAdjust(-10)}
+                disabled={isUpdatingStock}
+              >
+                -10
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleQuickAdjust(-5)}
+                disabled={isUpdatingStock}
+              >
+                -5
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleQuickAdjust(-1)}
+                disabled={isUpdatingStock}
+              >
+                -1
+              </Button>
+
+              {/* Current stock display */}
+              <div className="px-4 py-2 bg-muted rounded-md min-w-[100px] text-center">
+                <span className="text-lg font-semibold">
+                  {recipe.inventory?.stock_quantity || 0}
+                </span>
+                <span className="text-sm text-muted-foreground ml-1">
+                  {recipe.inventory?.stock_unit || 'portions'}
+                </span>
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleQuickAdjust(1)}
+                disabled={isUpdatingStock}
+              >
+                +1
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleQuickAdjust(5)}
+                disabled={isUpdatingStock}
+              >
+                +5
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleQuickAdjust(10)}
+                disabled={isUpdatingStock}
+              >
+                +10
+              </Button>
+            </div>
+
+            <Separator orientation="vertical" className="h-8" />
+
+            {/* Manual input */}
+            <div className="flex items-center gap-2">
+              <Label htmlFor="stock-input" className="text-sm whitespace-nowrap">Set to:</Label>
+              <Input
+                id="stock-input"
+                type="number"
+                min="0"
+                className="w-20"
+                placeholder="0"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const value = parseInt((e.target as HTMLInputElement).value)
+                    if (!isNaN(value)) {
+                      handleSetStock(value)
+                      ;(e.target as HTMLInputElement).value = ''
+                    }
+                  }
+                }}
+                disabled={isUpdatingStock}
+              />
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={(e) => {
+                  const input = (e.currentTarget.previousElementSibling as HTMLInputElement)
+                  const value = parseInt(input.value)
+                  if (!isNaN(value)) {
+                    handleSetStock(value)
+                    input.value = ''
+                  }
+                }}
+                disabled={isUpdatingStock}
+              >
+                Set
+              </Button>
+            </div>
+
+            {isUpdatingStock && (
+              <span className="text-sm text-muted-foreground">Updating...</span>
+            )}
+          </div>
+
+          {recipe.inventory?.last_stock_update && (
+            <p className="text-xs text-muted-foreground mt-3">
+              Last updated: {new Date(recipe.inventory.last_stock_update).toLocaleString()}
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column */}
@@ -384,6 +674,21 @@ export function RecipeDetailView({ recipeId, onBack, onEdit }: RecipeDetailViewP
               </div>
             </CardContent>
           </Card>
+
+          {/* Packaging Artwork Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Packaging Artwork</CardTitle>
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
+              <div className="w-fit">
+                <PackagingArtwork
+                  recipe={recipe as Recipe}
+                  logoUrl={companyLogo}
+                />
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Right Column */}
@@ -486,8 +791,17 @@ export function RecipeDetailView({ recipeId, onBack, onEdit }: RecipeDetailViewP
               />
             </CardContent>
           </Card>
+
+          {/* QR Code for Nutrition Labels */}
+          {recipe.status === 'PUBLISHED' && (
+            <NutritionQRCode
+              recipeId={recipe.id}
+              recipeName={recipe.name}
+            />
+          )}
         </div>
       </div>
+
     </div>
   )
 }

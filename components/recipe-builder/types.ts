@@ -90,6 +90,15 @@ export interface RecipeMetadata {
   is_imported_recipe: boolean
   qr_image: string | null
   cover_image: string | null
+  packaging_logo: string | null
+}
+
+// Inventory/Stock tracking
+export interface RecipeInventory {
+  stock_quantity: number
+  stock_unit: string // 'portions', 'units', 'kg', etc.
+  min_stock_alert: number | null // Alert when stock falls below this
+  last_stock_update: string | null
 }
 
 // Complete recipe entity
@@ -103,6 +112,7 @@ export interface Recipe {
   created_at: string
   updated_at: string
   preparation_time_minutes: number | null
+  barcode: string | null // EAN-13 barcode
   serving: Serving
   diet_types: string[]
   allergens: string[]
@@ -113,6 +123,7 @@ export interface Recipe {
   costs: Costs
   labels: RecipeLabels
   metadata: RecipeMetadata
+  inventory: RecipeInventory
 }
 
 // Recipe status enum

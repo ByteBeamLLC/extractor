@@ -23,7 +23,7 @@ export { RecipesView } from './views/RecipesView'
 export { RecipeDetailView } from './views/RecipeDetailView'
 export { RecipeBuilderView } from './views/RecipeBuilderView'
 export { IngredientsView } from './views/IngredientsView'
-export { USDAIngredientsView } from './views/USDAIngredientsView'
+// USDAIngredientsView is now consolidated into IngredientsView
 
 // Shared components
 export { MacroChart, NutritionLabel, TrafficLightLabel, CreateIngredientModal } from './components'

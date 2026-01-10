@@ -4,7 +4,16 @@ import React, { useState, useMemo } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   Select,
   SelectContent,
@@ -26,15 +35,20 @@ import {
   Upload,
   Download,
   AlertCircle,
+  AlertTriangle,
   ChevronLeft,
   ChevronRight,
   MoreVertical,
   SlidersHorizontal,
+  Package,
+  Minus,
+  Image,
+  X,
 } from 'lucide-react'
 import { useRecipes, useRecipeBuilderNavigation } from '../context/RecipeBuilderContext'
 import { RecipeDetailView } from './RecipeDetailView'
 import { RecipeBuilderView } from './RecipeBuilderView'
-import type { Recipe } from '../types'
+import type { Recipe, RecipeInventory } from '../types'
 
 /**
  * Recipes View
@@ -44,8 +58,11 @@ import type { Recipe } from '../types'
 
 const RECIPES_PER_PAGE = 10
 
+// localStorage key for company logo
+const COMPANY_LOGO_KEY = 'recipe-builder-company-logo'
+
 export function RecipesView() {
-  const { recipes, loading } = useRecipes()
+  const { recipes, loading, createRecipe, updateRecipe } = useRecipes()
   const { navigateTo, currentView, selectedRecipeId, goBack } = useRecipeBuilderNavigation()
 
   const [searchQuery, setSearchQuery] = useState('')
@@ -56,6 +73,49 @@ export function RecipesView() {
   // Local state for create/edit mode
   const [isBuilderOpen, setIsBuilderOpen] = useState(false)
   const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
+
+  // Stock update modal state
+  const [stockModalOpen, setStockModalOpen] = useState(false)
+  const [stockRecipe, setStockRecipe] = useState<Recipe | null>(null)
+  const [stockQuantity, setStockQuantity] = useState(0)
+  const [stockUnit, setStockUnit] = useState('portions')
+  const [stockAdjustment, setStockAdjustment] = useState(0)
+  const [isUpdatingStock, setIsUpdatingStock] = useState(false)
+
+  // Company logo state
+  const [companyLogo, setCompanyLogo] = useState<string | null>(null)
+  const [logoModalOpen, setLogoModalOpen] = useState(false)
+
+  // Load company logo from localStorage on mount
+  React.useEffect(() => {
+    const savedLogo = localStorage.getItem(COMPANY_LOGO_KEY)
+    if (savedLogo) {
+      setCompanyLogo(savedLogo)
+    }
+  }, [])
+
+  // Handle logo upload
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const dataUrl = event.target?.result as string
+        setCompanyLogo(dataUrl)
+        localStorage.setItem(COMPANY_LOGO_KEY, dataUrl)
+        setLogoModalOpen(false)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  // Handle logo removal
+  const handleRemoveLogo = () => {
+    setCompanyLogo(null)
+    localStorage.removeItem(COMPANY_LOGO_KEY)
+    setLogoModalOpen(false)
+  }
 
   // Handle create new recipe
   const handleCreateRecipe = () => {
@@ -73,6 +133,65 @@ export function RecipesView() {
   const handleCloseBuilder = () => {
     setIsBuilderOpen(false)
     setEditingRecipeId(null)
+  }
+
+  // Handle save recipe
+  const handleSaveRecipe = async (recipe: Partial<Recipe>) => {
+    setIsSaving(true)
+    try {
+      if (editingRecipeId) {
+        // Update existing recipe
+        await updateRecipe(editingRecipeId, recipe)
+      } else {
+        // Create new recipe
+        await createRecipe(recipe)
+      }
+      // Close builder after successful save
+      handleCloseBuilder()
+    } catch (error) {
+      console.error('Failed to save recipe:', error)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // Handle open stock modal
+  const handleOpenStockModal = (recipe: Recipe, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setStockRecipe(recipe)
+    setStockQuantity(recipe.inventory?.stock_quantity || 0)
+    setStockUnit(recipe.inventory?.stock_unit || 'portions')
+    setStockAdjustment(0)
+    setStockModalOpen(true)
+  }
+
+  // Handle stock update
+  const handleUpdateStock = async () => {
+    if (!stockRecipe) return
+
+    setIsUpdatingStock(true)
+    try {
+      const newQuantity = stockQuantity + stockAdjustment
+      const updatedInventory: RecipeInventory = {
+        stock_quantity: Math.max(0, newQuantity),
+        stock_unit: stockUnit,
+        min_stock_alert: stockRecipe.inventory?.min_stock_alert || null,
+        last_stock_update: new Date().toISOString(),
+      }
+
+      await updateRecipe(stockRecipe.id, { inventory: updatedInventory })
+      setStockModalOpen(false)
+      setStockRecipe(null)
+    } catch (error) {
+      console.error('Failed to update stock:', error)
+    } finally {
+      setIsUpdatingStock(false)
+    }
+  }
+
+  // Quick stock adjustment
+  const handleQuickAdjust = (amount: number) => {
+    setStockAdjustment((prev) => prev + amount)
   }
 
   // Get unique categories
@@ -153,6 +272,7 @@ export function RecipesView() {
       <RecipeBuilderView
         recipeId={editingRecipeId}
         onBack={handleCloseBuilder}
+        onSave={handleSaveRecipe}
       />
     )
   }
@@ -164,6 +284,7 @@ export function RecipesView() {
         recipeId={selectedRecipeId}
         onBack={goBack}
         onEdit={() => handleEditRecipe(selectedRecipeId)}
+        companyLogo={companyLogo}
       />
     )
   }
@@ -179,13 +300,9 @@ export function RecipesView() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Download className="w-4 h-4 mr-2" />
-            Export
-          </Button>
-          <Button variant="outline" size="sm">
-            <Upload className="w-4 h-4 mr-2" />
-            Import
+          <Button variant="outline" size="sm" onClick={() => setLogoModalOpen(true)}>
+            <Image className="w-4 h-4 mr-2" />
+            {companyLogo ? 'Update Logo' : 'Upload Company Logo'}
           </Button>
           <Button size="sm" onClick={handleCreateRecipe}>
             <Plus className="w-4 h-4 mr-2" />
@@ -194,18 +311,32 @@ export function RecipesView() {
         </div>
       </div>
 
-      {/* Alert Banner */}
-      <div className="flex items-center gap-3 p-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-800">
-        <AlertCircle className="w-5 h-5 flex-shrink-0" />
-        <span className="flex-1 text-sm">
-          Ingredients Update available! We've found new allergens, nutrition, or
-          may contain updates for <strong>88 ingredients</strong>. Click below
-          to see and update.
-        </span>
-        <Button variant="outline" size="sm" className="border-amber-300 hover:bg-amber-100">
-          View Updates
-        </Button>
-      </div>
+      {/* Company Logo Preview */}
+      {companyLogo && (
+        <Card className="bg-muted/30">
+          <CardContent className="py-3 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <img
+                src={companyLogo}
+                alt="Company Logo"
+                className="h-10 max-w-[150px] object-contain"
+              />
+              <span className="text-sm text-muted-foreground">
+                Company logo will appear on all packaging artwork
+              </span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLogoModalOpen(true)}
+            >
+              Change
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+ 
 
       {/* Filters */}
       <Card>
@@ -276,6 +407,7 @@ export function RecipesView() {
               <TableHead>Serving Size</TableHead>
               <TableHead>Calories</TableHead>
               <TableHead>Cost</TableHead>
+              <TableHead>Stock</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Updated On</TableHead>
               <TableHead className="w-10"></TableHead>
@@ -284,13 +416,13 @@ export function RecipesView() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8">
+                <TableCell colSpan={10} className="text-center py-8">
                   Loading recipes...
                 </TableCell>
               </TableRow>
             ) : paginatedRecipes.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8">
+                <TableCell colSpan={10} className="text-center py-8">
                   <div className="flex flex-col items-center gap-2">
                     <p>No recipes found</p>
                     <p className="text-sm text-muted-foreground">
@@ -322,6 +454,38 @@ export function RecipesView() {
                       : '--'}
                   </TableCell>
                   <TableCell>{recipe.costs?.total_cost || 0} AED</TableCell>
+                  <TableCell>
+                    <button
+                      className="flex items-center gap-1 px-2 py-1 rounded hover:bg-muted transition-colors cursor-pointer"
+                      onClick={(e) => handleOpenStockModal(recipe, e)}
+                    >
+                      {recipe.inventory ? (
+                        <>
+                          {recipe.inventory.min_stock_alert &&
+                          recipe.inventory.stock_quantity <= recipe.inventory.min_stock_alert ? (
+                            <AlertTriangle className="w-4 h-4 text-amber-500" />
+                          ) : (
+                            <Package className="w-4 h-4 text-muted-foreground" />
+                          )}
+                          <span
+                            className={
+                              recipe.inventory.min_stock_alert &&
+                              recipe.inventory.stock_quantity <= recipe.inventory.min_stock_alert
+                                ? 'text-amber-600 font-medium'
+                                : ''
+                            }
+                          >
+                            {recipe.inventory.stock_quantity} {recipe.inventory.stock_unit}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Package className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">Set stock</span>
+                        </>
+                      )}
+                    </button>
+                  </TableCell>
                   <TableCell>
                     <Badge variant={getStatusBadgeVariant(recipe.status)}>
                       {recipe.status}
@@ -393,6 +557,217 @@ export function RecipesView() {
           </div>
         )}
       </Card>
+
+      {/* Stock Update Modal */}
+      <Dialog open={stockModalOpen} onOpenChange={setStockModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Package className="w-5 h-5" />
+              Update Stock
+            </DialogTitle>
+            <DialogDescription>
+              {stockRecipe?.name}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Current Stock Display */}
+            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+              <span className="text-sm text-muted-foreground">Current Stock</span>
+              <span className="text-lg font-semibold">
+                {stockQuantity} {stockUnit}
+              </span>
+            </div>
+
+            {/* Quick Adjustment Buttons */}
+            <div className="space-y-2">
+              <Label>Quick Adjust</Label>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQuickAdjust(-10)}
+                  className="flex-1"
+                >
+                  -10
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQuickAdjust(-5)}
+                  className="flex-1"
+                >
+                  -5
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQuickAdjust(-1)}
+                  className="flex-1"
+                >
+                  -1
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQuickAdjust(1)}
+                  className="flex-1"
+                >
+                  +1
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQuickAdjust(5)}
+                  className="flex-1"
+                >
+                  +5
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQuickAdjust(10)}
+                  className="flex-1"
+                >
+                  +10
+                </Button>
+              </div>
+            </div>
+
+            {/* Adjustment Display */}
+            {stockAdjustment !== 0 && (
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border">
+                <span className="text-sm">Adjustment</span>
+                <span className={`text-lg font-semibold ${stockAdjustment > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {stockAdjustment > 0 ? '+' : ''}{stockAdjustment}
+                </span>
+              </div>
+            )}
+
+            {/* New Stock Total */}
+            <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border border-primary/20">
+              <span className="text-sm font-medium">New Stock</span>
+              <span className="text-xl font-bold">
+                {Math.max(0, stockQuantity + stockAdjustment)} {stockUnit}
+              </span>
+            </div>
+
+            {/* Manual Input */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="manual-quantity">Set Quantity</Label>
+                <Input
+                  id="manual-quantity"
+                  type="number"
+                  min="0"
+                  value={stockQuantity + stockAdjustment}
+                  onChange={(e) => {
+                    const newValue = parseInt(e.target.value) || 0
+                    setStockAdjustment(newValue - stockQuantity)
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="stock-unit">Unit</Label>
+                <Select value={stockUnit} onValueChange={setStockUnit}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="portions">Portions</SelectItem>
+                    <SelectItem value="units">Units</SelectItem>
+                    <SelectItem value="kg">Kilograms</SelectItem>
+                    <SelectItem value="g">Grams</SelectItem>
+                    <SelectItem value="l">Liters</SelectItem>
+                    <SelectItem value="ml">Milliliters</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStockModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateStock} disabled={isUpdatingStock}>
+              {isUpdatingStock ? 'Updating...' : 'Update Stock'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Company Logo Modal */}
+      <Dialog open={logoModalOpen} onOpenChange={setLogoModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Image className="w-5 h-5" />
+              Company Logo
+            </DialogTitle>
+            <DialogDescription>
+              Upload your company logo for packaging artwork. This logo will be used on all recipe packaging labels.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {companyLogo ? (
+              <div className="space-y-4">
+                <div className="border rounded-lg p-6 bg-gray-50 flex items-center justify-center">
+                  <img
+                    src={companyLogo}
+                    alt="Company Logo"
+                    className="max-h-[120px] max-w-full object-contain"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => document.getElementById('company-logo-upload')?.click()}
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Replace Logo
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={handleRemoveLogo}
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Remove
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div
+                className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => document.getElementById('company-logo-upload')?.click()}
+              >
+                <Upload className="w-8 h-8 mx-auto mb-3 text-muted-foreground" />
+                <p className="text-sm font-medium mb-1">Click to upload your logo</p>
+                <p className="text-xs text-muted-foreground">
+                  PNG or JPG, recommended 200x100px
+                </p>
+              </div>
+            )}
+
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/jpg"
+              className="hidden"
+              id="company-logo-upload"
+              onChange={handleLogoUpload}
+            />
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLogoModalOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

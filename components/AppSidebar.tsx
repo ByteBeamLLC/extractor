@@ -56,7 +56,8 @@ interface NavSubItem {
     title: string
     value: string
     icon?: React.ComponentType<{ className?: string }>
-    children?: { title: string; value: string }[]
+    children?: { title: string; value: string; hidden?: boolean }[]
+    hidden?: boolean
 }
 
 type NavigationItem = NavItem | NavItemWithChildren
@@ -128,6 +129,7 @@ export function AppSidebar({ onNavigate, activeView }: AppSidebarProps) {
                     title: 'Dashboard',
                     value: 'recipe-builder-dashboard',
                     icon: LayoutDashboard,
+                    hidden: true,
                 },
                 {
                     title: 'Recipes',
@@ -138,11 +140,6 @@ export function AppSidebar({ onNavigate, activeView }: AppSidebarProps) {
                     title: 'Ingredients',
                     value: 'recipe-builder-ingredients',
                     icon: Package,
-                    children: [
-                        { title: 'USDA Ingredients', value: 'recipe-builder-ingredients-usda' },
-                        { title: 'Manage Ingredients', value: 'recipe-builder-ingredients-manage' },
-                        { title: 'Custom Ingredients', value: 'recipe-builder-ingredients-custom' },
-                    ],
                 },
             ],
         },
@@ -220,7 +217,7 @@ export function AppSidebar({ onNavigate, activeView }: AppSidebarProps) {
                         </CollapsibleTrigger>
                         <CollapsibleContent>
                             <SidebarMenuSub>
-                                {item.children.map((child) => (
+                                {item.children.filter(c => !c.hidden).map((child) => (
                                     <React.Fragment key={child.value}>
                                         {child.children ? (
                                             // Nested sub-items (e.g., Ingredients > Manage/Custom)
@@ -235,7 +232,7 @@ export function AppSidebar({ onNavigate, activeView }: AppSidebarProps) {
                                                         <span>{child.title}</span>
                                                     </SidebarMenuSubButton>
                                                 </SidebarMenuSubItem>
-                                                {child.children.map((subChild) => (
+                                                {child.children.filter(sc => !sc.hidden).map((subChild) => (
                                                     <SidebarMenuSubItem key={subChild.value}>
                                                         <SidebarMenuSubButton
                                                             onClick={() => onNavigate(subChild.value)}
