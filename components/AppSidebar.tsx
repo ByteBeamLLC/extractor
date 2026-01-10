@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
     LayoutDashboard,
     Library,
@@ -12,6 +12,7 @@ import {
     ClipboardList,
     Package,
 } from 'lucide-react'
+import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
 
 import {
     Sidebar,
@@ -74,22 +75,41 @@ export function AppSidebar({ onNavigate, activeView }: AppSidebarProps) {
     const [hasRecipeBuilderAccess, setHasRecipeBuilderAccess] = useState(false)
     const [accessLoading, setAccessLoading] = useState(true)
 
-    // Check recipe builder access on mount
-    useEffect(() => {
-        async function checkAccess() {
-            try {
-                const response = await fetch('/api/recipe-builder/access')
-                const data = await response.json()
-                setHasRecipeBuilderAccess(data.hasAccess === true)
-            } catch (error) {
-                console.error('Failed to check recipe builder access:', error)
-                setHasRecipeBuilderAccess(false)
-            } finally {
-                setAccessLoading(false)
-            }
+    // Function to check recipe builder access
+    const checkAccess = useCallback(async () => {
+        try {
+            setAccessLoading(true)
+            const response = await fetch('/api/recipe-builder/access')
+            const data = await response.json()
+            setHasRecipeBuilderAccess(data.hasAccess === true)
+        } catch (error) {
+            console.error('Failed to check recipe builder access:', error)
+            setHasRecipeBuilderAccess(false)
+        } finally {
+            setAccessLoading(false)
         }
-        checkAccess()
     }, [])
+
+    // Check access on mount and when auth state changes
+    useEffect(() => {
+        checkAccess()
+
+        // Listen for auth state changes
+        const supabase = createSupabaseBrowserClient()
+        if (!supabase) return
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+            (event) => {
+                if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+                    checkAccess()
+                }
+            }
+        )
+
+        return () => {
+            subscription.unsubscribe()
+        }
+    }, [checkAccess])
 
     // Navigation items configuration
     const navItems: NavigationItem[] = [
