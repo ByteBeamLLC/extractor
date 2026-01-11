@@ -25,7 +25,7 @@ import {
 import { FileText, Zap } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { SchemaField, DataType, VisualGroup } from "@/lib/schema"
-import { TransformBuilder } from "@/components/transform-builder"
+import { TransformBuilder } from "@/components/TransformBuilder"
 
 // Data type options
 const simpleDataTypeOptions: Array<{ value: DataType; label: string }> = [

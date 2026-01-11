@@ -1,6 +1,6 @@
 "use client"
 
-import { DataExtractionPlatform } from "@/components/data-extraction-platform"
+import { DataExtractionPlatform } from "@/components/DataExtractionPlatform"
 import { DataExtractionErrorBoundary } from "@/components/DataExtractionErrorBoundary"
 import { ENABLE_DASHBOARD } from "@/lib/workspace/featureFlags"
 import { WorkspaceApp } from "@/components/workspace/WorkspaceApp"
