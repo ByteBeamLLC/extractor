@@ -21,22 +21,58 @@ interface DatalabChandraInput {
   page_range?: string
 }
 
+interface DatalabBlock {
+  type: string
+  content?: string
+  bbox?: [number, number, number, number] // [x, y, width, height]
+  polygon?: number[] | number[][]
+  id?: string
+  html?: string
+  markdown?: string
+  text?: string
+  pageIndex?: number
+  originalBbox?: [number, number, number, number]
+  section_hierarchy?: unknown
+}
+
+interface DatalabPageStats {
+  width?: number
+  height?: number
+  page_num?: number
+}
+
+interface DatalabPage {
+  markdown?: string
+  blocks?: DatalabBlock[]
+  text_lines?: Array<{
+    text: string
+    bbox: [number, number, number, number]
+    polygon?: number[][]
+    confidence?: number
+  }>
+  width?: number
+  height?: number
+}
+
+interface DatalabJsonNode {
+  block_type?: string
+  html?: string
+  markdown?: string
+  text?: string
+  polygon?: number[] | number[][]
+  bbox?: [number, number, number, number]
+  id?: string
+  section_hierarchy?: unknown
+  children?: DatalabJsonNode[]
+}
+
 interface DatalabChandraOutput {
   markdown?: string
   html?: string
-  json?: any // JSON structure with block_type, children, polygon, etc.
-  chunks?: any // Chunked output
-  blocks?: Array<{
-    type: string
-    content?: string
-    bbox?: [number, number, number, number] // [x, y, width, height]
-    [key: string]: any
-  }>
-  pages?: Array<{
-    markdown?: string
-    blocks?: Array<any>
-    [key: string]: any
-  }>
+  json?: DatalabJsonNode | DatalabJsonNode[] | string
+  chunks?: unknown
+  blocks?: DatalabBlock[]
+  pages?: DatalabPage[]
   // Async processing fields
   request_id?: string
   request_check_url?: string
@@ -44,11 +80,13 @@ interface DatalabChandraOutput {
   success?: boolean
   error?: string | null
   // Additional metadata
-  metadata?: any
-  images?: any
+  metadata?: {
+    page_stats?: DatalabPageStats[]
+    [key: string]: unknown
+  }
+  images?: unknown
   parse_quality_score?: number
   page_count?: number
-  [key: string]: any
 }
 
 // OCR endpoint input
@@ -167,10 +205,6 @@ export async function callDatalabChandra(
   const endpoint = `${DATALAB_API_URL}/api/v1/marker`
   
   console.log(`[datalab] Calling Datalab API endpoint: ${endpoint}`)
-  
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/datalab.ts:95',message:'About to call Datalab API',data:{endpoint,fileName:input.file_name},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'H1'})}).catch(()=>{});
-  // #endregion
 
   const response = await fetch(endpoint, {
     method: 'POST',
@@ -181,16 +215,9 @@ export async function callDatalabChandra(
     body: formData,
   })
 
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/datalab.ts:108',message:'Datalab API response received',data:{status:response.status,ok:response.ok},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'H1'})}).catch(()=>{});
-  // #endregion
-
   if (!response.ok) {
     const errorText = await response.text()
     console.error(`[datalab] API error (${response.status}):`, errorText)
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/datalab.ts:115',message:'Datalab API error',data:{status:response.status,errorText},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'H1'})}).catch(()=>{});
-    // #endregion
     throw new Error(`Datalab API error (${response.status}): ${errorText}`)
   }
 
@@ -203,10 +230,6 @@ export async function callDatalabChandra(
     hasRequestCheckUrl: !!result.request_check_url,
     keys: Object.keys(result),
   })
-  
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/deb7f689-6230-4974-97b6-897e8c059ed2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/datalab.ts:128',message:'Datalab API success',data:{hasMarkdown:!!result.markdown,hasBlocks:!!result.blocks,hasRequestId:!!result.request_id},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'H1'})}).catch(()=>{});
-  // #endregion
 
   // Datalab API may return async processing - check if we need to poll
   if (result.request_id && result.request_check_url) {
@@ -442,8 +465,8 @@ export function extractOCRBlocks(output: DatalabOCROutput): Array<{
  * Recursively extract blocks from Datalab JSON structure
  * The JSON format has nested children with block_type
  */
-function extractBlocksFromJson(node: any, pageIndex?: number, depth: number = 0): Array<any> {
-  const blocks: Array<any> = []
+function extractBlocksFromJson(node: DatalabJsonNode, pageIndex?: number, depth: number = 0): DatalabBlock[] {
+  const blocks: DatalabBlock[] = []
 
   if (!node) return blocks
 
@@ -456,7 +479,7 @@ function extractBlocksFromJson(node: any, pageIndex?: number, depth: number = 0)
   // If this node has a block_type, it's a block
   // Skip container block types like 'Page' - they cover the entire page and aren't actual content
   if (node.block_type && node.block_type !== 'Page') {
-    const block: any = {
+    const block: DatalabBlock = {
       type: node.block_type,
       content: node.html || node.markdown || node.text || '',
       html: node.html,
@@ -542,12 +565,7 @@ function extractBlocksFromJson(node: any, pageIndex?: number, depth: number = 0)
 /**
  * Extract layout blocks from Datalab Chandra output
  */
-export function extractLayoutBlocks(output: DatalabChandraOutput): Array<{
-  type: string
-  content?: string
-  bbox?: [number, number, number, number]
-  [key: string]: any
-}> {
+export function extractLayoutBlocks(output: DatalabChandraOutput): DatalabBlock[] {
   console.log("[datalab] Extracting blocks from output:", {
     hasBlocks: Array.isArray(output.blocks),
     blocksLength: Array.isArray(output.blocks) ? output.blocks.length : 0,
@@ -583,11 +601,11 @@ export function extractLayoutBlocks(output: DatalabChandraOutput): Array<{
     }
 
     // Extract blocks from the JSON structure
-    if (jsonData) {
+    if (jsonData && typeof jsonData !== 'string') {
       // Handle array of pages
       if (Array.isArray(jsonData)) {
-        const allBlocks: Array<any> = []
-        jsonData.forEach((page: any, pageIndex: number) => {
+        const allBlocks: DatalabBlock[] = []
+        jsonData.forEach((page: DatalabJsonNode, pageIndex: number) => {
           allBlocks.push(...extractBlocksFromJson(page, pageIndex))
         })
         if (allBlocks.length > 0) {
@@ -597,7 +615,7 @@ export function extractLayoutBlocks(output: DatalabChandraOutput): Array<{
       }
       // Handle single page/document
       else if (typeof jsonData === 'object') {
-        const blocks = extractBlocksFromJson(jsonData)
+        const blocks = extractBlocksFromJson(jsonData as DatalabJsonNode)
         if (blocks.length > 0) {
           console.log("[datalab] Extracted", blocks.length, "blocks from JSON object")
           return blocks
@@ -614,10 +632,10 @@ export function extractLayoutBlocks(output: DatalabChandraOutput): Array<{
 
   // If we have pages with blocks, extract from pages
   if (Array.isArray(output.pages) && output.pages.length > 0) {
-    const allBlocks: Array<any> = []
+    const allBlocks: DatalabBlock[] = []
     output.pages.forEach((page, pageIndex) => {
       if (Array.isArray(page.blocks)) {
-        allBlocks.push(...page.blocks.map((block: any) => ({
+        allBlocks.push(...page.blocks.map((block: DatalabBlock) => ({
           ...block,
           pageIndex,
         })))

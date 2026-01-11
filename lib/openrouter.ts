@@ -61,10 +61,22 @@ function getModel(override?: string): string {
     return model
 }
 
+interface FormattedMessage {
+    role: 'user' | 'assistant' | 'system'
+    content: string | Array<{ type: string; text?: string; image_url?: { url: string } }>
+}
+
+interface ContentItemWithImage {
+    type: 'text' | 'image_url'
+    text?: string
+    image_url?: { url: string }
+    image?: string
+}
+
 /**
  * Convert AI SDK message format to OpenRouter format
  */
-function formatMessages(messages: Message[]): any[] {
+function formatMessages(messages: Message[]): FormattedMessage[] {
     return messages.map(msg => {
         if (typeof msg.content === 'string') {
             return { role: msg.role, content: msg.content }
@@ -76,7 +88,8 @@ function formatMessages(messages: Message[]): any[] {
                 return { type: 'text', text: item.text }
             } else {
                 // Handle both 'image' and 'image_url' types
-                const imageData = (item as any).image || (item as any).image_url?.url
+                const itemWithImage = item as ContentItemWithImage
+                const imageData = itemWithImage.image || itemWithImage.image_url?.url
                 if (imageData) {
                     return {
                         type: 'image_url',
