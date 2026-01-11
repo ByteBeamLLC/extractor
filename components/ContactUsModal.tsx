@@ -234,7 +234,7 @@ export function ContactUsModal({
               {error && (
                 <div className="text-xs text-destructive">
                   {error} — If this keeps happening, email us: {" "}
-                  <a className="underline" href={`mailto:support@bytebeam.ai?subject=${encodeURIComponent("SheetIt Support")}`}>
+                  <a className="underline" href={`mailto:support@bytebeam.ai?subject=${encodeURIComponent("Bytebeam Support")}`}>
                     support@bytebeam.ai
                   </a>
                 </div>

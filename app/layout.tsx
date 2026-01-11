@@ -15,13 +15,13 @@ import { GlobalErrorBoundary } from '@/components/GlobalErrorBoundary'
 const inter = { variable: '' } as const
 
 export const metadata: Metadata = {
-  title: 'SheetIT — by Bytebeam',
-  description: 'SheetIt is a free tool by Bytebeam that transforms documents and images into structured sheets.',
-  applicationName: 'SheetIt',
+  title: 'Bytebeam',
+  description: 'Bytebeam is an intelligent document processing platform that extracts structured data from documents and images using AI.',
+  applicationName: 'Bytebeam',
   generator: 'Bytebeam',
   icons: {
     icon: [
-      { url: '/shetit_logo_v2.png', type: 'image/png' },
+      { url: '/bytebeam-logo-icon.png', type: 'image/png' },
     ],
     shortcut: '/bytebeam-logo-icon.png',
     apple: '/bytebeam-logo-icon.png',
@@ -55,7 +55,7 @@ export default async function RootLayout({
 >
   <img
     src="/bytebeam_logo.png"
-    alt="SheetIT by ByteBeam"
+    alt="Bytebeam"
     className="h-12"
   />
 </a>                
@@ -68,7 +68,7 @@ export default async function RootLayout({
                       <AccountMenu />
                       <noscript>
                         <a
-                          href="mailto:support@bytebeam.ai?subject=SheetIt%20Support"
+                          href="mailto:support@bytebeam.ai?subject=Bytebeam%20Support"
                           className="inline-flex items-center rounded-md border border-border px-3 py-1.5 text-sm text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
                         >
                           Contact Us

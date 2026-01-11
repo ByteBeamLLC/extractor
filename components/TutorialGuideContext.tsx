@@ -59,10 +59,10 @@ function TutorialGuideModal() {
           />
           <div className="space-y-1">
             <DialogTitle id={titleId} className="text-[20px] sm:text-[22px] font-semibold">
-              Get started with SheetIt by Bytebeam
+              Get started with Bytebeam
             </DialogTitle>
             <DialogDescription id={descId} className="text-[14px] sm:text-[15px] leading-relaxed">
-              Turn PDFs & images into a table—no code.
+              Extract structured data from documents and images using AI.
             </DialogDescription>
           </div>
         </div>
