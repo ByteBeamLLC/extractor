@@ -39,7 +39,7 @@ export function AutomationNudge(props: {
         {open && (
           <div className="mt-3 space-y-3 text-sm">
             <div className="grid gap-2">
-              <MiniCard title="Scale beyond the free tool" body="Run large batches, connect drives/ERPs, add approvals & audit trail." />
+              <MiniCard title="Scale your workflows" body="Run large batches, connect drives/ERPs, add approvals & audit trail." />
               <MiniCard title="Tailored AI agents" body="Let an agent handle multi-step document work end-to-end (review, route, transform, validate)." />
               <MiniCard title="Control & compliance" body="Granular permissions, redaction, and on-prem/private cloud options." />
             </div>
