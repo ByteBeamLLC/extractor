@@ -1,9 +1,7 @@
 "use client"
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
+import React, { createContext, useCallback, useContext, useMemo, useState } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { ListChecks, Upload, Eye, ChevronDown } from "lucide-react"
 
@@ -23,63 +21,23 @@ export function useTutorialGuide() {
 
 export function TutorialGuideProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
-  const [dontShowAgain, setDontShowAgain] = useState(false)
-
-  // On first load, show the guide unless previously dismissed
-  useEffect(() => {
-    try {
-      const seen = typeof window !== "undefined" ? window.localStorage.getItem("bb_tutorial_seen") : null
-      if (!seen) setOpen(true)
-    } catch {}
-  }, [])
 
   const openGuide = useCallback(() => setOpen(true), [])
-  const closeGuide = useCallback(() => {
-    // Close without persisting; persistence handled by onOpenChange when checkbox is enabled
-    setOpen(false)
-  }, [])
+  const closeGuide = useCallback(() => setOpen(false), [])
 
   const value = useMemo(() => ({ open, openGuide, closeGuide }), [open, openGuide, closeGuide])
 
   return (
     <TutorialGuideContext.Provider value={value}>
       {children}
-      <Dialog
-        open={open}
-        onOpenChange={(next) => {
-          // Persist preference if closing and checkbox is checked
-          if (!next) {
-            try {
-              if (dontShowAgain && typeof window !== "undefined") {
-                window.localStorage.setItem("bb_tutorial_seen", "1")
-              }
-            } catch {}
-          }
-          setOpen(next)
-        }}
-      >
-        <TutorialGuideModal
-          open={open}
-          onClose={closeGuide}
-          dontShowAgain={dontShowAgain}
-          setDontShowAgain={setDontShowAgain}
-        />
+      <Dialog open={open} onOpenChange={setOpen}>
+        <TutorialGuideModal />
       </Dialog>
     </TutorialGuideContext.Provider>
   )
 }
 
-function TutorialGuideModal({
-  open,
-  onClose,
-  dontShowAgain,
-  setDontShowAgain,
-}: {
-  open: boolean
-  onClose: () => void
-  dontShowAgain: boolean
-  setDontShowAgain: (v: boolean) => void
-}) {
+function TutorialGuideModal() {
   const titleId = "bb-guide-title"
   const descId = "bb-guide-description"
 
@@ -90,7 +48,7 @@ function TutorialGuideModal({
       aria-labelledby={titleId}
       aria-describedby={descId}
     >
-      {/* Header: optional illustration + title/subhead */}
+      {/* Header */}
       <DialogHeader className="text-left">
         <div className="grid gap-3 sm:grid-cols-[96px_1fr] sm:gap-4 items-start">
           <img
@@ -166,50 +124,6 @@ function TutorialGuideModal({
           </CollapsibleContent>
         </Collapsible>
       </div>
-
-      {/* Footer */}
-      <DialogFooter className="mt-2">
-        <div className="flex w-full items-center gap-3">
-          {/* Right: actions (first in DOM for correct tab order) */}
-          {/* <div className="order-2 ml-auto flex items-center gap-2">
-            <Button
-              variant="default"
-              className="h-11"
-              autoFocus
-              onClick={() => {
-                onClose()
-              }}
-            >
-              Start with a Template
-            </Button>
-            <Button
-              variant="ghost"
-              className="h-11"
-              onClick={() => {
-                onClose()
-              }}
-            >
-              Upload a File
-            </Button>
-            <Button variant="ghost" asChild>
-              <a href="#" onClick={(e) => e.preventDefault()} className="focus-visible:outline-none">Use a sample file</a>
-            </Button>
-            <Button variant="ghost" asChild>
-              <a href="https://docs.bytebeam.ai" target="_blank" rel="noreferrer" className="focus-visible:outline-none">Docs</a>
-            </Button>
-          </div> */}
-
-          {/* Left: don't show again (last in DOM tab order) */}
-          {/* <label className="order-1 inline-flex items-center gap-2 text-sm text-muted-foreground select-none">
-            <Checkbox
-              checked={dontShowAgain}
-              onCheckedChange={(v) => setDontShowAgain(Boolean(v))}
-              aria-label="Don't show again"
-            />
-            <span>Don’t show again</span>
-          </label> */}
-        </div>
-      </DialogFooter>
     </DialogContent>
   )
 }
