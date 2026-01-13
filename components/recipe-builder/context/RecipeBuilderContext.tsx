@@ -357,6 +357,7 @@ export function useRecipes() {
     filterByStatus,
     createRecipe,
     updateRecipe,
+    refreshData,
   } = useRecipeBuilder()
   return {
     recipes,
@@ -369,6 +370,7 @@ export function useRecipes() {
     filterByStatus,
     createRecipe,
     updateRecipe,
+    refreshData,
   }
 }
 
