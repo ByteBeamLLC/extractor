@@ -15,6 +15,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -44,6 +51,9 @@ import {
   Minus,
   Image,
   X,
+  Pencil,
+  Copy,
+  Trash2,
 } from 'lucide-react'
 import { useRecipes, useRecipeBuilderNavigation } from '../context/RecipeBuilderContext'
 import { RecipeDetailView } from './RecipeDetailView'
@@ -62,7 +72,7 @@ const RECIPES_PER_PAGE = 10
 const COMPANY_LOGO_KEY = 'recipe-builder-company-logo'
 
 export function RecipesView() {
-  const { recipes, loading, createRecipe, updateRecipe } = useRecipes()
+  const { recipes, loading, createRecipe, updateRecipe, refreshData } = useRecipes()
   const { navigateTo, currentView, selectedRecipeId, goBack } = useRecipeBuilderNavigation()
 
   const [searchQuery, setSearchQuery] = useState('')
@@ -86,6 +96,12 @@ export function RecipesView() {
   // Company logo state
   const [companyLogo, setCompanyLogo] = useState<string | null>(null)
   const [logoModalOpen, setLogoModalOpen] = useState(false)
+
+  // Delete confirmation state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [recipeToDelete, setRecipeToDelete] = useState<Recipe | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isDuplicating, setIsDuplicating] = useState(false)
 
   // Load company logo from localStorage on mount
   React.useEffect(() => {
@@ -196,6 +212,76 @@ export function RecipesView() {
   // Quick stock adjustment
   const handleQuickAdjust = (amount: number) => {
     setStockAdjustment((prev) => prev + amount)
+  }
+
+  // Generate unique ID for recipes
+  const generateId = () => `recipe_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+  // Handle duplicate recipe
+  const handleDuplicateRecipe = async (recipe: Recipe) => {
+    setIsDuplicating(true)
+    try {
+      // Create a copy with "(Copy)" appended to the name and a new ID
+      const duplicatedRecipe: Partial<Recipe> = {
+        id: generateId(),
+        name: `${recipe.name} (Copy)`,
+        category: recipe.category,
+        sub_category: recipe.sub_category,
+        description: recipe.description,
+        ingredients: recipe.ingredients,
+        steps: recipe.steps,
+        nutrition: recipe.nutrition,
+        allergens: recipe.allergens,
+        may_contain_allergens: recipe.may_contain_allergens,
+        diet_types: recipe.diet_types,
+        serving: recipe.serving,
+        costs: recipe.costs,
+        labels: recipe.labels,
+        metadata: recipe.metadata,
+        inventory: undefined, // Don't copy inventory
+        status: 'DRAFT', // Set as draft
+      }
+      await createRecipe(duplicatedRecipe)
+    } catch (error) {
+      console.error('Failed to duplicate recipe:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      alert(`Failed to duplicate recipe: ${errorMessage}`)
+    } finally {
+      setIsDuplicating(false)
+    }
+  }
+
+  // Handle delete confirmation
+  const handleDeleteClick = (recipe: Recipe) => {
+    setRecipeToDelete(recipe)
+    setDeleteDialogOpen(true)
+  }
+
+  // Handle delete recipe
+  const handleDeleteRecipe = async () => {
+    if (!recipeToDelete) return
+
+    setIsDeleting(true)
+    try {
+      const response = await fetch(`/api/recipe-builder/recipes?id=${recipeToDelete.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to delete recipe')
+      }
+
+      // Refresh the data after successful deletion
+      await refreshData()
+    } catch (error) {
+      console.error('Failed to delete recipe:', error)
+      alert('Failed to delete recipe. Please try again.')
+    } finally {
+      setIsDeleting(false)
+      setDeleteDialogOpen(false)
+      setRecipeToDelete(null)
+    }
   }
 
   // Get unique categories
@@ -497,17 +583,50 @@ export function RecipesView() {
                   </TableCell>
                   <TableCell>{formatDate(recipe.updated_at)}</TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        // TODO: Open action menu
-                      }}
-                    >
-                      <MoreVertical className="w-4 h-4" />
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleEditRecipe(recipe.id)
+                          }}
+                        >
+                          <Pencil className="w-4 h-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDuplicateRecipe(recipe)
+                          }}
+                          disabled={isDuplicating}
+                        >
+                          <Copy className="w-4 h-4 mr-2" />
+                          {isDuplicating ? 'Duplicating...' : 'Duplicate'}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDeleteClick(recipe)
+                          }}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))
@@ -768,6 +887,40 @@ export function RecipesView() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setLogoModalOpen(false)}>
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="w-5 h-5" />
+              Delete Recipe
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete &quot;{recipeToDelete?.name}&quot;? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteDialogOpen(false)
+                setRecipeToDelete(null)
+              }}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteRecipe}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Deleting...' : 'Delete Recipe'}
             </Button>
           </DialogFooter>
         </DialogContent>
