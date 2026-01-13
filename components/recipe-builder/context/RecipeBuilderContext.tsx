@@ -243,61 +243,55 @@ export function RecipeBuilderProvider({
   )
 
   // Create a new recipe
-  const createRecipe = useCallback(async (recipe: Partial<Recipe>): Promise<Recipe | null> => {
-    try {
-      const response = await fetch('/api/recipe-builder/recipes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(recipe),
-      })
+  const createRecipe = useCallback(async (recipe: Partial<Recipe>): Promise<Recipe> => {
+    const response = await fetch('/api/recipe-builder/recipes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(recipe),
+    })
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || 'Failed to create recipe')
-      }
-
-      const { data: newRecipe } = await response.json()
-
-      // Update local state
-      setState((prev) => ({
-        ...prev,
-        recipes: [newRecipe, ...prev.recipes],
-      }))
-
-      return newRecipe
-    } catch (err) {
-      console.error('Failed to create recipe:', err)
-      return null
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      const errorMessage = errorData.error || 'Failed to create recipe'
+      console.error('Failed to create recipe:', errorMessage)
+      throw new Error(errorMessage)
     }
+
+    const { data: newRecipe } = await response.json()
+
+    // Update local state
+    setState((prev) => ({
+      ...prev,
+      recipes: [newRecipe, ...prev.recipes],
+    }))
+
+    return newRecipe
   }, [])
 
   // Update an existing recipe
-  const updateRecipe = useCallback(async (id: string, recipe: Partial<Recipe>): Promise<Recipe | null> => {
-    try {
-      const response = await fetch(`/api/recipe-builder/recipes?id=${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(recipe),
-      })
+  const updateRecipe = useCallback(async (id: string, recipe: Partial<Recipe>): Promise<Recipe> => {
+    const response = await fetch(`/api/recipe-builder/recipes?id=${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(recipe),
+    })
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || 'Failed to update recipe')
-      }
-
-      const { data: updatedRecipe } = await response.json()
-
-      // Update local state
-      setState((prev) => ({
-        ...prev,
-        recipes: prev.recipes.map((r) => (r.id === id ? updatedRecipe : r)),
-      }))
-
-      return updatedRecipe
-    } catch (err) {
-      console.error('Failed to update recipe:', err)
-      return null
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      const errorMessage = errorData.error || 'Failed to update recipe'
+      console.error('Failed to update recipe:', errorMessage)
+      throw new Error(errorMessage)
     }
+
+    const { data: updatedRecipe } = await response.json()
+
+    // Update local state
+    setState((prev) => ({
+      ...prev,
+      recipes: prev.recipes.map((r) => (r.id === id ? updatedRecipe : r)),
+    }))
+
+    return updatedRecipe
   }, [])
 
   // Refresh data

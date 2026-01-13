@@ -150,6 +150,10 @@ export function RecipesView() {
       handleCloseBuilder()
     } catch (error) {
       console.error('Failed to save recipe:', error)
+      // Show error to user so they know the save failed
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
+      alert(`Failed to save recipe: ${errorMessage}\n\nPlease try again. If the problem persists, check your internet connection or contact support.`)
+      // Don't close the builder - let user retry
     } finally {
       setIsSaving(false)
     }
