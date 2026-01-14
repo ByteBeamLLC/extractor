@@ -537,7 +537,28 @@ function upsertJobInList(list: ExtractionJob[], job: ExtractionJob): ExtractionJ
     return [...list, job]
   }
   const next = [...list]
-  next[index] = job
+  const existingJob = next[index]
+
+  // If we're in the middle of waterfall processing (enrichingFields exists),
+  // preserve local state to avoid DB sync overwriting partial results
+  const isWaterfallInProgress = existingJob.enrichingFields && existingJob.enrichingFields.length > 0
+
+  if (isWaterfallInProgress) {
+    // Keep local state during waterfall, only update non-conflicting fields
+    next[index] = {
+      ...existingJob,
+      // Update metadata that won't conflict with waterfall processing
+      ocrMarkdown: job.ocrMarkdown ?? existingJob.ocrMarkdown,
+      ocrAnnotatedImageUrl: job.ocrAnnotatedImageUrl ?? existingJob.ocrAnnotatedImageUrl,
+      originalFileUrl: job.originalFileUrl ?? existingJob.originalFileUrl,
+    }
+  } else {
+    // Normal case: use DB state but preserve local-only fields
+    next[index] = {
+      ...job,
+      enrichingFields: existingJob.enrichingFields,
+    }
+  }
   return next
 }
 
