@@ -2973,21 +2973,24 @@ export function DataExtractionPlatform({
           // Waterfall Enrichment: Show base extraction results immediately
           // Mark all pending transformation fields as "enriching" so UI shows loading state
           const allTransformationFieldIds = pendingTransformations
-          if (allTransformationFieldIds.length > 0) {
-            // Update job with base extraction results + enriching fields indicator
-            updateJobsForSchema((prev) =>
-              prev.map((existing) =>
-                existing.id === job.id
-                  ? {
-                      ...existing,
-                      status: "processing",
-                      results: { ...finalResults },
-                      enrichingFields: allTransformationFieldIds,
-                    }
-                  : existing,
-              ),
-            )
-          }
+
+          // Always show base extraction results immediately (even if no transformations)
+          // Update job with base extraction results + enriching fields indicator
+          updateJobsForSchema((prev) =>
+            prev.map((existing) =>
+              existing.id === job.id
+                ? {
+                    ...existing,
+                    status: allTransformationFieldIds.length > 0 ? "processing" : "completed",
+                    results: { ...finalResults },
+                    enrichingFields: allTransformationFieldIds.length > 0 ? allTransformationFieldIds : undefined,
+                  }
+                : existing,
+            ),
+          )
+
+          // Yield to event loop to allow React to re-render with initial results
+          await new Promise(resolve => setTimeout(resolve, 0))
 
           for (const wave of waves) {
             const geminiFields = wave.fields.filter((col): col is ExtractionField =>
@@ -3163,6 +3166,9 @@ export function DataExtractionPlatform({
                     : existing,
                 ),
               )
+
+              // Yield to event loop to allow React to re-render with wave results
+              await new Promise(resolve => setTimeout(resolve, 0))
             }
           }
 
