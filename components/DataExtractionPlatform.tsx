@@ -2970,6 +2970,25 @@ export function DataExtractionPlatform({
             destination[col.id] = finalResults[col.id]
           })
 
+          // Waterfall Enrichment: Show base extraction results immediately
+          // Mark all pending transformation fields as "enriching" so UI shows loading state
+          const allTransformationFieldIds = pendingTransformations
+          if (allTransformationFieldIds.length > 0) {
+            // Update job with base extraction results + enriching fields indicator
+            updateJobsForSchema((prev) =>
+              prev.map((existing) =>
+                existing.id === job.id
+                  ? {
+                      ...existing,
+                      status: "processing",
+                      results: { ...finalResults },
+                      enrichingFields: allTransformationFieldIds,
+                    }
+                  : existing,
+              ),
+            )
+          }
+
           for (const wave of waves) {
             const geminiFields = wave.fields.filter((col): col is ExtractionField =>
               isExtractionField(col) && !!col.isTransformation && col.transformationType === 'gemini_api'
@@ -3126,6 +3145,25 @@ export function DataExtractionPlatform({
                 }
               }
             })
+
+            // Waterfall Enrichment: Update UI after each wave completes
+            // Remove completed fields from enrichingFields and update results
+            if (geminiFields.length > 0) {
+              const completedFieldIds = new Set(geminiFields.map((f) => f.id))
+              updateJobsForSchema((prev) =>
+                prev.map((existing) =>
+                  existing.id === job.id
+                    ? {
+                        ...existing,
+                        results: { ...finalResults },
+                        enrichingFields: (existing.enrichingFields || []).filter(
+                          (fieldId) => !completedFieldIds.has(fieldId)
+                        ),
+                      }
+                    : existing,
+                ),
+              )
+            }
           }
 
           const completedAt = new Date()
@@ -3194,6 +3232,7 @@ export function DataExtractionPlatform({
                   completedAt,
                   results: finalResults,
                   review: reviewMeta,
+                  enrichingFields: undefined, // Clear enriching fields on completion
                   ocrMarkdown:
                     nextOcrMarkdown !== undefined
                       ? nextOcrMarkdown
@@ -3553,7 +3592,24 @@ export function DataExtractionPlatform({
     }
 
     if (job.status === 'error') return <span className="text-sm text-destructive">—</span>
-    if (job.status !== 'completed') return <Skeleton className="h-4 w-24" />
+
+    // Waterfall Enrichment: Check if this specific field is being enriched
+    const isFieldEnriching = job.enrichingFields?.includes(column.id) ?? false
+
+    // Show loading skeleton for fields that are being enriched (transformation in progress)
+    if (isFieldEnriching) {
+      return (
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-4 w-24" />
+          <span className="text-[10px] text-muted-foreground animate-pulse">enriching...</span>
+        </div>
+      )
+    }
+
+    // If job is still processing but field has no value yet and is not enriching, show skeleton
+    if (job.status !== 'completed' && value === undefined) {
+      return <Skeleton className="h-4 w-24" />
+    }
 
     const mode: GridRenderMode = opts?.mode ?? 'interactive'
 
