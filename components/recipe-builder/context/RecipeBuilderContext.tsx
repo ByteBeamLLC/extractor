@@ -242,6 +242,77 @@ export function RecipeBuilderProvider({
     [state.customIngredients]
   )
 
+  // Helper to trigger Arabic translation for a recipe
+  const triggerTranslation = useCallback(async (
+    recipeId: string,
+    fieldsToTranslate?: string[]
+  ) => {
+    try {
+      if (fieldsToTranslate && fieldsToTranslate.length > 0) {
+        // Partial translation - only specific fields changed
+        await fetch('/api/recipe/translate-artwork', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ recipeId, fieldsToTranslate }),
+        })
+      } else {
+        // Full translation for new recipes
+        await fetch('/api/recipe/translate-artwork', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ recipeId }),
+        })
+      }
+    } catch (error) {
+      // Log but don't fail the recipe operation
+      console.error('Failed to trigger translation:', error)
+    }
+  }, [])
+
+  // Helper to compare translatable fields and return which ones changed
+  const getChangedTranslatableFields = useCallback((
+    oldRecipe: Recipe | undefined,
+    newRecipe: Partial<Recipe>
+  ): string[] => {
+    if (!oldRecipe) return []
+
+    const changedFields: string[] = []
+
+    // Check name
+    if (newRecipe.name !== undefined && newRecipe.name !== oldRecipe.name) {
+      changedFields.push('name')
+    }
+
+    // Check ingredients (compare by stringifying the names)
+    if (newRecipe.ingredients !== undefined) {
+      const oldIngredientNames = (oldRecipe.ingredients || []).map(i => i.name).sort().join(',')
+      const newIngredientNames = (newRecipe.ingredients || []).map(i => i.name).sort().join(',')
+      if (oldIngredientNames !== newIngredientNames) {
+        changedFields.push('ingredients')
+      }
+    }
+
+    // Check allergens
+    if (newRecipe.allergens !== undefined) {
+      const oldAllergens = (oldRecipe.allergens || []).sort().join(',')
+      const newAllergens = (newRecipe.allergens || []).sort().join(',')
+      if (oldAllergens !== newAllergens) {
+        changedFields.push('allergens')
+      }
+    }
+
+    // Check diet_types
+    if (newRecipe.diet_types !== undefined) {
+      const oldDietTypes = (oldRecipe.diet_types || []).sort().join(',')
+      const newDietTypes = (newRecipe.diet_types || []).sort().join(',')
+      if (oldDietTypes !== newDietTypes) {
+        changedFields.push('diet_types')
+      }
+    }
+
+    return changedFields
+  }, [])
+
   // Create a new recipe
   const createRecipe = useCallback(async (recipe: Partial<Recipe>): Promise<Recipe> => {
     const response = await fetch('/api/recipe-builder/recipes', {
@@ -265,11 +336,17 @@ export function RecipeBuilderProvider({
       recipes: [newRecipe, ...prev.recipes],
     }))
 
+    // Trigger Arabic translation for new recipe (async, don't block)
+    triggerTranslation(newRecipe.id)
+
     return newRecipe
-  }, [])
+  }, [triggerTranslation])
 
   // Update an existing recipe
   const updateRecipe = useCallback(async (id: string, recipe: Partial<Recipe>): Promise<Recipe> => {
+    // Get the old recipe to compare translatable fields
+    const oldRecipe = state.recipes.find(r => r.id === id)
+
     const response = await fetch(`/api/recipe-builder/recipes?id=${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -291,8 +368,14 @@ export function RecipeBuilderProvider({
       recipes: prev.recipes.map((r) => (r.id === id ? updatedRecipe : r)),
     }))
 
+    // Check if any translatable fields changed and trigger translation
+    const changedFields = getChangedTranslatableFields(oldRecipe, recipe)
+    if (changedFields.length > 0) {
+      triggerTranslation(id, changedFields)
+    }
+
     return updatedRecipe
-  }, [])
+  }, [state.recipes, getChangedTranslatableFields, triggerTranslation])
 
   // Refresh data
   const refreshData = useCallback(async () => {
