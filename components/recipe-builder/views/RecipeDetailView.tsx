@@ -103,9 +103,11 @@ interface RecipeDetailViewProps {
   onBack: () => void
   onEdit?: () => void
   companyLogo?: string | null
+  companyName?: string
+  companyWebsite?: string
 }
 
-export function RecipeDetailView({ recipeId, onBack, onEdit, companyLogo }: RecipeDetailViewProps) {
+export function RecipeDetailView({ recipeId, onBack, onEdit, companyLogo, companyName, companyWebsite }: RecipeDetailViewProps) {
   const { getRecipeById, updateRecipe, recipes } = useRecipes()
   const recipe = getRecipeById(recipeId)
 
@@ -685,6 +687,8 @@ export function RecipeDetailView({ recipeId, onBack, onEdit, companyLogo }: Reci
                 <PackagingArtwork
                   recipe={recipe as Recipe}
                   logoUrl={companyLogo}
+                  companyName={companyName}
+                  companyWebsite={companyWebsite}
                 />
               </div>
             </CardContent>

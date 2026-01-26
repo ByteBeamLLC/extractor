@@ -49,6 +49,7 @@ export interface Nutrition {
   serving_size_grams: number
   per_recipe_total: Record<string, NutrientValue>
   per_serving: Record<string, NutrientValue>
+  per_100g?: Record<string, NutrientValue>
   summary: {
     calories: number
     net_carbs: number
@@ -101,6 +102,15 @@ export interface RecipeInventory {
   last_stock_update: string | null
 }
 
+// Arabic translations for packaging artwork
+export interface RecipeTranslations {
+  name_ar: string | null
+  ingredients_ar: string[] | null
+  allergens_ar: string[] | null
+  diet_types_ar: string[] | null
+  translations_updated_at: string | null
+}
+
 // Complete recipe entity
 export interface Recipe {
   id: string
@@ -124,6 +134,12 @@ export interface Recipe {
   labels: RecipeLabels
   metadata: RecipeMetadata
   inventory: RecipeInventory
+  // Arabic translations for packaging artwork
+  name_ar?: string | null
+  ingredients_ar?: string[] | null
+  allergens_ar?: string[] | null
+  diet_types_ar?: string[] | null
+  translations_updated_at?: string | null
 }
 
 // Recipe status enum

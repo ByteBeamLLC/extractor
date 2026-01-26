@@ -68,8 +68,10 @@ import type { Recipe, RecipeInventory } from '../types'
 
 const RECIPES_PER_PAGE = 10
 
-// localStorage key for company logo
+// localStorage keys for company branding
 const COMPANY_LOGO_KEY = 'recipe-builder-company-logo'
+const COMPANY_NAME_KEY = 'recipe-builder-company-name'
+const COMPANY_WEBSITE_KEY = 'recipe-builder-company-website'
 
 export function RecipesView() {
   const { recipes, loading, createRecipe, updateRecipe, refreshData } = useRecipes()
@@ -93,8 +95,10 @@ export function RecipesView() {
   const [stockAdjustment, setStockAdjustment] = useState(0)
   const [isUpdatingStock, setIsUpdatingStock] = useState(false)
 
-  // Company logo state
+  // Company branding state
   const [companyLogo, setCompanyLogo] = useState<string | null>(null)
+  const [companyName, setCompanyName] = useState<string>("BEN'S FARMHOUSE")
+  const [companyWebsite, setCompanyWebsite] = useState<string>("www.bensfarmhouse.com")
   const [logoModalOpen, setLogoModalOpen] = useState(false)
 
   // Delete confirmation state
@@ -103,12 +107,14 @@ export function RecipesView() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [isDuplicating, setIsDuplicating] = useState(false)
 
-  // Load company logo from localStorage on mount
+  // Load company branding from localStorage on mount
   React.useEffect(() => {
     const savedLogo = localStorage.getItem(COMPANY_LOGO_KEY)
-    if (savedLogo) {
-      setCompanyLogo(savedLogo)
-    }
+    const savedName = localStorage.getItem(COMPANY_NAME_KEY)
+    const savedWebsite = localStorage.getItem(COMPANY_WEBSITE_KEY)
+    if (savedLogo) setCompanyLogo(savedLogo)
+    if (savedName) setCompanyName(savedName)
+    if (savedWebsite) setCompanyWebsite(savedWebsite)
   }, [])
 
   // Handle logo upload
@@ -375,6 +381,8 @@ export function RecipesView() {
         onBack={goBack}
         onEdit={() => handleEditRecipe(selectedRecipeId)}
         companyLogo={companyLogo}
+        companyName={companyName}
+        companyWebsite={companyWebsite}
       />
     )
   }
@@ -392,7 +400,7 @@ export function RecipesView() {
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => setLogoModalOpen(true)}>
             <Image className="w-4 h-4 mr-2" />
-            {companyLogo ? 'Update Logo' : 'Upload Company Logo'}
+            Company Branding
           </Button>
           <Button size="sm" onClick={handleCreateRecipe}>
             <Plus className="w-4 h-4 mr-2" />
@@ -401,26 +409,29 @@ export function RecipesView() {
         </div>
       </div>
 
-      {/* Company Logo Preview */}
-      {companyLogo && (
+      {/* Company Branding Preview */}
+      {(companyLogo || companyName || companyWebsite) && (
         <Card className="bg-muted/30">
           <CardContent className="py-3 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <img
-                src={companyLogo}
-                alt="Company Logo"
-                className="h-10 max-w-[150px] object-contain"
-              />
-              <span className="text-sm text-muted-foreground">
-                Company logo will appear on all packaging artwork
-              </span>
+              {companyLogo && (
+                <img
+                  src={companyLogo}
+                  alt="Company Logo"
+                  className="h-10 max-w-[100px] object-contain"
+                />
+              )}
+              <div className="flex flex-col">
+                <span className="text-sm font-medium">{companyName}</span>
+                <span className="text-xs text-muted-foreground">{companyWebsite}</span>
+              </div>
             </div>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setLogoModalOpen(true)}
             >
-              Change
+              Edit Branding
             </Button>
           </CardContent>
         </Card>
@@ -821,59 +832,96 @@ export function RecipesView() {
         </DialogContent>
       </Dialog>
 
-      {/* Company Logo Modal */}
+      {/* Company Branding Modal */}
       <Dialog open={logoModalOpen} onOpenChange={setLogoModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Image className="w-5 h-5" />
-              Company Logo
+              Company Branding
             </DialogTitle>
             <DialogDescription>
-              Upload your company logo for packaging artwork. This logo will be used on all recipe packaging labels.
+              Configure your company branding for packaging artwork. This will be used on all recipe packaging labels.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            {companyLogo ? (
-              <div className="space-y-4">
-                <div className="border rounded-lg p-6 bg-gray-50 flex items-center justify-center">
-                  <img
-                    src={companyLogo}
-                    alt="Company Logo"
-                    className="max-h-[120px] max-w-full object-contain"
-                  />
+            {/* Company Name */}
+            <div className="space-y-2">
+              <Label htmlFor="company-name">Company Name</Label>
+              <Input
+                id="company-name"
+                value={companyName}
+                onChange={(e) => {
+                  setCompanyName(e.target.value)
+                  localStorage.setItem(COMPANY_NAME_KEY, e.target.value)
+                }}
+                placeholder="BEN'S FARMHOUSE"
+              />
+            </div>
+
+            {/* Company Website */}
+            <div className="space-y-2">
+              <Label htmlFor="company-website">Website URL (for QR Code)</Label>
+              <Input
+                id="company-website"
+                value={companyWebsite}
+                onChange={(e) => {
+                  setCompanyWebsite(e.target.value)
+                  localStorage.setItem(COMPANY_WEBSITE_KEY, e.target.value)
+                }}
+                placeholder="www.bensfarmhouse.com"
+              />
+              <p className="text-xs text-muted-foreground">
+                This URL will be encoded in the QR code on packaging
+              </p>
+            </div>
+
+            {/* Company Logo */}
+            <div className="space-y-2">
+              <Label>Company Logo (Optional)</Label>
+              {companyLogo ? (
+                <div className="space-y-3">
+                  <div className="border rounded-lg p-4 bg-gray-50 flex items-center justify-center">
+                    <img
+                      src={companyLogo}
+                      alt="Company Logo"
+                      className="max-h-[80px] max-w-full object-contain"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      size="sm"
+                      onClick={() => document.getElementById('company-logo-upload')?.click()}
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Replace
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleRemoveLogo}
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Remove
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => document.getElementById('company-logo-upload')?.click()}
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    Replace Logo
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={handleRemoveLogo}
-                  >
-                    <X className="w-4 h-4 mr-2" />
-                    Remove
-                  </Button>
+              ) : (
+                <div
+                  className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => document.getElementById('company-logo-upload')?.click()}
+                >
+                  <Upload className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-sm font-medium mb-1">Click to upload logo</p>
+                  <p className="text-xs text-muted-foreground">
+                    PNG or JPG, recommended 200x100px
+                  </p>
                 </div>
-              </div>
-            ) : (
-              <div
-                className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => document.getElementById('company-logo-upload')?.click()}
-              >
-                <Upload className="w-8 h-8 mx-auto mb-3 text-muted-foreground" />
-                <p className="text-sm font-medium mb-1">Click to upload your logo</p>
-                <p className="text-xs text-muted-foreground">
-                  PNG or JPG, recommended 200x100px
-                </p>
-              </div>
-            )}
+              )}
+            </div>
 
             <input
               type="file"
@@ -886,7 +934,7 @@ export function RecipesView() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setLogoModalOpen(false)}>
-              Close
+              Done
             </Button>
           </DialogFooter>
         </DialogContent>
