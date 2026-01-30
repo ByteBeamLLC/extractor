@@ -483,7 +483,7 @@ export function PackagingArtwork({
           )}
 
           {/* Barcode - LEFT ALIGNED, pushed to bottom */}
-          <div style={{ marginTop: 'auto', paddingTop: '0px', display: 'flex', justifyContent: 'flex-start', width: '100%' }}>
+          <div style={{ marginTop: 'auto', marginBottom: '8px', display: 'flex', justifyContent: 'flex-start', width: '100%' }}>
             {recipe.barcode ? (
               <Barcode
                 value={recipe.barcode}
@@ -726,7 +726,7 @@ export function PackagingArtwork({
               {DISCLAIMER_TEXT}
             </p>
             {companyWebsite && (
-              <p style={{ fontSize: '14px', textAlign: 'left', color: '#000000', marginTop: '0px' }}>{companyWebsite}</p>
+              <p style={{ fontSize: '14px', textAlign: 'center', color: '#000000', marginTop: '0px' }}>{companyWebsite}</p>
             )}
           </div>
         </div>
