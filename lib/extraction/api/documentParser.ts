@@ -6,6 +6,7 @@ import {
   PDF_MIME_TYPES,
   DOCX_MIME_TYPES,
   DOC_MIME_TYPES,
+  XLSX_MIME_TYPES,
   TEXT_LIKE_MIME_PREFIXES,
 } from "./constants"
 
@@ -16,6 +17,9 @@ let pdfParseSingleton: PdfParseFn | null = null
 
 type MammothModule = typeof import("mammoth")
 let mammothSingleton: MammothModule | null = null
+
+type XlsxModule = typeof import("xlsx")
+let xlsxSingleton: XlsxModule | null = null
 
 /**
  * Lazily loads the pdf-parse module
@@ -53,6 +57,26 @@ async function loadMammoth(): Promise<MammothModule | null> {
     return null
   } catch (error) {
     console.error("[extraction] Failed to load mammoth:", error)
+    return null
+  }
+}
+
+/**
+ * Lazily loads the xlsx module for spreadsheet parsing
+ */
+async function loadXlsx(): Promise<XlsxModule | null> {
+  if (xlsxSingleton) return xlsxSingleton
+  try {
+    const mod = await import("xlsx")
+    const lib = (mod as { default?: XlsxModule }).default ?? mod
+    if (lib && typeof lib.read === "function") {
+      xlsxSingleton = lib as XlsxModule
+      return xlsxSingleton
+    }
+    console.warn("[extraction] xlsx module missing read function")
+    return null
+  } catch (error) {
+    console.error("[extraction] Failed to load xlsx:", error)
     return null
   }
 }
@@ -124,6 +148,22 @@ export async function extractTextFromDocument(
         return { text: result.value?.trim() ?? "", warnings }
       }
       warnings.push("DOC extraction unavailable. Falling back to UTF-8 decode.")
+      return { text: decoder.decode(bytes), warnings }
+    }
+
+    // Handle XLSX/XLS files
+    if (XLSX_MIME_TYPES.has(normalizedMime) || ext === "xlsx" || ext === "xls") {
+      const xlsx = await loadXlsx()
+      if (xlsx) {
+        const workbook = xlsx.read(Buffer.from(bytes), { type: "buffer" })
+        const sheets = workbook.SheetNames.map((name) => {
+          const sheet = workbook.Sheets[name]
+          const csv = xlsx.utils.sheet_to_csv(sheet)
+          return `Sheet: ${name}\n${csv}`
+        })
+        return { text: sheets.join("\n\n").trim(), warnings }
+      }
+      warnings.push("XLSX extraction unavailable. Falling back to UTF-8 decode.")
       return { text: decoder.decode(bytes), warnings }
     }
 

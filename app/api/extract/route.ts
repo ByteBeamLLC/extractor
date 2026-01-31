@@ -88,6 +88,30 @@ export async function POST(request: NextRequest) {
     const isMultiDocumentMode = inputDocuments.size > 0
     console.log("[extraction] Multi-document mode:", isMultiDocumentMode, "documents:", inputDocuments.size)
 
+    // Pre-extract text from non-image, non-PDF input documents (e.g. DOCX, DOC)
+    // so they are sent as text to the model instead of unsupported binary MIME types
+    if (isMultiDocumentMode) {
+      for (const [fieldId, doc] of inputDocuments) {
+        if (doc.text) continue
+        const docMime = (doc.type || "").toLowerCase()
+        const docName = doc.name || fieldId
+        if (!isImageFile(docMime, docName) && !isPdfFile(docMime, docName) && doc.data) {
+          console.log(`[extraction] Extracting text from input document "${docName}" (${doc.type})`)
+          const docBytes = new Uint8Array(Buffer.from(String(doc.data), "base64"))
+          const extraction = await extractTextFromDocument(docBytes, docName, doc.type)
+          if (extraction.text.trim().length > 0) {
+            doc.text = extraction.text
+            console.log(`[extraction] Extracted ${extraction.text.length} chars from "${docName}"`)
+          } else {
+            console.warn(`[extraction] No text extracted from "${docName}"`)
+          }
+          if (extraction.warnings.length > 0) {
+            console.warn(`[extraction] Warnings for "${docName}":`, extraction.warnings)
+          }
+        }
+      }
+    }
+
     // Create sanitized input documents
     sanitizedInputDocuments = createSanitizedInputDocuments(inputDocuments)
 
