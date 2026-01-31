@@ -2999,6 +2999,7 @@ export function DataExtractionPlatform({
                 name: tcol.name,
                 description: tcol.description,
                 constraints: tcol.constraints,
+                outputAsFile: tcol.outputAsFile,
               }
 
               if (tcol.type === 'object' && 'children' in tcol) {

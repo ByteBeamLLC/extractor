@@ -33,8 +33,9 @@ import { MCSourcePanel } from './panels/MCSourcePanel'
 import { MCCodePanel } from './panels/MCCodePanel'
 import { MCSelectPanel } from './panels/MCSelectPanel'
 import { MCUploadPanel } from './panels/MCUploadPanel'
-import { Maximize2, Minimize2, Pin, PinOff, Upload, FileText } from 'lucide-react'
+import { Maximize2, Minimize2, Pin, PinOff, Upload, FileText, Download } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { downloadFieldAsDocx } from '@/lib/export-docx'
 
 interface DocumentMissionControlProps {
     job: ExtractionJob
@@ -464,14 +465,34 @@ export function DocumentMissionControl({ job, schema, onUpdateResults }: Documen
                                                 >
                                                     <Maximize2 className="h-3 w-3" />
                                                 </Button>
+                                                {panel.schemaField?.outputAsFile && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            const html = localResults[panel.key]
+                                                            if (html) {
+                                                                downloadFieldAsDocx(
+                                                                    typeof html === 'string' ? html : String(html),
+                                                                    panel.label
+                                                                )
+                                                            }
+                                                        }}
+                                                        title="Download as DOCX"
+                                                    >
+                                                        <Download className="h-3 w-3" />
+                                                    </Button>
+                                                )}
                                                 {panel.type === 'input-document' && (
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
                                                         className={cn(
                                                             "h-6 w-6 transition-opacity",
-                                                            pinnedDocuments.has(panel.id) 
-                                                                ? "text-amber-600" 
+                                                            pinnedDocuments.has(panel.id)
+                                                                ? "text-amber-600"
                                                                 : "opacity-0 group-hover:opacity-100"
                                                         )}
                                                         onClick={(e) => {
