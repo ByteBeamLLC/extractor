@@ -11,6 +11,11 @@ export const DOCX_MIME_TYPES = new Set([
 
 export const DOC_MIME_TYPES = new Set(["application/msword"])
 
+export const XLSX_MIME_TYPES = new Set([
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
+])
+
 export const TEXT_LIKE_MIME_PREFIXES = ["text/", "application/json", "application/xml"]
 
 // Keys used to extract markdown from OCR responses
