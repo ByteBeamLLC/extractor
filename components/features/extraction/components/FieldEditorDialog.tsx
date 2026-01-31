@@ -283,6 +283,24 @@ export function FieldEditorDialog({
                     Required field
                   </Label>
                 </div>
+
+                {isDraftTransformation && (
+                  <div className="flex items-center gap-3 pt-1">
+                    <Checkbox
+                      id="column-output-as-file"
+                      checked={!!draftColumn.outputAsFile}
+                      onCheckedChange={(checked) =>
+                        onDraftColumnChange({ ...draftColumn, outputAsFile: checked === true })
+                      }
+                    />
+                    <Label
+                      htmlFor="column-output-as-file"
+                      className="text-sm font-medium text-slate-600"
+                    >
+                      Output as downloadable file
+                    </Label>
+                  </div>
+                )}
               </div>
             </div>
 

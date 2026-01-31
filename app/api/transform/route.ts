@@ -1126,7 +1126,7 @@ export async function POST(request: NextRequest) {
             })
 
           // Build the comprehensive prompt for one-shot generation
-          const fullPrompt = `${promptWithResolvedUrls}
+          let fullPrompt = `${promptWithResolvedUrls}
 
 ${contextInfo}${attachmentNote}
 
@@ -1144,6 +1144,19 @@ Instructions:
 - Ensure data types match the schema (numbers as numbers, not strings)
 - If information is not available, use null for that field
 - Use the provided Reference Knowledge to answer questions or perform tasks if applicable`
+
+          // If outputAsFile is enabled, append markdown formatting instructions
+          if (fieldSchema?.outputAsFile) {
+            fullPrompt += `
+
+Format your response using proper Markdown syntax:
+- Use ## for main sections and ### for subsections
+- Use **bold** for emphasis and key terms
+- Use bullet lists (-) and numbered lists (1.) where appropriate
+- Use tables (| col | col |) for structured data
+- Use clear paragraph breaks between sections
+- Structure the content as a professional document`
+          }
 
           // Build user message content; if input docs are attached, include them as images after the prompt text
           const userMessageContent =

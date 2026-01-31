@@ -70,6 +70,8 @@ export interface SchemaFieldBase {
   transformationConfig?: any
   transformationSource?: "document" | "column"
   transformationSourceColumnId?: string
+  // If true, output as a downloadable file (e.g. DOCX) in Document Viewer
+  outputAsFile?: boolean
   // If true, include this field in the collapsed summary of its parent object
   displayInSummary?: boolean
 }
