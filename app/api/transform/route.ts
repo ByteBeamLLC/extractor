@@ -1082,22 +1082,14 @@ export async function POST(request: NextRequest) {
       if (fieldType && fieldSchema) {
         console.log("[bytebeam] Transform - Using structured output for type:", fieldType)
 
-        try {
-          let zodSchema = buildFieldSchema(fieldSchema)
+        const attachmentNote =
+          inputDocuments.length > 0
+            ? `\nAttached documents: ${inputDocuments
+              .map((doc) => doc.name || doc.fieldId || "document")
+              .join(", ")}. Use them when they match referenced input fields.`
+            : ""
 
-          // For complex types, make schema more flexible with partial
-          if (fieldType === 'object') {
-            zodSchema = (zodSchema as z.ZodObject<any>).partial()
-          }
-
-          const attachmentNote =
-            inputDocuments.length > 0
-              ? `\nAttached documents: ${inputDocuments
-                .map((doc) => doc.name || doc.fieldId || "document")
-                .join(", ")}. Use them when they match referenced input fields.`
-              : ""
-
-          const buildInputDocMessages = (docs: typeof inputDocuments) =>
+        const buildInputDocMessages = (docs: typeof inputDocuments) =>
             docs.flatMap((doc) => {
               if (!doc) return []
               const mimeType = doc.type || "application/octet-stream"
@@ -1125,8 +1117,67 @@ export async function POST(request: NextRequest) {
               return [{ type: "text", text: label }]
             })
 
-          // Build the comprehensive prompt for one-shot generation
+        // For richtext fields, skip structured output (generateObject) entirely and use
+        // generateText directly. The Zod schema for richtext (z.any().transform().pipe(z.string()))
+        // produces a problematic JSON Schema (allOf: [{}, {type:"string"}]) that causes models to
+        // return the schema definition itself instead of actual content. Richtext is just a long-form
+        // string, so structured output validation adds no value and actively breaks long responses.
+        if (fieldType === 'richtext' || fieldType === 'string') {
+          console.log("[bytebeam] Transform - Using direct text generation for richtext/string type")
+
           let fullPrompt = `${promptWithResolvedUrls}
+
+${contextInfo}${attachmentNote}
+
+Instructions:
+- Perform the task described above
+- Return ONLY the final result content, nothing else
+- Do NOT wrap your response in JSON, code blocks, or any other formatting container
+- If a URL contains placeholders or missing parameters, replace them using the available primitive values before proceeding
+- Use the Tool outputs above as ground truth for web search/reader content; do not invent details
+- Use the provided Reference Knowledge to answer questions or perform tasks if applicable`
+
+          // If outputAsFile is enabled, append markdown formatting instructions
+          if (fieldSchema?.outputAsFile) {
+            fullPrompt += `
+
+Format your response using proper Markdown syntax:
+- Use ## for main sections and ### for subsections
+- Use **bold** for emphasis and key terms
+- Use bullet lists (-) and numbered lists (1.) where appropriate
+- Use tables (| col | col |) for structured data
+- Use clear paragraph breaks between sections
+- Structure the content as a professional document`
+          }
+
+          const userMessageContent =
+            inputDocuments.length > 0
+              ? [
+                { type: "text", text: fullPrompt },
+                ...buildInputDocMessages(inputDocuments),
+              ]
+              : fullPrompt
+
+          const { text } = await generateText({
+            temperature: 0.1,
+            messages: [{ role: "user", content: userMessageContent }]
+          })
+
+          finalResult = text
+          console.log("[bytebeam] Transform - Direct text result length:", (text || "").length)
+
+        } else {
+          // Non-richtext types: use structured output with generateObject
+          try {
+            let zodSchema = buildFieldSchema(fieldSchema)
+
+            // For complex types, make schema more flexible with partial
+            if (fieldType === 'object') {
+              zodSchema = (zodSchema as z.ZodObject<any>).partial()
+            }
+
+            // Build the comprehensive prompt for one-shot generation
+            let fullPrompt = `${promptWithResolvedUrls}
 
 ${contextInfo}${attachmentNote}
 
@@ -1145,46 +1196,33 @@ Instructions:
 - If information is not available, use null for that field
 - Use the provided Reference Knowledge to answer questions or perform tasks if applicable`
 
-          // If outputAsFile is enabled, append markdown formatting instructions
-          if (fieldSchema?.outputAsFile) {
-            fullPrompt += `
+            // Build user message content; if input docs are attached, include them as images after the prompt text
+            const userMessageContent =
+              inputDocuments.length > 0
+                ? [
+                  { type: "text", text: fullPrompt },
+                  ...buildInputDocMessages(inputDocuments),
+                ]
+                : fullPrompt
 
-Format your response using proper Markdown syntax:
-- Use ## for main sections and ### for subsections
-- Use **bold** for emphasis and key terms
-- Use bullet lists (-) and numbered lists (1.) where appropriate
-- Use tables (| col | col |) for structured data
-- Use clear paragraph breaks between sections
-- Structure the content as a professional document`
-          }
+            // Use generateObject with tools for one-shot structured output
+            const structuredResult = await generateObject({
+              temperature: 0.1,
+              schema: zodSchema,
+              messages: [{ role: "user", content: userMessageContent }]
+              // Note: Tool support temporarily disabled during OpenRouter migration
+              // ...(Object.keys(toolMap).length > 0 ? { tools: toolMap, maxSteps: 5 } : {})
+            })
 
-          // Build user message content; if input docs are attached, include them as images after the prompt text
-          const userMessageContent =
-            inputDocuments.length > 0
-              ? [
-                { type: "text", text: fullPrompt },
-                ...buildInputDocMessages(inputDocuments),
-              ]
-              : fullPrompt
+            finalResult = structuredResult.object
+            console.log("[bytebeam] Transform - Structured result:", JSON.stringify(finalResult, null, 2))
 
-          // Use generateObject with tools for one-shot structured output
-          const structuredResult = await generateObject({
-            temperature: 0.1,
-            schema: zodSchema,
-            messages: [{ role: "user", content: userMessageContent }]
-            // Note: Tool support temporarily disabled during OpenRouter migration
-            // ...(Object.keys(toolMap).length > 0 ? { tools: toolMap, maxSteps: 5 } : {})
-          })
+          } catch (error) {
+            console.error("[bytebeam] Transform - Structured output error:", error)
+            // Fallback to plain text generation to avoid 500s when the model returns non-conforming JSON
+            const fallbackPrompt = `${promptWithResolvedUrls}
 
-          finalResult = structuredResult.object
-          console.log("[bytebeam] Transform - Structured result:", JSON.stringify(finalResult, null, 2))
-
-        } catch (error) {
-          console.error("[bytebeam] Transform - Structured output error:", error)
-          // Fallback to plain text generation to avoid 500s when the model returns non-conforming JSON
-          const fallbackPrompt = `${promptWithResolvedUrls}
-
-${contextInfo}
+${contextInfo}${attachmentNote}
 
 Instructions:
 - Perform the task described above
@@ -1193,21 +1231,22 @@ Instructions:
 - Use the Tool outputs above as ground truth for web search/reader content; do not invent details
 - Use the provided Reference Knowledge to answer questions or perform tasks if applicable`
 
-          const fallbackMessageContent =
-            inputDocuments.length > 0
-              ? [
-                { type: "text", text: fallbackPrompt },
-                ...buildInputDocMessages(inputDocuments),
-              ]
-              : fallbackPrompt
+            const fallbackMessageContent =
+              inputDocuments.length > 0
+                ? [
+                  { type: "text", text: fallbackPrompt },
+                  ...buildInputDocMessages(inputDocuments),
+                ]
+                : fallbackPrompt
 
-          const { text } = await generateText({
-            temperature: 0.1,
-            messages: [{ role: "user", content: fallbackMessageContent }]
-          })
+            const { text } = await generateText({
+              temperature: 0.1,
+              messages: [{ role: "user", content: fallbackMessageContent }]
+            })
 
-          finalResult = text
-          console.log("[bytebeam] Transform - Fallback text result:", finalResult)
+            finalResult = text
+            console.log("[bytebeam] Transform - Fallback text result:", finalResult)
+          }
         }
       } else {
         // Fallback for fields without type information (backward compatibility)
