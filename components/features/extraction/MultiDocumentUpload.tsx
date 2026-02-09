@@ -101,7 +101,7 @@ export function MultiDocumentUpload({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
@@ -112,7 +112,7 @@ export function MultiDocumentUpload({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-4 overflow-y-auto flex-1 min-h-0">
           {inputFields.map((inputField) => {
             const selection = selectedValues[inputField.id]
             const selectedFile = selection?.file

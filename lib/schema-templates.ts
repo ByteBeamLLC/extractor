@@ -3250,6 +3250,905 @@ Provide specific details for any item marked ❌ or ⚠️, quoting the missing 
       },
     ],
   },
+  {
+    id: "pil-spc-from-originator",
+    name: "PIL & SPC Creation from Originator",
+    description:
+      "Create PIL (EN/AR) and SPC for a generic drug based on originator EMC PIL & SPC, with alignment review.",
+    agentType: "pharma",
+    fields: [
+      // ═══════════════════════════════════════════════════════════════════════
+      // INPUT FIELDS
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "originator_pil",
+        name: "originator_pil",
+        type: "input",
+        inputType: "document",
+        description: "EMC originator Patient Information Leaflet (PIL). This is the reference PIL from the innovator drug.",
+        required: true,
+        fileConstraints: { allowedTypes: ["pdf"], maxSize: 20971520 },
+      },
+      {
+        id: "originator_spc",
+        name: "originator_spc",
+        type: "input",
+        inputType: "document",
+        description: "EMC originator Summary of Product Characteristics (SmPC/SPC). This is the reference SPC from the innovator drug.",
+        required: true,
+        fileConstraints: { allowedTypes: ["pdf"], maxSize: 20971520 },
+      },
+      {
+        id: "new_drug_data",
+        name: "new_drug_data",
+        type: "input",
+        inputType: "document",
+        description: "New generic drug data document containing: brand name, MAH details, manufacturer details, excipients, pack sizes, dosage form, pharmacovigilance contacts, and storage conditions.",
+        required: true,
+        fileConstraints: { allowedTypes: ["pdf", "image", "jpg", "png"], maxSize: 20971520 },
+      },
+      {
+        id: "stability_study",
+        name: "stability_study",
+        type: "input",
+        inputType: "document",
+        description: "Stability study document (OPTIONAL). If provided, storage conditions will be taken from this study. If not provided, storage conditions will be taken from the New Drug Data document.",
+        required: false,
+        fileConstraints: { allowedTypes: ["pdf", "image", "jpg", "png"], maxSize: 20971520 },
+      },
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // EXTRACTION FIELDS
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "originator_info",
+        name: "originator_info",
+        type: "object",
+        description: "Key identifiers extracted from the originator PIL and SPC.",
+        extractionInstructions:
+          'Extract from @"originator_pil" and @"originator_spc": the originator trade/brand name, the generic/INN name, active ingredient(s) with strength, dosage form, the originator MAH (marketing authorization holder) name, and the originator manufacturer name. Extract exactly as written.',
+        required: true,
+        children: [
+          { id: "orig_trade_name", name: "trade_name", type: "string", description: "Originator trade/brand name", required: true },
+          { id: "orig_generic_name", name: "generic_name", type: "string", description: "Generic/INN name of the active substance", required: true },
+          { id: "orig_active_ingredients", name: "active_ingredients", type: "string", description: "Active ingredient(s) with strength (e.g., Paracetamol 500mg)" },
+          { id: "orig_dosage_form", name: "dosage_form", type: "string", description: "Dosage form (e.g., film-coated tablets, capsules, oral solution)" },
+          { id: "orig_mah", name: "mah", type: "string", description: "Originator Marketing Authorization Holder name" },
+          { id: "orig_manufacturer", name: "manufacturer", type: "string", description: "Originator manufacturer name" },
+        ],
+      },
+      {
+        id: "new_drug_info",
+        name: "new_drug_info",
+        type: "object",
+        description: "All information about the new generic drug extracted from the New Drug Data document.",
+        extractionInstructions:
+          'Extract from @"new_drug_data" all available information about the new generic drug. Extract the brand name, generic/INN name, active ingredient with strength, dosage form, full excipients list, MAH name and full address, manufacturer name and full address, pharmacovigilance contact details (department name, hotline number, email, address), all pack sizes with descriptions, storage conditions, and physical product description (appearance, markings). Be thorough — extract every detail available.',
+        required: true,
+        children: [
+          { id: "new_brand_name", name: "brand_name", type: "string", description: "New drug brand/trade name", required: true },
+          { id: "new_generic_name", name: "generic_name", type: "string", description: "Generic/INN name" },
+          { id: "new_active_ingredient", name: "active_ingredient", type: "string", description: "Active ingredient(s) with strength" },
+          { id: "new_dosage_form", name: "dosage_form", type: "string", description: "Dosage form" },
+          {
+            id: "new_excipients",
+            name: "excipients",
+            type: "list",
+            description: "Full list of excipients/inactive ingredients",
+            item: { id: "new_excipient_item", name: "excipient", type: "string", description: "Individual excipient name" },
+          },
+          { id: "new_mah_name", name: "mah_name", type: "string", description: "Marketing Authorization Holder name" },
+          { id: "new_mah_address", name: "mah_address", type: "string", description: "Marketing Authorization Holder full address" },
+          { id: "new_manufacturer_name", name: "manufacturer_name", type: "string", description: "Manufacturer name" },
+          { id: "new_manufacturer_address", name: "manufacturer_address", type: "string", description: "Manufacturer full address" },
+          {
+            id: "new_pharmacovigilance",
+            name: "pharmacovigilance",
+            type: "object",
+            description: "Pharmacovigilance/safety contact details",
+            children: [
+              { id: "new_pv_department", name: "department", type: "string", description: "Safety contact department name" },
+              { id: "new_pv_hotline", name: "hotline", type: "string", description: "Adverse event hotline number" },
+              { id: "new_pv_email", name: "email", type: "string", description: "Adverse event reporting email" },
+              { id: "new_pv_address", name: "address", type: "string", description: "Safety office address" },
+            ],
+          },
+          {
+            id: "new_pack_sizes",
+            name: "pack_sizes",
+            type: "list",
+            description: "All available pack sizes with descriptions",
+            item: { id: "new_pack_size_item", name: "pack_size", type: "string", description: "Pack size description (e.g., '16 tablets in blister pack')" },
+          },
+          { id: "new_storage_conditions", name: "storage_conditions", type: "string", description: "Storage conditions from the drug data document" },
+          { id: "new_product_description", name: "product_description", type: "string", description: "Physical product description (shape, color, markings, debossing)" },
+        ],
+      },
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // TRANSFORMATION FIELDS
+      // ═══════════════════════════════════════════════════════════════════════
+
+      // ── Step 1: Resolve storage conditions ──
+      {
+        id: "storage_conditions_final",
+        name: "storage_conditions_final",
+        type: "string",
+        description: "Final resolved storage conditions. Priority: stability study > new drug data.",
+        isTransformation: true,
+        transformationType: "gemini_api",
+        transformationSource: "column",
+        transformationConfig: {
+          prompt: `Determine the final storage conditions for this drug product.
+
+PRIORITY RULES:
+1. If a stability study document was provided and contains storage condition information, use the storage conditions from the stability study. The stability study is the primary source of truth for storage conditions.
+2. If NO stability study was provided or it does not specify storage conditions, use the storage conditions from the new drug data.
+
+Stability study content (may be empty if not provided):
+{stability_study}
+
+Storage conditions from new drug data:
+{new_drug_info}
+
+Refer to the SFDA Template document for the exact recommended labeling statements for storage conditions (Appendix 4):
+{kb:TemplateLabelingSPC-PILV13}
+
+Output ONLY the final storage condition statement using GCC-recommended labeling statements (Appendix 4 of SFDA Template V1.3):
+- For products stable at 30°C/65% RH or 40°C/75% RH: "Store below 30°C"
+- For refrigerated products (5°C ± 3°C): "Store in a refrigerator (2°C to 8°C)"
+- For frozen products (-20°C ± 5°C): "Store in a freezer"
+Add additional statements where relevant:
+- "Protect from moisture" (for hygroscopic products)
+- "Protect from light" (for light-sensitive products)
+- "Do not freeze" or "Do not refrigerate or freeze" (as applicable)
+- "Store in the original package" (if required)
+Be concise and use the exact recommended wording from the SFDA Template appendix.`,
+          sourceFields: ["stability_study", "new_drug_info"],
+          selectedTools: [],
+        },
+      },
+
+      // ── Step 2: Generate PIL English ──
+      {
+        id: "pil_english",
+        name: "pil_english",
+        type: "richtext",
+        description: "Complete Patient Information Leaflet in English, SFDA/GCC compliant.",
+        outputAsFile: true,
+        isTransformation: true,
+        transformationType: "gemini_api",
+        transformationSource: "column",
+        transformationConfig: {
+          prompt: `You are a senior pharmaceutical regulatory affairs specialist creating a Patient Information Leaflet (PIL) for a new generic drug to be registered with SFDA (Saudi Food and Drug Authority).
+
+TASK: Create a complete English PIL for the new generic drug by adapting the originator's PIL content, following SFDA/GCC PIL format.
+
+═══════════════════════════════════════════
+CRITICAL RULES (from regulatory process):
+═══════════════════════════════════════════
+1. COPY-PASTE medical content from the originator PIL — do NOT alter, rephrase, or add any medical claims. A generic drug relies on the originator's clinical evidence.
+2. COMPLETELY REDACT all originator proprietary information:
+   - Remove the originator's trade name (replace with the new drug's brand name)
+   - Remove the originator's MAH name and address
+   - Remove the originator's manufacturer name and address
+   - Remove any originator-specific identifiers, logos, or references
+3. SUBSTITUTE with new drug data:
+   - New brand name: from {new_drug_info}
+   - New MAH: from {new_drug_info}
+   - New manufacturer: from {new_drug_info}
+   - New excipients: from {new_drug_info}
+   - New pack sizes: from {new_drug_info}
+   - New product description (appearance): from {new_drug_info}
+4. STORAGE CONDITIONS must use: {storage_conditions_final}
+5. The PIL must include SFDA pharmacovigilance reporting information AND the new drug's own pharmacovigilance contacts from {new_drug_info}.
+
+═══════════════════════════════════════════
+SFDA PIL STRUCTURE (mandatory sections):
+═══════════════════════════════════════════
+
+**HEADER:**
+Package leaflet: Information for the patient
+[Brand Name] [strength] [dosage form]
+[Generic/INN name]
+Read all of this leaflet carefully before you start taking this medicine because it contains important information for you.
+- Keep this leaflet. You may need to read it again.
+- If you have any further questions, ask your doctor or pharmacist.
+- This medicine has been prescribed for you only. Do not pass it on to others. It may harm them, even if their signs of illness are the same as yours.
+- If you get any side effects, talk to your doctor or pharmacist. This includes any possible side effects not listed in this leaflet. See section 4.
+
+**SECTION 1: What [Brand Name] is and what it is used for**
+- Product description (what it is, pharmacotherapeutic group in patient-friendly language)
+- All therapeutic indications from originator
+- Brief explanation of how it works (if in originator PIL)
+
+**SECTION 2: What you need to know before you take [Brand Name]**
+- **Do not take [Brand Name]:** All contraindications from originator (preserve ALL, omitting any is a regulatory failure)
+- **Warnings and precautions:** Talk to your doctor or pharmacist before taking [Brand Name] — all warnings from originator
+- **Children and adolescents:** pediatric information if applicable
+- **Other medicines and [Brand Name]:** All drug interactions from originator
+- **[Brand Name] with food, drink and alcohol:** if applicable
+- **Pregnancy, breast-feeding and fertility:** from originator
+- **Driving and using machines:** from originator
+- **[Brand Name] contains [excipient warnings]:** excipient-specific warnings (e.g., lactose, sodium) from originator, updated with new excipient list
+
+**SECTION 3: How to take [Brand Name]**
+- Dosage for adults (and elderly if different)
+- Dosage for children/adolescents (if applicable)
+- Method of administration
+- Duration of treatment
+- **If you take more [Brand Name] than you should:** overdose information from originator
+- **If you forget to take [Brand Name]:** missed dose instructions
+- **If you stop taking [Brand Name]:** withdrawal/discontinuation information if applicable
+
+**SECTION 4: Possible side effects**
+- Introduction: "Like all medicines, this medicine can cause side effects, although not everybody gets them."
+- Side effects organized by frequency:
+  - Very common (may affect more than 1 in 10 people)
+  - Common (may affect up to 1 in 10 people)
+  - Uncommon (may affect up to 1 in 100 people)
+  - Rare (may affect up to 1 in 1,000 people)
+  - Very rare (may affect up to 1 in 10,000 people)
+  - Not known (frequency cannot be estimated from available data)
+- ALL side effects from originator must be included
+- IMPORTANT: Do NOT use MedDRA System Organ Class headings in the PIL — list side effects by frequency only (SOC listings are for SPC only)
+- The frequency convention definitions (e.g., "Very common: may affect more than 1 in 10 people") should appear inline with each frequency group, NOT as a separate block before the side effects list
+- List the most serious side effects first with clear instructions on what action to take, then list all other side effects by frequency (most frequent first)
+- **Reporting of side effects:**
+  Include BOTH:
+  a) "To report any side effect(s):
+     Saudi Arabia:
+     - National Pharmacovigilance Centre (NPC)
+     - SFDA Call Center: 19999
+     - E-mail: npc.drug@sfda.gov.sa
+     - Website: https://ade.sfda.gov.sa/
+     Other GCC States: Please contact the relevant competent authority."
+  b) The new drug's own pharmacovigilance contacts from {new_drug_info}
+
+**SECTION 5: How to store [Brand Name]**
+- Keep this medicine out of the sight and reach of children.
+- Do not use this medicine after the expiry date which is stated on [carton/label/blister]. The expiry date refers to the last day of that month.
+- Storage conditions: {storage_conditions_final}
+- Do not throw away any medicines via wastewater or household waste. Ask your pharmacist how to throw away medicines you no longer use. These measures will help protect the environment.
+
+**SECTION 6: Further information**
+- **What [Brand Name] contains:**
+  - The active substance is: [from new_drug_info]
+  - The other ingredients are: [full excipients list from new_drug_info]
+- **What [Brand Name] looks like and contents of the pack:**
+  - Physical description from {new_drug_info}
+  - All pack sizes from {new_drug_info}
+  - "Not all pack sizes may be marketed."
+- **Marketing Authorisation Holder:**
+  [MAH name and full address from new_drug_info]
+- **Manufacturer:**
+  [Manufacturer name and full address from new_drug_info]
+- **Date of last revision:** [Leave as placeholder: MM/YYYY]
+
+**MANDATORY FOOTER (Council of Arab Health Ministers statement):**
+"This is a Medicament
+- Medicament is a product which affects your health and its consumption contrary to instructions is dangerous for you.
+- Follow strictly the doctor's prescription, the method of use and the instructions of the pharmacist who sold the medicament.
+- The doctor and the pharmacist are the experts in medicines, their benefits and risks.
+- Do not by yourself interrupt the period of treatment prescribed for you.
+- Do not repeat the same prescription without consulting your doctor.
+- Keep all medicaments out of reach of children.
+
+Council of Arab Health Ministers
+Union of Arab Pharmacists"
+
+Then add: "This patient information leaflet is approved by the Saudi Food and Drug Authority."
+
+═══════════════════════════════════════════
+FORMATTING GUIDELINES:
+═══════════════════════════════════════════
+- Use markdown formatting: **bold** for headings, bullet points for lists
+- Section headings should be bold and numbered (1. through 6.)
+- Subsection headings bold but not numbered
+- Single line spacing within paragraphs
+- Preserve all bullet point structures from originator
+
+═══════════════════════════════════════════
+REGULATORY KNOWLEDGE (use as authoritative reference):
+═══════════════════════════════════════════
+SFDA TEMPLATE V1.3 (exact section headings, mandatory statements, formatting, appendices):
+{kb:TemplateLabelingSPC-PILV13}
+
+GCC GUIDANCE V3.1 (detailed rules for each section, content requirements):
+{kb:GuidanceLabelingSPCandPILv31_0}
+
+═══════════════════════════════════════════
+SOURCE DOCUMENTS:
+═══════════════════════════════════════════
+ORIGINATOR PIL:
+{originator_pil}
+
+ORIGINATOR SPC (for supplementary medical information):
+{originator_spc}
+
+NEW DRUG DATA:
+{new_drug_info}
+
+RESOLVED STORAGE CONDITIONS:
+{storage_conditions_final}
+
+Generate the COMPLETE PIL now. Follow the SFDA Template V1.3 structure and GCC Guidance V3.1 rules exactly. Do not skip or summarize any medical content from the originator.`,
+          sourceFields: ["originator_pil", "originator_spc", "new_drug_info", "storage_conditions_final"],
+          selectedTools: [],
+        },
+      },
+
+      // ── Step 3: Generate PIL Arabic ──
+      {
+        id: "pil_arabic",
+        name: "pil_arabic",
+        type: "richtext",
+        description: "Complete Patient Information Leaflet in Arabic, contextually translated following SFDA standards.",
+        outputAsFile: true,
+        isTransformation: true,
+        transformationType: "gemini_api",
+        transformationSource: "column",
+        transformationConfig: {
+          prompt: `You are an expert pharmaceutical translator specializing in Arabic medical translation for SFDA (Saudi Food and Drug Authority) compliance.
+
+TASK: Translate the complete English PIL below into Modern Standard Arabic (MSA) suitable for patient information leaflets registered with SFDA.
+
+═══════════════════════════════════════════
+CRITICAL TRANSLATION RULES:
+═══════════════════════════════════════════
+
+1. CONTEXTUAL TRANSLATION — This must be a professional, contextual pharmaceutical translation. Do NOT produce automated, static, or literal word-for-word translation. The translation must read naturally in Arabic as if originally written by an Arabic-speaking regulatory affairs specialist.
+
+2. SFDA MARKET CONSISTENCY — Terminology must be translated in the SAME WAY it is translated by all companies in the Saudi market as approved by SFDA. Use established pharmaceutical Arabic terminology that is consistent with other SFDA-approved leaflets.
+
+3. TERMINOLOGY DECISION RULES (based on SFDA-approved leaflet conventions):
+
+   **A. ALWAYS TRANSLITERATE (phonetic Arabic spelling):**
+   - ALL INN/generic drug names: e.g., paracetamol → باراسيتامول, omeprazole → أوميبرازول, teriflunomide → تيريفلونوميد, carbamazepine → كاربامازيبين, alfuzosin → الألفوزوسين
+   - ALL brand/trade names: e.g., Panadol → بانادول — ALWAYS transliterate into Arabic script and **bold**. NEVER leave brand names in Latin script in the Arabic body text. Drop (R)/(TM) symbols.
+   - Proper noun parts of syndrome/disease names: e.g., Stevens-Johnson → ستيفنز جونسون, Zollinger-Ellison → زولينجر إليسون, Cushing → كوشينغ, Helicobacter pylori → هيلِكوباكتر بيلوري
+   - Chemical/pharmaceutical excipient names: e.g., hypromellose → هايبروميلوز, povidone → بوفيدون, macrogol → ماكروغول, mannitol → مانيتول
+   - Terms with no established Arabic equivalent: use phonetic transliteration
+
+   **B. ALWAYS TRANSLATE (proper Arabic):**
+   - Anatomical terms: liver → الكبد, kidney → الكلى, heart → القلب, brain → الدماغ, prostate → البروستات
+   - Common disease descriptions: inflammation → التهاب, infection → عدوى, ulcer → قرحة, cancer → سرطان, allergy → حساسية, epilepsy → الصرع, diabetes → السكري, asthma → الربو, depression → الاكتئاب
+   - ALL symptom/side effect descriptions: headache → صداع, dizziness → دوار, nausea → غثيان, vomiting → تقيؤ, diarrhoea → إسهال, rash → طفح جلدي, pain → ألم, tiredness → تعب, constipation → إمساك, dry mouth → جفاف الفم, hair loss → تساقط الشعر
+   - ALL drug class names: immunosuppressants → مثبطات المناعة, anticoagulants → مضادات التخثر, antibiotics → المضادات الحيوية, proton pump inhibitors → مثبطات مضخة البروتون, alpha-blockers → حاصرات ألفا, NSAIDs → مضادات الالتهاب غير الستيرويدية, corticosteroids → الستيرويدات القشرية
+   - Dosage forms: tablets → أقراص, capsules → كبسولات, film-coated tablets → أقراص مغلفة بغشاء رقيق, oral solution → محلول فموي, gastro-resistant capsules → كبسولات مقاومة للمعدة
+   - Common excipient materials with known Arabic names: starch → نشا, talc → تلك, castor oil → زيت الخروع, iron oxide → أكسيد الحديد, water → الماء
+   - Body processes/lab terms: blood pressure → ضغط الدم, liver enzymes → إنزيمات الكبد, white blood cells → كريات الدم البيضاء, platelets → الصفائح الدموية
+
+   **C. HYBRID (transliterate + add Arabic explanation):**
+   - For technical medical terms, transliterate the term and add a lay Arabic explanation in parentheses: e.g., orthostatic hypotension → نقص الضغط الشرياني القيامي (هبوط في ضغط الدم عند الوقوف), neutropenia → قلّة العدلات (انخفاض عدد كريات الدم البيضاء)
+   - Syndromes: transliterate the proper noun, translate the descriptive part: e.g., Stevens-Johnson syndrome → متلازمة ستيفنز - جونسون
+
+4. PATIENT ADDRESSING CONVENTIONS:
+   - Address the patient in 2nd person singular MASCULINE by default: "يجب عليك" (you must), "تحدث إلى طبيبك" (talk to your doctor)
+   - Switch to FEMININE form ONLY in pregnancy and breastfeeding sections: "لا تتناولي" (do not take [feminine]), "إذا كنت حاملاً" (if you are pregnant), "إذا كنت ترضعين رضاعة طبيعية" (if you are breastfeeding)
+
+5. NUMBERS, UNITS, AND LATIN SCRIPT:
+   - Use Western Arabic numerals (1, 2, 3) consistently — not Eastern Arabic (١, ٢, ٣)
+   - Dosage numbers stay as numerals, never spelled out: "500 mg" → "500 ملجم"
+   - Units: use ملجم or ملغم for milligrams (pick one and be consistent throughout)
+   - Temperature: "30°C" → "30 درجة مئوية"
+   - E-numbers stay in original format: E171, E132
+   - "EXP" stays in Latin script
+   - Email addresses and URLs stay in Latin script: npc.drug@sfda.gov.sa, https://ade.sfda.gov.sa/
+   - English abbreviations like ALT, GERD, MS may be retained in parentheses alongside the Arabic
+
+6. SUB-SECTION NUMBERING:
+   - In Section 6, use Arabic letter sequence (أ، ب، ت، ث) instead of Latin (a, b, c, d) for sub-sections
+
+7. WORD CONNECTION CHECK:
+   - Verify that Arabic words that should be connected are properly connected, and words that should be separate are not incorrectly joined. This is a common translation quality issue.
+
+═══════════════════════════════════════════
+SECTION HEADINGS — Use EXACT standard SFDA Arabic PIL headings from Template V1.3:
+   - Header: "نشرة الدواء: معلومات للمريض" (Package leaflet: Information for the patient)
+   - Introductory text (POM): "اقرأ هذه النشرة كاملة بعناية تامة قبل القيام بتناول هذا الدواء حيث أنها تحتوي على معلومات تهمك"
+   - Section 1: "1. ما هو [Brand Name]، وماهي دواعي استعماله" (What it is and what it is used for)
+   - Section 2: "2. ما الذي يجب عليك معرفته قبل تناول [Brand Name]" (What you need to know before taking)
+     * "لا تتناول [Brand Name]" (Do not take)
+     * "تحذيرات واحتياطات" (Warnings and precautions)
+     * "الأطفال والمراهقون" (Children and adolescents)
+     * "أدوية أخرى و[Brand Name]" (Other medicines)
+     * "تناول [Brand Name] مع الطعام والشراب والكحول" (With food, drink and alcohol)
+     * "الحمل والرضاعة الطبيعية والخصوبة" (Pregnancy, breast-feeding and fertility)
+     * "القيادة واستخدام الآلات" (Driving and using machines)
+   - Section 3: "3. ما هي طريقة تناول [Brand Name]" (How to take)
+     * "إذا تناولت [Brand Name] أكثر مما ينبغي" (If you take more than you should)
+     * "إذا نسيت تناول [Brand Name]" (If you forget to take)
+     * "إذا توقفت عن تناول [Brand Name]" (If you stop taking)
+   - Section 4: "4. الأعراض الجانبية المحتملة" (Possible side effects)
+     * Frequency terms:
+       - شائعة جداً (Very common)
+       - شائعة (Common)
+       - غير شائعة (Uncommon)
+       - نادرة (Rare)
+       - نادرة جداً (Very rare)
+       - غير معروفة (Not known)
+     * "الإبلاغ عن الأعراض الجانبية" (Reporting of side effects)
+     * Side effects reporting Arabic format:
+       "للإبلاغ حول الأعراض الجانبية التي قد تحدث يرجى التواصل عبر العناوين التالية:
+       المملكة العربية السعودية:
+       المركز الوطني للتيقظ الدوائي:
+       مركز الاتصال الموحد: 19999
+       البريد الإلكتروني: npc.drug@sfda.gov.sa
+       الموقع الإلكتروني: https://ade.sfda.gov.sa
+       دول الخليج العربي الأخرى: الرجاء الاتصال بالجهات الوطنية في كل دولة"
+   - Section 5: "5. طريقة تخزين [Brand Name]" (How to store)
+   - Section 6: "6. محتويات العلبة ومعلومات إضافية أخرى" (Contents of the pack and other information)
+     * "ما هي محتويات [Brand Name]" (What it contains)
+     * "ما هو شكل [Brand Name] ووصفه، وعلى ماذا تحتوي العبوة" (What it looks like and contents of the pack)
+     * "اسم وعنوان مالك رخصة التسويق والمصنع" (Marketing Authorisation Holder and Manufacturer)
+   - End with: "تمت مراجعة هذه النشرة في [MM/YYYY]"
+
+8. FORMATTING:
+   - Right-to-left (RTL) text direction
+   - Maintain identical section structure as the English PIL — same number of sections, sub-sections, and content blocks
+   - Preserve ALL medical content — omitting anything is a regulatory violation
+   - Bold headings, bullet points preserved
+   - Brand name must be bolded wherever it appears in Arabic text
+   - Arabic text is naturally more verbose than English — this is expected and correct. Add parenthetical lay explanations for technical terms as needed (this is standard SFDA leaflet practice)
+   - Formal Modern Standard Arabic (MSA) register, patient-friendly tone
+
+9. MANDATORY FOOTER — Council of Arab Health Ministers statement in Arabic (use EXACT text from Template V1.3):
+"إن هذا الدواء
+- الدواء مستحضر يؤثر على صحتك واستهلاكه خلافًا للتعليمات يعرضك للخطر.
+- اتبع بدقة وصفة الطبيب، وطريقة الاستعمال المنصوص عليها، وتعليمات الصيدلي الذي صرفها لك.
+- الطبيب والصيدلي هما الخبيران في الدواء، وفي نفعه وضرره.
+- لا تقطع مدة العلاج المحددة لك من تلقاء نفسك.
+- لا تكرر صرف الدواء بدون استشارة الطبيب المختص.
+- لا تترك الأدوية في متناول الاطفال.
+
+مجلس وزراء الصحة العرب
+واتحاد الصيادلة العرب"
+
+Then add: "تمت الموافقة على هذه النشرة من قبل الهيئة العامة للغذاء والدواء" (This patient information leaflet is approved by SFDA)
+
+═══════════════════════════════════════════
+REGULATORY KNOWLEDGE (use as authoritative reference for Arabic PIL template):
+═══════════════════════════════════════════
+SFDA TEMPLATE V1.3 (contains the official Arabic PIL template with exact Arabic headings, introductory text, mandatory statements, and Council of Arab Health Ministers statement in Arabic):
+{kb:TemplateLabelingSPC-PILV13}
+
+GCC GUIDANCE V3.1 (detailed rules for PIL content and structure):
+{kb:GuidanceLabelingSPCandPILv31_0}
+
+═══════════════════════════════════════════
+ENGLISH PIL TO TRANSLATE:
+═══════════════════════════════════════════
+{pil_english}
+
+Generate the COMPLETE Arabic PIL now. Use the SFDA Template V1.3 Arabic PIL template as your structural and linguistic reference. Every section, every subsection, every piece of medical content must be translated. Do not skip or summarize anything.`,
+          sourceFields: ["pil_english"],
+          selectedTools: [],
+        },
+      },
+
+      // ── Step 4: Generate SPC English ──
+      {
+        id: "spc_english",
+        name: "spc_english",
+        type: "richtext",
+        description: "Complete Summary of Product Characteristics (SPC) in English, GCC compliant.",
+        outputAsFile: true,
+        isTransformation: true,
+        transformationType: "gemini_api",
+        transformationSource: "column",
+        transformationConfig: {
+          prompt: `You are a senior pharmaceutical regulatory affairs specialist creating a Summary of Product Characteristics (SPC/SmPC) for a new generic drug to be registered with SFDA (Saudi Food and Drug Authority).
+
+TASK: Create a complete English SPC for the new generic drug by adapting the originator's SPC content, following GCC SPC format.
+
+═══════════════════════════════════════════
+CRITICAL RULES:
+═══════════════════════════════════════════
+1. COPY the medical, pharmacological, and clinical content from the originator SPC. Do NOT alter or add medical claims — a generic drug relies on bioequivalence to the originator.
+2. REDACT all originator proprietary information (trade name, MAH, manufacturer, company-specific identifiers).
+3. SUBSTITUTE with new drug data from {new_drug_info}.
+4. STORAGE CONDITIONS: Use {storage_conditions_final}.
+5. Information in SPC must be CONSISTENT with the PIL — same medical claims, same contraindications, same side effects, same interactions.
+
+═══════════════════════════════════════════
+GCC SPC STRUCTURE (all sections mandatory):
+═══════════════════════════════════════════
+
+**1. NAME OF THE MEDICINAL PRODUCT**
+[Brand Name] [strength] [dosage form]
+
+**2. QUALITATIVE AND QUANTITATIVE COMPOSITION**
+- Each [unit] contains [strength] of [active substance INN].
+- Excipient(s) with known effect: [list any with known effect]
+- For the full list of excipients, see section 6.1.
+(Use excipients from {new_drug_info})
+
+**3. PHARMACEUTICAL FORM**
+- [Dosage form] description
+- Physical appearance from {new_drug_info}
+
+**4. CLINICAL PARTICULARS**
+
+**4.1 Therapeutic indications**
+- Copy ALL indications from originator SPC exactly. Include target populations.
+
+**4.2 Posology and method of administration**
+Sub-sections (per GCC Guidance v3.1):
+- **Posology**: Dosage for each indication, route, and population
+- **Special populations**: Elderly, Paediatric population (always include), Renal impairment, Hepatic impairment — ordered by importance
+- **Paediatric population**: Must always be included as a specific sub-section, even if only to state that use is not recommended
+- **Method of administration**: Route and concise instructions for correct use. If preparation instructions exist, cross-reference section 6.6.
+(Copy ALL from originator — do NOT modify doses)
+
+**4.3 Contraindications**
+- ALL contraindications from originator, including hypersensitivity statement
+- Update to reference new drug excipients where applicable
+
+**4.4 Special warnings and precautions for use**
+- ALL warnings from originator, ordered by importance
+- In exceptional cases, especially important safety information may be included in bold type within a box
+- Include excipient warnings relevant to new formulation
+- Any adverse reactions described here must also appear in section 4.8
+- Include **Paediatric population** sub-section if applicable
+- Do NOT repeat contraindications from section 4.3 here
+
+**4.5 Interaction with other medicinal products and other forms of interaction**
+- ALL interactions from originator (pharmacodynamic and pharmacokinetic)
+- Order: contraindicated combinations first, then not recommended combinations, then others
+- Food, alcohol, herbal interactions
+
+**4.6 Fertility, pregnancy and lactation**
+Must include these sub-sections (per GCC Guidance v3.1):
+- **Women of childbearing potential / Contraception in males and females** (if applicable)
+- **Pregnancy**: Include evidence basis and recommendation. Reference Appendix 1 statements from GCC guidelines for standard wording.
+- **Breast-feeding**: Include evidence basis and recommendation. Reference Appendix 2 statements from GCC guidelines for standard wording.
+- **Fertility**: From originator
+Note: Only mention pregnancy/breastfeeding in section 4.3 (Contraindications) if they are truly contraindicated.
+
+**4.7 Effects on ability to drive and use machines**
+- From originator
+
+**4.8 Undesirable effects**
+Structure this section per GCC Guidance v3.1 with mandatory sub-sections:
+
+**a. Summary of the safety profile**
+- Describe the most serious and/or most frequently occurring adverse reactions
+- Do NOT include statements like "well tolerated" or "adverse reactions are normally rare"
+- Do NOT include claims regarding absence of specific adverse reactions
+
+**b. Tabulated summary of adverse reactions**
+- Present a SINGLE table listing ALL adverse reactions by MedDRA System Organ Class (SOC)
+- SOC order must follow MedDRA convention
+- Within each SOC, rank by frequency (most frequent first), then by seriousness within each frequency group
+- Use Preferred Term (PT) level for adverse reaction descriptions
+- Frequency categories (exact cutoffs):
+  Very common (≥1/10), Common (≥1/100 to <1/10), Uncommon (≥1/1,000 to <1/100),
+  Rare (≥1/10,000 to <1/1,000), Very rare (<1/10,000), Not known (cannot be estimated from available data)
+- Do NOT use expressions "isolated/single cases/reports"
+- Highlight adverse reactions described in section 4.4 with an asterisk and footnote "see section c)"
+
+**c. Description of selected adverse reactions**
+- Characterize specific serious and/or frequently occurring adverse reactions
+- Include: frequency, reversibility, time of onset, severity, duration, dose relationship
+
+**d. Paediatric population**
+- Always include this sub-section. If no specific paediatric data, state: "Frequency, type and severity of adverse reactions in children are expected to be the same as in adults."
+
+**e. Other special population(s)**
+- Include if clinically relevant differences exist in elderly, renal/hepatic impairment, etc.
+
+**Reporting of suspected adverse reactions:**
+"To report any side effect(s):
+Saudi Arabia:
+- The National Pharmacovigilance Centre (NPC)
+- SFDA Call Center: 19999
+- E-mail: npc.drug@sfda.gov.sa
+- Website: https://ade.sfda.gov.sa/
+Other GCC States: Please contact the relevant competent authority."
+
+**4.9 Overdose**
+- Symptoms, management, antidotes from originator
+
+**5. PHARMACOLOGICAL PROPERTIES**
+
+**5.1 Pharmacodynamic properties**
+- Pharmacotherapeutic group, ATC code
+- Mechanism of action
+- Pharmacodynamic effects
+- Clinical efficacy and safety data (from originator)
+
+**5.2 Pharmacokinetic properties**
+- Absorption, Distribution, Biotransformation, Elimination
+- Special populations characteristics
+(Copy from originator)
+
+**5.3 Preclinical safety data**
+- From originator
+
+**6. PHARMACEUTICAL PARTICULARS**
+
+**6.1 List of excipients**
+- Complete excipient list from {new_drug_info}
+
+**6.2 Incompatibilities**
+- From originator or "Not applicable" if none known
+
+**6.3 Shelf life**
+- [Placeholder: To be determined based on stability data]
+- In-use shelf life after opening if applicable
+
+**6.4 Special precautions for storage**
+- {storage_conditions_final}
+
+**6.5 Nature and contents of container**
+- Pack descriptions and sizes from {new_drug_info}
+- "Not all pack sizes may be marketed."
+
+**6.6 Special precautions for disposal and other handling**
+- From originator or standard: "Any unused medicinal product or waste material should be disposed of in accordance with local requirements."
+
+**7. MARKETING AUTHORISATION HOLDER**
+[MAH name and address from {new_drug_info}]
+
+**8. DATE OF FIRST AUTHORISATION/RENEWAL OF THE AUTHORISATION**
+[Placeholder: To be determined]
+
+**9. DATE OF REVISION OF THE TEXT**
+[Placeholder: MM/YYYY]
+
+═══════════════════════════════════════════
+FORMATTING:
+═══════════════════════════════════════════
+- Use markdown: **bold** for section headings, numbered sections
+- Subsections numbered (4.1, 4.2, etc.)
+- Tables for adverse reactions using markdown table syntax
+- Professional regulatory tone throughout
+
+═══════════════════════════════════════════
+REGULATORY KNOWLEDGE (use as authoritative reference):
+═══════════════════════════════════════════
+SFDA TEMPLATE V1.3 (exact SPC section structure, headings, mandatory statements, appendices for pregnancy/lactation/storage):
+{kb:TemplateLabelingSPC-PILV13}
+
+GCC GUIDANCE V3.1 (detailed rules for each SPC section, adverse reaction table formatting, frequency categories, content requirements):
+{kb:GuidanceLabelingSPCandPILv31_0}
+
+═══════════════════════════════════════════
+SOURCE DOCUMENTS:
+═══════════════════════════════════════════
+ORIGINATOR SPC:
+{originator_spc}
+
+ORIGINATOR PIL (supplementary reference):
+{originator_pil}
+
+NEW DRUG DATA:
+{new_drug_info}
+
+RESOLVED STORAGE CONDITIONS:
+{storage_conditions_final}
+
+Generate the COMPLETE SPC now. Follow the SFDA Template V1.3 structure and GCC Guidance V3.1 rules exactly. Every section must be populated. Do not skip or summarize any medical content from the originator.`,
+          sourceFields: ["originator_spc", "originator_pil", "new_drug_info", "storage_conditions_final"],
+          selectedTools: [],
+        },
+      },
+
+      // ── Step 5: Alignment Review & Gap Analysis ──
+      {
+        id: "alignment_review",
+        name: "alignment_review",
+        type: "richtext",
+        description: "Cross-document alignment review, gap analysis, and regulatory compliance checklist.",
+        isTransformation: true,
+        transformationType: "gemini_api",
+        transformationSource: "column",
+        transformationConfig: {
+          prompt: `You are a senior pharmaceutical regulatory reviewer conducting a compliance review of newly created PIL and SPC documents for a generic drug registered with SFDA.
+
+TASK: Perform a comprehensive alignment review and gap analysis across the three generated documents (PIL English, PIL Arabic, SPC English). You MUST verify compliance against the two authoritative regulatory documents provided below — the SFDA Template V1.3 and GCC Guidance V3.1. These are your primary reference standards for this review.
+
+═══════════════════════════════════════════
+REGULATORY REFERENCE STANDARDS:
+═══════════════════════════════════════════
+SFDA TEMPLATE V1.3 — The official template defining exact section structure, headings, mandatory statements (Council of Arab Health Ministers, SFDA approval), formatting rules, and appendices (Appendix 1: Pregnancy statements, Appendix 2: Lactation statements, Appendix 4: Storage labeling statements). Use this to verify structural compliance, exact wording of mandatory text, and correct Arabic headings/content:
+{kb:TemplateLabelingSPC-PILV13}
+
+GCC GUIDANCE V3.1 — The official guidance with detailed rules for each SPC and PIL section, adverse reaction formatting (MedDRA SOC, frequency categories with exact cutoffs), section 4.8 mandatory sub-sections (a-e), cross-referencing rules, and content requirements. Use this to verify clinical content organization, frequency categorization, and section-specific rules:
+{kb:GuidanceLabelingSPCandPILv31_0}
+
+═══════════════════════════════════════════
+REVIEW CHECKLIST — Evaluate each item as: ✅ PASS | ❌ FAIL | ⚠️ WARNING
+═══════════════════════════════════════════
+
+**A. CONTENT ALIGNMENT (PIL EN ↔ SPC EN)**
+These documents must contain identical medical information (different structure is expected, but content must align 100%):
+
+1. Therapeutic indications — same indications in both documents
+2. Contraindications — all contraindications in PIL match SPC section 4.3
+3. Warnings and precautions — PIL section 2 warnings match SPC section 4.4
+4. Drug interactions — PIL interactions match SPC section 4.5
+5. Pregnancy/lactation — PIL matches SPC section 4.6
+6. Driving/machines — PIL matches SPC section 4.7
+7. Side effects — all adverse reactions in PIL match SPC section 4.8
+8. Overdose — PIL overdose information matches SPC section 4.9
+9. Dosage and administration — PIL section 3 matches SPC section 4.2
+10. Storage conditions — PIL section 5 matches SPC section 6.4
+
+**B. TRANSLATION COMPLETENESS AND QUALITY (PIL EN ↔ PIL AR)**
+11. All 6 sections present in Arabic PIL
+12. No missing subsections or content blocks
+13. Side effects list complete — every side effect in English appears in Arabic
+14. All warnings and contraindications translated completely
+15. Council of Arab Health Ministers statement present in Arabic with correct EXACT wording from Template V1.3
+16. SFDA pharmacovigilance contact info present in Arabic
+17. Translation is contextual and professional — NOT literal/automated translation
+
+**B2. ARABIC TERMINOLOGY COMPLIANCE (per SFDA market conventions)**
+These rules reflect how translations are done across all SFDA-approved leaflets in the Saudi market:
+18. INN/generic drug names are TRANSLITERATED (phonetic Arabic), never translated descriptively (e.g., paracetamol → باراسيتامول, NOT a descriptive Arabic term)
+19. Brand name is TRANSLITERATED into Arabic script and bolded throughout — never left in Latin script in Arabic body text, (R)/(TM) symbols dropped
+20. Disease names, symptoms, and side effects use proper Arabic medical terms (e.g., headache → صداع, nausea → غثيان, diarrhoea → إسهال, epilepsy → الصرع, diabetes → السكري) — NOT transliterated
+21. Drug class names are TRANSLATED to Arabic (e.g., proton pump inhibitors → مثبطات مضخة البروتون, alpha-blockers → حاصرات ألفا, NSAIDs → مضادات الالتهاب غير الستيرويدية) — NOT transliterated
+22. Excipient names: chemical/pharmaceutical names transliterated (e.g., hypromellose → هايبروميلوز), common materials translated (e.g., starch → نشا, castor oil → زيت الخروع)
+23. Technical medical terms include parenthetical lay Arabic explanations where appropriate (e.g., neutropenia → قلّة العدلات (انخفاض عدد كريات الدم البيضاء))
+24. Patient addressed in masculine by default, feminine ONLY in pregnancy/breastfeeding sections
+25. Numbers use Western Arabic numerals (1,2,3) consistently, not Eastern (١,٢,٣)
+26. EXP, email addresses, URLs, and E-numbers remain in Latin script
+27. Section 6 sub-sections use Arabic letter sequence (أ، ب، ت، ث) not Latin (a, b, c, d)
+28. No incorrectly connected or disconnected Arabic words (word connection quality check)
+
+**C. STORAGE CONDITION ALIGNMENT**
+29. PIL EN storage condition matches: {storage_conditions_final}
+30. PIL AR storage condition matches: {storage_conditions_final}
+31. SPC section 6.4 matches: {storage_conditions_final}
+
+**D. PROPRIETARY INFORMATION REDACTION**
+32. No originator trade name remaining in any document
+33. No originator MAH name/address remaining in any document
+34. No originator manufacturer name/address remaining in any document
+35. No originator-specific identifiers, logos, or references remaining
+
+**E. NEW DRUG DATA SUBSTITUTION**
+36. New brand name correctly used throughout all documents
+37. New MAH name and address in PIL section 6 and SPC section 7
+38. New manufacturer name and address in PIL section 6
+39. New excipients list in PIL section 6 and SPC section 6.1
+40. New pack sizes in PIL section 6 and SPC section 6.5
+41. Product physical description in PIL section 6 and SPC section 3
+
+**F. REGULATORY COMPLIANCE**
+42. SFDA pharmacovigilance reporting info present in PIL (NPC, 19999, npc.drug@sfda.gov.sa, https://ade.sfda.gov.sa/)
+43. SFDA pharmacovigilance reporting info present in SPC section 4.8
+44. New drug's own pharmacovigilance contacts included
+45. Council of Arab Health Ministers statement in PIL (English and Arabic) with attribution lines (Council + Union of Arab Pharmacists)
+46. PIL section structure follows SFDA 6-section format
+47. SPC section structure follows GCC format (sections 1-9, per GCC Guidance v3.1)
+48. SPC section 4.8 includes all mandatory sub-sections (a. Summary, b. Tabulated adverse reactions by MedDRA SOC, c. Selected adverse reactions, d. Paediatric population)
+49. No medical claims altered from originator
+50. Side effect frequency categories use standard terms (Very common ≥1/10, Common ≥1/100, Uncommon ≥1/1000, Rare ≥1/10000, Very rare <1/10000, Not known)
+51. PIL does NOT use MedDRA SOC headings (SOC is for SPC only)
+52. SFDA approval statement present in both English and Arabic PIL
+
+═══════════════════════════════════════════
+OUTPUT FORMAT — IMPORTANT RENDERING RULES:
+═══════════════════════════════════════════
+This report will be read directly by a Regulatory Affairs expert. It MUST be easy to scan and read.
+
+CRITICAL FORMATTING RULES:
+- Do NOT use markdown tables (they do not render in this viewer)
+- Do NOT output JSON, code blocks, or structured data
+- Use markdown headings (#, ##, ###), bold (**text**), and bullet points
+- Each checklist item MUST be on its own line, clearly separated
+- Put a blank line between every checklist item for readability
+- Use horizontal rules (---) to separate major sections
+
+FORMAT EACH CHECKLIST ITEM EXACTLY LIKE THIS (one item per block, blank line between items):
+
+**1. Therapeutic indications match**
+✅ PASS — Indications are aligned. PIL uses appropriate lay terminology for the patient audience.
+
+**2. Contraindications match**
+❌ FAIL — The SPC lists "Agranulocytosis" as a Very rare adverse reaction in section 4.8, but this is missing from the PIL section 4 side effects list.
+
+**3. Warnings and precautions match**
+⚠️ WARNING — PIL section 2 covers the key warnings but uses simplified language compared to SPC section 4.4. Verify this is acceptable.
+
+USE THIS OVERALL STRUCTURE:
+
+# Alignment Review Report
+
+## Executive Summary
+
+**Overall Status:** APPROVED / REQUIRES REVISION
+
+**Total:** X PASS, X FAIL, X WARNING
+
+**Critical Issues Requiring Immediate Attention:**
+- [list each FAIL item briefly, or "None"]
+
+---
+
+## A. Content Alignment (PIL EN ↔ SPC EN)
+
+[Each item as shown above, numbered, with status and finding on separate lines, blank line between items]
+
+---
+
+## B. Translation Completeness (PIL EN ↔ PIL AR)
+
+[Each item as shown above]
+
+---
+
+## B2. Arabic Terminology Compliance
+
+[Each item as shown above]
+
+---
+
+## C. Storage Condition Alignment
+
+[Each item as shown above]
+
+---
+
+## D. Proprietary Information Redaction
+
+[Each item as shown above]
+
+---
+
+## E. New Drug Data Substitution
+
+[Each item as shown above]
+
+---
+
+## F. Regulatory Compliance
+
+[Each item as shown above]
+
+---
+
+## Recommendations
+
+List specific corrections needed, numbered and grouped:
+
+**Critical (must fix before submission):**
+1. [correction]
+
+**Important (should fix):**
+1. [correction]
+
+**Minor (optional improvements):**
+1. [correction]
+
+═══════════════════════════════════════════
+DOCUMENTS TO REVIEW:
+═══════════════════════════════════════════
+
+PIL ENGLISH:
+{pil_english}
+
+PIL ARABIC:
+{pil_arabic}
+
+SPC ENGLISH:
+{spc_english}
+
+NEW DRUG DATA:
+{new_drug_info}
+
+RESOLVED STORAGE CONDITIONS:
+{storage_conditions_final}`,
+          sourceFields: ["pil_english", "pil_arabic", "spc_english", "new_drug_info", "storage_conditions_final"],
+          selectedTools: [],
+        },
+      },
+    ],
+  },
 ]
 
 /**
