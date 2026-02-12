@@ -537,7 +537,28 @@ function upsertJobInList(list: ExtractionJob[], job: ExtractionJob): ExtractionJ
     return [...list, job]
   }
   const next = [...list]
-  next[index] = job
+  const existingJob = next[index]
+
+  // If we're in the middle of waterfall processing (enrichingFields exists),
+  // preserve local state to avoid DB sync overwriting partial results
+  const isWaterfallInProgress = existingJob.enrichingFields && existingJob.enrichingFields.length > 0
+
+  if (isWaterfallInProgress) {
+    // Keep local state during waterfall, only update non-conflicting fields
+    next[index] = {
+      ...existingJob,
+      // Update metadata that won't conflict with waterfall processing
+      ocrMarkdown: job.ocrMarkdown ?? existingJob.ocrMarkdown,
+      ocrAnnotatedImageUrl: job.ocrAnnotatedImageUrl ?? existingJob.ocrAnnotatedImageUrl,
+      originalFileUrl: job.originalFileUrl ?? existingJob.originalFileUrl,
+    }
+  } else {
+    // Normal case: use DB state but preserve local-only fields
+    next[index] = {
+      ...job,
+      enrichingFields: existingJob.enrichingFields,
+    }
+  }
   return next
 }
 
@@ -2970,6 +2991,28 @@ export function DataExtractionPlatform({
             destination[col.id] = finalResults[col.id]
           })
 
+          // Waterfall Enrichment: Show base extraction results immediately
+          // Mark all pending transformation fields as "enriching" so UI shows loading state
+          const allTransformationFieldIds = pendingTransformations
+
+          // Always show base extraction results immediately (even if no transformations)
+          // Update job with base extraction results + enriching fields indicator
+          updateJobsForSchema((prev) =>
+            prev.map((existing) =>
+              existing.id === job.id
+                ? {
+                    ...existing,
+                    status: allTransformationFieldIds.length > 0 ? "processing" : "completed",
+                    results: { ...finalResults },
+                    enrichingFields: allTransformationFieldIds.length > 0 ? allTransformationFieldIds : undefined,
+                  }
+                : existing,
+            ),
+          )
+
+          // Yield to event loop to allow React to re-render with initial results
+          await new Promise(resolve => setTimeout(resolve, 0))
+
           for (const wave of waves) {
             const geminiFields = wave.fields.filter((col): col is ExtractionField =>
               isExtractionField(col) && !!col.isTransformation && col.transformationType === 'gemini_api'
@@ -3127,6 +3170,28 @@ export function DataExtractionPlatform({
                 }
               }
             })
+
+            // Waterfall Enrichment: Update UI after each wave completes
+            // Remove completed fields from enrichingFields and update results
+            if (geminiFields.length > 0) {
+              const completedFieldIds = new Set(geminiFields.map((f) => f.id))
+              updateJobsForSchema((prev) =>
+                prev.map((existing) =>
+                  existing.id === job.id
+                    ? {
+                        ...existing,
+                        results: { ...finalResults },
+                        enrichingFields: (existing.enrichingFields || []).filter(
+                          (fieldId) => !completedFieldIds.has(fieldId)
+                        ),
+                      }
+                    : existing,
+                ),
+              )
+
+              // Yield to event loop to allow React to re-render with wave results
+              await new Promise(resolve => setTimeout(resolve, 0))
+            }
           }
 
           const completedAt = new Date()
@@ -3195,6 +3260,7 @@ export function DataExtractionPlatform({
                   completedAt,
                   results: finalResults,
                   review: reviewMeta,
+                  enrichingFields: undefined, // Clear enriching fields on completion
                   ocrMarkdown:
                     nextOcrMarkdown !== undefined
                       ? nextOcrMarkdown
@@ -3554,7 +3620,24 @@ export function DataExtractionPlatform({
     }
 
     if (job.status === 'error') return <span className="text-sm text-destructive">—</span>
-    if (job.status !== 'completed') return <Skeleton className="h-4 w-24" />
+
+    // Waterfall Enrichment: Check if this specific field is being enriched
+    const isFieldEnriching = job.enrichingFields?.includes(column.id) ?? false
+
+    // Show loading skeleton for fields that are being enriched (transformation in progress)
+    if (isFieldEnriching) {
+      return (
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-4 w-24" />
+          <span className="text-[10px] text-muted-foreground animate-pulse">enriching...</span>
+        </div>
+      )
+    }
+
+    // If job is still processing but field has no value yet and is not enriching, show skeleton
+    if (job.status !== 'completed' && value === undefined) {
+      return <Skeleton className="h-4 w-24" />
+    }
 
     const mode: GridRenderMode = opts?.mode ?? 'interactive'
 
