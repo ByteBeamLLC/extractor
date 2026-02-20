@@ -4149,6 +4149,454 @@ RESOLVED STORAGE CONDITIONS:
       },
     ],
   },
+  // ═══════════════════════════════════════════════════════════════════════════
+  // WAREHOUSE DISTRIBUTION PIPELINE
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: "warehouse-distribution-pipeline",
+    name: "Warehouse Distribution Pipeline",
+    description:
+      "Multi-document pipeline for warehouse distributors: Purchase Order → Manufacturer Receipt → Warehouse Receipt Form → PO Processing. Extracts line items and linking entities across all four document types to connect the full procurement-to-receiving workflow.",
+    agentType: "standard",
+    fields: [
+      // ═══════════════════════════════════════════════════════════════════════
+      // INPUT DOCUMENTS
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "purchase_order_doc",
+        name: "purchase_order_doc",
+        type: "input",
+        inputType: "document",
+        description:
+          "The Purchase Order (PO) issued by the warehouse/distributor to the manufacturer or supplier. Contains PO number, line items with item codes, quantities, and pricing.",
+        required: true,
+        fileConstraints: { allowedTypes: ["pdf", "image", "jpg", "png"], maxSize: 20971520 },
+      },
+      {
+        id: "manufacturer_receipt_doc",
+        name: "manufacturer_receipt_doc",
+        type: "input",
+        inputType: "document",
+        description:
+          "The invoice or receipt issued by the product manufacturer (e.g., Sawa). Contains the manufacturer's invoice number, line items with quantities and pricing, and tax details.",
+        required: true,
+        fileConstraints: { allowedTypes: ["pdf", "image", "jpg", "png"], maxSize: 20971520 },
+      },
+      {
+        id: "warehouse_receipt_doc",
+        name: "warehouse_receipt_doc",
+        type: "input",
+        inputType: "document",
+        description:
+          "The internal Raw & Packaging Materials Receipt Form filled by warehouse employees when goods arrive. Contains item codes, QC numbers, batch numbers, supplier name, quantities, and the manufacturer's invoice number.",
+        required: true,
+        fileConstraints: { allowedTypes: ["pdf", "image", "jpg", "png"], maxSize: 20971520 },
+      },
+      {
+        id: "po_processing_doc",
+        name: "po_processing_doc",
+        type: "input",
+        inputType: "document",
+        description:
+          "The system-generated Purchase Order Processing (Receivings Edit List) document. Contains batch ID, receipt number, vendor details, and line items with PO/Transfer numbers linking back to the original purchase order.",
+        required: true,
+        fileConstraints: { allowedTypes: ["pdf", "image", "jpg", "png"], maxSize: 20971520 },
+      },
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // STEP 1: PURCHASE ORDER EXTRACTION
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "purchase_order",
+        name: "purchase_order",
+        type: "object",
+        description: "Header information from the Purchase Order document.",
+        extractionInstructions:
+          'Extract from @"purchase_order_doc": the PO number (e.g., PO2025-000345), date, vendor name, ship-to company name and address, payment terms, currency, the person to confirm with, and the authorized person who signed the PO.',
+        required: true,
+        children: [
+          {
+            id: "po_number",
+            name: "po_number",
+            type: "string",
+            description: "Purchase Order number (e.g., PO2025-000345). This is a KEY LINKING FIELD that connects to PO Processing.",
+            extractionInstructions: "Look for 'Number:' at the top of the Purchase Order. Format: PO followed by year and sequence.",
+            required: true,
+          },
+          {
+            id: "po_date",
+            name: "po_date",
+            type: "date",
+            description: "Purchase Order date",
+            extractionInstructions: "Normalize to YYYY-MM-DD",
+          },
+          { id: "po_vendor_name", name: "vendor_name", type: "string", description: "Vendor/supplier name from the PO", required: true },
+          { id: "po_ship_to_name", name: "ship_to_name", type: "string", description: "Ship-to company name" },
+          { id: "po_ship_to_address", name: "ship_to_address", type: "string", description: "Ship-to full address" },
+          { id: "po_payment_terms", name: "payment_terms", type: "string", description: "Payment terms (e.g., 30 days)" },
+          { id: "po_currency", name: "currency", type: "string", description: "Currency code (e.g., JD)" },
+          { id: "po_confirm_with", name: "confirm_with", type: "string", description: "Person to confirm the order with" },
+          { id: "po_shipping_method", name: "shipping_method", type: "string", description: "Shipping method if specified" },
+          { id: "po_authorized_person", name: "authorized_person", type: "string", description: "Authorized person who signed the PO" },
+        ],
+      },
+      {
+        id: "po_line_items",
+        name: "po_line_items",
+        type: "table",
+        description: "Line items from the Purchase Order.",
+        extractionInstructions:
+          'Extract from @"purchase_order_doc": all line items. Each row should have the line number, item code, description, required date, quantity, unit of measure, unit price, and extended price.',
+        required: true,
+        columns: [
+          { id: "po_li_line_number", name: "line_number", type: "number", description: "Line item sequence number" },
+          {
+            id: "po_li_item_code",
+            name: "item_code",
+            type: "string",
+            description: "Item code/number (e.g., PNBO0081). LINKING FIELD - connects to warehouse receipt and PO processing item codes.",
+            required: true,
+          },
+          { id: "po_li_description", name: "description", type: "string", description: "Full item description" },
+          { id: "po_li_required_date", name: "required_date", type: "date", description: "Required delivery date (YYYY-MM-DD)" },
+          { id: "po_li_quantity", name: "quantity", type: "number", description: "Ordered quantity", required: true },
+          { id: "po_li_unit_of_measure", name: "unit_of_measure", type: "string", description: "Unit of measure (e.g., EACH)" },
+          { id: "po_li_unit_price", name: "unit_price", type: "decimal", description: "Unit price" },
+          { id: "po_li_extended_price", name: "extended_price", type: "decimal", description: "Extended/total price for this line" },
+        ],
+      },
+      {
+        id: "po_totals",
+        name: "po_totals",
+        type: "object",
+        description: "Totals from the Purchase Order.",
+        extractionInstructions: 'Extract from @"purchase_order_doc": subtotal, discount, misc, freight, tax, and total amounts.',
+        children: [
+          { id: "po_subtotal", name: "subtotal", type: "decimal", description: "Subtotal before tax and adjustments" },
+          { id: "po_discount", name: "discount", type: "decimal", description: "Discount amount" },
+          { id: "po_freight", name: "freight", type: "decimal", description: "Freight/shipping charges" },
+          { id: "po_tax", name: "tax", type: "decimal", description: "Tax amount" },
+          { id: "po_total", name: "total", type: "decimal", description: "Grand total", required: true },
+        ],
+      },
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // STEP 2: MANUFACTURER RECEIPT / INVOICE EXTRACTION
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "manufacturer_receipt",
+        name: "manufacturer_receipt",
+        type: "object",
+        description: "Header information from the manufacturer's invoice/receipt.",
+        extractionInstructions:
+          'Extract from @"manufacturer_receipt_doc": the invoice number, manufacturer name, invoice date, tax registration number, and the company that ordered (ordered by / المطلوب من). The invoice number is a KEY LINKING FIELD.',
+        required: true,
+        children: [
+          {
+            id: "mfr_invoice_number",
+            name: "invoice_number",
+            type: "string",
+            description: "Manufacturer invoice number (e.g., 2505578). KEY LINKING FIELD - connects to warehouse receipt form (Invoice No. column) and PO Processing (vendor document reference).",
+            extractionInstructions: "Look for 'رقم الفاتورة' or 'Invoice No.' prominently displayed. This is the most important linking field.",
+            required: true,
+          },
+          { id: "mfr_name", name: "manufacturer_name", type: "string", description: "Manufacturer/supplier company name", required: true },
+          {
+            id: "mfr_invoice_date",
+            name: "invoice_date",
+            type: "date",
+            description: "Invoice date",
+            extractionInstructions: "Look for 'التاريخ' (date). Normalize to YYYY-MM-DD.",
+          },
+          { id: "mfr_tax_number", name: "tax_number", type: "string", description: "Tax registration number (الرقم الضريبي)" },
+          { id: "mfr_ordered_by", name: "ordered_by", type: "string", description: "Company that placed the order (المطلوب من)" },
+          { id: "mfr_receiver_name", name: "receiver_name", type: "string", description: "Name of the person who received the goods (اسم المستلم)" },
+        ],
+      },
+      {
+        id: "manufacturer_line_items",
+        name: "manufacturer_line_items",
+        type: "table",
+        description: "Line items from the manufacturer's invoice.",
+        extractionInstructions:
+          'Extract from @"manufacturer_receipt_doc": all line items with quantity (الكمية), description/details (التفاصيل), unit price (سعر الوحدة), and total (الإجمالي).',
+        required: true,
+        columns: [
+          { id: "mfr_li_quantity", name: "quantity", type: "number", description: "Quantity (الكمية)", required: true },
+          { id: "mfr_li_description", name: "description", type: "string", description: "Item description/details (التفاصيل)" },
+          { id: "mfr_li_unit_price", name: "unit_price", type: "decimal", description: "Unit price (سعر الوحدة)" },
+          { id: "mfr_li_total", name: "line_total", type: "decimal", description: "Line total (الإجمالي)" },
+        ],
+      },
+      {
+        id: "manufacturer_totals",
+        name: "manufacturer_totals",
+        type: "object",
+        description: "Totals from the manufacturer's invoice.",
+        extractionInstructions: 'Extract from @"manufacturer_receipt_doc": subtotal (المجموع), tax (الضريبة العامة), and grand total (المجموع فقط).',
+        children: [
+          { id: "mfr_subtotal", name: "subtotal", type: "decimal", description: "Subtotal (المجموع)" },
+          { id: "mfr_tax", name: "tax", type: "decimal", description: "Tax amount (الضريبة العامة)" },
+          { id: "mfr_total", name: "total", type: "decimal", description: "Grand total (المجموع فقط)", required: true },
+        ],
+      },
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // STEP 3: WAREHOUSE RECEIPT FORM EXTRACTION
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "warehouse_receipt",
+        name: "warehouse_receipt",
+        type: "object",
+        description: "Header information from the internal warehouse receipt form.",
+        extractionInstructions:
+          'Extract from @"warehouse_receipt_doc": the form number (top right corner, e.g., 1008), date, and warehouse supervisor name. The form number is a KEY LINKING FIELD that connects to the Batch ID in PO Processing.',
+        required: true,
+        children: [
+          {
+            id: "wh_form_number",
+            name: "form_number",
+            type: "string",
+            description: "Receipt form number (e.g., 1008). KEY LINKING FIELD - this number matches the Batch ID in the PO Processing document.",
+            required: true,
+          },
+          {
+            id: "wh_date",
+            name: "date",
+            type: "date",
+            description: "Receipt form date",
+            extractionInstructions: "Normalize to YYYY-MM-DD",
+          },
+          { id: "wh_supervisor", name: "warehouses_supervisor", type: "string", description: "Warehouses Supervisor name" },
+        ],
+      },
+      {
+        id: "warehouse_receipt_items",
+        name: "warehouse_receipt_items",
+        type: "table",
+        description: "Line items from the warehouse receipt form.",
+        extractionInstructions:
+          'Extract from @"warehouse_receipt_doc": all rows from the table. Each row has: Code No., Material Name, Batch No., Q.C No., Mfg. Date, Exp. Date, Supplier, Qty, No. of units, Unit/Pack, and Invoice No. The Invoice No. column is a LINKING FIELD that connects to the manufacturer receipt.',
+        required: true,
+        columns: [
+          {
+            id: "wh_li_code_no",
+            name: "code_no",
+            type: "string",
+            description: "Item code number. LINKING FIELD - matches item codes in PO and PO Processing.",
+            required: true,
+          },
+          { id: "wh_li_material_name", name: "material_name", type: "string", description: "Material/product name" },
+          { id: "wh_li_batch_no", name: "batch_no", type: "string", description: "Batch number (may be N/A)" },
+          { id: "wh_li_qc_no", name: "qc_no", type: "string", description: "Quality Control number" },
+          {
+            id: "wh_li_mfg_date",
+            name: "mfg_date",
+            type: "string",
+            description: "Manufacturing date (may be N/A)",
+          },
+          {
+            id: "wh_li_exp_date",
+            name: "exp_date",
+            type: "string",
+            description: "Expiry date (may be N/A)",
+          },
+          { id: "wh_li_supplier", name: "supplier", type: "string", description: "Supplier name" },
+          { id: "wh_li_qty", name: "qty", type: "number", description: "Quantity received", required: true },
+          { id: "wh_li_num_units", name: "num_units", type: "number", description: "Number of units per pack" },
+          { id: "wh_li_unit_pack", name: "unit_pack", type: "number", description: "Number of packs" },
+          {
+            id: "wh_li_invoice_no",
+            name: "invoice_no",
+            type: "string",
+            description: "Manufacturer invoice number. KEY LINKING FIELD - connects this receipt to the manufacturer's invoice.",
+            required: true,
+          },
+        ],
+      },
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // STEP 4: PO PROCESSING EXTRACTION
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "po_processing",
+        name: "po_processing",
+        type: "object",
+        description: "Header information from the system PO Processing (Receivings Edit List) document.",
+        extractionInstructions:
+          'Extract from @"po_processing_doc": the Batch ID, Receipt Number, document date, post date, vendor ID, vendor name, and the vendor document number (the manufacturer invoice number that appears in or near the Name field). The Batch ID links to the warehouse receipt form number. The vendor document number links to the manufacturer invoice.',
+        required: true,
+        children: [
+          {
+            id: "proc_batch_id",
+            name: "batch_id",
+            type: "string",
+            description: "Batch ID (e.g., 1008). KEY LINKING FIELD - matches the warehouse receipt form number.",
+            required: true,
+          },
+          {
+            id: "proc_receipt_number",
+            name: "receipt_number",
+            type: "string",
+            description: "System receipt number (e.g., RCT2025-05249)",
+            required: true,
+          },
+          {
+            id: "proc_doc_date",
+            name: "doc_date",
+            type: "date",
+            description: "Document date",
+            extractionInstructions: "Normalize to YYYY-MM-DD",
+          },
+          {
+            id: "proc_post_date",
+            name: "post_date",
+            type: "date",
+            description: "Posting date",
+            extractionInstructions: "Normalize to YYYY-MM-DD",
+          },
+          { id: "proc_vendor_id", name: "vendor_id", type: "string", description: "Vendor ID number in the system" },
+          { id: "proc_vendor_name", name: "vendor_name", type: "string", description: "Vendor name as it appears in the system" },
+          {
+            id: "proc_vendor_doc_number",
+            name: "vendor_doc_number",
+            type: "string",
+            description: "Vendor document number (the manufacturer's invoice number, e.g., 2505578). KEY LINKING FIELD - connects to manufacturer receipt invoice number.",
+            extractionInstructions: "This number typically appears in or near the Name/vendor field. It is the manufacturer's invoice number referenced in this processing document.",
+            required: true,
+          },
+          { id: "proc_user_id", name: "user_id", type: "string", description: "System user who processed this entry" },
+        ],
+      },
+      {
+        id: "po_processing_items",
+        name: "po_processing_items",
+        type: "table",
+        description: "Line items from the PO Processing document.",
+        extractionInstructions:
+          'Extract from @"po_processing_doc": all line items from the receivings list. Each row has: Item code, Vendor Item code, Description, Quantity Shipped, Quantity Invoiced, Quantity Rejected, Site ID, Unit Cost, Extended Cost, and PO/Transfer Number. The PO/Transfer Number is a KEY LINKING FIELD back to the original Purchase Order.',
+        required: true,
+        columns: [
+          {
+            id: "proc_li_item_code",
+            name: "item_code",
+            type: "string",
+            description: "Internal item code. LINKING FIELD - matches item codes across documents.",
+            required: true,
+          },
+          { id: "proc_li_vendor_item", name: "vendor_item_code", type: "string", description: "Vendor's item code" },
+          { id: "proc_li_description", name: "description", type: "string", description: "Item description" },
+          { id: "proc_li_unit_of_measure", name: "unit_of_measure", type: "string", description: "Unit of measure (e.g., EACH)" },
+          { id: "proc_li_qty_shipped", name: "qty_shipped", type: "number", description: "Quantity shipped", required: true },
+          { id: "proc_li_qty_invoiced", name: "qty_invoiced", type: "number", description: "Quantity invoiced" },
+          { id: "proc_li_qty_rejected", name: "qty_rejected", type: "number", description: "Quantity rejected" },
+          { id: "proc_li_site_id", name: "site_id", type: "string", description: "Warehouse site ID" },
+          { id: "proc_li_unit_cost", name: "unit_cost", type: "decimal", description: "Unit cost" },
+          { id: "proc_li_extended_cost", name: "extended_cost", type: "decimal", description: "Extended/total cost for this line" },
+          {
+            id: "proc_li_po_transfer_number",
+            name: "po_transfer_number",
+            type: "string",
+            description: "PO/Transfer Number (e.g., PO2025-000141). KEY LINKING FIELD - connects back to the original Purchase Order number.",
+            required: true,
+          },
+        ],
+      },
+      {
+        id: "po_processing_totals",
+        name: "po_processing_totals",
+        type: "object",
+        description: "Totals from the PO Processing document.",
+        extractionInstructions: 'Extract from @"po_processing_doc": subtotal, trade discount, freight, misc, tax amount, and total.',
+        children: [
+          { id: "proc_subtotal", name: "subtotal", type: "decimal", description: "Subtotal" },
+          { id: "proc_trade_discount", name: "trade_discount", type: "decimal", description: "Trade discount" },
+          { id: "proc_freight", name: "freight", type: "decimal", description: "Freight amount" },
+          { id: "proc_tax", name: "tax", type: "decimal", description: "Tax amount" },
+          { id: "proc_total", name: "total", type: "decimal", description: "Grand total", required: true },
+        ],
+      },
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // ACCOUNT DETAILS FROM PO PROCESSING
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "po_processing_accounts",
+        name: "po_processing_accounts",
+        type: "table",
+        description: "Accounting entries from the PO Processing document.",
+        extractionInstructions:
+          'Extract from @"po_processing_doc": the account entries table showing Account code, Account Description, Account Type, Debit amount, and Credit amount.',
+        columns: [
+          { id: "proc_acct_code", name: "account_code", type: "string", description: "Account code (e.g., 01-01-03-01-0002)" },
+          { id: "proc_acct_description", name: "account_description", type: "string", description: "Account description" },
+          { id: "proc_acct_type", name: "account_type", type: "string", description: "Account type (e.g., PURCH, TAX, PAY)" },
+          { id: "proc_acct_debit", name: "debit", type: "decimal", description: "Debit amount" },
+          { id: "proc_acct_credit", name: "credit", type: "decimal", description: "Credit amount" },
+        ],
+      },
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // PIPELINE CROSS-REFERENCE TABLE
+      // Connects the dots across all 4 documents per line item
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "pipeline_cross_reference",
+        name: "pipeline_cross_reference",
+        type: "table",
+        description:
+          "Cross-reference table that links every line item across all four pipeline documents. Each row represents one item flowing through the full procurement-to-receiving workflow.",
+        extractionInstructions:
+          'Build a cross-reference table by reading ALL FOUR documents: @"purchase_order_doc", @"manufacturer_receipt_doc", @"warehouse_receipt_doc", and @"po_processing_doc". For each distinct line item that flows through the pipeline, create one row that connects:\n' +
+          "1. From the Purchase Order: the PO number and the line item code.\n" +
+          "2. From the Warehouse Receipt Form (blue form): the Code No. for that item.\n" +
+          "3. From the Manufacturer Receipt: the invoice/receipt number.\n" +
+          "4. From the PO Processing document: the Name field value (which contains the manufacturer invoice number, linking it to the manufacturer receipt), AND the item code from the line items table.\n\n" +
+          "Match items across documents using item codes, quantities, and descriptions. Items may have slightly different codes across documents (e.g., PNBO0081 in PO vs PNB0092 in warehouse receipt) — match them by description, quantity, or context. If a field is not available for a particular item, leave it empty.",
+        required: true,
+        columns: [
+          {
+            id: "xref_po_number",
+            name: "po_number",
+            type: "string",
+            description: "Purchase Order number from the PO document (e.g., PO2025-000345)",
+            required: true,
+          },
+          {
+            id: "xref_po_item_code",
+            name: "po_line_item_code",
+            type: "string",
+            description: "Item code from the Purchase Order line items (e.g., PNBO0081)",
+          },
+          {
+            id: "xref_wh_code_no",
+            name: "warehouse_code_no",
+            type: "string",
+            description: "Code No. from the Warehouse Receipt Form (blue form) for this item (e.g., PNB0092)",
+          },
+          {
+            id: "xref_mfr_invoice_no",
+            name: "manufacturer_receipt_number",
+            type: "string",
+            description: "Invoice/receipt number from the Manufacturer Receipt (e.g., 2505578). This is the manufacturer's document number.",
+            required: true,
+          },
+          {
+            id: "xref_proc_name_ref",
+            name: "po_processing_name",
+            type: "string",
+            description: "The Name field from the PO Processing document — this contains the manufacturer invoice number and vendor name, linking the PO Processing entry to the Manufacturer Receipt.",
+          },
+          {
+            id: "xref_proc_item_code",
+            name: "po_processing_item_code",
+            type: "string",
+            description: "Item code from the PO Processing line items table (e.g., PNB0092). This should match the warehouse receipt Code No.",
+          },
+        ],
+      },
+    ],
+  },
 ]
 
 /**
