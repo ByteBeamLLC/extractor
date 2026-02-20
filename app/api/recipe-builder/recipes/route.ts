@@ -12,7 +12,7 @@ import { createClient } from '@/lib/supabase/server'
  *   - Get single recipe by ID
  */
 
-const PAGE_SIZE = 10
+const DEFAULT_PAGE_SIZE = 10
 
 export async function GET(request: NextRequest) {
   try {
@@ -53,11 +53,12 @@ export async function GET(request: NextRequest) {
 
     // List recipes with pagination
     const page = parseInt(searchParams.get('page') || '1', 10)
+    const pageSize = Math.min(parseInt(searchParams.get('pageSize') || String(DEFAULT_PAGE_SIZE), 10), 1000)
     const search = searchParams.get('search') || ''
     const category = searchParams.get('category') || ''
     const status = searchParams.get('status') || ''
 
-    const offset = (page - 1) * PAGE_SIZE
+    const offset = (page - 1) * pageSize
 
     // Build query
     let query = supabase
@@ -78,7 +79,7 @@ export async function GET(request: NextRequest) {
     // Order and paginate
     query = query
       .order('updated_at', { ascending: false })
-      .range(offset, offset + PAGE_SIZE - 1)
+      .range(offset, offset + pageSize - 1)
 
     const { data: recipes, error, count } = await query
 
@@ -86,13 +87,13 @@ export async function GET(request: NextRequest) {
       throw error
     }
 
-    const totalPages = Math.ceil((count || 0) / PAGE_SIZE)
+    const totalPages = Math.ceil((count || 0) / pageSize)
 
     return NextResponse.json({
       data: recipes || [],
       pagination: {
         page,
-        pageSize: PAGE_SIZE,
+        pageSize,
         totalItems: count || 0,
         totalPages,
         hasNext: page < totalPages,
