@@ -313,10 +313,11 @@ export function RecipeBuilderView({ recipeId, onBack, onSave }: RecipeBuilderVie
   // Load existing recipe if editing
   useEffect(() => {
     if (isEditing && recipeId) {
-      const existingRecipe = getRecipeById(recipeId)
-      if (existingRecipe) {
-        setRecipe(existingRecipe)
-      }
+      getRecipeById(recipeId).then((existingRecipe) => {
+        if (existingRecipe) {
+          setRecipe(existingRecipe)
+        }
+      })
     }
   }, [recipeId, isEditing, getRecipeById])
 
