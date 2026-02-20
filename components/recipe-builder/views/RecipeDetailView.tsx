@@ -108,8 +108,18 @@ interface RecipeDetailViewProps {
 }
 
 export function RecipeDetailView({ recipeId, onBack, onEdit, companyLogo, companyName, companyWebsite }: RecipeDetailViewProps) {
-  const { getRecipeById, updateRecipe, recipes } = useRecipes()
-  const recipe = getRecipeById(recipeId)
+  const { getRecipeById, updateRecipe } = useRecipes()
+  const [recipe, setRecipe] = useState<Recipe | undefined>(undefined)
+  const [loadingRecipe, setLoadingRecipe] = useState(true)
+
+  // Fetch recipe on mount
+  React.useEffect(() => {
+    setLoadingRecipe(true)
+    getRecipeById(recipeId).then((r) => {
+      setRecipe(r)
+      setLoadingRecipe(false)
+    })
+  }, [recipeId, getRecipeById])
 
   // Stock management state
   const [isUpdatingStock, setIsUpdatingStock] = useState(false)
@@ -126,16 +136,21 @@ export function RecipeDetailView({ recipeId, onBack, onEdit, companyLogo, compan
 
       setIsGeneratingBarcode(true)
       try {
-        // Get all existing barcodes from recipes
-        const existingBarcodes = recipes
-          .map((r) => r.barcode)
-          .filter((b): b is string => !!b)
+        // Fetch existing barcodes to ensure uniqueness
+        const response = await fetch('/api/recipe-builder/recipes?page=1&pageSize=1000')
+        const data = await response.json()
+        const existingBarcodes = (data.data || [])
+          .map((r: any) => r.barcode)
+          .filter((b: any): b is string => !!b)
 
         // Generate unique barcode
         const newBarcode = generateUniqueEAN13(existingBarcodes)
 
         // Save to database
         await updateRecipe(recipe.id, { barcode: newBarcode })
+        // Refresh recipe to get updated barcode
+        const updated = await getRecipeById(recipeId)
+        if (updated) setRecipe(updated)
       } catch (error) {
         console.error('Failed to generate barcode:', error)
       } finally {
@@ -144,7 +159,7 @@ export function RecipeDetailView({ recipeId, onBack, onEdit, companyLogo, compan
     }
 
     generateBarcodeIfMissing()
-  }, [recipe?.id, recipe?.barcode, recipes, updateRecipe, isGeneratingBarcode])
+  }, [recipe?.id, recipe?.barcode, updateRecipe, isGeneratingBarcode, getRecipeById, recipeId])
 
   // Copy barcode to clipboard
   const handleCopyBarcode = async () => {
@@ -168,7 +183,7 @@ export function RecipeDetailView({ recipeId, onBack, onEdit, companyLogo, compan
 
     setIsUpdatingStock(true)
     try {
-      await updateRecipe(recipe.id, {
+      const updated = await updateRecipe(recipe.id, {
         inventory: {
           stock_quantity: newStock,
           stock_unit: recipe.inventory?.stock_unit || 'portions',
@@ -176,6 +191,7 @@ export function RecipeDetailView({ recipeId, onBack, onEdit, companyLogo, compan
           last_stock_update: new Date().toISOString(),
         },
       })
+      if (updated) setRecipe(updated as Recipe)
     } catch (error) {
       console.error('Failed to update stock:', error)
     } finally {
@@ -189,7 +205,7 @@ export function RecipeDetailView({ recipeId, onBack, onEdit, companyLogo, compan
 
     setIsUpdatingStock(true)
     try {
-      await updateRecipe(recipe.id, {
+      const updated = await updateRecipe(recipe.id, {
         inventory: {
           stock_quantity: Math.max(0, newStock),
           stock_unit: recipe.inventory?.stock_unit || 'portions',
@@ -197,6 +213,7 @@ export function RecipeDetailView({ recipeId, onBack, onEdit, companyLogo, compan
           last_stock_update: new Date().toISOString(),
         },
       })
+      if (updated) setRecipe(updated as Recipe)
     } catch (error) {
       console.error('Failed to update stock:', error)
     } finally {
@@ -229,7 +246,7 @@ export function RecipeDetailView({ recipeId, onBack, onEdit, companyLogo, compan
     return result
   }, [recipe])
 
-  if (!recipe) {
+  if (loadingRecipe || !recipe) {
     return (
       <div className="p-6">
         <Button variant="ghost" size="sm" onClick={onBack}>
@@ -238,7 +255,9 @@ export function RecipeDetailView({ recipeId, onBack, onEdit, companyLogo, compan
         </Button>
         <Card className="mt-4">
           <CardContent className="pt-6">
-            <p className="text-center text-muted-foreground">Recipe not found</p>
+            <p className="text-center text-muted-foreground">
+              {loadingRecipe ? 'Loading recipe...' : 'Recipe not found'}
+            </p>
           </CardContent>
         </Card>
       </div>

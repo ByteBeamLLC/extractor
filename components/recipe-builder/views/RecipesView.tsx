@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -63,7 +63,8 @@ import type { Recipe, RecipeInventory } from '../types'
 /**
  * Recipes View
  *
- * Displays recipe list with search, filtering, and pagination.
+ * Displays recipe list with server-side search, filtering, and pagination.
+ * Each page fetches only the recipes needed from the API.
  */
 
 const RECIPES_PER_PAGE = 10
@@ -73,14 +74,38 @@ const COMPANY_LOGO_KEY = 'recipe-builder-company-logo'
 const COMPANY_NAME_KEY = 'recipe-builder-company-name'
 const COMPANY_WEBSITE_KEY = 'recipe-builder-company-website'
 
+interface PaginationMeta {
+  page: number
+  pageSize: number
+  totalItems: number
+  totalPages: number
+  hasNext: boolean
+  hasPrev: boolean
+}
+
 export function RecipesView() {
-  const { recipes, loading, createRecipe, updateRecipe, refreshData } = useRecipes()
+  const { createRecipe, updateRecipe, refreshStats } = useRecipes()
   const { navigateTo, currentView, selectedRecipeId, goBack } = useRecipeBuilderNavigation()
 
+  // Server-side paginated recipes
+  const [recipes, setRecipes] = useState<Recipe[]>([])
+  const [loading, setLoading] = useState(true)
+  const [pagination, setPagination] = useState<PaginationMeta>({
+    page: 1,
+    pageSize: RECIPES_PER_PAGE,
+    totalItems: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrev: false,
+  })
+
+  // Filters and search
   const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [currentPage, setCurrentPage] = useState(1)
+  const [categories, setCategories] = useState<string[]>([])
 
   // Local state for create/edit mode
   const [isBuilderOpen, setIsBuilderOpen] = useState(false)
@@ -107,8 +132,78 @@ export function RecipesView() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [isDuplicating, setIsDuplicating] = useState(false)
 
+  // Debounce search input
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => {
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current)
+    }
+    searchTimerRef.current = setTimeout(() => {
+      setDebouncedSearch(searchQuery)
+      setCurrentPage(1)
+    }, 300)
+    return () => {
+      if (searchTimerRef.current) {
+        clearTimeout(searchTimerRef.current)
+      }
+    }
+  }, [searchQuery])
+
+  // Fetch recipes from API with current filters and page
+  const fetchRecipes = useCallback(async () => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams({
+        page: String(currentPage),
+        pageSize: String(RECIPES_PER_PAGE),
+      })
+      if (debouncedSearch) params.set('search', debouncedSearch)
+      if (statusFilter !== 'all') params.set('status', statusFilter)
+      if (categoryFilter !== 'all') params.set('category', categoryFilter)
+
+      const response = await fetch(`/api/recipe-builder/recipes?${params}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch recipes')
+      }
+
+      const result = await response.json()
+      setRecipes(result.data || [])
+      if (result.pagination) {
+        setPagination(result.pagination)
+      }
+    } catch (err) {
+      console.error('Failed to fetch recipes:', err)
+      setRecipes([])
+    } finally {
+      setLoading(false)
+    }
+  }, [currentPage, debouncedSearch, statusFilter, categoryFilter])
+
+  // Fetch categories for filter dropdown
+  const fetchCategories = useCallback(async () => {
+    try {
+      const response = await fetch('/api/recipe-builder/categories')
+      if (response.ok) {
+        const { data } = await response.json()
+        setCategories(data || [])
+      }
+    } catch {
+      // Silently fail - categories dropdown just won't be populated
+    }
+  }, [])
+
+  // Fetch recipes when filters/page change
+  useEffect(() => {
+    fetchRecipes()
+  }, [fetchRecipes])
+
+  // Fetch categories on mount
+  useEffect(() => {
+    fetchCategories()
+  }, [fetchCategories])
+
   // Load company branding from localStorage on mount
-  React.useEffect(() => {
+  useEffect(() => {
     const savedLogo = localStorage.getItem(COMPANY_LOGO_KEY)
     const savedName = localStorage.getItem(COMPANY_NAME_KEY)
     const savedWebsite = localStorage.getItem(COMPANY_WEBSITE_KEY)
@@ -170,6 +265,9 @@ export function RecipesView() {
       }
       // Close builder after successful save
       handleCloseBuilder()
+      // Refresh the list to show updated data
+      fetchRecipes()
+      fetchCategories()
     } catch (error) {
       console.error('Failed to save recipe:', error)
       // Show error to user so they know the save failed
@@ -208,6 +306,8 @@ export function RecipesView() {
       await updateRecipe(stockRecipe.id, { inventory: updatedInventory })
       setStockModalOpen(false)
       setStockRecipe(null)
+      // Refresh list to show updated stock
+      fetchRecipes()
     } catch (error) {
       console.error('Failed to update stock:', error)
     } finally {
@@ -248,6 +348,9 @@ export function RecipesView() {
         status: 'DRAFT', // Set as draft
       }
       await createRecipe(duplicatedRecipe)
+      // Refresh list to show the new duplicate
+      fetchRecipes()
+      fetchCategories()
     } catch (error) {
       console.error('Failed to duplicate recipe:', error)
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -278,8 +381,10 @@ export function RecipesView() {
         throw new Error(errorData.error || 'Failed to delete recipe')
       }
 
-      // Refresh the data after successful deletion
-      await refreshData()
+      // Refresh the list and stats after successful deletion
+      fetchRecipes()
+      fetchCategories()
+      refreshStats()
     } catch (error) {
       console.error('Failed to delete recipe:', error)
       alert('Failed to delete recipe. Please try again.')
@@ -290,43 +395,19 @@ export function RecipesView() {
     }
   }
 
-  // Get unique categories
-  const categories = useMemo(() => {
-    const cats = new Set(recipes.map((r) => r.category).filter(Boolean))
-    return Array.from(cats).sort()
-  }, [recipes])
-
-  // Filter recipes
-  const filteredRecipes = useMemo(() => {
-    return recipes.filter((recipe) => {
-      const matchesSearch =
-        !searchQuery ||
-        recipe.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        recipe.category?.toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesStatus =
-        statusFilter === 'all' || recipe.status === statusFilter
-      const matchesCategory =
-        categoryFilter === 'all' || recipe.category === categoryFilter
-      return matchesSearch && matchesStatus && matchesCategory
-    })
-  }, [recipes, searchQuery, statusFilter, categoryFilter])
-
-  // Pagination
-  const totalPages = Math.ceil(filteredRecipes.length / RECIPES_PER_PAGE)
-  const startIndex = (currentPage - 1) * RECIPES_PER_PAGE
-  const endIndex = startIndex + RECIPES_PER_PAGE
-  const paginatedRecipes = filteredRecipes.slice(startIndex, endIndex)
-
-  // Reset page when filters change
-  const handleFilterChange = (
-    setter: React.Dispatch<React.SetStateAction<string>>,
-    value: string
-  ) => {
-    setter(value)
+  // Handle filter changes - reset to page 1
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value)
     setCurrentPage(1)
   }
 
-  // Generate page numbers
+  const handleCategoryFilterChange = (value: string) => {
+    setCategoryFilter(value)
+    setCurrentPage(1)
+  }
+
+  // Generate page numbers for pagination UI
+  const totalPages = pagination.totalPages
   const getPageNumbers = (): (number | string)[] => {
     const pages: (number | string)[] = []
     if (totalPages <= 7) {
@@ -361,6 +442,10 @@ export function RecipesView() {
         return 'outline'
     }
   }
+
+  // Compute display range
+  const startIndex = (currentPage - 1) * RECIPES_PER_PAGE
+  const endIndex = startIndex + recipes.length
 
   // If in recipe builder mode (create or edit)
   if (isBuilderOpen) {
@@ -437,7 +522,7 @@ export function RecipesView() {
         </Card>
       )}
 
- 
+
 
       {/* Filters */}
       <Card>
@@ -448,14 +533,14 @@ export function RecipesView() {
               <Input
                 placeholder="Search recipes..."
                 value={searchQuery}
-                onChange={(e) => handleFilterChange(setSearchQuery, e.target.value)}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
               />
             </div>
 
             <Select
               value={statusFilter}
-              onValueChange={(value) => handleFilterChange(setStatusFilter, value)}
+              onValueChange={handleStatusFilterChange}
             >
               <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="All Status" />
@@ -469,7 +554,7 @@ export function RecipesView() {
 
             <Select
               value={categoryFilter}
-              onValueChange={(value) => handleFilterChange(setCategoryFilter, value)}
+              onValueChange={handleCategoryFilterChange}
             >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="All Categories" />
@@ -491,8 +576,8 @@ export function RecipesView() {
           </div>
 
           <div className="mt-3 text-sm text-muted-foreground">
-            Showing {startIndex + 1}-{Math.min(endIndex, filteredRecipes.length)} of{' '}
-            {filteredRecipes.length} recipes
+            Showing {pagination.totalItems === 0 ? 0 : startIndex + 1}-{Math.min(endIndex, pagination.totalItems)} of{' '}
+            {pagination.totalItems} recipes
           </div>
         </CardContent>
       </Card>
@@ -521,13 +606,13 @@ export function RecipesView() {
                   Loading recipes...
                 </TableCell>
               </TableRow>
-            ) : paginatedRecipes.length === 0 ? (
+            ) : recipes.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={10} className="text-center py-8">
                   <div className="flex flex-col items-center gap-2">
                     <p>No recipes found</p>
                     <p className="text-sm text-muted-foreground">
-                      {filteredRecipes.length === 0 && recipes.length === 0
+                      {pagination.totalItems === 0
                         ? 'Recipes will appear here once loaded from the database.'
                         : 'Try adjusting your search or filters.'}
                     </p>
@@ -535,7 +620,7 @@ export function RecipesView() {
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedRecipes.map((recipe) => (
+              recipes.map((recipe) => (
                 <TableRow
                   key={recipe.id}
                   className="cursor-pointer hover:bg-muted/50"
@@ -976,4 +1061,3 @@ export function RecipesView() {
     </div>
   )
 }
-
