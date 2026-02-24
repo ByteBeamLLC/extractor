@@ -37,6 +37,7 @@ import {
   Barcode,
   Copy,
   Check,
+  ChefHat,
 } from 'lucide-react'
 import { useRecipes, useRecipeBuilderNavigation } from '../context/RecipeBuilderContext'
 import { NutritionLabel } from '../components/NutritionLabel'
@@ -112,10 +113,51 @@ export function RecipeDetailView({ recipeId, onBack, onEdit, companyLogo, compan
   const [recipe, setRecipe] = useState<Recipe | undefined>(undefined)
   const [loadingRecipe, setLoadingRecipe] = useState(true)
 
-  // Fetch recipe on mount
+  // Fetch recipe on mount and refresh sub-recipe ingredients with latest data
   React.useEffect(() => {
     setLoadingRecipe(true)
-    getRecipeById(recipeId).then((r) => {
+    getRecipeById(recipeId).then(async (r) => {
+      if (r && r.ingredients?.length) {
+        const subRecipeIngs = r.ingredients.filter(
+          (ing) => ing.source === 'SUB_RECIPE' && ing.sub_recipe_id
+        )
+        if (subRecipeIngs.length > 0) {
+          const results = await Promise.all(
+            subRecipeIngs.map((ing) =>
+              fetch(`/api/recipe-builder/recipes?id=${ing.sub_recipe_id}`)
+                .then((res) => (res.ok ? res.json() : null))
+                .then((json) => (json ? { ingredientId: ing.ingredient_id, recipe: json.data as Recipe } : null))
+                .catch(() => null)
+            )
+          )
+          const subMap = new Map<string, Recipe>()
+          results.forEach((res) => { if (res) subMap.set(res.ingredientId, res.recipe) })
+
+          r = {
+            ...r,
+            ingredients: r.ingredients.map((ing) => {
+              if (ing.source !== 'SUB_RECIPE' || !ing.sub_recipe_id) return ing
+              const sub = subMap.get(ing.ingredient_id)
+              if (!sub) return ing
+              const totalYield = sub.nutrition?.total_yield_grams || sub.serving?.total_yield_grams || 0
+              const nutrients: Record<string, NutrientValue> = {}
+              if (totalYield > 0) {
+                Object.entries(sub.nutrition?.per_recipe_total || {}).forEach(([name, value]) => {
+                  nutrients[name] = { quantity: (value.quantity / totalYield) * 100, unit: value.unit }
+                })
+              }
+              return {
+                ...ing,
+                name: sub.name,
+                nutrients,
+                allergens: sub.allergens || [],
+                may_contain_allergens: sub.may_contain_allergens || [],
+                composite_ingredients: (sub.ingredients || []).map((i) => i.name),
+              }
+            }),
+          }
+        }
+      }
       setRecipe(r)
       setLoadingRecipe(false)
     })
@@ -577,11 +619,16 @@ export function RecipeDetailView({ recipeId, onBack, onEdit, companyLogo, compan
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <span>{ing.name}</span>
-                            {ing.source && (
+                            {ing.source === 'SUB_RECIPE' ? (
+                              <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-700 border-purple-200">
+                                <ChefHat className="w-3 h-3 mr-1" />
+                                Sub-Recipe
+                              </Badge>
+                            ) : ing.source ? (
                               <Badge variant="secondary" className="text-xs">
                                 {ing.source === 'bytebeam' ? 'bytebeam' : 'imported'}
                               </Badge>
-                            )}
+                            ) : null}
                           </div>
                         </TableCell>
                         <TableCell className="text-right">

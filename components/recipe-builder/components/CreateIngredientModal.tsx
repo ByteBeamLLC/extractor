@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect, useRef } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -29,13 +29,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Search, Database, Loader2, Check } from 'lucide-react'
-import type { Ingredient, NutrientValue } from '../types'
+import { Search, Database, Loader2, Check, ChefHat, Lock } from 'lucide-react'
+import type { Ingredient, NutrientValue, Recipe } from '../types'
 
 /**
  * Create/Edit Ingredient Modal
  *
  * Modal for adding or editing ingredients with:
+ * - Search sub-recipes (recipes marked as sub-recipe)
  * - Search USDA FoodData Central for ingredients
  * - Basic info (name, quantity, unit, yield, cost)
  * - Nutrients (40+ nutrients per 100g)
@@ -171,11 +172,30 @@ const MAY_CONTAIN_ALLERGENS = [
 // Unit options
 const UNITS = ['G', 'KG', 'ML', 'L', 'TBSP', 'TSP', 'CUP', 'PIECE']
 
+/**
+ * Compute per-100g nutrition from a sub-recipe's per_recipe_total and total_yield_grams.
+ */
+function computePer100gFromRecipe(recipe: Recipe): Record<string, NutrientValue> {
+  const nutrients: Record<string, NutrientValue> = {}
+  const totalYield = recipe.nutrition?.total_yield_grams || recipe.serving?.total_yield_grams || 0
+  if (totalYield <= 0) return nutrients
+
+  const perRecipeTotal = recipe.nutrition?.per_recipe_total || {}
+  Object.entries(perRecipeTotal).forEach(([name, value]) => {
+    nutrients[name] = {
+      quantity: (value.quantity / totalYield) * 100,
+      unit: value.unit,
+    }
+  })
+  return nutrients
+}
+
 
 interface CreateIngredientModalProps {
   isOpen: boolean
   ingredient: Ingredient
   isEditing: boolean
+  currentRecipeId?: string | null
   onClose: () => void
   onSave: () => void
   onChange: (updates: Partial<Ingredient>) => void
@@ -185,6 +205,7 @@ export function CreateIngredientModal({
   isOpen,
   ingredient,
   isEditing,
+  currentRecipeId,
   onClose,
   onSave,
   onChange,
@@ -200,9 +221,18 @@ export function CreateIngredientModal({
   const [dbSearchLoading, setDbSearchLoading] = useState(false)
   const [selectedDbIngredient, setSelectedDbIngredient] = useState<USDAIngredient | null>(null)
 
+  // Sub-recipe search state
+  const [subRecipeSearch, setSubRecipeSearch] = useState('')
+  const [subRecipeResults, setSubRecipeResults] = useState<Recipe[]>([])
+  const [subRecipeLoading, setSubRecipeLoading] = useState(false)
+  const [selectedSubRecipe, setSelectedSubRecipe] = useState<Recipe | null>(null)
+  const subRecipeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   // User ingredients from localStorage
   const [userIngredients, setUserIngredients] = useState<Ingredient[]>([])
   const [userIngredientSearch, setUserIngredientSearch] = useState('')
+
+  const isSubRecipeIngredient = ingredient.source === 'SUB_RECIPE'
 
   // Load user ingredients from localStorage
   useEffect(() => {
@@ -230,11 +260,79 @@ export function CreateIngredientModal({
       setDbSearchQuery('')
       setDbSearchResults([])
       setSelectedDbIngredient(null)
+      setSelectedSubRecipe(null)
+      setSubRecipeSearch('')
+      setSubRecipeResults([])
       setUserIngredientSearch('')
     } else if (isOpen && isEditing) {
       setActiveTab('basic')
     }
   }, [isOpen, isEditing])
+
+  // Search sub-recipes with debounce
+  useEffect(() => {
+    if (subRecipeTimerRef.current) {
+      clearTimeout(subRecipeTimerRef.current)
+    }
+
+    if (!subRecipeSearch || subRecipeSearch.length < 2) {
+      setSubRecipeResults([])
+      return
+    }
+
+    subRecipeTimerRef.current = setTimeout(async () => {
+      setSubRecipeLoading(true)
+      try {
+        const params = new URLSearchParams({
+          subRecipesOnly: 'true',
+          search: subRecipeSearch,
+          pageSize: '20',
+        })
+        const res = await fetch(`/api/recipe-builder/recipes?${params}`)
+        if (res.ok) {
+          const { data } = await res.json()
+          // Filter out the current recipe to prevent self-reference
+          const filtered = (data || []).filter((r: Recipe) => r.id !== currentRecipeId)
+          setSubRecipeResults(filtered)
+        }
+      } catch (error) {
+        console.error('Failed to search sub-recipes:', error)
+      } finally {
+        setSubRecipeLoading(false)
+      }
+    }, 300)
+
+    return () => {
+      if (subRecipeTimerRef.current) {
+        clearTimeout(subRecipeTimerRef.current)
+      }
+    }
+  }, [subRecipeSearch, currentRecipeId])
+
+  // Load initial sub-recipes on mount (show available sub-recipes without search)
+  useEffect(() => {
+    if (isOpen && !isEditing) {
+      const loadInitialSubRecipes = async () => {
+        try {
+          const params = new URLSearchParams({
+            subRecipesOnly: 'true',
+            pageSize: '10',
+          })
+          const res = await fetch(`/api/recipe-builder/recipes?${params}`)
+          if (res.ok) {
+            const { data } = await res.json()
+            const filtered = (data || []).filter((r: Recipe) => r.id !== currentRecipeId)
+            if (!subRecipeSearch) {
+              setSubRecipeResults(filtered)
+            }
+          }
+        } catch {
+          // Silently fail
+        }
+      }
+      loadInitialSubRecipes()
+    }
+  }, [isOpen, isEditing, currentRecipeId])
 
   // Search USDA database with debounce
   useEffect(() => {
@@ -266,9 +364,39 @@ export function CreateIngredientModal({
     return () => clearTimeout(timer)
   }, [dbSearchQuery])
 
+  // Handle selecting a sub-recipe as ingredient
+  const handleSelectSubRecipe = useCallback((recipe: Recipe) => {
+    setSelectedSubRecipe(recipe)
+    setSelectedDbIngredient(null)
+
+    // Compute per-100g nutrition from sub-recipe
+    const nutrients = computePer100gFromRecipe(recipe)
+
+    // Get composite ingredient names for label display
+    const compositeIngredients = (recipe.ingredients || []).map((i) => i.name)
+
+    onChange({
+      name: recipe.name,
+      source: 'SUB_RECIPE',
+      sub_recipe_id: recipe.id,
+      ingredient_id: recipe.id,
+      nutrients,
+      allergens: recipe.allergens || [],
+      may_contain_allergens: recipe.may_contain_allergens || [],
+      composite_ingredients: compositeIngredients,
+      quantity: 100,
+      unit: 'G',
+      yield_percent: 100,
+      cost: recipe.costs?.total_cost || 0,
+    })
+
+    setActiveTab('basic')
+  }, [onChange])
+
   // Handle selecting ingredient from USDA database
   const handleSelectDbIngredient = useCallback((food: USDAIngredient) => {
     setSelectedDbIngredient(food)
+    setSelectedSubRecipe(null)
 
     // Convert USDA nutrients to Recipe Builder format (normalize units to lowercase)
     const nutrients: Record<string, NutrientValue> = {}
@@ -283,8 +411,10 @@ export function CreateIngredientModal({
       name: food.name,
       source: 'USDA',
       ingredient_id: food.fdcId.toString(),
+      sub_recipe_id: null,
       nutrients,
       allergens: [], // USDA doesn't provide allergen data
+      composite_ingredients: [],
       quantity: 100, // Default to 100g
       unit: 'G',
       yield_percent: 100,
@@ -296,13 +426,18 @@ export function CreateIngredientModal({
 
   // Handle selecting ingredient from user's saved ingredients
   const handleSelectUserIngredient = useCallback((userIng: Ingredient) => {
+    setSelectedSubRecipe(null)
+    setSelectedDbIngredient(null)
+
     onChange({
       name: userIng.name,
       source: userIng.source,
       ingredient_id: userIng.ingredient_id,
+      sub_recipe_id: null,
       nutrients: userIng.nutrients,
       allergens: userIng.allergens,
       may_contain_allergens: userIng.may_contain_allergens,
+      composite_ingredients: [],
       quantity: 100, // Default to 100g
       unit: 'G',
       yield_percent: userIng.yield_percent || 100,
@@ -318,6 +453,7 @@ export function CreateIngredientModal({
 
   // Nutrient handlers
   const handleNutrientChange = (nutrientName: string, quantity: number, unit: string) => {
+    if (isSubRecipeIngredient) return // Read-only for sub-recipes
     const updatedNutrients = { ...ingredient.nutrients }
     if (quantity > 0) {
       updatedNutrients[nutrientName] = { quantity, unit }
@@ -329,6 +465,7 @@ export function CreateIngredientModal({
 
   // Allergen handlers
   const handleAllergenToggle = (allergen: string) => {
+    if (isSubRecipeIngredient) return // Read-only for sub-recipes
     const currentAllergens = ingredient.allergens || []
     const updated = currentAllergens.includes(allergen)
       ? currentAllergens.filter((a) => a !== allergen)
@@ -337,6 +474,7 @@ export function CreateIngredientModal({
   }
 
   const handleMayContainToggle = (allergen: string) => {
+    if (isSubRecipeIngredient) return // Read-only for sub-recipes
     const current = ingredient.may_contain_allergens || []
     const updated = current.includes(allergen)
       ? current.filter((a) => a !== allergen)
@@ -380,6 +518,103 @@ export function CreateIngredientModal({
           {/* Search Database Tab */}
           <TabsContent value="search" className="flex-1 flex flex-col min-h-0 mt-4 overflow-auto">
             <div className="space-y-4">
+              {/* Sub-Recipes Section */}
+              <div className="space-y-2">
+                <h4 className="font-medium text-sm flex items-center gap-2">
+                  <ChefHat className="w-4 h-4" />
+                  Sub-Recipes
+                </h4>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search sub-recipes..."
+                    value={subRecipeSearch}
+                    onChange={(e) => setSubRecipeSearch(e.target.value)}
+                    className="pl-9 h-9"
+                  />
+                </div>
+
+                {selectedSubRecipe && (
+                  <div className="bg-purple-50 dark:bg-purple-950 border border-purple-200 dark:border-purple-800 p-3 rounded-lg flex items-center gap-2">
+                    <Check className="w-4 h-4 text-purple-600" />
+                    <span className="text-sm text-purple-700 dark:text-purple-300">
+                      Selected sub-recipe: <strong>{selectedSubRecipe.name}</strong>
+                    </span>
+                  </div>
+                )}
+
+                {(subRecipeResults.length > 0 || subRecipeLoading) && (
+                  <div className="border rounded-lg max-h-[180px] overflow-auto">
+                    {subRecipeLoading ? (
+                      <div className="flex items-center justify-center h-20">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Recipe</TableHead>
+                            <TableHead className="w-24">Category</TableHead>
+                            <TableHead className="w-24 text-right">Yield</TableHead>
+                            <TableHead className="w-20"></TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {subRecipeResults.map((recipe) => (
+                            <TableRow
+                              key={recipe.id}
+                              className={`cursor-pointer hover:bg-muted/50 ${
+                                selectedSubRecipe?.id === recipe.id ? 'bg-purple-50 dark:bg-purple-950' : ''
+                              }`}
+                              onClick={() => handleSelectSubRecipe(recipe)}
+                            >
+                              <TableCell>
+                                <div className="font-medium">{recipe.name}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {(recipe.ingredients || []).length} ingredients
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="secondary" className="text-xs">
+                                  {recipe.category || '--'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right text-sm">
+                                {recipe.serving?.total_yield_grams || '--'} g
+                              </TableCell>
+                              <TableCell>
+                                {selectedSubRecipe?.id === recipe.id ? (
+                                  <Badge variant="default" className="bg-purple-600">
+                                    <Check className="w-3 h-3 mr-1" />
+                                    Selected
+                                  </Badge>
+                                ) : (
+                                  <Button variant="ghost" size="sm">
+                                    Use
+                                  </Button>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </div>
+                )}
+
+                {subRecipeResults.length === 0 && !subRecipeLoading && subRecipeSearch.length >= 2 && (
+                  <div className="text-sm text-muted-foreground">
+                    No sub-recipes found. Mark a recipe as &quot;sub-recipe&quot; in its details to make it available here.
+                  </div>
+                )}
+
+                {subRecipeResults.length === 0 && !subRecipeLoading && subRecipeSearch.length < 2 && (
+                  <div className="text-xs text-muted-foreground">
+                    No sub-recipes available. Mark a recipe as &quot;sub-recipe&quot; in its details tab to use it as an ingredient.
+                  </div>
+                )}
+              </div>
+
               {/* My Ingredients Section */}
               {userIngredients.length > 0 && (
                 <div className="space-y-2">
@@ -447,7 +682,6 @@ export function CreateIngredientModal({
                     value={dbSearchQuery}
                     onChange={(e) => setDbSearchQuery(e.target.value)}
                     className="pl-9"
-                    autoFocus={userIngredients.length === 0}
                   />
                 </div>
 
@@ -533,14 +767,6 @@ export function CreateIngredientModal({
                 </div>
               )}
 
-              {/* Empty state when no search and no user ingredients */}
-              {dbSearchResults.length === 0 && !dbSearchLoading && userIngredients.length === 0 && (
-                <div className="border rounded-lg p-8 text-center">
-                  <Database className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-muted-foreground">Search for ingredients in the USDA FoodData Central database</p>
-                </div>
-              )}
-
               <div className="text-sm space-y-2">
                 <p className="text-muted-foreground">All nutrition values are per 100g. After selecting, adjust the quantity in Basic Info.</p>
                 <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 p-2 rounded-lg text-amber-700 dark:text-amber-300">
@@ -552,6 +778,15 @@ export function CreateIngredientModal({
 
           {/* Basic Info Tab */}
           <TabsContent value="basic" className="flex-1 overflow-auto space-y-4 mt-4">
+            {isSubRecipeIngredient && (
+              <div className="bg-purple-50 dark:bg-purple-950 border border-purple-200 dark:border-purple-800 p-3 rounded-lg flex items-center gap-2">
+                <ChefHat className="w-4 h-4 text-purple-600" />
+                <span className="text-sm text-purple-700 dark:text-purple-300">
+                  This ingredient is a <strong>sub-recipe</strong>. Nutrition and allergens are inherited from the referenced recipe.
+                </span>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="ing-name">Ingredient Name *</Label>
               <Input
@@ -559,6 +794,7 @@ export function CreateIngredientModal({
                 value={ingredient.name}
                 onChange={(e) => onChange({ name: e.target.value })}
                 placeholder="Enter ingredient name"
+                disabled={isSubRecipeIngredient}
               />
             </div>
 
@@ -625,15 +861,26 @@ export function CreateIngredientModal({
               </div>
             </div>
 
-            <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg">
-              <p className="text-sm text-blue-700 dark:text-blue-300">
-                Nutrient values should be entered per 100g of ingredient in the Nutrients tab.
-              </p>
-            </div>
+            {!isSubRecipeIngredient && (
+              <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg">
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  Nutrient values should be entered per 100g of ingredient in the Nutrients tab.
+                </p>
+              </div>
+            )}
           </TabsContent>
 
           {/* Nutrients Tab */}
           <TabsContent value="nutrients" className="flex-1 flex flex-col min-h-0 mt-4">
+            {isSubRecipeIngredient && (
+              <div className="bg-purple-50 dark:bg-purple-950 border border-purple-200 dark:border-purple-800 p-3 rounded-lg flex items-center gap-2 mb-4">
+                <Lock className="w-4 h-4 text-purple-600" />
+                <span className="text-sm text-purple-700 dark:text-purple-300">
+                  Nutrients are computed from the sub-recipe and cannot be edited directly.
+                </span>
+              </div>
+            )}
+
             <div className="relative mb-4">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
@@ -660,21 +907,27 @@ export function CreateIngredientModal({
                       <TableRow key={nutrient.name}>
                         <TableCell className="py-2">{nutrient.name}</TableCell>
                         <TableCell className="py-2">
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={value?.quantity || ''}
-                            onChange={(e) =>
-                              handleNutrientChange(
-                                nutrient.name,
-                                parseFloat(e.target.value) || 0,
-                                nutrient.unit
-                              )
-                            }
-                            className="h-8"
-                            placeholder="0"
-                          />
+                          {isSubRecipeIngredient ? (
+                            <span className="text-sm font-medium">
+                              {value?.quantity?.toFixed(2) || '0'}
+                            </span>
+                          ) : (
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={value?.quantity || ''}
+                              onChange={(e) =>
+                                handleNutrientChange(
+                                  nutrient.name,
+                                  parseFloat(e.target.value) || 0,
+                                  nutrient.unit
+                                )
+                              }
+                              className="h-8"
+                              placeholder="0"
+                            />
+                          )}
                         </TableCell>
                         <TableCell className="py-2 text-muted-foreground">
                           {nutrient.unit}
@@ -689,6 +942,15 @@ export function CreateIngredientModal({
 
           {/* Allergens Tab */}
           <TabsContent value="allergens" className="flex-1 flex flex-col min-h-0 mt-4">
+            {isSubRecipeIngredient && (
+              <div className="bg-purple-50 dark:bg-purple-950 border border-purple-200 dark:border-purple-800 p-3 rounded-lg flex items-center gap-2 mb-4">
+                <Lock className="w-4 h-4 text-purple-600" />
+                <span className="text-sm text-purple-700 dark:text-purple-300">
+                  Allergens are inherited from the sub-recipe and cannot be edited directly.
+                </span>
+              </div>
+            )}
+
             <div className="flex gap-2 mb-4">
               <Button
                 variant={allergenTab === 'allergens' ? 'default' : 'outline'}
@@ -725,10 +987,11 @@ export function CreateIngredientModal({
                         id={`allergen-${allergen}`}
                         checked={(ingredient.allergens || []).includes(allergen)}
                         onCheckedChange={() => handleAllergenToggle(allergen)}
+                        disabled={isSubRecipeIngredient}
                       />
                       <Label
                         htmlFor={`allergen-${allergen}`}
-                        className="text-sm cursor-pointer"
+                        className={`text-sm cursor-pointer ${isSubRecipeIngredient ? 'opacity-60' : ''}`}
                       >
                         {allergen}
                       </Label>
@@ -743,10 +1006,11 @@ export function CreateIngredientModal({
                         id={`maycontain-${allergen}`}
                         checked={(ingredient.may_contain_allergens || []).includes(allergen)}
                         onCheckedChange={() => handleMayContainToggle(allergen)}
+                        disabled={isSubRecipeIngredient}
                       />
                       <Label
                         htmlFor={`maycontain-${allergen}`}
-                        className="text-sm cursor-pointer"
+                        className={`text-sm cursor-pointer ${isSubRecipeIngredient ? 'opacity-60' : ''}`}
                       >
                         {allergen}
                       </Label>

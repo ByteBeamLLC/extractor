@@ -36,6 +36,7 @@ import {
   Search,
   RefreshCw,
   Package,
+  ChefHat,
 } from 'lucide-react'
 import { useRecipes } from '../context/RecipeBuilderContext'
 import { NutritionLabel } from '../components/NutritionLabel'
@@ -310,16 +311,68 @@ export function RecipeBuilderView({ recipeId, onBack, onSave }: RecipeBuilderVie
   const [allergenSearch, setAllergenSearch] = useState('')
   const [allergenTab, setAllergenTab] = useState<'allergens' | 'maycontain'>('allergens')
 
+  // Refresh sub-recipe ingredients with latest data from referenced recipes
+  const refreshSubRecipeIngredients = useCallback(async (ingredients: Ingredient[]): Promise<Ingredient[]> => {
+    const subRecipeIngredients = ingredients.filter(
+      (ing) => ing.source === 'SUB_RECIPE' && ing.sub_recipe_id
+    )
+    if (subRecipeIngredients.length === 0) return ingredients
+
+    // Fetch all sub-recipes in parallel
+    const subRecipePromises = subRecipeIngredients.map((ing) =>
+      fetch(`/api/recipe-builder/recipes?id=${ing.sub_recipe_id}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((json) => (json ? { ingredientId: ing.ingredient_id, recipe: json.data as Recipe } : null))
+        .catch(() => null)
+    )
+    const results = await Promise.all(subRecipePromises)
+
+    const subRecipeMap = new Map<string, Recipe>()
+    results.forEach((r) => {
+      if (r) subRecipeMap.set(r.ingredientId, r.recipe)
+    })
+
+    return ingredients.map((ing) => {
+      if (ing.source !== 'SUB_RECIPE' || !ing.sub_recipe_id) return ing
+      const subRecipe = subRecipeMap.get(ing.ingredient_id)
+      if (!subRecipe) return ing
+
+      // Recompute per-100g nutrition from latest sub-recipe data
+      const totalYield = subRecipe.nutrition?.total_yield_grams || subRecipe.serving?.total_yield_grams || 0
+      const nutrients: Record<string, NutrientValue> = {}
+      if (totalYield > 0) {
+        const perRecipeTotal = subRecipe.nutrition?.per_recipe_total || {}
+        Object.entries(perRecipeTotal).forEach(([name, value]) => {
+          nutrients[name] = {
+            quantity: (value.quantity / totalYield) * 100,
+            unit: value.unit,
+          }
+        })
+      }
+
+      return {
+        ...ing,
+        name: subRecipe.name,
+        nutrients,
+        allergens: subRecipe.allergens || [],
+        may_contain_allergens: subRecipe.may_contain_allergens || [],
+        composite_ingredients: (subRecipe.ingredients || []).map((i) => i.name),
+      }
+    })
+  }, [])
+
   // Load existing recipe if editing
   useEffect(() => {
     if (isEditing && recipeId) {
-      getRecipeById(recipeId).then((existingRecipe) => {
+      getRecipeById(recipeId).then(async (existingRecipe) => {
         if (existingRecipe) {
-          setRecipe(existingRecipe)
+          // Refresh sub-recipe ingredients with latest data
+          const refreshedIngredients = await refreshSubRecipeIngredients(existingRecipe.ingredients || [])
+          setRecipe({ ...existingRecipe, ingredients: refreshedIngredients })
         }
       })
     }
-  }, [recipeId, isEditing, getRecipeById])
+  }, [recipeId, isEditing, getRecipeById, refreshSubRecipeIngredients])
 
   // Calculate total weight
   const totalWeight = useMemo(() => {
@@ -988,12 +1041,22 @@ export function RecipeBuilderView({ recipeId, onBack, onSave }: RecipeBuilderVie
                                 <td className="p-2 border">
                                   <div className="flex items-center gap-2">
                                     <span className="truncate max-w-[200px]">{ing.name}</span>
-                                    <Badge
-                                      variant="secondary"
-                                      className="text-xs shrink-0"
-                                    >
-                                      {ing.source === 'bytebeam' ? 'bytebeam' : 'imported'}
-                                    </Badge>
+                                    {ing.source === 'SUB_RECIPE' ? (
+                                      <Badge
+                                        variant="secondary"
+                                        className="text-xs shrink-0 bg-purple-100 text-purple-700 border-purple-200"
+                                      >
+                                        <ChefHat className="w-3 h-3 mr-1" />
+                                        Sub-Recipe
+                                      </Badge>
+                                    ) : (
+                                      <Badge
+                                        variant="secondary"
+                                        className="text-xs shrink-0"
+                                      >
+                                        {ing.source === 'bytebeam' ? 'bytebeam' : 'imported'}
+                                      </Badge>
+                                    )}
                                   </div>
                                 </td>
                                 <td className="p-2 border">{ing.unit}</td>
@@ -1548,6 +1611,7 @@ export function RecipeBuilderView({ recipeId, onBack, onSave }: RecipeBuilderVie
         isOpen={showIngredientModal}
         ingredient={editingIngredient}
         isEditing={editingIngredientIndex !== null}
+        currentRecipeId={recipeId}
         onClose={() => {
           setShowIngredientModal(false)
           setEditingIngredient(createEmptyIngredient())

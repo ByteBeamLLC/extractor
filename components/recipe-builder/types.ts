@@ -19,7 +19,7 @@ export interface Ingredient {
   quantity: number
   quantity_in_grams: number
   unit: string
-  source: string
+  source: string // 'USDA' | 'bytebeam' | 'MANUAL' | 'SUB_RECIPE'
   yield_percent: number
   yield_quantity_in_grams: number
   cost: number
@@ -30,6 +30,7 @@ export interface Ingredient {
   may_contain_allergens: string[]
   user_may_contain_allergens: string[]
   nutrients: Record<string, NutrientValue>
+  sub_recipe_id?: string | null // Reference to recipe used as sub-recipe ingredient
 }
 
 // Serving information for a recipe
