@@ -37,6 +37,7 @@ import {
   Barcode,
   Copy,
   Check,
+  ChefHat,
 } from 'lucide-react'
 import { useRecipes, useRecipeBuilderNavigation } from '../context/RecipeBuilderContext'
 import { NutritionLabel } from '../components/NutritionLabel'
@@ -108,8 +109,59 @@ interface RecipeDetailViewProps {
 }
 
 export function RecipeDetailView({ recipeId, onBack, onEdit, companyLogo, companyName, companyWebsite }: RecipeDetailViewProps) {
-  const { getRecipeById, updateRecipe, recipes } = useRecipes()
-  const recipe = getRecipeById(recipeId)
+  const { getRecipeById, updateRecipe } = useRecipes()
+  const [recipe, setRecipe] = useState<Recipe | undefined>(undefined)
+  const [loadingRecipe, setLoadingRecipe] = useState(true)
+
+  // Fetch recipe on mount and refresh sub-recipe ingredients with latest data
+  React.useEffect(() => {
+    setLoadingRecipe(true)
+    getRecipeById(recipeId).then(async (r) => {
+      if (r && r.ingredients?.length) {
+        const subRecipeIngs = r.ingredients.filter(
+          (ing) => ing.source === 'SUB_RECIPE' && ing.sub_recipe_id
+        )
+        if (subRecipeIngs.length > 0) {
+          const results = await Promise.all(
+            subRecipeIngs.map((ing) =>
+              fetch(`/api/recipe-builder/recipes?id=${ing.sub_recipe_id}`)
+                .then((res) => (res.ok ? res.json() : null))
+                .then((json) => (json ? { ingredientId: ing.ingredient_id, recipe: json.data as Recipe } : null))
+                .catch(() => null)
+            )
+          )
+          const subMap = new Map<string, Recipe>()
+          results.forEach((res) => { if (res) subMap.set(res.ingredientId, res.recipe) })
+
+          r = {
+            ...r,
+            ingredients: r.ingredients.map((ing) => {
+              if (ing.source !== 'SUB_RECIPE' || !ing.sub_recipe_id) return ing
+              const sub = subMap.get(ing.ingredient_id)
+              if (!sub) return ing
+              const totalYield = sub.nutrition?.total_yield_grams || sub.serving?.total_yield_grams || 0
+              const nutrients: Record<string, NutrientValue> = {}
+              if (totalYield > 0) {
+                Object.entries(sub.nutrition?.per_recipe_total || {}).forEach(([name, value]) => {
+                  nutrients[name] = { quantity: (value.quantity / totalYield) * 100, unit: value.unit }
+                })
+              }
+              return {
+                ...ing,
+                name: sub.name,
+                nutrients,
+                allergens: sub.allergens || [],
+                may_contain_allergens: sub.may_contain_allergens || [],
+                composite_ingredients: (sub.ingredients || []).map((i) => i.name),
+              }
+            }),
+          }
+        }
+      }
+      setRecipe(r)
+      setLoadingRecipe(false)
+    })
+  }, [recipeId, getRecipeById])
 
   // Stock management state
   const [isUpdatingStock, setIsUpdatingStock] = useState(false)
@@ -126,16 +178,21 @@ export function RecipeDetailView({ recipeId, onBack, onEdit, companyLogo, compan
 
       setIsGeneratingBarcode(true)
       try {
-        // Get all existing barcodes from recipes
-        const existingBarcodes = recipes
-          .map((r) => r.barcode)
-          .filter((b): b is string => !!b)
+        // Fetch existing barcodes to ensure uniqueness
+        const response = await fetch('/api/recipe-builder/recipes?page=1&pageSize=1000')
+        const data = await response.json()
+        const existingBarcodes = (data.data || [])
+          .map((r: any) => r.barcode)
+          .filter((b: any): b is string => !!b)
 
         // Generate unique barcode
         const newBarcode = generateUniqueEAN13(existingBarcodes)
 
         // Save to database
         await updateRecipe(recipe.id, { barcode: newBarcode })
+        // Refresh recipe to get updated barcode
+        const updated = await getRecipeById(recipeId)
+        if (updated) setRecipe(updated)
       } catch (error) {
         console.error('Failed to generate barcode:', error)
       } finally {
@@ -144,7 +201,7 @@ export function RecipeDetailView({ recipeId, onBack, onEdit, companyLogo, compan
     }
 
     generateBarcodeIfMissing()
-  }, [recipe?.id, recipe?.barcode, recipes, updateRecipe, isGeneratingBarcode])
+  }, [recipe?.id, recipe?.barcode, updateRecipe, isGeneratingBarcode, getRecipeById, recipeId])
 
   // Copy barcode to clipboard
   const handleCopyBarcode = async () => {
@@ -168,7 +225,7 @@ export function RecipeDetailView({ recipeId, onBack, onEdit, companyLogo, compan
 
     setIsUpdatingStock(true)
     try {
-      await updateRecipe(recipe.id, {
+      const updated = await updateRecipe(recipe.id, {
         inventory: {
           stock_quantity: newStock,
           stock_unit: recipe.inventory?.stock_unit || 'portions',
@@ -176,6 +233,7 @@ export function RecipeDetailView({ recipeId, onBack, onEdit, companyLogo, compan
           last_stock_update: new Date().toISOString(),
         },
       })
+      if (updated) setRecipe(updated as Recipe)
     } catch (error) {
       console.error('Failed to update stock:', error)
     } finally {
@@ -189,7 +247,7 @@ export function RecipeDetailView({ recipeId, onBack, onEdit, companyLogo, compan
 
     setIsUpdatingStock(true)
     try {
-      await updateRecipe(recipe.id, {
+      const updated = await updateRecipe(recipe.id, {
         inventory: {
           stock_quantity: Math.max(0, newStock),
           stock_unit: recipe.inventory?.stock_unit || 'portions',
@@ -197,6 +255,7 @@ export function RecipeDetailView({ recipeId, onBack, onEdit, companyLogo, compan
           last_stock_update: new Date().toISOString(),
         },
       })
+      if (updated) setRecipe(updated as Recipe)
     } catch (error) {
       console.error('Failed to update stock:', error)
     } finally {
@@ -229,7 +288,7 @@ export function RecipeDetailView({ recipeId, onBack, onEdit, companyLogo, compan
     return result
   }, [recipe])
 
-  if (!recipe) {
+  if (loadingRecipe || !recipe) {
     return (
       <div className="p-6">
         <Button variant="ghost" size="sm" onClick={onBack}>
@@ -238,7 +297,9 @@ export function RecipeDetailView({ recipeId, onBack, onEdit, companyLogo, compan
         </Button>
         <Card className="mt-4">
           <CardContent className="pt-6">
-            <p className="text-center text-muted-foreground">Recipe not found</p>
+            <p className="text-center text-muted-foreground">
+              {loadingRecipe ? 'Loading recipe...' : 'Recipe not found'}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -558,11 +619,16 @@ export function RecipeDetailView({ recipeId, onBack, onEdit, companyLogo, compan
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <span>{ing.name}</span>
-                            {ing.source && (
+                            {ing.source === 'SUB_RECIPE' ? (
+                              <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-700 border-purple-200">
+                                <ChefHat className="w-3 h-3 mr-1" />
+                                Sub-Recipe
+                              </Badge>
+                            ) : ing.source ? (
                               <Badge variant="secondary" className="text-xs">
                                 {ing.source === 'bytebeam' ? 'bytebeam' : 'imported'}
                               </Badge>
-                            )}
+                            ) : null}
                           </div>
                         </TableCell>
                         <TableCell className="text-right">

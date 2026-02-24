@@ -57,6 +57,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || ''
     const category = searchParams.get('category') || ''
     const status = searchParams.get('status') || ''
+    const subRecipesOnly = searchParams.get('subRecipesOnly') === 'true'
 
     const offset = (page - 1) * pageSize
 
@@ -74,6 +75,9 @@ export async function GET(request: NextRequest) {
     }
     if (status) {
       query = query.eq('status', status)
+    }
+    if (subRecipesOnly) {
+      query = query.eq('metadata->>is_sub_recipe', 'true')
     }
 
     // Order and paginate

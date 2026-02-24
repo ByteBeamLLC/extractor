@@ -6,7 +6,6 @@ import React, {
   useState,
   useEffect,
   useCallback,
-  useMemo,
   type ReactNode,
 } from 'react'
 import type {
@@ -21,16 +20,17 @@ import type {
  * Recipe Builder Context
  *
  * Provides state management for the Recipe Builder module including:
- * - Recipe data and CRUD operations
  * - Navigation state within the module
- * - Dashboard statistics
- * - Search and filtering capabilities
+ * - Dashboard statistics (fetched from API)
+ * - Recipe CRUD operations
+ * - Single recipe fetching by ID
+ *
+ * Note: Recipe list pagination is handled locally in RecipesView,
+ * not in this context. This avoids loading all recipes into memory.
  */
 
 // Context state interface
 interface RecipeBuilderState {
-  // Data
-  recipes: Recipe[]
   customIngredients: CustomIngredient[]
   loading: boolean
   error: string | null
@@ -52,10 +52,7 @@ interface RecipeBuilderActions {
   goBack: () => void
 
   // Recipe operations
-  getRecipeById: (id: string) => Recipe | undefined
-  searchRecipes: (query: string) => Recipe[]
-  filterByCategory: (category: string) => Recipe[]
-  filterByStatus: (status: string) => Recipe[]
+  getRecipeById: (id: string) => Promise<Recipe | undefined>
   createRecipe: (recipe: Partial<Recipe>) => Promise<Recipe | null>
   updateRecipe: (id: string, recipe: Partial<Recipe>) => Promise<Recipe | null>
 
@@ -63,7 +60,7 @@ interface RecipeBuilderActions {
   getIngredientById: (id: string) => CustomIngredient | undefined
 
   // Data refresh
-  refreshData: () => Promise<void>
+  refreshStats: () => Promise<void>
 }
 
 type RecipeBuilderContextType = RecipeBuilderState & RecipeBuilderActions
@@ -74,7 +71,6 @@ const RecipeBuilderContext = createContext<RecipeBuilderContextType | undefined>
 
 // Initial state
 const initialState: RecipeBuilderState = {
-  recipes: [],
   customIngredients: [],
   loading: true,
   error: null,
@@ -106,53 +102,35 @@ export function RecipeBuilderProvider({
     currentView: initialView,
   })
 
-  // Load all recipes from Supabase in a single request
-  const loadRecipes = useCallback(async () => {
+  // Load dashboard stats from the stats API
+  const loadStats = useCallback(async () => {
     try {
       setState((prev) => ({ ...prev, loading: true, error: null }))
 
-      const response = await fetch(`/api/recipe-builder/recipes?page=1&pageSize=1000`)
+      const response = await fetch('/api/recipe-builder/stats')
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || 'Failed to fetch recipes')
+        throw new Error(errorData.error || 'Failed to fetch stats')
       }
 
-      const data = await response.json()
-      const recipes: Recipe[] = Array.isArray(data) ? data : (data.data || [])
+      const { data: stats } = await response.json()
 
       setState((prev) => ({
         ...prev,
-        recipes,
+        stats,
         loading: false,
         error: null,
       }))
     } catch (err) {
-      console.error('Failed to load recipes:', err)
+      console.error('Failed to load stats:', err)
       setState((prev) => ({
         ...prev,
-        recipes: [],
         loading: false,
-        error: err instanceof Error ? err.message : 'Failed to load recipes',
+        error: err instanceof Error ? err.message : 'Failed to load stats',
       }))
     }
   }, [])
-
-  // Calculate statistics from recipes
-  const stats = useMemo((): DashboardStats => {
-    const { recipes } = state
-    return {
-      recipesCount: recipes.length,
-      subRecipesCount: recipes.filter((r) => r.metadata?.is_sub_recipe).length,
-      ingredientsCount: recipes.reduce(
-        (acc, r) => acc + (r.ingredients?.length || 0),
-        0
-      ),
-      menusCount: 0,
-      publishedCount: recipes.filter((r) => r.status === 'PUBLISHED').length,
-      draftCount: recipes.filter((r) => r.status === 'DRAFT').length,
-    }
-  }, [state.recipes])
 
   // Navigation functions
   const navigateTo = useCallback(
@@ -185,42 +163,21 @@ export function RecipeBuilderProvider({
     })
   }, [])
 
-  // Recipe query functions
-  const getRecipeById = useCallback(
-    (id: string) => state.recipes.find((r) => r.id === id),
-    [state.recipes]
-  )
-
-  const searchRecipes = useCallback(
-    (query: string) => {
-      const lowerQuery = query.toLowerCase()
-      return state.recipes.filter(
-        (r) =>
-          r.name.toLowerCase().includes(lowerQuery) ||
-          r.category?.toLowerCase().includes(lowerQuery) ||
-          r.ingredients?.some((i) =>
-            i.name.toLowerCase().includes(lowerQuery)
-          )
-      )
-    },
-    [state.recipes]
-  )
-
-  const filterByCategory = useCallback(
-    (category: string) =>
-      category
-        ? state.recipes.filter((r) => r.category === category)
-        : state.recipes,
-    [state.recipes]
-  )
-
-  const filterByStatus = useCallback(
-    (status: string) =>
-      status
-        ? state.recipes.filter((r) => r.status === status)
-        : state.recipes,
-    [state.recipes]
-  )
+  // Fetch a single recipe by ID from the API
+  const getRecipeById = useCallback(async (id: string): Promise<Recipe | undefined> => {
+    try {
+      const response = await fetch(`/api/recipe-builder/recipes?id=${id}`)
+      if (!response.ok) {
+        if (response.status === 404) return undefined
+        throw new Error('Failed to fetch recipe')
+      }
+      const { data } = await response.json()
+      return data
+    } catch (err) {
+      console.error('Failed to fetch recipe:', err)
+      return undefined
+    }
+  }, [])
 
   // Ingredient query functions
   const getIngredientById = useCallback(
@@ -316,22 +273,19 @@ export function RecipeBuilderProvider({
 
     const { data: newRecipe } = await response.json()
 
-    // Update local state
-    setState((prev) => ({
-      ...prev,
-      recipes: [newRecipe, ...prev.recipes],
-    }))
+    // Refresh stats after creating a recipe
+    loadStats()
 
     // Trigger Arabic translation for new recipe (async, don't block)
     triggerTranslation(newRecipe.id)
 
     return newRecipe
-  }, [triggerTranslation])
+  }, [triggerTranslation, loadStats])
 
   // Update an existing recipe
   const updateRecipe = useCallback(async (id: string, recipe: Partial<Recipe>): Promise<Recipe> => {
-    // Get the old recipe to compare translatable fields
-    const oldRecipe = state.recipes.find(r => r.id === id)
+    // Fetch the old recipe to compare translatable fields
+    const oldRecipe = await getRecipeById(id)
 
     const response = await fetch(`/api/recipe-builder/recipes?id=${id}`, {
       method: 'PUT',
@@ -348,12 +302,6 @@ export function RecipeBuilderProvider({
 
     const { data: updatedRecipe } = await response.json()
 
-    // Update local state
-    setState((prev) => ({
-      ...prev,
-      recipes: prev.recipes.map((r) => (r.id === id ? updatedRecipe : r)),
-    }))
-
     // Check if any translatable fields changed and trigger translation
     const changedFields = getChangedTranslatableFields(oldRecipe, recipe)
     if (changedFields.length > 0) {
@@ -361,32 +309,28 @@ export function RecipeBuilderProvider({
     }
 
     return updatedRecipe
-  }, [state.recipes, getChangedTranslatableFields, triggerTranslation])
+  }, [getRecipeById, getChangedTranslatableFields, triggerTranslation])
 
-  // Refresh data
-  const refreshData = useCallback(async () => {
-    await loadRecipes()
-  }, [loadRecipes])
+  // Refresh stats
+  const refreshStats = useCallback(async () => {
+    await loadStats()
+  }, [loadStats])
 
-  // Load data on mount
+  // Load stats on mount
   useEffect(() => {
-    loadRecipes()
-  }, [loadRecipes])
+    loadStats()
+  }, [loadStats])
 
   // Context value
   const value: RecipeBuilderContextType = {
     ...state,
-    stats,
     navigateTo,
     goBack,
     getRecipeById,
-    searchRecipes,
-    filterByCategory,
-    filterByStatus,
     createRecipe,
     updateRecipe,
     getIngredientById,
-    refreshData,
+    refreshStats,
   }
 
   return (
@@ -416,30 +360,22 @@ export function useRecipeBuilderNavigation() {
 
 export function useRecipes() {
   const {
-    recipes,
     loading,
     error,
     stats,
     getRecipeById,
-    searchRecipes,
-    filterByCategory,
-    filterByStatus,
     createRecipe,
     updateRecipe,
-    refreshData,
+    refreshStats,
   } = useRecipeBuilder()
   return {
-    recipes,
     loading,
     error,
     stats,
     getRecipeById,
-    searchRecipes,
-    filterByCategory,
-    filterByStatus,
     createRecipe,
     updateRecipe,
-    refreshData,
+    refreshStats,
   }
 }
 
