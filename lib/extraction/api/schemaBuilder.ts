@@ -181,7 +181,11 @@ export function buildObjectFromTree(
       }
     }
 
-    const base = z.object(shape).strict()
+    // If the object has defined fields, use strict mode to catch errors.
+    // If no fields are defined (e.g. table with no columns), use passthrough
+    // so the AI can return whatever structure it discovers in the document.
+    const hasDefinedFields = Object.keys(shape).length > 0
+    const base = hasDefinedFields ? z.object(shape).strict() : z.object(shape).passthrough()
     if (includeMetaInner) {
       return base.extend({ __meta__: metaSchema.optional() }).strict()
     }
