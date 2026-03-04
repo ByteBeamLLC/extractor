@@ -38,6 +38,7 @@ export type IntegrationType =
   | "make"
   | "power_automate"
   | "email_notification"
+  | "gmail_inbox"
 
 export interface WebhookConfig {
   url: string
@@ -54,6 +55,16 @@ export interface GoogleSheetsConfig {
 
 export interface ZapierMakeConfig {
   webhook_url: string
+}
+
+export interface GmailInboxConfig {
+  access_token: string
+  refresh_token: string
+  token_expiry: string
+  gmail_address: string
+  from_filter: string
+  last_history_id: string | null
+  last_polled_at: string | null
 }
 
 export interface ParserApiKey {
@@ -75,7 +86,7 @@ export interface ProcessedDocument {
   id: string
   parser_id: string
   user_id: string
-  source_type: "upload" | "email" | "api" | "webhook" | "zapier"
+  source_type: "upload" | "email" | "api" | "webhook" | "zapier" | "gmail"
   file_name: string
   mime_type: string | null
   file_size: number | null

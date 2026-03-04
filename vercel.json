@@ -5,6 +5,12 @@
       "memory": 1024
     }
   },
+  "crons": [
+    {
+      "path": "/api/extractor/cron/gmail-poll",
+      "schedule": "0 8 * * *"
+    }
+  ],
   "installCommand": "pnpm install --no-frozen-lockfile",
   "buildCommand": "pnpm build"
 }
