@@ -26,3 +26,20 @@ export function createSupabaseServerComponentClient() {
 
 // Alias for API routes
 export const createClient = createSupabaseServerClient
+
+/**
+ * Creates a Supabase client with the service role key.
+ * Bypasses RLS — use ONLY for public/unauthenticated API endpoints
+ * (inbound webhooks, public API with API key auth, feed endpoints).
+ */
+export function createSupabaseServiceRoleClient() {
+  const { createClient: createSupabaseClient } = require("@supabase/supabase-js")
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error("NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required")
+  }
+
+  return createSupabaseClient(supabaseUrl, serviceRoleKey)
+}
