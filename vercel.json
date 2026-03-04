@@ -8,7 +8,7 @@
   "crons": [
     {
       "path": "/api/extractor/cron/gmail-poll",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 8 * * *"
     }
   ],
   "installCommand": "pnpm install --no-frozen-lockfile",
