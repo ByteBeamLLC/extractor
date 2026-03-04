@@ -8,12 +8,14 @@ import {
   Zap,
   Blocks,
   Workflow,
+  Mail,
   Trash2,
   Play,
   Loader2,
   CheckCircle2,
   XCircle,
   AlertCircle,
+  RefreshCw,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -27,6 +29,7 @@ const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
   zapier: Zap,
   make: Blocks,
   power_automate: Workflow,
+  gmail_inbox: Mail,
 }
 
 interface IntegrationCardProps {
@@ -89,6 +92,12 @@ export function IntegrationCard({ integration, parserId, onUpdated }: Integratio
               {integration.type.replace("_", " ")}
             </Badge>
           </div>
+          {integration.type === "gmail_inbox" && integration.config?.gmail_address && (
+            <p className="text-xs text-muted-foreground">
+              {integration.config.gmail_address}
+              {integration.config.from_filter && ` — from: ${integration.config.from_filter}`}
+            </p>
+          )}
           {integration.last_triggered_at && (
             <p className="text-xs text-muted-foreground">
               Last triggered {formatDistanceToNow(new Date(integration.last_triggered_at), { addSuffix: true })}
@@ -103,7 +112,19 @@ export function IntegrationCard({ integration, parserId, onUpdated }: Integratio
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {integration.type !== "google_sheets" && (
+          {integration.type === "gmail_inbox" && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                window.location.href = `/api/extractor/auth/gmail/connect?parserId=${parserId}`
+              }}
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              <span className="ml-1 text-xs">Re-auth</span>
+            </Button>
+          )}
+          {integration.type !== "google_sheets" && integration.type !== "gmail_inbox" && (
             <Button variant="ghost" size="sm" onClick={handleTest} disabled={testing}>
               {testing ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />

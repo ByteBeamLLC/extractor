@@ -9,6 +9,7 @@ import {
   Zap,
   Blocks,
   Workflow,
+  Mail,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -24,6 +25,7 @@ import { IntegrationCard } from "./IntegrationCard"
 import { WebhookForm } from "./WebhookForm"
 import { GoogleSheetsSetup } from "./GoogleSheetsSetup"
 import { ZapierMakeForm } from "./ZapierMakeForm"
+import { GmailInboxSetup } from "./GmailInboxSetup"
 
 const INTEGRATION_OPTIONS: {
   type: IntegrationType
@@ -36,6 +38,7 @@ const INTEGRATION_OPTIONS: {
   { type: "zapier", label: "Zapier", description: "Connect to 5000+ apps via Zapier webhook", icon: Zap },
   { type: "make", label: "Make", description: "Send results to Make (formerly Integromat) scenarios", icon: Blocks },
   { type: "power_automate", label: "Power Automate", description: "Connect to Microsoft Power Automate flows", icon: Workflow },
+  { type: "gmail_inbox", label: "Gmail Inbox", description: "Auto-extract attachments from emails matching a sender", icon: Mail },
 ]
 
 interface IntegrationListProps {
@@ -178,6 +181,14 @@ export function IntegrationList({ parserId }: IntegrationListProps) {
               parserId={parserId}
               type={selectedType}
               label={INTEGRATION_OPTIONS.find((o) => o.type === selectedType)!.label}
+              onCreated={handleCreated}
+              onCancel={() => setSelectedType(null)}
+            />
+          )}
+
+          {selectedType === "gmail_inbox" && (
+            <GmailInboxSetup
+              parserId={parserId}
               onCreated={handleCreated}
               onCancel={() => setSelectedType(null)}
             />

@@ -89,6 +89,11 @@ export async function deliverToIntegrations(
           deliveryStatus[integration.id] = { status: "skipped" }
           break
 
+        case "gmail_inbox":
+          // Input integration — no outbound delivery needed
+          deliveryStatus[integration.id] = { status: "skipped" }
+          break
+
         default:
           deliveryStatus[integration.id] = { status: "skipped", error: "Unknown type" }
       }
