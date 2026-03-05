@@ -185,6 +185,68 @@ export interface GmailPayload {
 }
 
 /**
+ * Extracts the plain text body from a Gmail message by walking MIME parts.
+ * Falls back to HTML body stripped of tags if no plain text part exists.
+ */
+export function extractEmailBody(payload: GmailPayload): string {
+  let plainText = ""
+  let htmlText = ""
+
+  function walk(part: GmailPayload) {
+    // Skip attachment parts
+    if (part.filename && part.body?.attachmentId) return
+
+    if (part.mimeType === "text/plain" && part.body?.data) {
+      plainText += decodeBase64Url(part.body.data)
+    } else if (part.mimeType === "text/html" && part.body?.data) {
+      htmlText += decodeBase64Url(part.body.data)
+    }
+
+    if (part.parts) {
+      for (const child of part.parts) {
+        walk(child)
+      }
+    }
+  }
+
+  walk(payload)
+
+  if (plainText.trim()) return plainText.trim()
+
+  // Strip HTML tags as fallback
+  if (htmlText.trim()) {
+    return htmlText
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&#?\w+;/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+  }
+
+  return ""
+}
+
+/**
+ * Extracts subject and from headers from a Gmail message.
+ */
+export function extractEmailHeaders(payload: GmailPayload): { subject: string; from: string } {
+  const headers = payload.headers ?? []
+  const subject = headers.find((h) => h.name.toLowerCase() === "subject")?.value ?? "(no subject)"
+  const from = headers.find((h) => h.name.toLowerCase() === "from")?.value ?? ""
+  return { subject, from }
+}
+
+function decodeBase64Url(data: string): string {
+  const base64 = data.replace(/-/g, "+").replace(/_/g, "/")
+  return Buffer.from(base64, "base64").toString("utf-8")
+}
+
+/**
  * Extracts attachment info from a Gmail message by recursively walking MIME parts.
  */
 export function extractAttachments(

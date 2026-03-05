@@ -13,6 +13,8 @@ import {
   getMessage,
   getAttachment,
   extractAttachments,
+  extractEmailBody,
+  extractEmailHeaders,
   GmailAuthError,
 } from "./oauth"
 import { runExtraction } from "@/lib/extraction/runExtraction"
@@ -40,7 +42,7 @@ export interface PollResult {
   integrationId: string
   parserId: string
   emailsFound: number
-  attachmentsProcessed: number
+  itemsProcessed: number
   errors: string[]
 }
 
@@ -53,7 +55,7 @@ export async function pollGmailIntegration(
     integrationId: integration.id,
     parserId: integration.parser_id,
     emailsFound: 0,
-    attachmentsProcessed: 0,
+    itemsProcessed: 0,
     errors: [],
   }
 
@@ -116,9 +118,9 @@ export async function pollGmailIntegration(
     return result
   }
 
-  // Fetch messages matching the from filter
+  // Fetch messages matching the from filter (no has:attachment — process all emails)
   try {
-    const query = `from:${config.from_filter} has:attachment`
+    const query = `from:${config.from_filter}`
     const messages = await listMessages(accessToken, query, 20)
     result.emailsFound = messages.length
 
@@ -142,24 +144,12 @@ export async function pollGmailIntegration(
     for (const msg of newMessages) {
       try {
         const fullMessage = await getMessage(accessToken, msg.id)
+        const { subject } = extractEmailHeaders(fullMessage.payload)
         const attachments = extractAttachments(fullMessage.payload)
+        const emailBody = extractEmailBody(fullMessage.payload)
 
-        for (const att of attachments) {
-          // Skip unsupported types
-          if (!SUPPORTED_MIME_TYPES.has(att.mimeType.toLowerCase())) {
-            continue
-          }
-
-          // Skip large attachments
-          if (att.size > MAX_ATTACHMENT_SIZE) {
-            result.errors.push(`Skipped ${att.filename}: exceeds 10MB`)
-            continue
-          }
-
-          // Download attachment
-          const base64Data = await getAttachment(accessToken, msg.id, att.attachmentId)
-
-          // Check credits
+        // Helper to check credits and deduct
+        const checkAndDeductCredit = async (): Promise<{ allowed: boolean; sub: any }> => {
           const { data: sub } = await supabase
             .from("extractor_subscriptions" as any)
             .select("*")
@@ -178,25 +168,35 @@ export async function pollGmailIntegration(
                 .eq("id", s.id)
               s.credits_used = 0
             }
-
             if (s.credits_used >= s.credits_free) {
-              result.errors.push("Credit limit reached")
-              // Mark message as processed anyway to avoid retry loop
-              await markMessageProcessed(supabase, integration.id, integration.user_id, msg.id)
-              continue
+              return { allowed: false, sub: s }
             }
           }
+          return { allowed: true, sub: s }
+        }
 
-          // Create processing log
+        // Helper to run extraction and store results
+        const processItem = async (
+          fileData: string,
+          fileName: string,
+          mimeType: string,
+          fileSize: number | null
+        ) => {
+          const { allowed, sub: s } = await checkAndDeductCredit()
+          if (!allowed) {
+            result.errors.push("Credit limit reached")
+            return
+          }
+
           const { data: processedDoc } = await supabase
             .from("parser_processed_documents" as any)
             .insert({
               parser_id: integration.parser_id,
               user_id: integration.user_id,
               source_type: "gmail",
-              file_name: att.filename,
-              mime_type: att.mimeType,
-              file_size: att.size,
+              file_name: fileName,
+              mime_type: mimeType,
+              file_size: fileSize,
               status: "processing",
             } as any)
             .select("id")
@@ -204,25 +204,21 @@ export async function pollGmailIntegration(
 
           const docId = (processedDoc as any)?.id
 
-          // Run extraction
           const extractionResult = await runExtraction({
-            fileData: base64Data,
-            fileName: att.filename,
-            mimeType: att.mimeType,
+            fileData,
+            fileName,
+            mimeType,
             schemaTree,
             extractionPromptOverride: p.extraction_prompt_override,
           })
 
-          // Deduct credit
           if (s) {
             await supabase
               .from("extractor_subscriptions" as any)
               .update({ credits_used: (s.credits_used ?? 0) + 1 } as any)
               .eq("id", s.id)
-            s.credits_used = (s.credits_used ?? 0) + 1
           }
 
-          // Update processing log
           if (docId) {
             await supabase
               .from("parser_processed_documents" as any)
@@ -236,7 +232,6 @@ export async function pollGmailIntegration(
               .eq("id", docId)
           }
 
-          // Update parser document count
           await supabase
             .from("parsers" as any)
             .update({
@@ -245,29 +240,47 @@ export async function pollGmailIntegration(
             } as any)
             .eq("id", p.id)
 
-          // Deliver to output integrations
           if (docId) {
             await deliverToIntegrations(
               p.id,
               p.name,
               docId,
               extractionResult.results,
-              { file_name: att.filename, mime_type: att.mimeType, source_type: "gmail", page_count: 1 },
+              { file_name: fileName, mime_type: mimeType, source_type: "gmail", page_count: 1 },
               supabase
             ).catch((err) => console.error("[gmail-poll] Integration delivery failed:", err))
           }
 
-          result.attachmentsProcessed++
+          result.itemsProcessed++
+        }
+
+        // 1. Always process the email body text if present
+        if (emailBody.length > 0) {
+          const { from } = extractEmailHeaders(fullMessage.payload)
+          const fullText = `From: ${from}\nSubject: ${subject}\n\n${emailBody}`
+          const bodyBase64 = Buffer.from(fullText, "utf-8").toString("base64")
+          await processItem(bodyBase64, `${subject}.txt`, "text/plain", fullText.length)
+        }
+
+        // 2. Also process any attachments
+        for (const att of attachments) {
+          if (!SUPPORTED_MIME_TYPES.has(att.mimeType.toLowerCase())) continue
+          if (att.size > MAX_ATTACHMENT_SIZE) {
+            result.errors.push(`Skipped ${att.filename}: exceeds 10MB`)
+            continue
+          }
+
+          const base64Data = await getAttachment(accessToken, msg.id, att.attachmentId)
+          await processItem(base64Data, att.filename, att.mimeType, att.size)
         }
 
         // Mark message as processed
         await markMessageProcessed(supabase, integration.id, integration.user_id, msg.id)
       } catch (err) {
-        if (err instanceof GmailAuthError) throw err // Re-throw auth errors to deactivate
+        if (err instanceof GmailAuthError) throw err
         result.errors.push(`Message ${msg.id}: ${err instanceof Error ? err.message : String(err)}`)
       }
 
-      // Small delay between messages to respect rate limits
       if (newMessages.length > 10) {
         await new Promise((resolve) => setTimeout(resolve, 100))
       }
