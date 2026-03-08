@@ -1,35 +1,11 @@
 import type { MetadataRoute } from "next"
+import { getAllSolutionSlugs } from "@/lib/seo/solutions"
+import { getAllBlogSlugs } from "@/lib/seo/blog-posts"
+import { getAllUseCaseSlugs } from "@/lib/seo/use-cases"
+import { getAllAlternativeSlugs } from "@/lib/seo/alternatives"
+import { getAllIntegrationSlugs } from "@/lib/seo/integrations"
 
 const BASE_URL = "https://parsli.co"
-
-const useCaseSlugs = [
-  "invoice-parsing",
-  "email-parsing",
-  "pdf-data-extraction",
-  "receipt-scanning",
-  "document-automation",
-  "intelligent-document-processing",
-  "ocr-data-extraction",
-  "pdf-to-excel",
-  "pdf-to-csv",
-  "pdf-to-json",
-]
-
-const integrationSlugs = [
-  "google-sheets",
-  "zapier",
-  "make",
-  "gmail",
-  "webhooks",
-  "api",
-]
-
-const alternativeSlugs = [
-  "parseur",
-  "docparser",
-  "nanonets",
-  "upstage",
-]
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date()
@@ -45,33 +21,69 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${BASE_URL}/pricing`,
       lastModified: now,
       changeFrequency: "monthly",
-      priority: 0.8,
+      priority: 0.9,
     },
     {
       url: `${BASE_URL}/docs`,
       lastModified: now,
       changeFrequency: "weekly",
-      priority: 0.7,
+      priority: 0.8,
+    },
+    {
+      url: `${BASE_URL}/blog`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE_URL}/privacy`,
+      lastModified: now,
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
+    {
+      url: `${BASE_URL}/terms`,
+      lastModified: now,
+      changeFrequency: "yearly",
+      priority: 0.3,
     },
   ]
 
-  const useCasePages: MetadataRoute.Sitemap = useCaseSlugs.map((slug) => ({
-    url: `${BASE_URL}/use-cases/${slug}`,
+  const solutionPages: MetadataRoute.Sitemap = getAllSolutionSlugs().map(
+    (slug) => ({
+      url: `${BASE_URL}/solutions/${slug}`,
+      lastModified: now,
+      changeFrequency: "weekly" as const,
+      priority: 0.9,
+    })
+  )
+
+  const blogPages: MetadataRoute.Sitemap = getAllBlogSlugs().map((slug) => ({
+    url: `${BASE_URL}/blog/${slug}`,
     lastModified: now,
     changeFrequency: "monthly" as const,
-    priority: 0.8,
+    priority: 0.7,
   }))
 
-  const integrationPages: MetadataRoute.Sitemap = integrationSlugs.map(
+  const useCasePages: MetadataRoute.Sitemap = getAllUseCaseSlugs().map(
     (slug) => ({
-      url: `${BASE_URL}/integrations/${slug}`,
+      url: `${BASE_URL}/use-cases/${slug}`,
       lastModified: now,
       changeFrequency: "monthly" as const,
       priority: 0.7,
     })
   )
 
-  const alternativePages: MetadataRoute.Sitemap = alternativeSlugs.map(
+  const integrationPages: MetadataRoute.Sitemap = getAllIntegrationSlugs().map(
+    (slug) => ({
+      url: `${BASE_URL}/integrations/${slug}`,
+      lastModified: now,
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })
+  )
+
+  const alternativePages: MetadataRoute.Sitemap = getAllAlternativeSlugs().map(
     (slug) => ({
       url: `${BASE_URL}/alternative/${slug}`,
       lastModified: now,
@@ -82,6 +94,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   return [
     ...staticPages,
+    ...solutionPages,
+    ...blogPages,
     ...useCasePages,
     ...integrationPages,
     ...alternativePages,

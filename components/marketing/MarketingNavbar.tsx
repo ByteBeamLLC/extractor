@@ -9,11 +9,9 @@ import { cn } from "@/lib/utils"
 import { APP_URL } from "@/lib/config"
 
 const navLinks = [
-  { href: "#features", label: "Features" },
-  { href: "#how-it-works", label: "How It Works" },
-  { href: "#integrations", label: "Integrations" },
   { href: "/pricing", label: "Pricing" },
   { href: "/docs", label: "Docs" },
+  { href: "/blog", label: "Blog" },
 ]
 
 export function MarketingNavbar() {
@@ -46,7 +44,7 @@ export function MarketingNavbar() {
               height={32}
               className="rounded-lg"
             />
-            <span className="font-bold text-lg tracking-tight">Parsli</span>
+            <span className="font-bold text-xl tracking-tight">Parsli</span>
           </Link>
 
           {/* Desktop nav */}

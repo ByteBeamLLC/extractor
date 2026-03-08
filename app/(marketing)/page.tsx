@@ -1,6 +1,5 @@
 import type { Metadata } from "next"
 import { HeroSection } from "@/components/marketing/sections/HeroSection"
-import { SocialProofSection } from "@/components/marketing/sections/SocialProofSection"
 import { ProblemSection } from "@/components/marketing/sections/ProblemSection"
 import { FeaturesSection } from "@/components/marketing/sections/FeaturesSection"
 import { UseCasesSection } from "@/components/marketing/sections/UseCasesSection"
@@ -71,7 +70,6 @@ export default function LandingPage() {
       />
 
       <HeroSection />
-      <SocialProofSection />
       <ProblemSection />
       <FeaturesSection />
       <UseCasesSection />

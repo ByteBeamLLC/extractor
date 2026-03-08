@@ -3,9 +3,16 @@ import Image from "next/image"
 
 const footerLinks = {
   Product: [
-    { href: "#features", label: "Features" },
-    { href: "/pricing", label: "Pricing" },
+    { href: "/solutions/pdf-to-excel", label: "PDF to Excel" },
+    { href: "/solutions/invoice-parsing", label: "Invoice Parsing" },
+    { href: "/solutions/bank-statement-extraction", label: "Bank Statement Extraction" },
+    { href: "/solutions/no-code-document-parser", label: "No-Code Parser" },
+    { href: "/solutions/document-parsing-api", label: "Document Parsing API" },
+  ],
+  Resources: [
+    { href: "/blog", label: "Blog" },
     { href: "/docs", label: "Documentation" },
+    { href: "/pricing", label: "Pricing" },
     { href: "/docs#api", label: "API Reference" },
   ],
   "Use Cases": [
@@ -13,17 +20,13 @@ const footerLinks = {
     { href: "/use-cases/email-parsing", label: "Email Parsing" },
     { href: "/use-cases/pdf-data-extraction", label: "PDF Data Extraction" },
     { href: "/use-cases/pdf-to-excel", label: "PDF to Excel" },
-  ],
-  Integrations: [
-    { href: "/integrations/google-sheets", label: "Google Sheets" },
-    { href: "/integrations/zapier", label: "Zapier" },
-    { href: "/integrations/make", label: "Make" },
-    { href: "/integrations/api", label: "REST API" },
+    { href: "/use-cases/receipt-scanning", label: "Receipt Scanning" },
   ],
   Compare: [
-    { href: "/alternative/parseur", label: "Parseur Alternative" },
-    { href: "/alternative/docparser", label: "Docparser Alternative" },
-    { href: "/alternative/nanonets", label: "Nanonets Alternative" },
+    { href: "/alternative/nanonets", label: "vs Nanonets" },
+    { href: "/alternative/docparser", label: "vs Docparser" },
+    { href: "/alternative/parseur", label: "vs Parseur" },
+    { href: "/alternative/upstage", label: "vs Upstage" },
   ],
 }
 
@@ -75,13 +78,13 @@ export function MarketingFooter() {
           </p>
           <div className="flex gap-6">
             <Link
-              href="/legal/privacy"
+              href="/privacy"
               className="text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               Privacy Policy
             </Link>
             <Link
-              href="/legal/terms"
+              href="/terms"
               className="text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               Terms of Service

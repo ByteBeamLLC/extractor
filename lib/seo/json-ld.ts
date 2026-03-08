@@ -113,6 +113,51 @@ export function faqJsonLd(
   }
 }
 
+export function blogPostJsonLd({
+  title,
+  description,
+  url,
+  publishedAt,
+  updatedAt,
+  author,
+}: {
+  title: string
+  description: string
+  url: string
+  publishedAt: string
+  updatedAt: string
+  author: string
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: title,
+    description,
+    url,
+    datePublished: publishedAt,
+    dateModified: updatedAt,
+    author: {
+      "@type": "Person",
+      name: author,
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "Parsli",
+      url: BASE_URL,
+      logo: {
+        "@type": "ImageObject",
+        url: `${BASE_URL}/parsli-icon.png`,
+        width: 512,
+        height: 512,
+      },
+    },
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": url,
+    },
+  }
+}
+
 export function breadcrumbJsonLd(
   items: { name: string; url: string }[]
 ) {
@@ -125,5 +170,33 @@ export function breadcrumbJsonLd(
       name: item.name,
       item: item.url,
     })),
+  }
+}
+
+export function solutionPageJsonLd(solution: {
+  h1: string
+  metaDescription: string
+  slug: string
+  keyword: string
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: solution.h1,
+    description: solution.metaDescription,
+    url: `${BASE_URL}/solutions/${solution.slug}`,
+    keywords: solution.keyword,
+    provider: {
+      "@type": "Organization",
+      name: "Parsli",
+      url: BASE_URL,
+    },
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
+      description: "Free tier with 30 pages/month",
+      url: `${BASE_URL}/pricing`,
+    },
   }
 }

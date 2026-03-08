@@ -13,6 +13,7 @@ const marketingRoutes = [
   "/use-cases",
   "/integrations",
   "/alternative",
+  "/solutions",
   "/blog",
   "/legal",
   "/terms",

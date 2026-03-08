@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { APP_URL } from "@/lib/config"
 import {
@@ -183,6 +184,16 @@ export default function DocsPage() {
             (e.g. &quot;Invoice Parser&quot;) and an optional description.
           </Step>
 
+          <div className="ml-12 mb-6 rounded-xl border bg-card overflow-hidden shadow-sm">
+            <Image
+              src="/images/app/create-parser.png"
+              alt="Create Parser dialog with name and description fields"
+              width={1000}
+              height={600}
+              className="w-full h-auto"
+            />
+          </div>
+
           <Step number={3} title="Define your schema">
             Tell the AI <em>what</em> data you want extracted. Add fields like
             &quot;Invoice Number&quot;, &quot;Total Amount&quot;, &quot;Vendor Name&quot;, etc.
@@ -326,6 +337,16 @@ export default function DocsPage() {
             <li>Click <strong>Save</strong>.</li>
           </ol>
 
+          <div className="my-6 rounded-xl border bg-card overflow-hidden shadow-sm">
+            <Image
+              src="/images/app/add-field-detail.png"
+              alt="Add Field form showing field name, type selector, description, extraction instructions, and required toggle"
+              width={1100}
+              height={500}
+              className="w-full h-auto"
+            />
+          </div>
+
           <Callout type="tip">
             Add <strong>extraction instructions</strong> for tricky fields. For example:
             &quot;Always normalize dates to YYYY-MM-DD format&quot; or &quot;Extract the total
@@ -345,6 +366,16 @@ export default function DocsPage() {
               then define columns: &quot;description&quot; (text), &quot;quantity&quot; (number),
               &quot;unit_price&quot; (decimal), &quot;total&quot; (decimal).
             </p>
+          </div>
+
+          <div className="my-6 rounded-xl border bg-card overflow-hidden shadow-sm">
+            <Image
+              src="/images/app/schema-overview.png"
+              alt="Schema tab showing defined fields — invoice number (number type) and Line Items (table type)"
+              width={1500}
+              height={580}
+              className="w-full h-auto"
+            />
           </div>
 
           <SubHeading id="custom-instructions">Custom extraction instructions</SubHeading>
@@ -401,6 +432,16 @@ export default function DocsPage() {
             Once your parser is working, connect it to the tools you already use.
             Open your parser&apos;s <strong>Integrations</strong> tab to add any of the following:
           </p>
+
+          <div className="my-6 rounded-xl border bg-card overflow-hidden shadow-sm max-w-md mx-auto">
+            <Image
+              src="/images/app/add-integration.png"
+              alt="Add Integration dialog showing Webhook, Google Sheets, Zapier, Make, Power Automate, and Gmail Inbox options"
+              width={1000}
+              height={1050}
+              className="w-full h-auto"
+            />
+          </div>
 
           {/* Google Sheets */}
           <SubHeading id="google-sheets">
@@ -532,6 +573,16 @@ export default function DocsPage() {
             For developers who want to integrate extraction into their own applications.
             The API accepts documents and returns structured JSON.
           </p>
+
+          <div className="my-6 rounded-xl border bg-card overflow-hidden shadow-sm">
+            <Image
+              src="/images/app/api-tab.png"
+              alt="API tab showing API Keys section, Inbound Webhook URL, and Quick Start curl example"
+              width={900}
+              height={500}
+              className="w-full h-auto"
+            />
+          </div>
 
           <SubHeading id="api-keys">Authentication</SubHeading>
           <p className="text-sm text-muted-foreground mb-3">

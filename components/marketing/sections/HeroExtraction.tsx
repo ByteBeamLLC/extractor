@@ -77,9 +77,9 @@ export function HeroExtraction() {
   const rightFieldY = (index: number) => 54 + index * 40
 
   return (
-    <div className="relative mx-auto w-full max-w-5xl">
+    <div className="relative mx-auto w-full">
       <svg
-        viewBox="0 0 820 400"
+        viewBox="0 0 700 400"
         className="w-full h-auto"
         role="img"
         aria-label="Interactive visualization showing AI extracting structured data from an invoice document"
@@ -91,7 +91,7 @@ export function HeroExtraction() {
         </defs>
 
         {/* ═══════ LEFT PANEL — Invoice Document ═══════ */}
-        <g transform="translate(20, 10)">
+        <g transform="translate(10, 10)">
           {/* Paper */}
           <rect x="0" y="0" width="290" height="380" rx="8"
             fill="var(--color-card)" stroke="var(--color-border)" strokeWidth="1"
@@ -176,7 +176,7 @@ export function HeroExtraction() {
         </g>
 
         {/* ═══════ CENTER — AI Processing Badge ═══════ */}
-        <g transform="translate(355, 165)">
+        <g transform="translate(312, 165)">
           <circle cx="30" cy="30" r="28"
             fill="var(--color-muted)"
             stroke="var(--color-primary)"
@@ -206,14 +206,14 @@ export function HeroExtraction() {
           const isActive  = activeIndex === i
           const isVisible = visibleFields.includes(i)
 
-          const startX = 20 + field.docX + field.docW + 4
+          const startX = 10 + field.docX + field.docW + 4
           const startY = 10 + field.docY + field.docH / 2
 
-          const endX = 500
+          const endX = 390
           const endY = 10 + rightFieldY(i) + 17
 
-          const cpX1 = startX + 70
-          const cpX2 = endX   - 70
+          const cpX1 = startX + 50
+          const cpX2 = endX   - 50
 
           return (
             <path key={`line-${field.id}`}
@@ -234,7 +234,7 @@ export function HeroExtraction() {
         })}
 
         {/* ═══════ RIGHT PANEL — Extracted Data ═══════ */}
-        <g transform="translate(500, 10)">
+        <g transform="translate(390, 10)">
           <rect x="0" y="0" width="295" height="380" rx="8"
             fill="var(--color-card)" stroke="var(--color-border)" strokeWidth="1"
             filter="url(#panelShadow)" />

@@ -81,7 +81,7 @@ export function ParserSettings({ parser, onUpdate, onDeleted }: ParserSettingsPr
         )}
       </div>
 
-      {/* Inbound email (future) */}
+      {/* Inbound email (future) — hidden until feature is ready
       {parser.inbound_email && (
         <div className="space-y-3">
           <h3 className="text-lg font-semibold">Email Forwarding</h3>
@@ -95,7 +95,7 @@ export function ParserSettings({ parser, onUpdate, onDeleted }: ParserSettingsPr
             Email forwarding will be available in a future update.
           </p>
         </div>
-      )}
+      )} */}
 
       {/* Danger zone */}
       <div className="space-y-3 pt-4 border-t">
