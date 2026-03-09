@@ -1,13 +1,21 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { AlertTriangle, Check, ChevronDown } from "lucide-react"
+import { AlertTriangle, Check, ChevronDown, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { AuthButton } from "@/components/marketing/shared/AuthButton"
 import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd, faqJsonLd } from "@/lib/seo/json-ld"
 import { getUseCaseBySlug, getAllUseCaseSlugs } from "@/lib/seo/use-cases"
+
+/** Use-case slugs that have matching parser templates */
+const templateMap: Record<string, { templateId: string; ctaLabel: string }> = {
+  "invoice-parsing": {
+    templateId: "invoice-parsing",
+    ctaLabel: "Start Parsing Invoices Free",
+  },
+}
 
 export function generateStaticParams() {
   return getAllUseCaseSlugs().map((slug) => ({ slug }))
@@ -42,6 +50,12 @@ export default function UseCasePage({
 }) {
   const useCase = getUseCaseBySlug(params.slug)
   if (!useCase) notFound()
+
+  const template = templateMap[useCase.slug]
+  const ctaHref = template
+    ? `/dashboard?template=${template.templateId}`
+    : undefined
+  const ctaLabel = template?.ctaLabel ?? "Get Started Free"
 
   return (
     <>
@@ -80,8 +94,8 @@ export default function UseCasePage({
             {useCase.heroDescription}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <AuthButton className="text-base px-8 h-12" showArrow>
-              Get Started Free
+            <AuthButton className="text-base px-8 h-12" showArrow href={ctaHref}>
+              {ctaLabel}
             </AuthButton>
             <Button size="lg" variant="outline" className="text-base px-8 h-12" asChild>
               <Link href="/docs">See How It Works</Link>
@@ -162,6 +176,28 @@ export default function UseCasePage({
         </div>
       </section>
 
+      {/* Free Tool Banner (PDF-related use cases only) */}
+      {["pdf-to-excel", "pdf-data-extraction", "pdf-to-csv"].includes(useCase.slug) && (
+        <section className="py-10 sm:py-12">
+          <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+            <Link
+              href="/tools/pdf-to-excel"
+              className="group flex items-center justify-between rounded-xl border border-primary/20 bg-primary/[0.03] p-5 sm:p-6 hover:border-primary/40 transition-colors"
+            >
+              <div>
+                <p className="font-semibold mb-0.5">
+                  Try our free PDF to Excel converter
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Convert simple PDF tables to Excel instantly. No sign-up, runs in your browser.
+                </p>
+              </div>
+              <ArrowRight className="h-5 w-5 text-primary shrink-0 ml-4 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          </div>
+        </section>
+      )}
+
       {/* CTA */}
       <section className="py-16 sm:py-20 bg-muted/30">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 text-center">
@@ -171,8 +207,8 @@ export default function UseCasePage({
           <p className="text-muted-foreground mb-8">
             Start extracting data in minutes. No credit card required.
           </p>
-          <AuthButton className="text-base px-8 h-12" showArrow>
-            Get Started Free
+          <AuthButton className="text-base px-8 h-12" showArrow href={ctaHref}>
+            {ctaLabel}
           </AuthButton>
         </div>
       </section>

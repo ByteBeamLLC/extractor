@@ -14,12 +14,15 @@ import { ActivityFeed } from "@/components/extractor/activity/ActivityFeed"
 import { IntegrationList } from "@/components/extractor/integrations/IntegrationList"
 import { ApiKeyManager } from "@/components/extractor/api/ApiKeyManager"
 import { ParserSettings } from "@/components/extractor/settings/ParserSettings"
+import { ParserOnboarding } from "@/components/extractor/onboarding/ParserOnboarding"
 
 interface ParserDetailPageProps {
   parserId: string
+  /** Whether to show the onboarding guide (passed from server-side searchParams) */
+  showOnboarding?: boolean
 }
 
-export function ParserDetailPage({ parserId }: ParserDetailPageProps) {
+export function ParserDetailPage({ parserId, showOnboarding: initialShowOnboarding = false }: ParserDetailPageProps) {
   const session = useSession()
   const supabase = useSupabaseClient()
   const router = useRouter()
@@ -28,6 +31,10 @@ export function ParserDetailPage({ parserId }: ParserDetailPageProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("schema")
+
+  // Onboarding state
+  const [onboardingStep, setOnboardingStep] = useState(0)
+  const [onboardingVisible, setOnboardingVisible] = useState(initialShowOnboarding)
 
   const loadParser = useCallback(async () => {
     if (!session?.user?.id) return
@@ -73,6 +80,22 @@ export function ParserDetailPage({ parserId }: ParserDetailPageProps) {
     [parser, supabase]
   )
 
+  const handleOnboardingStepClick = useCallback(
+    (stepIndex: number, tabId: string) => {
+      setOnboardingStep(stepIndex)
+      setActiveTab(tabId)
+    },
+    []
+  )
+
+  const handleDismissOnboarding = useCallback(() => {
+    setOnboardingVisible(false)
+    // Clean up URL param without navigation
+    const url = new URL(window.location.href)
+    url.searchParams.delete("onboarding")
+    window.history.replaceState({}, "", url.toString())
+  }, [])
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32">
@@ -110,6 +133,15 @@ export function ParserDetailPage({ parserId }: ParserDetailPageProps) {
           )}
         </div>
       </div>
+
+      {/* Onboarding banner */}
+      {onboardingVisible && (
+        <ParserOnboarding
+          currentStep={onboardingStep}
+          onStepClick={handleOnboardingStepClick}
+          onDismiss={handleDismissOnboarding}
+        />
+      )}
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>

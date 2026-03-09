@@ -14,6 +14,7 @@ const marketingRoutes = [
   "/integrations",
   "/alternative",
   "/solutions",
+  "/tools",
   "/blog",
   "/legal",
   "/terms",
@@ -72,7 +73,9 @@ export async function middleware(request: NextRequest) {
     // Protected route without session → show login page on app subdomain
     if (isProtected && !session) {
       const loginUrl = new URL("/login", request.url)
-      loginUrl.searchParams.set("next", pathname)
+      // Preserve query params (e.g. ?template=invoice-parsing) in redirect
+      const search = request.nextUrl.search
+      loginUrl.searchParams.set("next", pathname + search)
       return NextResponse.redirect(loginUrl)
     }
 
@@ -84,7 +87,8 @@ export async function middleware(request: NextRequest) {
     // Block app routes on marketing domain → redirect to app subdomain
     if (isProtected) {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.parsli.co"
-      return NextResponse.redirect(new URL(pathname, appUrl))
+      const search = request.nextUrl.search
+      return NextResponse.redirect(new URL(pathname + search, appUrl))
     }
 
     return res
@@ -93,7 +97,8 @@ export async function middleware(request: NextRequest) {
   // ─── Development / fallback (localhost) ───
   if (isProtected && !session) {
     const redirectUrl = new URL("/login", request.url)
-    redirectUrl.searchParams.set("next", pathname)
+    const search = request.nextUrl.search
+    redirectUrl.searchParams.set("next", pathname + search)
     return NextResponse.redirect(redirectUrl)
   }
 

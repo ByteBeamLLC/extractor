@@ -201,6 +201,33 @@ export default function BlogPostPage({
             {post.content.map((block, index) => renderBlock(block, index))}
           </div>
 
+          {/* Free Tool callout for relevant blog posts */}
+          {post.slug === "extract-data-pdf-to-excel" && (
+            <div className="mt-12 rounded-xl border border-primary/20 bg-primary/[0.03] p-6">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <span className="text-primary text-lg">&#9889;</span>
+                </div>
+                <div>
+                  <p className="font-semibold mb-1">
+                    Try our free PDF to Excel converter
+                  </p>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Convert PDF tables to Excel instantly in your browser. No sign-up,
+                    no uploads — your files stay on your device.
+                  </p>
+                  <Link
+                    href="/tools/pdf-to-excel"
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline underline-offset-4"
+                  >
+                    Convert PDF to Excel free
+                    <ArrowLeft className="h-3 w-3 rotate-180" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Related Solutions */}
           {getRelatedSolutions(post.slug).length > 0 && (
             <div className="mt-16 pt-10 border-t">

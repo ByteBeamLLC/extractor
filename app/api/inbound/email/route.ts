@@ -6,6 +6,7 @@ import { checkCredits, deductCredits } from "@/lib/extractor/billing/credits"
 import type { SchemaField } from "@/lib/schema"
 
 export const runtime = "nodejs"
+export const maxDuration = 120 // allow up to 2 min for multi-attachment emails
 
 // Match the Gmail poller's allowlist
 const SUPPORTED_MIME_TYPES = new Set([

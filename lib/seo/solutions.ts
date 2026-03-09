@@ -6,12 +6,16 @@ export interface SolutionPage {
   h1: string
   h1Accent: string
   subtitle: string
+  comparisonHeadline: string
   painPoints: string[]
   solutions: string[]
   saveLine: string
+  calloutBox: { title: string; description: string }
+  supportedTypes: { emoji: string; name: string }[]
   howItWorks: { step: string; title: string; description: string }[]
   benefits: { title: string; description: string }[]
   seoSections: { heading: string; content: string }[]
+  faq: { question: string; answer: string }[]
   codeExample?: { title: string; language: string; code: string }
   adCopyVariants: string[]
   relatedKeywords: string[]
@@ -29,6 +33,7 @@ export const solutions: SolutionPage[] = [
     h1Accent: "In Seconds, Not Hours",
     subtitle:
       "Stop copying data manually. Parsli's AI extracts tables, numbers, and text from any PDF into clean Excel or Google Sheets — automatically.",
+    comparisonHeadline: "Skip the copy-paste nightmare",
     painPoints: [
       "Copy-pasting data from PDFs one cell at a time",
       "Tables break when you paste into Excel",
@@ -44,6 +49,18 @@ export const solutions: SolutionPage[] = [
       "Data is ready to use — no cleanup needed",
     ],
     saveLine: "Save 10+ hours per week on manual data entry.",
+    calloutBox: {
+      title: "Works with Scanned PDFs Too",
+      description:
+        "Built-in OCR means even photographed or scanned documents are extracted accurately. No separate OCR tool or clean digital PDF required.",
+    },
+    supportedTypes: [
+      { emoji: "📄", name: "Native PDFs" },
+      { emoji: "📷", name: "Scanned PDFs" },
+      { emoji: "🖼️", name: "Image-Based PDFs" },
+      { emoji: "🏦", name: "Bank Statements" },
+      { emoji: "🧾", name: "Invoices & Reports" },
+    ],
     howItWorks: [
       {
         step: "1",
@@ -103,6 +120,39 @@ export const solutions: SolutionPage[] = [
           "Manual data entry from PDFs takes 15-30 minutes per document, depending on complexity. A 50-page bank statement or a stack of invoices can consume an entire day. And manual entry introduces errors — transposed digits, missed rows, misaligned columns.\n\nWith AI-powered extraction, a single document is processed in under 3 seconds with 95%+ accuracy. That's the difference between spending a day on data entry and spending 30 seconds. Multiply that across hundreds of documents per month, and the time savings are transformative.",
       },
     ],
+    faq: [
+      {
+        question: "Is Parsli's PDF to Excel converter free?",
+        answer:
+          "Yes! The free tier includes 30 pages per month with no credit card required. For higher volumes, paid plans start at $33/month.",
+      },
+      {
+        question: "Can you convert scanned PDFs to Excel?",
+        answer:
+          "Yes. Built-in OCR powered by Google Gemini 2.5 Pro handles scanned, photographed, and image-based PDFs — no separate OCR tool needed.",
+      },
+      {
+        question: "Does it preserve table formatting?",
+        answer:
+          "Yes. The AI detects rows, columns, and headers automatically. Your spreadsheet comes out clean and structured, matching the original document layout.",
+      },
+      {
+        question: "What formats can I export to?",
+        answer:
+          "Excel (.xlsx), CSV, or directly to Google Sheets. You can also get structured JSON via the API for custom workflows.",
+      },
+      {
+        question: "How accurate is the conversion?",
+        answer:
+          "95%+ accuracy on most documents, including complex multi-column tables and scanned PDFs. Accuracy improves further with clear, high-resolution source documents.",
+      },
+      {
+        question:
+          "What's the difference between the free tool and Parsli AI?",
+        answer:
+          "The free PDF to Excel tool handles simple text-based PDFs. Parsli AI handles scanned documents, complex layouts, custom extraction schemas, batch processing, and automation via integrations and API.",
+      },
+    ],
     adCopyVariants: [
       "PDF to Excel in Seconds — AI-Powered",
       "Stop Retyping PDFs — Auto-Extract to Excel",
@@ -128,6 +178,7 @@ export const solutions: SolutionPage[] = [
     h1Accent: "With AI, Not Templates",
     subtitle:
       "Extract invoice numbers, line items, totals, and vendor details from any invoice format — PDFs, scans, or images. No templates or rules to configure.",
+    comparisonHeadline: "Skip the template-based parsing mess",
     painPoints: [
       "Every vendor sends a different invoice layout",
       "Manual data entry into accounting software",
@@ -143,6 +194,18 @@ export const solutions: SolutionPage[] = [
       "Process a full invoice in under 3 seconds",
     ],
     saveLine: "Eliminate 90% of manual invoice data entry.",
+    calloutBox: {
+      title: "No Templates Needed",
+      description:
+        "Unlike template-based parsers, Parsli's AI adapts to any vendor's invoice format automatically. New vendor? Just send the invoice — no setup required.",
+    },
+    supportedTypes: [
+      { emoji: "📄", name: "PDF Invoices" },
+      { emoji: "📷", name: "Scanned Invoices" },
+      { emoji: "📧", name: "Emailed Invoices" },
+      { emoji: "🖼️", name: "Image Invoices" },
+      { emoji: "📝", name: "Word & Excel" },
+    ],
     howItWorks: [
       {
         step: "1",
@@ -202,6 +265,33 @@ export const solutions: SolutionPage[] = [
           "Traditional invoice parsers (like Docparser or older versions of Parseur) require you to create a template for each document layout. You draw zones around fields, set extraction rules, and test. When a vendor changes their invoice design — or you onboard a new vendor — you create a new template.\n\nAI parsing skips all of that. Parsli's AI understands document structure without templates. It reads the full context of the page, identifies fields semantically, and extracts data regardless of layout. New vendor? Just send the invoice. No setup required.",
       },
     ],
+    faq: [
+      {
+        question: "Can Parsli handle invoices from different vendors?",
+        answer:
+          "Yes. The AI adapts to any vendor's invoice format without templates or per-vendor configuration. Just send the invoice and Parsli extracts the data.",
+      },
+      {
+        question: "What fields can be extracted from invoices?",
+        answer:
+          "Invoice number, dates, vendor details, PO number, line items (description, quantity, unit price, amount), subtotal, tax, discounts, total, and any custom fields you define.",
+      },
+      {
+        question: "Can I process emailed invoices automatically?",
+        answer:
+          "Yes. Forward invoices to your Parsli inbox or connect Gmail for automatic processing. Extracted data flows to your tools without manual intervention.",
+      },
+      {
+        question: "How does AI parsing compare to template-based parsing?",
+        answer:
+          "AI parsing requires zero setup per vendor and adapts to layout changes automatically. Template-based parsers need manual configuration for each format and break when layouts change.",
+      },
+      {
+        question: "Is there an API for invoice processing?",
+        answer:
+          "Yes. Send invoices via REST API and get structured JSON back in under 3 seconds. Perfect for integrating invoice extraction into your own applications.",
+      },
+    ],
     adCopyVariants: [
       "Invoice Parsing on Autopilot — AI-Powered",
       "Extract Invoice Data in Seconds, Not Hours",
@@ -228,6 +318,7 @@ export const solutions: SolutionPage[] = [
     h1Accent: "Instantly, From Any Bank",
     subtitle:
       "Upload any bank statement PDF — even scanned ones — and get clean, structured transaction data in Excel or CSV. No manual data entry.",
+    comparisonHeadline: "Skip retyping 100+ transactions by hand",
     painPoints: [
       "Retyping transactions from PDF statements by hand",
       "Different banks use different statement formats",
@@ -243,6 +334,18 @@ export const solutions: SolutionPage[] = [
       "95%+ accuracy eliminates reconciliation errors",
     ],
     saveLine: "Process a 50-page statement in 10 seconds, not 3 hours.",
+    calloutBox: {
+      title: "Works with Any Bank",
+      description:
+        "Chase, Bank of America, Wells Fargo, HSBC, or your local credit union — Parsli adapts to any bank's statement layout without per-bank configuration.",
+    },
+    supportedTypes: [
+      { emoji: "💻", name: "Digital PDFs" },
+      { emoji: "📷", name: "Scanned Statements" },
+      { emoji: "🖨️", name: "Printed Statements" },
+      { emoji: "📑", name: "Multi-Page Statements" },
+      { emoji: "🏦", name: "Any Bank Format" },
+    ],
     howItWorks: [
       {
         step: "1",
@@ -302,6 +405,33 @@ export const solutions: SolutionPage[] = [
           "Traditional bank statement converters use fixed rules — they look for text at specific positions on the page. This breaks whenever a bank changes their format or when you switch banks.\n\nParsli uses AI that reads the full page context. It identifies the transaction table by understanding what a bank statement looks like — recognizing patterns like date columns, debit/credit amounts, and running balances. This means it works on any bank's format without configuration. Upload the statement, and the AI figures out the structure automatically.",
       },
     ],
+    faq: [
+      {
+        question: "Does it work with any bank's statement format?",
+        answer:
+          "Yes. Parsli's AI adapts to any bank's layout automatically — Chase, Bank of America, Wells Fargo, HSBC, and thousands more. No per-bank configuration needed.",
+      },
+      {
+        question: "Can you extract data from scanned bank statements?",
+        answer:
+          "Yes. Built-in OCR reads scanned and printed statements with the same accuracy as digital PDFs. Even low-quality scans are handled.",
+      },
+      {
+        question: "What transaction fields are extracted?",
+        answer:
+          "Date, description, debit amount, credit amount, and running balance. You can also define custom fields like category or reference number.",
+      },
+      {
+        question: "Can it handle multi-page statements?",
+        answer:
+          "Yes. A 50-page annual statement is processed as a single unified dataset — all transactions in one clean export.",
+      },
+      {
+        question: "How long does extraction take?",
+        answer:
+          "Most statements are processed in under 10 seconds, regardless of page count. A typical monthly statement with 100+ transactions takes about 3 seconds.",
+      },
+    ],
     adCopyVariants: [
       "Bank Statement to Excel in Seconds",
       "Stop Retyping Bank Transactions — Use AI",
@@ -327,6 +457,7 @@ export const solutions: SolutionPage[] = [
     h1Accent: "Without Writing Code",
     subtitle:
       "Define what data you need in plain English. Parsli's AI handles the rest — no templates, no zones, no programming required.",
+    comparisonHeadline: "Skip hiring a developer to build parsers",
     painPoints: [
       "Need a developer to build custom document parsers",
       "Template-based tools require per-format configuration",
@@ -342,6 +473,18 @@ export const solutions: SolutionPage[] = [
       "One parser handles unlimited document variations",
     ],
     saveLine: "Go from zero to extracting data in under 5 minutes.",
+    calloutBox: {
+      title: "No Developer Required",
+      description:
+        "Anyone on your team — operations, finance, HR — can set up a document parser in minutes using the visual schema builder. No programming knowledge needed.",
+    },
+    supportedTypes: [
+      { emoji: "📄", name: "PDFs" },
+      { emoji: "🖼️", name: "Images" },
+      { emoji: "📷", name: "Scanned Docs" },
+      { emoji: "📧", name: "Emails" },
+      { emoji: "📝", name: "Word & Excel" },
+    ],
     howItWorks: [
       {
         step: "1",
@@ -401,6 +544,34 @@ export const solutions: SolutionPage[] = [
           "Building document parsing in-house typically requires: an OCR engine, a text extraction pipeline, custom parsing logic per document type, error handling, and ongoing maintenance when formats change. That's weeks of developer time per document type, plus ongoing maintenance.\n\nA no-code platform like Parsli replaces all of that with a 5-minute setup. You define your schema visually, upload a document, and start extracting. The AI model is already trained on millions of documents — no training data from you required. And when document formats change, the AI adapts automatically.",
       },
     ],
+    faq: [
+      {
+        question: "Do I need technical skills to use Parsli?",
+        answer:
+          "No. The visual schema builder uses plain English descriptions. Anyone on your team can create a parser and start extracting data in minutes.",
+      },
+      {
+        question: "What document types are supported?",
+        answer:
+          "PDFs, images (JPEG, PNG), scanned documents, emails, Word docs (.docx), and Excel files (.xlsx). If it contains data, Parsli can extract it.",
+      },
+      {
+        question: "Can I define custom extraction fields?",
+        answer:
+          "Yes. Add any field you need with types like text, number, date, boolean, table, list, and more. Use natural language instructions to guide the AI.",
+      },
+      {
+        question:
+          "How is this different from template-based parsers?",
+        answer:
+          "No zones to draw, no rules to write. Parsli's AI understands document context and adapts to any layout automatically. Template parsers break when formats change — Parsli doesn't.",
+      },
+      {
+        question: "Can I automate document processing end-to-end?",
+        answer:
+          "Yes. Connect via email forwarding, API, Zapier, Make, or webhooks for fully hands-free processing. Documents in, structured data out — automatically.",
+      },
+    ],
     adCopyVariants: [
       "Document Parsing Without Code — AI Does It All",
       "No Templates. No Zones. Just Define and Extract",
@@ -426,6 +597,7 @@ export const solutions: SolutionPage[] = [
     h1Accent: "One Call, Structured Data",
     subtitle:
       "One API call to extract structured data from any document. RESTful, fast, and accurate — powered by Google Gemini 2.5 Pro.",
+    comparisonHeadline: "Skip building your own OCR pipeline",
     painPoints: [
       "Building and maintaining custom OCR pipelines",
       "Training ML models on your own document data",
@@ -441,6 +613,18 @@ export const solutions: SolutionPage[] = [
       "Start extracting in minutes with your API key",
     ],
     saveLine: "Replace months of OCR pipeline work with a single API call.",
+    calloutBox: {
+      title: "Pre-Trained AI — No Training Data Required",
+      description:
+        "Parsli's AI is already trained on millions of documents. Send any document type and get structured data back — no training data, no model fine-tuning from you.",
+    },
+    supportedTypes: [
+      { emoji: "📄", name: "PDF" },
+      { emoji: "🖼️", name: "JPEG & PNG" },
+      { emoji: "📷", name: "TIFF" },
+      { emoji: "📝", name: "Word (.docx)" },
+      { emoji: "📊", name: "Excel (.xlsx)" },
+    ],
     howItWorks: [
       {
         step: "1",
@@ -498,6 +682,38 @@ export const solutions: SolutionPage[] = [
         heading: "Building Your Own OCR vs Using an API",
         content:
           "Building an in-house document parsing pipeline typically requires: Tesseract or a commercial OCR engine, text extraction and cleanup, custom parsing logic per document type, table detection, and ongoing maintenance. That's 2-4 weeks of development per document type, plus infra costs and maintenance.\n\nA document parsing API like Parsli replaces all of that with a single endpoint. You get AI-powered extraction that handles any document type, any layout, with built-in OCR — all for a predictable per-page price. The trade-off is straightforward: build and maintain it yourself, or pay per page for a solution that just works.",
+      },
+    ],
+    faq: [
+      {
+        question: "How do I authenticate with the API?",
+        answer:
+          "Use a Bearer token with your API key in the Authorization header. Get your key from the Parsli dashboard — takes 30 seconds.",
+      },
+      {
+        question: "What document formats does the API accept?",
+        answer:
+          "PDF, JPEG, PNG, TIFF, Word (.docx), and Excel (.xlsx). Send documents as a URL or base64-encoded payload.",
+      },
+      {
+        question: "How fast is the API?",
+        answer:
+          "Most documents are processed in under 3 seconds. Built for production workloads with reliable uptime and consistent response times.",
+      },
+      {
+        question: "Can I define custom extraction schemas?",
+        answer:
+          "Yes. Create schemas in the dashboard with custom fields, types (text, number, date, table, list), and natural language instructions to guide the AI.",
+      },
+      {
+        question: "Is there a free tier?",
+        answer:
+          "Yes. 30 free pages per month with no credit card required. Paid plans start at $33/month for higher volumes.",
+      },
+      {
+        question: "Do you support webhooks for async processing?",
+        answer:
+          "Yes. Configure webhook callbacks to receive results when extraction completes. Ideal for batch processing and background jobs.",
       },
     ],
     codeExample: {

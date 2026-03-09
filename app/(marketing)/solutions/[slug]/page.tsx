@@ -13,15 +13,29 @@ import {
   X,
   Check,
   ArrowRight,
+  Info,
+  ChevronDown,
 } from "lucide-react"
 import { AuthButton } from "@/components/marketing/shared/AuthButton"
 import { JsonLd } from "@/components/marketing/shared/JsonLd"
-import { breadcrumbJsonLd, solutionPageJsonLd } from "@/lib/seo/json-ld"
+import { breadcrumbJsonLd, solutionPageJsonLd, faqJsonLd } from "@/lib/seo/json-ld"
 import {
   getSolutionBySlug,
   getAllSolutionSlugs,
   getAllSolutions,
 } from "@/lib/seo/solutions"
+
+/** Solution slugs that have matching parser templates */
+const templateMap: Record<string, { templateId: string; ctaLabel: string }> = {
+  "invoice-parsing": {
+    templateId: "invoice-parsing",
+    ctaLabel: "Start Parsing Invoices Free",
+  },
+  "bank-statement-extraction": {
+    templateId: "bank-statement-extraction",
+    ctaLabel: "Start Extracting Statements Free",
+  },
+}
 
 /* Map each solution slug to related use cases, blog posts, and other links */
 const solutionRelatedLinks: Record<
@@ -29,9 +43,9 @@ const solutionRelatedLinks: Record<
   { href: string; label: string }[]
 > = {
   "pdf-to-excel": [
+    { href: "/tools/pdf-to-excel", label: "Free PDF to Excel Converter" },
     { href: "/use-cases/pdf-to-excel", label: "PDF to Excel Use Case" },
     { href: "/use-cases/pdf-data-extraction", label: "PDF Data Extraction" },
-    { href: "/use-cases/pdf-to-csv", label: "PDF to CSV" },
     { href: "/blog/extract-data-pdf-to-excel", label: "How to Extract Data from PDF to Excel" },
     { href: "/solutions/bank-statement-extraction", label: "Bank Statement Extraction" },
   ],
@@ -43,11 +57,11 @@ const solutionRelatedLinks: Record<
     { href: "/solutions/no-code-document-parser", label: "No-Code Document Parser" },
   ],
   "bank-statement-extraction": [
+    { href: "/tools/pdf-to-excel", label: "Free PDF to Excel Converter" },
     { href: "/use-cases/pdf-data-extraction", label: "PDF Data Extraction" },
     { href: "/use-cases/pdf-to-excel", label: "PDF to Excel" },
     { href: "/blog/extract-data-pdf-to-excel", label: "How to Extract Data from PDF to Excel" },
     { href: "/solutions/pdf-to-excel", label: "PDF to Excel Solution" },
-    { href: "/solutions/no-code-document-parser", label: "No-Code Document Parser" },
   ],
   "no-code-document-parser": [
     { href: "/use-cases/document-automation", label: "Document Automation" },
@@ -67,17 +81,15 @@ const solutionRelatedLinks: Record<
 
 function getRelatedLinks(slug: string) {
   return solutionRelatedLinks[slug] ?? [
+    { href: "/tools/pdf-to-excel", label: "Free PDF to Excel Converter" },
     { href: "/use-cases/pdf-data-extraction", label: "PDF Data Extraction" },
     { href: "/use-cases/document-automation", label: "Document Automation" },
     { href: "/blog/extract-data-pdf-to-excel", label: "How to Extract Data from PDF to Excel" },
-    { href: "/pricing", label: "Pricing" },
   ]
 }
 
 function getOtherSolutions(currentSlug: string) {
-  return getAllSolutions()
-    .filter((s) => s.slug !== currentSlug)
-    .slice(0, 3)
+  return getAllSolutions().filter((s) => s.slug !== currentSlug)
 }
 
 export function generateStaticParams() {
@@ -117,6 +129,14 @@ export default function SolutionPage({
   const solution = getSolutionBySlug(params.slug)
   if (!solution) notFound()
 
+  const template = templateMap[solution.slug]
+  const ctaHref = template
+    ? `/dashboard?template=${template.templateId}`
+    : undefined
+  const ctaLabel = template?.ctaLabel ?? "Start Free Trial"
+
+  const otherSolutions = getOtherSolutions(solution.slug)
+
   return (
     <>
       <JsonLd
@@ -130,6 +150,7 @@ export default function SolutionPage({
         ])}
       />
       <JsonLd data={solutionPageJsonLd(solution)} />
+      <JsonLd data={faqJsonLd(solution.faq)} />
 
       {/* ═══════ Hero ═══════ */}
       <section className="relative min-h-[80vh] flex items-center justify-center">
@@ -146,8 +167,8 @@ export default function SolutionPage({
             {solution.subtitle}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <AuthButton className="text-base px-8 h-13" showArrow>
-              Start Free Trial
+            <AuthButton className="text-base px-8 h-13" showArrow href={ctaHref}>
+              {ctaLabel}
             </AuthButton>
             <Link
               href="/docs"
@@ -169,7 +190,7 @@ export default function SolutionPage({
             Why Parsli?
           </p>
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
-            Skip the headaches
+            {solution.comparisonHeadline}
           </h2>
 
           <div className="grid md:grid-cols-2 gap-6">
@@ -212,8 +233,52 @@ export default function SolutionPage({
         </div>
       </section>
 
-      {/* ═══════ How It Works ═══════ */}
+      {/* ═══════ Callout Box ═══════ */}
+      <section className="pb-16 sm:pb-20">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+          <div className="rounded-xl border border-primary/20 bg-primary/[0.03] p-6 sm:p-8 flex gap-4">
+            <div className="shrink-0">
+              <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary">
+                <Info className="h-5 w-5" />
+              </div>
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg mb-1">
+                {solution.calloutBox.title}
+              </h3>
+              <p className="text-muted-foreground leading-relaxed">
+                {solution.calloutBox.description}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════ Supported Document Types ═══════ */}
       <section className="py-16 sm:py-20 bg-muted/30">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <p className="text-sm font-semibold text-primary text-center mb-3">
+            Compatibility
+          </p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
+            Every document format supported
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+            {solution.supportedTypes.map((type) => (
+              <div
+                key={type.name}
+                className="rounded-xl border bg-card p-5 text-center hover:border-primary/30 transition-colors"
+              >
+                <span className="text-3xl mb-3 block">{type.emoji}</span>
+                <span className="text-sm font-medium">{type.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════ How It Works ═══════ */}
+      <section className="py-16 sm:py-20">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <p className="text-sm font-semibold text-primary text-center mb-3">
             How It Works
@@ -247,7 +312,7 @@ export default function SolutionPage({
       </section>
 
       {/* ═══════ See It In Action ═══════ */}
-      <section className="py-16 sm:py-20">
+      <section className="py-16 sm:py-20 bg-muted/30">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <p className="text-sm font-semibold text-primary text-center mb-3">
             See It In Action
@@ -365,7 +430,7 @@ export default function SolutionPage({
       )}
 
       {/* ═══════ Benefits ═══════ */}
-      <section className="py-16 sm:py-20 bg-muted/30">
+      <section className="py-16 sm:py-20">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <p className="text-sm font-semibold text-primary text-center mb-3">
             Features
@@ -398,8 +463,8 @@ export default function SolutionPage({
       {/* ═══════ Mid-page CTA ═══════ */}
       <section className="py-12 sm:py-16">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 text-center">
-          <AuthButton className="text-base px-8 h-12" showArrow>
-            Get Started Free
+          <AuthButton className="text-base px-8 h-12" showArrow href={ctaHref}>
+            {ctaLabel}
           </AuthButton>
           <p className="mt-3 text-sm text-muted-foreground">
             No credit card required &middot; 30 free pages/month
@@ -425,63 +490,125 @@ export default function SolutionPage({
               ))}
             </div>
           ))}
+        </div>
+      </section>
 
-          {/* Inline CTA after content */}
-          <div className="mt-12 rounded-xl border bg-primary/[0.03] border-primary/20 p-6 sm:p-8 text-center">
-            <p className="font-semibold mb-2">
-              Ready to stop {solution.ctaPainPoint}?
-            </p>
-            <p className="text-sm text-muted-foreground mb-4">
-              Start extracting data in minutes. No credit card required.
-            </p>
-            <AuthButton className="text-sm px-6 h-10" showArrow>
-              Try Parsli Free
-            </AuthButton>
+      {/* ═══════ FAQ ═══════ */}
+      <section className="py-16 sm:py-20 bg-muted/30">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+          <p className="text-sm font-semibold text-primary text-center mb-3">
+            FAQ
+          </p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
+            Frequently asked questions
+          </h2>
+          <div className="space-y-4">
+            {solution.faq.map((item) => (
+              <details
+                key={item.question}
+                className="group rounded-xl border bg-card"
+              >
+                <summary className="flex items-center justify-between gap-4 px-6 py-5 cursor-pointer list-none font-medium hover:text-primary transition-colors [&::-webkit-details-marker]:hidden">
+                  {item.question}
+                  <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+                </summary>
+                <div className="px-6 pb-5 -mt-1">
+                  <p className="text-muted-foreground leading-relaxed">
+                    {item.answer}
+                  </p>
+                </div>
+              </details>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* ═══════ Related Content ═══════ */}
-      <section className="py-12 sm:py-16 border-t bg-muted/30">
+      {/* ═══════ Explore All Solutions ═══════ */}
+      <section className="py-16 sm:py-20">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          <h2 className="text-lg font-semibold mb-6">Related Resources</h2>
-          <div className="flex flex-wrap gap-3 mb-8">
-            {getRelatedLinks(solution.slug).map((link) => (
+          <p className="text-sm font-semibold text-primary text-center mb-3">
+            Explore
+          </p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-4">
+            One platform, every document type
+          </h2>
+          <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-12">
+            Same AI extraction engine for all your document processing needs
+          </p>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            {otherSolutions.map((other) => (
               <Link
-                key={link.href}
-                href={link.href}
-                className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors"
+                key={other.slug}
+                href={`/solutions/${other.slug}`}
+                className="rounded-xl border bg-card p-5 hover:border-primary/30 hover:shadow-sm transition-all group"
               >
-                {link.label}
-                <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                <h3 className="font-semibold mb-1 group-hover:text-primary transition-colors">
+                  {other.h1}
+                </h3>
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  {other.h1Accent}
+                </p>
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-primary mt-3">
+                  Learn more
+                  <ArrowRight className="h-3 w-3" />
+                </span>
               </Link>
             ))}
-            <Link
-              href="/pricing"
-              className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors"
-            >
-              Pricing
-              <ArrowRight className="h-3 w-3 text-muted-foreground" />
-            </Link>
           </div>
 
-          {/* Other Solutions */}
-          <div className="pt-6 border-t">
+          {/* Related resources */}
+          <div className="pt-8 border-t">
             <h3 className="text-sm font-semibold text-muted-foreground mb-4">
-              Explore Other Solutions
+              Related Resources
             </h3>
             <div className="flex flex-wrap gap-3">
-              {getOtherSolutions(solution.slug).map((other) => (
+              {getRelatedLinks(solution.slug).map((link) => (
                 <Link
-                  key={other.slug}
-                  href={`/solutions/${other.slug}`}
-                  className="inline-block rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors"
+                  key={link.href}
+                  href={link.href}
+                  className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors"
                 >
-                  {other.h1}
+                  {link.label}
+                  <ArrowRight className="h-3 w-3 text-muted-foreground" />
                 </Link>
               ))}
+              <Link
+                href="/pricing"
+                className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors"
+              >
+                Pricing
+                <ArrowRight className="h-3 w-3 text-muted-foreground" />
+              </Link>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ═══════ Final CTA ═══════ */}
+      <section className="py-20 sm:py-28 border-t bg-muted/30">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+            Ready to stop {solution.ctaPainPoint}?
+          </h2>
+          <p className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto">
+            Start extracting structured data in minutes. No credit card required.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <AuthButton className="text-base px-8 h-13" showArrow href={ctaHref}>
+              {ctaLabel}
+            </AuthButton>
+            <Link
+              href="/docs"
+              className="inline-flex items-center gap-2 text-base font-medium text-primary hover:underline"
+            >
+              Read Documentation
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+          <p className="mt-5 text-sm text-muted-foreground">
+            No credit card required &middot; 30 free pages/month &middot; Cancel anytime
+          </p>
         </div>
       </section>
     </>

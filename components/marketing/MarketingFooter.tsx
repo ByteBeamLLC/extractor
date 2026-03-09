@@ -9,6 +9,9 @@ const footerLinks = {
     { href: "/solutions/no-code-document-parser", label: "No-Code Parser" },
     { href: "/solutions/document-parsing-api", label: "Document Parsing API" },
   ],
+  Tools: [
+    { href: "/tools/pdf-to-excel", label: "PDF to Excel Converter" },
+  ],
   Resources: [
     { href: "/blog", label: "Blog" },
     { href: "/docs", label: "Documentation" },
@@ -34,7 +37,7 @@ export function MarketingFooter() {
   return (
     <footer className="border-t bg-muted/30">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-8">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
