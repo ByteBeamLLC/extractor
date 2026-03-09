@@ -1,16 +1,10 @@
-import { ParserDetailPage } from "@/components/extractor/parsers/ParserDetailPage"
+"use client"
 
-export default function ParserPage({
-  params,
-  searchParams,
-}: {
-  params: { parserId: string }
-  searchParams: { onboarding?: string }
-}) {
-  return (
-    <ParserDetailPage
-      parserId={params.parserId}
-      showOnboarding={searchParams.onboarding === "true"}
-    />
-  )
+import { useActiveParser } from "@/components/extractor/parser-context"
+import { ParserOverview } from "@/components/extractor/overview/ParserOverview"
+
+export default function ParserOverviewPage() {
+  const { parser, updateParser } = useActiveParser()
+  if (!parser) return null
+  return <ParserOverview parser={parser} onUpdate={updateParser} />
 }

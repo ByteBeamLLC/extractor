@@ -1,18 +1,24 @@
 "use client"
 
-import { usePathname } from "next/navigation"
+import { useCallback, useRef, useState } from "react"
+import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
-import { useState } from "react"
 import Image from "next/image"
 import {
   LayoutDashboard,
-  FileText,
   BookOpen,
   Settings,
   ChevronsUpDown,
   LogOut,
   Loader2,
   LifeBuoy,
+  ArrowLeft,
+  ListChecks,
+  FileText,
+  Inbox,
+  Share2,
+  Code,
+  Upload,
 } from "lucide-react"
 
 import {
@@ -24,6 +30,7 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
@@ -37,8 +44,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import { useAuthDialog } from "@/components/auth/AuthDialogContext"
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
+import { useActiveParser } from "@/components/extractor/parser-context"
+import { cn } from "@/lib/utils"
 
 const mainNav = [
   { key: "dashboard", href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -47,17 +57,76 @@ const mainNav = [
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const router = useRouter()
   const session = useSession()
   const supabase = useSupabaseClient()
   const { openAuthDialog } = useAuthDialog()
+  const { parser } = useActiveParser()
   const [isSigningOut, setIsSigningOut] = useState(false)
 
-  const isActive = (item: typeof mainNav[number]) => {
+  // Determine if we're inside a parser route
+  const isInsideParser = !!parser && pathname?.startsWith("/parsers/")
+
+  const isMainNavActive = (item: typeof mainNav[number]) => {
     if (item.href === "/dashboard") {
-      return pathname === "/dashboard" || pathname?.startsWith("/parsers")
+      return pathname === "/dashboard"
     }
     return pathname?.startsWith(item.href)
   }
+
+  const parserNav = parser
+    ? [
+        { key: "overview", href: `/parsers/${parser.id}`, icon: LayoutDashboard, label: "Overview", exact: true },
+        { key: "schema", href: `/parsers/${parser.id}/schema`, icon: ListChecks, label: "Schema", badge: parser.fields?.length || null },
+        { key: "documents", href: `/parsers/${parser.id}/documents`, icon: FileText, label: "Documents", badge: parser.document_count || null },
+        { key: "import", href: `/parsers/${parser.id}/import`, icon: Inbox, label: "Import" },
+        { key: "export", href: `/parsers/${parser.id}/export`, icon: Share2, label: "Export" },
+        { key: "api", href: `/parsers/${parser.id}/api`, icon: Code, label: "API" },
+        { key: "settings", href: `/parsers/${parser.id}/settings`, icon: Settings, label: "Settings" },
+      ]
+    : []
+
+  const isParserNavActive = (item: typeof parserNav[number]) => {
+    if (item.exact) {
+      return pathname === item.href
+    }
+    return pathname?.startsWith(item.href)
+  }
+
+  // File upload handler for the persistent upload widget
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isUploading, setIsUploading] = useState(false)
+
+  const handleSidebarUpload = useCallback(
+    async (file: File) => {
+      if (!parser || parser.fields.length === 0) {
+        router.push(`/parsers/${parser?.id}/documents`)
+        return
+      }
+      setIsUploading(true)
+      try {
+        const buffer = await file.arrayBuffer()
+        const base64 = btoa(
+          new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), "")
+        )
+        await fetch(`/api/parsers/${parser.id}/extract`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            file: { name: file.name, type: file.type, data: base64, size: file.size },
+            source_type: "upload",
+          }),
+        })
+        router.push(`/parsers/${parser.id}/documents`)
+      } catch {
+        // Navigate to documents page even on error
+        router.push(`/parsers/${parser.id}/documents`)
+      } finally {
+        setIsUploading(false)
+      }
+    },
+    [parser, router]
+  )
 
   const displayName =
     (session?.user?.user_metadata?.full_name as string) ||
@@ -114,27 +183,137 @@ export function AppSidebar() {
 
       {/* Navigation */}
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Menu</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {mainNav.map((item) => (
-                <SidebarMenuItem key={item.key}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(item)}
-                    tooltip={item.label}
+        {isInsideParser ? (
+          <>
+            {/* Back to parsers */}
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Back to Parsers">
+                      <Link href="/dashboard">
+                        <ArrowLeft />
+                        <span>Back to Parsers</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarSeparator />
+
+            {/* Parser info */}
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <div className="px-3 py-2 group-data-[collapsible=icon]:hidden">
+                  <p className="text-sm font-semibold truncate">{parser.name}</p>
+                  {parser.description && (
+                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                      {parser.description}
+                    </p>
+                  )}
+                  <Badge
+                    variant={parser.status === "active" ? "default" : "secondary"}
+                    className="text-[10px] mt-1.5"
                   >
-                    <Link href={item.href}>
-                      <item.icon />
-                      <span>{item.label}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+                    {parser.status}
+                  </Badge>
+                </div>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            {/* Parser navigation */}
+            <SidebarGroup>
+              <SidebarGroupLabel>Parser</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {parserNav.map((item) => (
+                    <SidebarMenuItem key={item.key}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isParserNavActive(item)}
+                        tooltip={item.label}
+                      >
+                        <Link href={item.href}>
+                          <item.icon />
+                          <span>{item.label}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                      {item.badge ? (
+                        <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
+                      ) : null}
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            <div className="flex-1" />
+
+            {/* Persistent upload widget */}
+            <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+              <SidebarGroupContent>
+                <div
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    const file = e.dataTransfer.files?.[0]
+                    if (file) handleSidebarUpload(file)
+                  }}
+                  onDragOver={(e) => e.preventDefault()}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={cn(
+                    "mx-2 border-2 border-dashed rounded-lg p-3 text-center cursor-pointer transition-colors",
+                    "hover:border-primary/50 hover:bg-accent/30",
+                    isUploading && "opacity-50 pointer-events-none"
+                  )}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.bmp,.docx,.doc,.xlsx,.xls,.txt,.csv,.json"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) handleSidebarUpload(file)
+                    }}
+                    className="hidden"
+                  />
+                  {isUploading ? (
+                    <Loader2 className="h-4 w-4 animate-spin mx-auto mb-1 text-muted-foreground" />
+                  ) : (
+                    <Upload className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
+                  )}
+                  <p className="text-[10px] text-muted-foreground leading-tight">
+                    {isUploading ? "Uploading..." : "Drop files here\nto extract data"}
+                  </p>
+                </div>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
+        ) : (
+          /* Default navigation */
+          <SidebarGroup>
+            <SidebarGroupLabel>Menu</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {mainNav.map((item) => (
+                  <SidebarMenuItem key={item.key}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isMainNavActive(item)}
+                      tooltip={item.label}
+                    >
+                      <Link href={item.href}>
+                        <item.icon />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       {/* Footer: User */}

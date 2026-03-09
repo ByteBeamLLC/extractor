@@ -35,9 +35,9 @@ export function ParserSettings({ parser, onUpdate, onDeleted }: ParserSettingsPr
   const [isDeleting, setIsDeleting] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  // Auto-generate inbound_email for parsers that were created before the feature
+  // Auto-generate or migrate inbound_email to the new format (name.xxxx.xxxx@in.parsli.co)
   useEffect(() => {
-    if (parser.inbound_email) return
+    if (parser.inbound_email && parser.inbound_email.endsWith("@in.parsli.co") && parser.inbound_email.includes(".")) return
     onUpdate({ inbound_email: generateInboundEmail(parser.name) })
   }, [parser.inbound_email, parser.id]) // eslint-disable-line react-hooks/exhaustive-deps
 

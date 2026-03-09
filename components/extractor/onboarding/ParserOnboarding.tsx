@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import Link from "next/link"
 import {
   ListChecks,
   Upload,
@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils"
 const ONBOARDING_STEPS = [
   {
     id: "schema",
-    tab: "schema",
+    route: "schema",
     icon: ListChecks,
     title: "Review your fields",
     description:
@@ -24,7 +24,7 @@ const ONBOARDING_STEPS = [
   },
   {
     id: "upload",
-    tab: "test",
+    route: "documents",
     icon: Upload,
     title: "Upload a document",
     description:
@@ -32,7 +32,7 @@ const ONBOARDING_STEPS = [
   },
   {
     id: "results",
-    tab: "test",
+    route: "documents",
     icon: BarChart3,
     title: "Review results",
     description:
@@ -40,7 +40,7 @@ const ONBOARDING_STEPS = [
   },
   {
     id: "integrations",
-    tab: "integrations",
+    route: "export",
     icon: Plug,
     title: "Connect integrations",
     description:
@@ -50,12 +50,14 @@ const ONBOARDING_STEPS = [
 
 interface ParserOnboardingProps {
   currentStep: number
-  onStepClick: (stepIndex: number, tabId: string) => void
+  parserId: string
+  onStepClick: (stepIndex: number) => void
   onDismiss: () => void
 }
 
 export function ParserOnboarding({
   currentStep,
+  parserId,
   onStepClick,
   onDismiss,
 }: ParserOnboardingProps) {
@@ -63,7 +65,7 @@ export function ParserOnboarding({
   if (!step) return null
 
   return (
-    <div className="mb-6 rounded-xl border bg-primary/[0.03] border-primary/20 overflow-hidden">
+    <div className="rounded-xl border bg-primary/[0.03] border-primary/20 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-primary/10 bg-primary/[0.02]">
         <p className="text-xs font-medium text-primary">
@@ -91,7 +93,7 @@ export function ParserOnboarding({
             return (
               <button
                 key={s.id}
-                onClick={() => onStepClick(i, s.tab)}
+                onClick={() => onStepClick(i)}
                 className={cn(
                   "flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all",
                   isCurrent &&
@@ -124,22 +126,12 @@ export function ParserOnboarding({
               {step.description}
             </p>
           </div>
-          {currentStep < ONBOARDING_STEPS.length - 1 && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="text-xs shrink-0"
-              onClick={() =>
-                onStepClick(
-                  currentStep + 1,
-                  ONBOARDING_STEPS[currentStep + 1].tab
-                )
-              }
-            >
-              Next
+          <Button size="sm" variant="ghost" className="text-xs shrink-0" asChild>
+            <Link href={`/parsers/${parserId}/${step.route}`}>
+              Go
               <ChevronRight className="h-3.5 w-3.5 ml-1" />
-            </Button>
-          )}
+            </Link>
+          </Button>
         </div>
       </div>
     </div>
