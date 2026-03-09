@@ -1,0 +1,237 @@
+import { type NextRequest, NextResponse } from "next/server"
+import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
+import { runExtraction } from "@/lib/extraction/runExtraction"
+import { deliverToIntegrations } from "@/lib/extractor/integrations/orchestrator"
+import { checkCredits, deductCredits } from "@/lib/extractor/billing/credits"
+import type { SchemaField } from "@/lib/schema"
+
+export const runtime = "nodejs"
+
+// Match the Gmail poller's allowlist
+const SUPPORTED_MIME_TYPES = new Set([
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
+  "text/csv",
+  "text/plain",
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "image/gif",
+  "image/webp",
+])
+
+const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024 // 10MB
+
+/**
+ * POST /api/inbound/email
+ *
+ * Receives inbound emails from SendGrid Inbound Parse (parsed mode).
+ * SendGrid POSTs multipart/form-data with fields:
+ *   - to, from, subject, text, html
+ *   - attachment1, attachment2, ... (File objects)
+ *   - attachment-info (JSON string with metadata)
+ *
+ * Routes to the correct parser by matching the "to" address
+ * against parsers.inbound_email.
+ */
+export async function POST(request: NextRequest) {
+  const supabase = createSupabaseServiceRoleClient()
+
+  let formData: FormData
+  try {
+    formData = await request.formData()
+  } catch {
+    return NextResponse.json({ error: "Invalid form data" }, { status: 400 })
+  }
+
+  // Extract the "to" address to find the parser
+  const toRaw = formData.get("to") as string | null
+  if (!toRaw) {
+    return NextResponse.json({ error: "Missing 'to' field" }, { status: 400 })
+  }
+
+  // SendGrid may send "Name <email>" format — extract just the email
+  const toEmail = extractEmail(toRaw)
+  if (!toEmail) {
+    return NextResponse.json({ error: "Could not parse 'to' address" }, { status: 400 })
+  }
+
+  // Look up parser by inbound email
+  const { data: parserRaw } = await supabase
+    .from("parsers" as any)
+    .select("*")
+    .eq("inbound_email", toEmail.toLowerCase())
+    .single()
+
+  const parser = parserRaw as any
+  if (!parser) {
+    // No parser found — silently accept so SendGrid doesn't retry
+    return NextResponse.json({ message: "No parser found for this address" }, { status: 200 })
+  }
+
+  if (parser.status !== "active") {
+    return NextResponse.json({ message: "Parser is paused" }, { status: 200 })
+  }
+
+  const schemaTree: SchemaField[] = parser.fields ?? []
+  if (schemaTree.length === 0) {
+    return NextResponse.json({ message: "Parser has no fields configured" }, { status: 200 })
+  }
+
+  const from = (formData.get("from") as string) ?? ""
+  const subject = (formData.get("subject") as string) ?? ""
+  const textBody = (formData.get("text") as string) ?? ""
+
+  // Collect all items to process: email body text + attachments
+  const items: { fileName: string; mimeType: string; base64: string; size: number }[] = []
+
+  // 1. Process email body text if non-empty
+  if (textBody.trim().length > 0) {
+    const bodyContent = `From: ${from}\nSubject: ${subject}\n\n${textBody}`
+    const bodyBase64 = Buffer.from(bodyContent, "utf-8").toString("base64")
+    items.push({
+      fileName: `email-body-${subject.slice(0, 50) || "no-subject"}.txt`,
+      mimeType: "text/plain",
+      base64: bodyBase64,
+      size: Buffer.byteLength(bodyContent, "utf-8"),
+    })
+  }
+
+  // 2. Collect attachments
+  // SendGrid sends attachments as attachment1, attachment2, etc.
+  for (let i = 1; i <= 30; i++) {
+    const file = formData.get(`attachment${i}`) as File | null
+    if (!file) break
+
+    const mimeType = file.type?.toLowerCase() ?? ""
+    if (!SUPPORTED_MIME_TYPES.has(mimeType)) {
+      console.log(`[inbound/email] Skipping unsupported attachment type: ${mimeType} (${file.name})`)
+      continue
+    }
+
+    if (file.size > MAX_ATTACHMENT_SIZE) {
+      console.log(`[inbound/email] Skipping oversized attachment: ${file.name} (${file.size} bytes)`)
+      continue
+    }
+
+    const arrayBuffer = await file.arrayBuffer()
+    const base64 = Buffer.from(arrayBuffer).toString("base64")
+    items.push({
+      fileName: file.name || `attachment${i}`,
+      mimeType,
+      base64,
+      size: file.size,
+    })
+  }
+
+  if (items.length === 0) {
+    return NextResponse.json({ message: "No processable content found" }, { status: 200 })
+  }
+
+  // Check credits for all items upfront
+  const creditCheck = await checkCredits(parser.user_id, items.length, supabase)
+  if (!creditCheck.allowed) {
+    console.log(`[inbound/email] Insufficient credits for user ${parser.user_id} (need ${items.length}, have ${creditCheck.remaining})`)
+    return NextResponse.json({ message: "Credit limit reached" }, { status: 200 })
+  }
+
+  // Process each item
+  const results: { fileName: string; success: boolean; error?: string }[] = []
+
+  for (const item of items) {
+    try {
+      // Create processing log
+      const { data: processedDoc } = await supabase
+        .from("parser_processed_documents" as any)
+        .insert({
+          parser_id: parser.id,
+          user_id: parser.user_id,
+          source_type: "email",
+          file_name: item.fileName,
+          mime_type: item.mimeType,
+          file_size: item.size,
+          status: "processing",
+        } as any)
+        .select("id")
+        .single()
+
+      const docId = (processedDoc as any)?.id
+
+      // Run extraction
+      const result = await runExtraction({
+        fileData: item.base64,
+        fileName: item.fileName,
+        mimeType: item.mimeType,
+        schemaTree,
+        extractionPromptOverride: parser.extraction_prompt_override,
+      })
+
+      // Deduct 1 credit
+      const { success: deducted } = await deductCredits(parser.user_id, 1, supabase)
+      if (!deducted) {
+        console.warn(`[inbound/email] Credit deduction failed for user ${parser.user_id}`)
+      }
+
+      // Update processing log
+      if (docId) {
+        await supabase
+          .from("parser_processed_documents" as any)
+          .update({
+            status: result.error ? "error" : "completed",
+            results: result.results,
+            processed_at: new Date().toISOString(),
+            credits_used: 1,
+            error_message: result.error ?? null,
+          } as any)
+          .eq("id", docId)
+
+        // Deliver to integrations
+        await deliverToIntegrations(
+          parser.id,
+          parser.name,
+          docId,
+          result.results,
+          { file_name: item.fileName, mime_type: item.mimeType, source_type: "email", page_count: 1 },
+          supabase as any
+        )
+      }
+
+      // Update parser stats
+      await supabase
+        .from("parsers" as any)
+        .update({
+          document_count: (parser.document_count ?? 0) + 1,
+          last_processed_at: new Date().toISOString(),
+        } as any)
+        .eq("id", parser.id)
+
+      // Increment in-memory count for subsequent updates
+      parser.document_count = (parser.document_count ?? 0) + 1
+
+      results.push({ fileName: item.fileName, success: result.success, error: result.error })
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Unknown error"
+      console.error(`[inbound/email] Error processing ${item.fileName}:`, errorMsg)
+      results.push({ fileName: item.fileName, success: false, error: errorMsg })
+    }
+  }
+
+  return NextResponse.json({ processed: results.length, results })
+}
+
+/**
+ * Extract email address from formats like:
+ *   "John Doe <john@example.com>"
+ *   "john@example.com"
+ *   "<john@example.com>"
+ */
+function extractEmail(raw: string): string | null {
+  const angleMatch = raw.match(/<([^>]+)>/)
+  if (angleMatch) return angleMatch[1].toLowerCase()
+  const trimmed = raw.trim().toLowerCase()
+  if (trimmed.includes("@")) return trimmed
+  return null
+}

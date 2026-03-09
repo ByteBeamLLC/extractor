@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
+import { generateInboundEmail } from "@/lib/extractor/inbound-email"
 
 interface CreateParserDialogProps {
   open: boolean
@@ -53,8 +54,6 @@ export function CreateParserDialog({ open, onOpenChange, onCreated }: CreatePars
     try {
       // Generate a unique webhook token
       const webhookToken = crypto.randomUUID().replace(/-/g, "")
-      // Generate an inbound email (for future use)
-      const emailHash = crypto.randomUUID().replace(/-/g, "").slice(0, 12)
 
       const { data, error: insertError } = await supabase
         .from("parsers")
@@ -64,7 +63,7 @@ export function CreateParserDialog({ open, onOpenChange, onCreated }: CreatePars
           description: description.trim() || null,
           fields: [],
           extraction_mode: "ai",
-          inbound_email: `${emailHash}@parse.parsli.co`,
+          inbound_email: generateInboundEmail(name),
           inbound_webhook_token: webhookToken,
         })
         .select("id")

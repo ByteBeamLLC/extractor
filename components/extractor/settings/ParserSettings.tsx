@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Loader2, Trash2, AlertTriangle } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Loader2, Trash2, Copy, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useSupabaseClient } from "@/lib/supabase/hooks"
 import type { Parser } from "@/lib/extractor/types"
+import { generateInboundEmail } from "@/lib/extractor/inbound-email"
 
 interface ParserSettingsProps {
   parser: Parser
@@ -32,6 +33,20 @@ export function ParserSettings({ parser, onUpdate, onDeleted }: ParserSettingsPr
   const [saving, setSaving] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  // Auto-generate inbound_email for parsers that were created before the feature
+  useEffect(() => {
+    if (parser.inbound_email) return
+    onUpdate({ inbound_email: generateInboundEmail(parser.name) })
+  }, [parser.inbound_email, parser.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleCopyEmail = async () => {
+    if (!parser.inbound_email) return
+    await navigator.clipboard.writeText(parser.inbound_email)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   const handleSave = async () => {
     setSaving(true)
@@ -81,21 +96,20 @@ export function ParserSettings({ parser, onUpdate, onDeleted }: ParserSettingsPr
         )}
       </div>
 
-      {/* Inbound email (future) — hidden until feature is ready
       {parser.inbound_email && (
         <div className="space-y-3">
           <h3 className="text-lg font-semibold">Email Forwarding</h3>
           <p className="text-sm text-muted-foreground">
             Forward emails to this address to automatically parse attachments.
           </p>
-          <div className="p-3 bg-muted/50 rounded-lg">
+          <div className="p-3 bg-muted/50 rounded-lg flex items-center justify-between gap-2">
             <code className="text-sm font-mono">{parser.inbound_email}</code>
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={handleCopyEmail}>
+              {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+            </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Email forwarding will be available in a future update.
-          </p>
         </div>
-      )} */}
+      )}
 
       {/* Danger zone */}
       <div className="space-y-3 pt-4 border-t">

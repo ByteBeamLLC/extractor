@@ -1,6 +1,7 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Plus, FileText, Loader2, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
@@ -9,10 +10,19 @@ import type { Parser, ExtractorSubscription } from "@/lib/extractor/types"
 import { ParserCard } from "./ParserCard"
 import { CreateParserDialog } from "./CreateParserDialog"
 import { CreditUsageBar } from "@/components/extractor/dashboard/CreditUsageBar"
+import { getTemplateById } from "@/lib/parser-templates"
+import { generateInboundEmail } from "@/lib/extractor/inbound-email"
+
+/** Read ?template= from the browser URL directly (works regardless of prop passing) */
+function getTemplateFromUrl(): string | null {
+  if (typeof window === "undefined") return null
+  return new URLSearchParams(window.location.search).get("template")
+}
 
 export function ParserListPage() {
   const session = useSession()
   const supabase = useSupabaseClient()
+  const router = useRouter()
   const { openAuthDialog } = useAuthDialog()
 
   const [parsers, setParsers] = useState<Parser[]>([])
@@ -20,6 +30,11 @@ export function ParserListPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [creatingFromTemplate, setCreatingFromTemplate] = useState(false)
+  const [templateError, setTemplateError] = useState<string | null>(null)
+
+  // Track whether we've already handled the template param (prevent double-create)
+  const templateHandled = useRef(false)
 
   const loadData = useCallback(async () => {
     if (!session?.user?.id) {
@@ -55,6 +70,66 @@ export function ParserListPage() {
     loadData()
   }, [loadData])
 
+  // Auto-create parser from template when ?template= is in the URL
+  useEffect(() => {
+    const tmplId = getTemplateFromUrl()
+    console.log("[template] effect fired", {
+      tmplId,
+      userId: session?.user?.id ?? null,
+      handled: templateHandled.current,
+      url: typeof window !== "undefined" ? window.location.href : "ssr",
+    })
+
+    if (!session?.user?.id || templateHandled.current) return
+    if (!tmplId) return
+
+    templateHandled.current = true
+
+    async function createFromTemplate() {
+      setCreatingFromTemplate(true)
+      try {
+        const template = getTemplateById(tmplId!)
+        console.log("[template] resolved template:", template?.id ?? "NOT FOUND")
+        if (!template) {
+          setTemplateError(`Unknown template: ${tmplId}`)
+          setCreatingFromTemplate(false)
+          return
+        }
+
+        const webhookToken = crypto.randomUUID().replace(/-/g, "")
+
+        console.log("[template] inserting parser:", template.name)
+        const { data, error: insertError } = await supabase
+          .from("parsers")
+          .insert({
+            user_id: session!.user.id,
+            name: template.name,
+            description: template.description,
+            fields: template.buildFields(),
+            extraction_mode: "ai",
+            inbound_email: generateInboundEmail(template.name),
+            inbound_webhook_token: webhookToken,
+          })
+          .select("id")
+          .single()
+
+        if (insertError) {
+          console.error("[template] insert error:", insertError)
+          throw insertError
+        }
+
+        console.log("[template] created parser:", data.id, "→ redirecting")
+        router.replace(`/parsers/${data.id}?onboarding=true`)
+      } catch (err) {
+        console.error("[template-create]", err)
+        setTemplateError(err instanceof Error ? err.message : "Failed to create parser from template")
+        setCreatingFromTemplate(false)
+      }
+    }
+
+    createFromTemplate()
+  }, [session?.user?.id, router, supabase])
+
   const handleCreateParser = () => {
     if (!session?.user?.id) {
       openAuthDialog("sign-in")
@@ -67,6 +142,9 @@ export function ParserListPage() {
     setShowCreateDialog(false)
     loadData()
   }
+
+  // Check for template param on initial mount (before session is available)
+  const hasTemplateParam = useRef(typeof window !== "undefined" && !!getTemplateFromUrl())
 
   if (!session?.user?.id) {
     return (
@@ -89,10 +167,13 @@ export function ParserListPage() {
     )
   }
 
-  if (loading) {
+  if (loading || creatingFromTemplate || (hasTemplateParam.current && !templateHandled.current)) {
     return (
-      <div className="flex items-center justify-center py-32">
+      <div className="flex flex-col items-center justify-center py-32 gap-3">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        {creatingFromTemplate && (
+          <p className="text-sm text-muted-foreground">Setting up your parser...</p>
+        )}
       </div>
     )
   }
@@ -121,10 +202,10 @@ export function ParserListPage() {
       )}
 
       {/* Error */}
-      {error && (
+      {(error || templateError) && (
         <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center gap-2 text-sm text-destructive">
           <AlertCircle className="h-4 w-4 shrink-0" />
-          {error}
+          {templateError || error}
         </div>
       )}
 
