@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
 import {
@@ -9,8 +9,12 @@ import {
   Trash2,
   Pause,
   Play,
-  Copy,
-  ExternalLink,
+  Sparkles,
+  ListChecks,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  Clock,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -34,12 +38,20 @@ import {
 import { useSupabaseClient } from "@/lib/supabase/hooks"
 import type { Parser } from "@/lib/extractor/types"
 
+interface StatusBreakdown {
+  completed: number
+  error: number
+  processing: number
+  pending: number
+}
+
 interface ParserCardProps {
   parser: Parser
+  statusBreakdown?: StatusBreakdown
   onDeleted: () => void
 }
 
-export function ParserCard({ parser, onDeleted }: ParserCardProps) {
+export function ParserCard({ parser, statusBreakdown, onDeleted }: ParserCardProps) {
   const supabase = useSupabaseClient()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -71,6 +83,8 @@ export function ParserCard({ parser, onDeleted }: ParserCardProps) {
     onDeleted() // reload
   }
 
+  const totalDocs = parser.document_count ?? 0
+
   return (
     <>
       <Link
@@ -78,6 +92,7 @@ export function ParserCard({ parser, onDeleted }: ParserCardProps) {
         className="block group"
       >
         <div className="border rounded-xl p-5 bg-card hover:shadow-md transition-shadow h-full flex flex-col">
+          {/* Header: name + menu */}
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-3 min-w-0">
               <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -87,9 +102,9 @@ export function ParserCard({ parser, onDeleted }: ParserCardProps) {
                 <h3 className="font-semibold truncate group-hover:text-primary transition-colors">
                   {parser.name}
                 </h3>
-                {parser.description && (
-                  <p className="text-xs text-muted-foreground truncate">
-                    {parser.description}
+                {parser.inbound_email && (
+                  <p className="text-[11px] text-muted-foreground/70 font-mono truncate">
+                    {parser.inbound_email}
                   </p>
                 )}
               </div>
@@ -121,23 +136,59 @@ export function ParserCard({ parser, onDeleted }: ParserCardProps) {
             </DropdownMenu>
           </div>
 
-          <div className="flex items-center gap-2 mt-auto pt-3">
-            <Badge variant={parser.status === "active" ? "default" : "secondary"} className="text-xs">
-              {parser.status}
-            </Badge>
-            <span className="text-xs text-muted-foreground">
-              {fieldCount} field{fieldCount !== 1 ? "s" : ""}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {parser.document_count} doc{parser.document_count !== 1 ? "s" : ""}
-            </span>
+          {/* Document status breakdown */}
+          <div className="space-y-1.5 mb-3">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <FileText className="h-3.5 w-3.5" />
+              <span className="font-medium">{totalDocs} document{totalDocs !== 1 ? "s" : ""}</span>
+            </div>
+            {statusBreakdown && totalDocs > 0 && (
+              <div className="pl-5 space-y-0.5">
+                {statusBreakdown.completed > 0 && (
+                  <div className="flex items-center gap-1.5 text-[11px]">
+                    <CheckCircle2 className="h-3 w-3 text-green-500" />
+                    <span className="text-muted-foreground">{statusBreakdown.completed} Processed</span>
+                  </div>
+                )}
+                {statusBreakdown.error > 0 && (
+                  <div className="flex items-center gap-1.5 text-[11px]">
+                    <XCircle className="h-3 w-3 text-red-500" />
+                    <span className="text-muted-foreground">{statusBreakdown.error} Failed</span>
+                  </div>
+                )}
+                {statusBreakdown.processing > 0 && (
+                  <div className="flex items-center gap-1.5 text-[11px]">
+                    <Clock className="h-3 w-3 text-blue-500" />
+                    <span className="text-muted-foreground">{statusBreakdown.processing} Processing</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          {lastActive && (
-            <p className="text-xs text-muted-foreground mt-2">
-              Last active {lastActive}
-            </p>
-          )}
+          {/* AI Engine + Fields */}
+          <div className="space-y-1.5 mb-3">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+              <span>AI Engine</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <ListChecks className="h-3.5 w-3.5" />
+              <span>{fieldCount} field{fieldCount !== 1 ? "s" : ""}</span>
+            </div>
+          </div>
+
+          {/* Footer: status + last active */}
+          <div className="flex items-center justify-between mt-auto pt-3 border-t">
+            <Badge variant={parser.status === "active" ? "default" : "secondary"} className="text-[10px]">
+              {parser.status}
+            </Badge>
+            {lastActive && (
+              <span className="text-[11px] text-muted-foreground">
+                {lastActive}
+              </span>
+            )}
+          </div>
         </div>
       </Link>
 

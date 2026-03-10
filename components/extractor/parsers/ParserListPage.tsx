@@ -1,9 +1,17 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Plus, FileText, Loader2, AlertCircle } from "lucide-react"
+import { Plus, FileText, Loader2, AlertCircle, Search, ArrowUpDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
 import { useAuthDialog } from "@/components/auth/AuthDialogContext"
 import type { Parser, ExtractorSubscription } from "@/lib/extractor/types"
@@ -12,6 +20,15 @@ import { CreateParserDialog } from "./CreateParserDialog"
 import { CreditUsageBar } from "@/components/extractor/dashboard/CreditUsageBar"
 import { getTemplateById } from "@/lib/parser-templates"
 import { generateInboundEmail } from "@/lib/extractor/inbound-email"
+
+type SortOption = "last_updated" | "name" | "created" | "documents"
+
+interface StatusBreakdown {
+  completed: number
+  error: number
+  processing: number
+  pending: number
+}
 
 /** Read ?template= from the browser URL directly (works regardless of prop passing) */
 function getTemplateFromUrl(): string | null {
@@ -32,6 +49,13 @@ export function ParserListPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [creatingFromTemplate, setCreatingFromTemplate] = useState(false)
   const [templateError, setTemplateError] = useState<string | null>(null)
+
+  // Search and sort
+  const [searchQuery, setSearchQuery] = useState("")
+  const [sortBy, setSortBy] = useState<SortOption>("last_updated")
+
+  // Status breakdowns per parser
+  const [statusBreakdowns, setStatusBreakdowns] = useState<Record<string, StatusBreakdown>>({})
 
   // Track whether we've already handled the template param (prevent double-create)
   const templateHandled = useRef(false)
@@ -57,8 +81,32 @@ export function ParserListPage() {
       ])
 
       if (parsersRes.error) throw parsersRes.error
-      setParsers(parsersRes.data ?? [])
+      const loadedParsers = parsersRes.data ?? []
+      setParsers(loadedParsers)
       setSubscription(subRes.data)
+
+      // Load status breakdowns for all parsers
+      if (loadedParsers.length > 0) {
+        const parserIds = loadedParsers.map((p) => p.id)
+        const { data: docs } = await supabase
+          .from("parser_processed_documents")
+          .select("parser_id, status")
+          .in("parser_id", parserIds)
+
+        if (docs) {
+          const breakdowns: Record<string, StatusBreakdown> = {}
+          for (const doc of docs) {
+            if (!breakdowns[doc.parser_id]) {
+              breakdowns[doc.parser_id] = { completed: 0, error: 0, processing: 0, pending: 0 }
+            }
+            const status = doc.status as keyof StatusBreakdown
+            if (status in breakdowns[doc.parser_id]) {
+              breakdowns[doc.parser_id][status]++
+            }
+          }
+          setStatusBreakdowns(breakdowns)
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load parsers")
     } finally {
@@ -73,13 +121,6 @@ export function ParserListPage() {
   // Auto-create parser from template when ?template= is in the URL
   useEffect(() => {
     const tmplId = getTemplateFromUrl()
-    console.log("[template] effect fired", {
-      tmplId,
-      userId: session?.user?.id ?? null,
-      handled: templateHandled.current,
-      url: typeof window !== "undefined" ? window.location.href : "ssr",
-    })
-
     if (!session?.user?.id || templateHandled.current) return
     if (!tmplId) return
 
@@ -89,7 +130,6 @@ export function ParserListPage() {
       setCreatingFromTemplate(true)
       try {
         const template = getTemplateById(tmplId!)
-        console.log("[template] resolved template:", template?.id ?? "NOT FOUND")
         if (!template) {
           setTemplateError(`Unknown template: ${tmplId}`)
           setCreatingFromTemplate(false)
@@ -97,8 +137,6 @@ export function ParserListPage() {
         }
 
         const webhookToken = crypto.randomUUID().replace(/-/g, "")
-
-        console.log("[template] inserting parser:", template.name)
         const { data, error: insertError } = await supabase
           .from("parsers")
           .insert({
@@ -113,15 +151,9 @@ export function ParserListPage() {
           .select("id")
           .single()
 
-        if (insertError) {
-          console.error("[template] insert error:", insertError)
-          throw insertError
-        }
-
-        console.log("[template] created parser:", data.id, "→ redirecting")
+        if (insertError) throw insertError
         router.replace(`/parsers/${data.id}?onboarding=true`)
       } catch (err) {
-        console.error("[template-create]", err)
         setTemplateError(err instanceof Error ? err.message : "Failed to create parser from template")
         setCreatingFromTemplate(false)
       }
@@ -142,6 +174,40 @@ export function ParserListPage() {
     setShowCreateDialog(false)
     loadData()
   }
+
+  // Filter and sort parsers
+  const filteredParsers = useMemo(() => {
+    let result = parsers
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      result = result.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          (p.description && p.description.toLowerCase().includes(q)) ||
+          (p.inbound_email && p.inbound_email.toLowerCase().includes(q))
+      )
+    }
+
+    // Sort
+    result = [...result].sort((a, b) => {
+      switch (sortBy) {
+        case "last_updated":
+          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+        case "name":
+          return a.name.localeCompare(b.name)
+        case "created":
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        case "documents":
+          return (b.document_count ?? 0) - (a.document_count ?? 0)
+        default:
+          return 0
+      }
+    })
+
+    return result
+  }, [parsers, searchQuery, sortBy])
 
   // Check for template param on initial mount (before session is available)
   const hasTemplateParam = useRef(typeof window !== "undefined" && !!getTemplateFromUrl())
@@ -209,6 +275,33 @@ export function ParserListPage() {
         </div>
       )}
 
+      {/* Search + Sort */}
+      {parsers.length > 0 && (
+        <div className="flex items-center gap-3 mb-6">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search parsers..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+            <SelectTrigger className="w-[180px]">
+              <ArrowUpDown className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="last_updated">Last updated</SelectItem>
+              <SelectItem value="name">Name</SelectItem>
+              <SelectItem value="created">Date created</SelectItem>
+              <SelectItem value="documents">Most documents</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       {/* Parser grid */}
       {parsers.length === 0 ? (
         <div className="border-2 border-dashed rounded-xl p-12 text-center">
@@ -223,12 +316,20 @@ export function ParserListPage() {
             Create Your First Parser
           </Button>
         </div>
+      ) : filteredParsers.length === 0 ? (
+        <div className="border-2 border-dashed rounded-xl p-8 text-center">
+          <Search className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">
+            No parsers match &ldquo;{searchQuery}&rdquo;
+          </p>
+        </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {parsers.map((parser) => (
+          {filteredParsers.map((parser) => (
             <ParserCard
               key={parser.id}
               parser={parser}
+              statusBreakdown={statusBreakdowns[parser.id]}
               onDeleted={loadData}
             />
           ))}

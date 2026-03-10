@@ -77,7 +77,7 @@ export function AppSidebar() {
   const parserNav = parser
     ? [
         { key: "overview", href: `/parsers/${parser.id}`, icon: LayoutDashboard, label: "Overview", exact: true },
-        { key: "schema", href: `/parsers/${parser.id}/schema`, icon: ListChecks, label: "Schema", badge: parser.fields?.length || null },
+        { key: "schema", href: `/parsers/${parser.id}/schema`, icon: ListChecks, label: "Fields", badge: parser.fields?.length || null },
         { key: "documents", href: `/parsers/${parser.id}/documents`, icon: FileText, label: "Documents", badge: parser.document_count || null },
         { key: "import", href: `/parsers/${parser.id}/import`, icon: Inbox, label: "Import" },
         { key: "export", href: `/parsers/${parser.id}/export`, icon: Share2, label: "Export" },
@@ -316,8 +316,23 @@ export function AppSidebar() {
         )}
       </SidebarContent>
 
-      {/* Footer: User */}
+      {/* Footer */}
       <SidebarFooter>
+        {/* Help & Support */}
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Help & Support">
+              <a href="mailto:talal@bytebeam.co?subject=Parsli%20Support">
+                <LifeBuoy />
+                <span>Help & Support</span>
+              </a>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+
+        <SidebarSeparator />
+
+        {/* User account */}
         <SidebarMenu>
           <SidebarMenuItem>
             {session ? (
@@ -354,12 +369,6 @@ export function AppSidebar() {
                       <Settings className="mr-2 size-4" />
                       Account Settings
                     </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="cursor-pointer">
-                    <a href="mailto:talal@bytebeam.co?subject=Parsli%20Support">
-                      <LifeBuoy className="mr-2 size-4" />
-                      Help & Support
-                    </a>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem

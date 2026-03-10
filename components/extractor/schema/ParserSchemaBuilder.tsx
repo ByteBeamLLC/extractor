@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useRef } from "react"
 import {
   Plus,
   GripVertical,
@@ -24,6 +24,8 @@ import {
   FileText,
   ListChecks,
   CheckSquare,
+  Sparkles,
+  AlertCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -31,13 +33,12 @@ import { cn } from "@/lib/utils"
 import type { Parser } from "@/lib/extractor/types"
 import type {
   SchemaField,
-  DataType,
   LeafField,
   ObjectField,
-  ListField,
   TableField,
 } from "@/lib/schema"
 import { FieldEditor } from "./FieldEditor"
+import { useActiveParser } from "@/components/extractor/parser-context"
 
 interface ParserSchemaBuilderProps {
   parser: Parser
@@ -63,6 +64,7 @@ const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
 }
 
 export function ParserSchemaBuilder({ parser, onUpdate }: ParserSchemaBuilderProps) {
+  const { fieldDetection, detectFields, clearFieldDetection } = useActiveParser()
   const [fields, setFields] = useState<SchemaField[]>(parser.fields ?? [])
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null)
   const [isAddingField, setIsAddingField] = useState(false)
@@ -70,8 +72,26 @@ export function ParserSchemaBuilder({ parser, onUpdate }: ParserSchemaBuilderPro
   const [hasChanges, setHasChanges] = useState(false)
   const [expandedFields, setExpandedFields] = useState<Set<string>>(new Set())
   const [promptOverride, setPromptOverride] = useState(parser.extraction_prompt_override ?? "")
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const isDetecting = fieldDetection.status === "detecting"
+  const suggestedFields = fieldDetection.suggestedFields
+  const detectError = fieldDetection.status === "error" ? fieldDetection.error : null
 
   const markChanged = () => setHasChanges(true)
+
+  const handleAcceptSuggestions = (mode: "replace" | "merge") => {
+    if (!suggestedFields) return
+    if (mode === "replace") {
+      setFields(suggestedFields)
+    } else {
+      const existingIds = new Set(fields.map((f) => f.id))
+      const newFields = suggestedFields.filter((f) => !existingIds.has(f.id))
+      setFields((prev) => [...prev, ...newFields])
+    }
+    clearFieldDetection()
+    markChanged()
+  }
 
   const handleSave = async () => {
     setIsSaving(true)
@@ -223,6 +243,30 @@ export function ParserSchemaBuilder({ parser, onUpdate }: ParserSchemaBuilderPro
           <Plus className="h-4 w-4 mr-1" />
           Add Field
         </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isDetecting}
+        >
+          {isDetecting ? (
+            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+          ) : (
+            <Sparkles className="h-4 w-4 mr-1" />
+          )}
+          {isDetecting ? "Detecting..." : "Auto-Detect Fields"}
+        </Button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          accept=".pdf,.png,.jpg,.jpeg,.webp,.tiff,.docx,.xlsx,.csv,.txt"
+          onChange={(e) => {
+            const file = e.target.files?.[0]
+            if (file) detectFields(file)
+            e.target.value = ""
+          }}
+        />
         {hasChanges && (
           <Button size="sm" onClick={handleSave} disabled={isSaving}>
             {isSaving ? (
@@ -234,6 +278,65 @@ export function ParserSchemaBuilder({ parser, onUpdate }: ParserSchemaBuilderPro
           </Button>
         )}
       </div>
+
+      {/* Auto-detect error */}
+      {detectError && (
+        <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {detectError}
+          <button onClick={clearFieldDetection} className="ml-auto text-xs underline">
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Suggested fields from auto-detect */}
+      {suggestedFields && (
+        <div className="border border-primary/30 rounded-xl p-4 bg-primary/[0.03] space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="text-sm font-semibold">
+                AI detected {suggestedFields.length} field{suggestedFields.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+            <button
+              onClick={clearFieldDetection}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              Dismiss
+            </button>
+          </div>
+          <div className="space-y-1">
+            {suggestedFields.map((sf) => (
+              <div key={sf.id} className="flex items-center gap-2 px-3 py-2 rounded-md bg-card border text-sm">
+                <span className="font-medium">{sf.name}</span>
+                <Badge variant="outline" className="text-[10px]">{sf.type}</Badge>
+                {sf.description && (
+                  <span className="text-xs text-muted-foreground truncate">{sf.description}</span>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            {fields.length > 0 ? (
+              <>
+                <Button size="sm" onClick={() => handleAcceptSuggestions("merge")}>
+                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  Add New Fields
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => handleAcceptSuggestions("replace")}>
+                  Replace All Fields
+                </Button>
+              </>
+            ) : (
+              <Button size="sm" onClick={() => handleAcceptSuggestions("replace")}>
+                Use These Fields
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Custom extraction instructions */}
       <div className="space-y-2">

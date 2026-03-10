@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createSupabaseServerComponentClient } from "@/lib/supabase/server"
+import { createSupabaseServerComponentClient, createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import { runExtraction } from "@/lib/extraction/runExtraction"
 import type { SchemaField } from "@/lib/schema"
 import { deliverToIntegrations } from "@/lib/extractor/integrations/orchestrator"
@@ -92,6 +92,32 @@ export async function POST(
     .single()
 
   const docId = (processedDoc as any)?.id
+
+  // Store original file to Supabase Storage for preview & reprocessing
+  // Uses service role client to bypass RLS and ensure bucket access
+  if (docId) {
+    const storagePath = `${user.id}/${params.parserId}/${docId}/${fileData.name ?? "uploaded"}`
+    const fileBuffer = Buffer.from(fileData.data, "base64")
+    try {
+      const adminClient = createSupabaseServiceRoleClient()
+      // Ensure bucket exists (no-op if it already does)
+      await adminClient.storage.createBucket("parser-documents", {
+        public: false,
+        fileSizeLimit: 50 * 1024 * 1024, // 50MB
+      }).catch(() => {}) // ignore "already exists" error
+      const { error: uploadError } = await adminClient.storage
+        .from("parser-documents")
+        .upload(storagePath, fileBuffer, {
+          contentType: fileData.type || "application/octet-stream",
+          upsert: true,
+        })
+      if (uploadError) {
+        console.error("[extract] File storage failed:", uploadError.message)
+      }
+    } catch (err) {
+      console.error("[extract] File storage error:", err)
+    }
+  }
 
   // Run extraction using the SAME shared logic as the main app
   const extractionResult = await runExtraction({

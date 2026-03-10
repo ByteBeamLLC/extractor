@@ -1,7 +1,9 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { formatDistanceToNow } from "date-fns"
+import Link from "next/link"
 import {
   Loader2,
   FileText,
@@ -13,10 +15,7 @@ import {
   Webhook,
   Zap,
   Code,
-  Copy,
-  Check,
   AlertCircle,
-  ChevronDown,
   ChevronRight,
   Plus,
 } from "lucide-react"
@@ -51,9 +50,9 @@ type UploadState = "idle" | "uploading" | "extracting" | "completed" | "error"
 export function DocumentsPage({ parser }: DocumentsPageProps) {
   const session = useSession()
   const supabase = useSupabaseClient()
+  const router = useRouter()
   const [documents, setDocuments] = useState<ProcessedDocument[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedDocId, setSelectedDocId] = useState<string | null>(null)
   const [showUploader, setShowUploader] = useState(false)
 
   // Upload state
@@ -141,8 +140,6 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
     setUploadFileName(null)
     setShowUploader(false)
   }
-
-  const selectedDoc = documents.find((d) => d.id === selectedDocId)
 
   if (loading) {
     return (
@@ -235,6 +232,7 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
               <ExtractionResultsView
                 results={uploadResults}
                 fields={parser.fields}
+                parserId={parser.id}
               />
             </div>
           )}
@@ -269,78 +267,49 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
               const SourceIcon = SOURCE_ICONS[doc.source_type] ?? FileText
               const statusConf = STATUS_CONFIG[doc.status]
               const StatusIcon = statusConf.icon
-              const isSelected = selectedDocId === doc.id
 
               return (
-                <div key={doc.id}>
-                  <button
-                    onClick={() =>
-                      setSelectedDocId(isSelected ? null : doc.id)
-                    }
-                    className="w-full grid grid-cols-[1fr_100px_100px_80px_120px] gap-2 px-4 py-3 text-left hover:bg-accent/30 transition-colors items-center"
+                <Link
+                  key={doc.id}
+                  href={`/parsers/${parser.id}/documents/${doc.id}`}
+                  className="grid grid-cols-[1fr_100px_100px_80px_120px] gap-2 px-4 py-3 hover:bg-accent/30 transition-colors items-center"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="text-sm truncate">{doc.file_name}</span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <SourceIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-xs capitalize">
+                      {doc.source_type}
+                    </span>
+                  </div>
+
+                  <Badge
+                    variant="outline"
+                    className={`text-xs ${statusConf.color}`}
                   >
-                    <div className="flex items-center gap-2 min-w-0">
-                      {isSelected ? (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                      )}
-                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <span className="text-sm truncate">{doc.file_name}</span>
-                    </div>
+                    <StatusIcon
+                      className={`h-3 w-3 mr-1 ${doc.status === "processing" ? "animate-spin" : ""}`}
+                    />
+                    {doc.status}
+                  </Badge>
 
-                    <div className="flex items-center gap-1.5">
-                      <SourceIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span className="text-xs capitalize">
-                        {doc.source_type}
-                      </span>
-                    </div>
+                  <span className="text-xs text-muted-foreground">
+                    {doc.credits_used} pg
+                    {doc.credits_used !== 1 ? "s" : ""}
+                  </span>
 
-                    <Badge
-                      variant="outline"
-                      className={`text-xs ${statusConf.color}`}
-                    >
-                      <StatusIcon
-                        className={`h-3 w-3 mr-1 ${doc.status === "processing" ? "animate-spin" : ""}`}
-                      />
-                      {doc.status}
-                    </Badge>
-
-                    <span className="text-xs text-muted-foreground">
-                      {doc.credits_used} pg
-                      {doc.credits_used !== 1 ? "s" : ""}
-                    </span>
-
-                    <span className="text-xs text-muted-foreground">
-                      {doc.processed_at
-                        ? formatDistanceToNow(new Date(doc.processed_at), {
-                            addSuffix: true,
-                          })
-                        : "—"}
-                    </span>
-                  </button>
-
-                  {/* Expanded result view */}
-                  {isSelected && doc.results && (
-                    <div className="px-4 pb-4">
-                      <div className="border rounded-lg overflow-hidden">
-                        <ExtractionResultsView
-                          results={doc.results}
-                          fields={parser.fields}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {isSelected && !doc.results && doc.status === "error" && (
-                    <div className="px-4 pb-4">
-                      <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">
-                        <AlertCircle className="h-4 w-4 shrink-0" />
-                        {doc.error_message || "Extraction failed"}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                  <span className="text-xs text-muted-foreground">
+                    {doc.processed_at
+                      ? formatDistanceToNow(new Date(doc.processed_at), {
+                          addSuffix: true,
+                        })
+                      : "—"}
+                  </span>
+                </Link>
               )
             })}
           </div>

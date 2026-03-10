@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Copy, Check, Code, Table2 } from "lucide-react"
+import Link from "next/link"
+import { Copy, Check, Code, Table2, Pencil, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -10,9 +11,24 @@ import type { SchemaField } from "@/lib/schema"
 interface ExtractionResultsViewProps {
   results: Record<string, any>
   fields: SchemaField[]
+  /** Parser ID for linking to schema page */
+  parserId?: string
+  /** Document ID for reprocessing */
+  documentId?: string
+  /** Callback to reprocess this document */
+  onReprocess?: () => void
+  /** Whether reprocessing is in progress */
+  isReprocessing?: boolean
 }
 
-export function ExtractionResultsView({ results, fields }: ExtractionResultsViewProps) {
+export function ExtractionResultsView({
+  results,
+  fields,
+  parserId,
+  documentId,
+  onReprocess,
+  isReprocessing,
+}: ExtractionResultsViewProps) {
   const [copied, setCopied] = useState(false)
   const [view, setView] = useState<"table" | "json">("table")
 
@@ -101,14 +117,35 @@ export function ExtractionResultsView({ results, fields }: ExtractionResultsView
           </TabsList>
         </Tabs>
 
-        <Button variant="ghost" size="sm" onClick={handleCopyJson}>
-          {copied ? (
-            <Check className="h-3.5 w-3.5 mr-1 text-green-600" />
-          ) : (
-            <Copy className="h-3.5 w-3.5 mr-1" />
+        <div className="flex items-center gap-1">
+          {onReprocess && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onReprocess}
+              disabled={isReprocessing}
+            >
+              <RotateCcw className={`h-3.5 w-3.5 mr-1 ${isReprocessing ? "animate-spin" : ""}`} />
+              {isReprocessing ? "Reprocessing..." : "Reprocess"}
+            </Button>
           )}
-          {copied ? "Copied" : "Copy JSON"}
-        </Button>
+          {parserId && (
+            <Button variant="ghost" size="sm" asChild>
+              <Link href={`/parsers/${parserId}/schema`}>
+                <Pencil className="h-3.5 w-3.5 mr-1" />
+                Edit Fields
+              </Link>
+            </Button>
+          )}
+          <Button variant="ghost" size="sm" onClick={handleCopyJson}>
+            {copied ? (
+              <Check className="h-3.5 w-3.5 mr-1 text-green-600" />
+            ) : (
+              <Copy className="h-3.5 w-3.5 mr-1" />
+            )}
+            {copied ? "Copied" : "Copy JSON"}
+          </Button>
+        </div>
       </div>
 
       {view === "table" ? (
