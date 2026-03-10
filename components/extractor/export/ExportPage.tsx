@@ -37,14 +37,30 @@ export function ExportPage({ parser }: ExportPageProps) {
     load()
   }, [parser.id, session?.user?.id, supabase])
 
+  // Build a field ID → name map from the parser schema
+  const fieldNameMap = new Map<string, string>()
+  const fieldTypeMap = new Map<string, string>()
+  for (const f of parser.fields ?? []) {
+    if (f.type !== "input") {
+      fieldNameMap.set(f.id, f.name)
+      fieldTypeMap.set(f.id, f.type)
+    }
+  }
+
+  const resolveFieldName = (id: string) => fieldNameMap.get(id) ?? id
+
   const handleDownloadJSON = () => {
     const results = documents
       .filter((d) => d.results)
-      .map((d) => ({
-        file_name: d.file_name,
-        processed_at: d.processed_at,
-        ...d.results,
-      }))
+      .map((d) => {
+        const { __meta__, ...data } = d.results!
+        // Replace field IDs with names in the output
+        const named: Record<string, any> = { file_name: d.file_name, processed_at: d.processed_at }
+        for (const [key, val] of Object.entries(data)) {
+          named[resolveFieldName(key)] = val
+        }
+        return named
+      })
     const blob = new Blob([JSON.stringify(results, null, 2)], {
       type: "application/json",
     })
@@ -60,35 +76,105 @@ export function ExportPage({ parser }: ExportPageProps) {
     const completed = documents.filter((d) => d.results)
     if (completed.length === 0) return
 
-    // Collect all unique keys
-    const allKeys = new Set<string>()
-    completed.forEach((d) => {
-      if (d.results) {
-        Object.keys(d.results).forEach((k) => {
-          if (k !== "__meta__") allKeys.add(k)
-        })
+    // Collect extraction fields (excluding __meta__) in schema order
+    const fieldIds = (parser.fields ?? [])
+      .filter((f) => f.type !== "input")
+      .map((f) => f.id)
+
+    // For array/table fields, find the max row count and collect all sub-keys
+    // across all documents so we can expand them into flat columns
+    const arraySubKeys: Record<string, string[]> = {}
+    const arrayMaxRows: Record<string, number> = {}
+
+    for (const fid of fieldIds) {
+      const ftype = fieldTypeMap.get(fid)
+      if (ftype === "table" || ftype === "list") {
+        const allSubKeys = new Set<string>()
+        let maxRows = 0
+        for (const doc of completed) {
+          const val = doc.results?.[fid]
+          if (Array.isArray(val)) {
+            maxRows = Math.max(maxRows, val.length)
+            for (const row of val) {
+              if (row && typeof row === "object") {
+                Object.keys(row).forEach((k) => allSubKeys.add(k))
+              }
+            }
+          }
+        }
+        if (maxRows > 0 && allSubKeys.size > 0) {
+          arraySubKeys[fid] = Array.from(allSubKeys)
+          arrayMaxRows[fid] = maxRows
+        }
       }
-    })
-    const headers = ["file_name", ...Array.from(allKeys)]
+    }
 
-    const rows = completed.map((d) => {
-      return headers.map((h) => {
-        if (h === "file_name") return d.file_name
-        const val = d.results?.[h]
-        if (val === null || val === undefined) return ""
-        if (typeof val === "object") return JSON.stringify(val)
-        return String(val)
-      })
+    // Build headers: file_name, then for each field either a single column
+    // or expanded sub-columns for arrays/tables
+    const headers: string[] = ["file_name"]
+    const headerFieldMapping: Array<{ fieldId: string; subKey?: string; rowIndex?: number }> = []
+
+    // First pass: single header per non-array field
+    // For array fields: "FieldName [1] SubKey", "FieldName [2] SubKey", etc.
+    for (const fid of fieldIds) {
+      const fname = resolveFieldName(fid)
+      if (arraySubKeys[fid]) {
+        const subKeys = arraySubKeys[fid]
+        const maxR = arrayMaxRows[fid]
+        for (let r = 0; r < maxR; r++) {
+          for (const sk of subKeys) {
+            headers.push(`${fname} [${r + 1}] ${sk}`)
+            headerFieldMapping.push({ fieldId: fid, subKey: sk, rowIndex: r })
+          }
+        }
+      } else {
+        headers.push(fname)
+        headerFieldMapping.push({ fieldId: fid })
+      }
+    }
+
+    // Build rows
+    const rows = completed.map((doc) => {
+      const cells: string[] = [doc.file_name]
+      for (const mapping of headerFieldMapping) {
+        const val = doc.results?.[mapping.fieldId]
+        if (mapping.subKey !== undefined && mapping.rowIndex !== undefined) {
+          // Array/table sub-column
+          const arr = Array.isArray(val) ? val : []
+          const row = arr[mapping.rowIndex]
+          const cell = row?.[mapping.subKey]
+          cells.push(cell === null || cell === undefined ? "" : String(cell))
+        } else {
+          // Simple field
+          if (val === null || val === undefined || val === "-") {
+            cells.push("")
+          } else if (Array.isArray(val)) {
+            // Array of primitives (not expanded above)
+            cells.push(val.join(", "))
+          } else if (typeof val === "object") {
+            // Object — flatten key: value pairs
+            const pairs = Object.entries(val)
+              .map(([k, v]) => `${k}: ${v}`)
+              .join(", ")
+            cells.push(pairs)
+          } else {
+            cells.push(String(val))
+          }
+        }
+      }
+      return cells
     })
 
-    const csvContent = [
-      headers.join(","),
+    // Add BOM for Excel UTF-8 support
+    const BOM = "\uFEFF"
+    const csvContent = BOM + [
+      headers.map((h) => `"${h.replace(/"/g, '""')}"`).join(","),
       ...rows.map((row) =>
         row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
       ),
     ].join("\n")
 
-    const blob = new Blob([csvContent], { type: "text/csv" })
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
