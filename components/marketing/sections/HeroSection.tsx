@@ -1,4 +1,5 @@
 import { ArrowRight, FileText, Zap, Sheet, Mail, Webhook, Code } from "lucide-react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { HeroExtraction } from "./HeroExtraction"
 import { Marquee } from "@/components/ui/marquee"
@@ -78,6 +79,30 @@ export function HeroSection() {
                   {stat.label}
                 </div>
               </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ─── Trusted by ─── */}
+        <div className="mt-8 pt-6 border-t">
+          <p className="text-xs text-muted-foreground text-center mb-4">
+            Trusted by leading organizations
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-12">
+            {[
+              { src: "/logos/carrefour.png", alt: "Carrefour", h: "h-8" },
+              { src: "/logos/dld.png", alt: "Dubai Land Department", h: "h-10" },
+              { src: "/logos/infoquest.png", alt: "InfoQuest", h: "h-8" },
+              { src: "/logos/takhlees.png", alt: "Takhlees Government Services", h: "h-9" },
+            ].map((logo) => (
+              <Image
+                key={logo.alt}
+                src={logo.src}
+                alt={logo.alt}
+                width={140}
+                height={40}
+                className={`${logo.h} w-auto object-contain opacity-70 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-200`}
+              />
             ))}
           </div>
         </div>
