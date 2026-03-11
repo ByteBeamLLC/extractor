@@ -91,7 +91,7 @@ export function HeroSection() {
           <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-12">
             {[
               { src: "/logos/carrefour.png", alt: "Carrefour", h: "h-8" },
-              { src: "/logos/dld.png", alt: "Dubai Land Department", h: "h-10" },
+              { src: "/logos/dld.png", alt: "Dubai Land Department", h: "h-16" },
               { src: "/logos/infoquest.png", alt: "InfoQuest", h: "h-8" },
               { src: "/logos/takhlees.png", alt: "Takhlees Government Services", h: "h-9" },
             ].map((logo) => (
