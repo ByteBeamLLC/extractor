@@ -42,9 +42,8 @@ export function HeroSection() {
             </h1>
 
             <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-8">
-              Automatically parse PDFs, invoices, emails, and images into clean,
-              structured data. No code required. Connect to Google Sheets, Zapier,
-              and 5,000+ apps.
+              Turn PDFs, invoices, emails, and images into structured fields.
+              Set up in under 2 minutes.
             </p>
 
             {/* CTA */}
