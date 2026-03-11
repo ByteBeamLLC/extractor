@@ -13,9 +13,13 @@ export interface BlogPost {
   publishedAt: string
   updatedAt: string
   author: string
+  authorTitle: string
   readTime: string
   excerpt: string
+  category: string
+  keyTakeaways: string[]
   content: ContentBlock[]
+  relatedSlugs: string[]
 }
 
 export const blogPosts: BlogPost[] = [
@@ -29,9 +33,18 @@ export const blogPosts: BlogPost[] = [
     publishedAt: "2026-03-08",
     updatedAt: "2026-03-08",
     author: "Talal Bazerbachi",
+    authorTitle: "Founder at Parsli",
     readTime: "10 min read",
     excerpt:
       "A practical, no-nonsense guide to getting data out of PDFs and into Excel or Google Sheets. We cover six methods — from free to AI-powered — with honest trade-offs for each.",
+    category: "Guide",
+    keyTakeaways: [
+      "PDFs lack native table structure — extraction always requires reconstruction, not just copying",
+      "AI-powered tools handle scanned PDFs and varying layouts; traditional converters only work with native text-based PDFs",
+      "For one-off simple tables, manual copy-paste or Adobe Acrobat may suffice; for recurring or complex extractions, use AI or Python libraries",
+      "No-code AI platforms like Parsli offer the best balance of ease-of-use and accuracy for non-technical users",
+    ],
+    relatedSlugs: ["best-invoice-ocr-software"],
     content: [
       {
         type: "paragraph",
@@ -325,9 +338,18 @@ export const blogPosts: BlogPost[] = [
     publishedAt: "2026-03-08",
     updatedAt: "2026-03-08",
     author: "Talal Bazerbachi",
+    authorTitle: "Founder at Parsli",
     readTime: "12 min read",
     excerpt:
       "An honest, detailed comparison of the top invoice OCR and parsing tools in 2026 — covering Nanonets, Rossum, Docparser, Parseur, cloud APIs, and Parsli with real pros, cons, and pricing.",
+    category: "Comparison",
+    keyTakeaways: [
+      "Invoice OCR tools fall into three categories: template/zone-based, ML-trained, and AI-powered (VLM/LLM)",
+      "Template tools (Docparser, Parseur) work for fixed formats; AI tools (Parsli, Nanonets) adapt to any layout",
+      "Nanonets is powerful but starts at $499/month; Parsli starts at $27/month with similar AI capabilities",
+      "No tool is 100% accurate — plan for a human review step, especially during initial setup",
+    ],
+    relatedSlugs: ["extract-data-pdf-to-excel"],
     content: [
       {
         type: "paragraph",

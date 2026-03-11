@@ -1,13 +1,15 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, ArrowRight, ChevronRight, Check } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { AuthButton } from "@/components/marketing/shared/AuthButton"
 import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd, blogPostJsonLd } from "@/lib/seo/json-ld"
 import {
   getBlogPostBySlug,
   getAllBlogSlugs,
+  getAllBlogPosts,
   type ContentBlock,
 } from "@/lib/seo/blog-posts"
 import { getAllSolutions } from "@/lib/seo/solutions"
@@ -30,6 +32,13 @@ function getRelatedSolutions(blogSlug: string) {
   const relatedSlugs = blogToSolutions[blogSlug] ?? []
   const allSolutions = getAllSolutions()
   return allSolutions.filter((s) => relatedSlugs.includes(s.slug))
+}
+
+function getRelatedPosts(currentSlug: string, relatedSlugs: string[]) {
+  const allPosts = getAllBlogPosts()
+  return allPosts.filter(
+    (p) => p.slug !== currentSlug && relatedSlugs.includes(p.slug)
+  )
 }
 
 export function generateStaticParams() {
@@ -141,6 +150,8 @@ export default function BlogPostPage({
   const post = getBlogPostBySlug(params.slug)
   if (!post) notFound()
 
+  const relatedPosts = getRelatedPosts(post.slug, post.relatedSlugs)
+
   return (
     <>
       <JsonLd
@@ -167,17 +178,35 @@ export default function BlogPostPage({
       {/* Article */}
       <article className="relative pt-28 pb-20 sm:pt-36">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-          {/* Back link */}
-          <Link
-            href="/blog"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
+          {/* Breadcrumbs */}
+          <nav
+            aria-label="Breadcrumb"
+            className="flex items-center gap-1.5 text-sm text-muted-foreground mb-8"
           >
-            <ArrowLeft className="h-4 w-4" />
-            Back to blog
-          </Link>
+            <Link
+              href="/"
+              className="hover:text-foreground transition-colors"
+            >
+              Home
+            </Link>
+            <ChevronRight className="h-3.5 w-3.5" />
+            <Link
+              href="/blog"
+              className="hover:text-foreground transition-colors"
+            >
+              Blog
+            </Link>
+            <ChevronRight className="h-3.5 w-3.5" />
+            <span className="text-foreground truncate max-w-[200px] sm:max-w-none">
+              {post.title}
+            </span>
+          </nav>
 
           {/* Header */}
           <header className="mb-10">
+            <Badge variant="secondary" className="mb-4">
+              {post.category}
+            </Badge>
             <h1 className="text-3xl sm:text-4xl font-bold tracking-tight leading-[1.15] mb-4">
               {post.title}
             </h1>
@@ -196,6 +225,25 @@ export default function BlogPostPage({
             </div>
           </header>
 
+          {/* Key Takeaways */}
+          {post.keyTakeaways.length > 0 && (
+            <div className="rounded-xl border bg-primary/[0.03] border-primary/20 p-6 mb-10">
+              <h2 className="font-semibold text-sm uppercase tracking-wider text-primary mb-4">
+                Key Takeaways
+              </h2>
+              <ul className="space-y-3">
+                {post.keyTakeaways.map((takeaway, i) => (
+                  <li key={i} className="flex gap-3">
+                    <Check className="h-4 w-4 text-primary shrink-0 mt-1" />
+                    <span className="text-sm leading-relaxed">
+                      {takeaway}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {/* Content */}
           <div className="space-y-5">
             {post.content.map((block, index) => renderBlock(block, index))}
@@ -213,15 +261,15 @@ export default function BlogPostPage({
                     Try our free PDF to Excel converter
                   </p>
                   <p className="text-sm text-muted-foreground mb-3">
-                    Convert PDF tables to Excel instantly in your browser. No sign-up,
-                    no uploads — your files stay on your device.
+                    Convert PDF tables to Excel instantly in your browser. No
+                    sign-up, no uploads — your files stay on your device.
                   </p>
                   <Link
                     href="/tools/pdf-to-excel"
                     className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline underline-offset-4"
                   >
                     Convert PDF to Excel free
-                    <ArrowLeft className="h-3 w-3 rotate-180" />
+                    <ArrowRight className="h-3 w-3" />
                   </Link>
                 </div>
               </div>
@@ -250,6 +298,50 @@ export default function BlogPostPage({
               </div>
             </div>
           )}
+
+          {/* Related Posts */}
+          {relatedPosts.length > 0 && (
+            <div className="mt-12 pt-10 border-t">
+              <h2 className="text-xl font-bold mb-6">Related Articles</h2>
+              <div className="grid gap-4">
+                {relatedPosts.map((related) => (
+                  <Link
+                    key={related.slug}
+                    href={`/blog/${related.slug}`}
+                    className="group rounded-lg border bg-card p-5 hover:border-primary/30 transition-colors"
+                  >
+                    <Badge variant="secondary" className="mb-2 text-xs">
+                      {related.category}
+                    </Badge>
+                    <h3 className="font-semibold group-hover:text-primary transition-colors mb-1">
+                      {related.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {related.excerpt}
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Author Bio */}
+          <div className="mt-12 pt-10 border-t">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary font-bold">
+                {post.author
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")}
+              </div>
+              <div>
+                <p className="font-semibold">{post.author}</p>
+                <p className="text-sm text-muted-foreground">
+                  {post.authorTitle}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </article>
     </>

@@ -4,6 +4,8 @@ import { getAllBlogSlugs } from "@/lib/seo/blog-posts"
 import { getAllUseCaseSlugs } from "@/lib/seo/use-cases"
 import { getAllAlternativeSlugs } from "@/lib/seo/alternatives"
 import { getAllIntegrationSlugs } from "@/lib/seo/integrations"
+import { getAllIndustrySlugs } from "@/lib/seo/industries"
+import { getAllDocumentTypeSlugs } from "@/lib/seo/document-types"
 
 const BASE_URL = "https://parsli.co"
 
@@ -98,6 +100,23 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })
   )
 
+  const industryPages: MetadataRoute.Sitemap = getAllIndustrySlugs().map(
+    (slug) => ({
+      url: `${BASE_URL}/industries/${slug}`,
+      lastModified: now,
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })
+  )
+
+  const documentTypePages: MetadataRoute.Sitemap =
+    getAllDocumentTypeSlugs().map((slug) => ({
+      url: `${BASE_URL}/document-types/${slug}`,
+      lastModified: now,
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    }))
+
   return [
     ...staticPages,
     ...solutionPages,
@@ -105,5 +124,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...useCasePages,
     ...integrationPages,
     ...alternativePages,
+    ...industryPages,
+    ...documentTypePages,
   ]
 }
