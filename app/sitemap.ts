@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next"
 import { getAllSolutionSlugs } from "@/lib/seo/solutions"
-import { getAllBlogSlugs } from "@/lib/seo/blog-posts"
+import { getAllBlogPosts } from "@/lib/seo/blog-posts"
 import { getAllUseCaseSlugs } from "@/lib/seo/use-cases"
 import { getAllAlternativeSlugs } from "@/lib/seo/alternatives"
 import { getAllIntegrationSlugs } from "@/lib/seo/integrations"
@@ -66,11 +66,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })
   )
 
-  const blogPages: MetadataRoute.Sitemap = getAllBlogSlugs().map((slug) => ({
-    url: `${BASE_URL}/blog/${slug}`,
-    lastModified: now,
+  const blogPages: MetadataRoute.Sitemap = getAllBlogPosts().map((post) => ({
+    url: `${BASE_URL}/blog/${post.slug}`,
+    lastModified: new Date(post.updatedAt),
     changeFrequency: "monthly" as const,
-    priority: 0.7,
+    // Comparison/alternative posts target higher-intent commercial queries
+    priority: post.category === "Comparison" ? 0.8 : 0.7,
   }))
 
   const useCasePages: MetadataRoute.Sitemap = getAllUseCaseSlugs().map(

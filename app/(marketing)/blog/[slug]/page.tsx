@@ -3,9 +3,10 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeft, ArrowRight, ChevronRight, Check } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { AuthButton } from "@/components/marketing/shared/AuthButton"
 import { JsonLd } from "@/components/marketing/shared/JsonLd"
-import { breadcrumbJsonLd, blogPostJsonLd } from "@/lib/seo/json-ld"
+import { breadcrumbJsonLd, blogPostJsonLd, faqJsonLd } from "@/lib/seo/json-ld"
 import {
   getBlogPostBySlug,
   getAllBlogSlugs,
@@ -16,6 +17,7 @@ import { getAllSolutions } from "@/lib/seo/solutions"
 
 /* Map blog slugs to related solution slugs */
 const blogToSolutions: Record<string, string[]> = {
+  // Existing posts
   "extract-data-pdf-to-excel": [
     "pdf-to-excel",
     "bank-statement-extraction",
@@ -26,6 +28,100 @@ const blogToSolutions: Record<string, string[]> = {
     "no-code-document-parser",
     "document-parsing-api",
   ],
+  // New posts
+  "what-is-document-parsing": [
+    "no-code-document-parser",
+    "document-parsing-api",
+    "invoice-parsing",
+  ],
+  "automate-data-entry": [
+    "no-code-document-parser",
+    "invoice-parsing",
+    "document-parsing-api",
+  ],
+  "nanonets-alternatives": [
+    "no-code-document-parser",
+    "invoice-parsing",
+    "document-parsing-api",
+  ],
+  "best-pdf-parser-tools": [
+    "document-parsing-api",
+    "no-code-document-parser",
+    "pdf-to-excel",
+  ],
+  "parseur-alternatives": [
+    "no-code-document-parser",
+    "invoice-parsing",
+    "document-parsing-api",
+  ],
+  "best-email-parser-tools": [
+    "no-code-document-parser",
+    "invoice-parsing",
+    "document-parsing-api",
+  ],
+  "extract-data-from-pdf-automatically": [
+    "no-code-document-parser",
+    "pdf-to-excel",
+    "document-parsing-api",
+  ],
+  "automate-invoice-data-extraction": [
+    "invoice-parsing",
+    "no-code-document-parser",
+    "document-parsing-api",
+  ],
+  "mailparser-alternatives": [
+    "no-code-document-parser",
+    "invoice-parsing",
+    "document-parsing-api",
+  ],
+  "extract-bank-statement-data-pdf": [
+    "bank-statement-extraction",
+    "pdf-to-excel",
+    "no-code-document-parser",
+  ],
+  "parse-emails-to-google-sheets": [
+    "no-code-document-parser",
+    "invoice-parsing",
+    "document-parsing-api",
+  ],
+  "email-attachments-to-spreadsheet": [
+    "no-code-document-parser",
+    "invoice-parsing",
+    "document-parsing-api",
+  ],
+  "document-parsing-api": [
+    "document-parsing-api",
+    "no-code-document-parser",
+    "invoice-parsing",
+  ],
+  "agentic-document-extraction": [
+    "no-code-document-parser",
+    "document-parsing-api",
+    "invoice-parsing",
+  ],
+}
+
+function extractFaqItems(content: ContentBlock[]) {
+  const faqIdx = content.findIndex(
+    (b) => b.type === "heading" && b.level === 2 && b.text === "Frequently Asked Questions"
+  )
+  if (faqIdx === -1) return []
+  const items: { question: string; answer: string }[] = []
+  let i = faqIdx + 1
+  while (i < content.length) {
+    const block = content[i]
+    if (block.type === "heading" && block.level === 3) {
+      const next = content[i + 1]
+      if (next?.type === "paragraph") {
+        items.push({ question: block.text, answer: next.text })
+        i += 2
+        continue
+      }
+    }
+    if (block.type === "cta") break
+    i++
+  }
+  return items
 }
 
 function getRelatedSolutions(blogSlug: string) {
@@ -67,6 +163,20 @@ export async function generateMetadata({
       publishedTime: post.publishedAt,
       modifiedTime: post.updatedAt,
       authors: [post.author],
+      images: [
+        {
+          url: "https://parsli.co/parsli-og.png",
+          width: 1200,
+          height: 630,
+          alt: post.metaTitle,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.metaTitle,
+      description: post.metaDescription,
+      images: ["https://parsli.co/parsli-og.png"],
     },
   }
 }
@@ -127,13 +237,40 @@ function renderBlock(block: ContentBlock, index: number) {
           className="rounded-xl border bg-muted/30 p-8 text-center mt-10"
         >
           <h2 className="text-2xl font-bold mb-3">
-            Ready to Extract Data Automatically?
+            {block.headline ?? "Stop copying data out of documents manually."}
           </h2>
           <p className="text-muted-foreground mb-6">
-            Start free with 30 pages/month. No credit card required.
+            Parsli extracts structured data from PDFs, invoices, and emails —
+            automatically. Free forever up to 30 pages/month.
           </p>
-          <AuthButton className="text-base px-8 h-12" showArrow>
-            Try Parsli Free
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <AuthButton href="/login" className="text-base px-8 h-12" showArrow>
+              Try it for free
+            </AuthButton>
+            <Button variant="outline" size="lg" className="text-base px-8 h-12" asChild>
+              <a
+                href="https://calendly.com/talal-bytebeam/parsli-discovery-call"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Book a demo
+              </a>
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground mt-3">
+            No credit card required.
+          </p>
+        </div>
+      )
+    case "mid-cta":
+      return (
+        <div
+          key={index}
+          className="rounded-lg border border-primary/20 bg-primary/[0.03] px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+        >
+          <p className="text-sm font-medium leading-relaxed">{block.text}</p>
+          <AuthButton href="/login" size="sm" className="shrink-0" showArrow>
+            Try it for free
           </AuthButton>
         </div>
       )
@@ -174,6 +311,9 @@ export default function BlogPostPage({
           author: post.author,
         })}
       />
+      {extractFaqItems(post.content).length > 0 && (
+        <JsonLd data={faqJsonLd(extractFaqItems(post.content))} />
+      )}
 
       {/* Article */}
       <article className="relative pt-28 pb-20 sm:pt-36">

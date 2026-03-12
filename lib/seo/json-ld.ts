@@ -134,11 +134,13 @@ export function blogPostJsonLd({
     headline: title,
     description,
     url,
+    image: `${BASE_URL}/parsli-og.png`,
     datePublished: publishedAt,
     dateModified: updatedAt,
     author: {
       "@type": "Person",
       name: author,
+      url: "https://www.linkedin.com/in/talal-bazerbachi/",
     },
     publisher: {
       "@type": "Organization",
