@@ -5,6 +5,7 @@ import { FeaturesSection } from "@/components/marketing/sections/FeaturesSection
 import { UseCasesSection } from "@/components/marketing/sections/UseCasesSection"
 import { HowItWorksSection } from "@/components/marketing/sections/HowItWorksSection"
 import { IntegrationsSection } from "@/components/marketing/sections/IntegrationsSection"
+import { FreeToolsSection } from "@/components/marketing/sections/FreeToolsSection"
 import { PricingSection } from "@/components/marketing/sections/PricingSection"
 import { FAQSection } from "@/components/marketing/sections/FAQSection"
 import { faqItems } from "@/lib/seo/faq-data"
@@ -75,6 +76,7 @@ export default function LandingPage() {
       <UseCasesSection />
       <HowItWorksSection />
       <IntegrationsSection />
+      <FreeToolsSection />
       <PricingSection />
       <FAQSection />
       <CTASection />

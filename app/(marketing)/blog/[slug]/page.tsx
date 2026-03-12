@@ -101,6 +101,75 @@ const blogToSolutions: Record<string, string[]> = {
   ],
 }
 
+/* Map blog slugs to related free tools */
+const blogToTools: Record<string, { href: string; title: string; description: string }[]> = {
+  "extract-data-pdf-to-excel": [
+    { href: "/tools/pdf-to-excel", title: "Free PDF to Excel Converter", description: "Convert PDF tables to Excel instantly in your browser. No sign-up, no uploads." },
+  ],
+  "best-invoice-ocr-software": [
+    { href: "/tools/invoice-parser", title: "Free Invoice Parser", description: "Extract vendor info, line items, and totals from invoices in your browser." },
+    { href: "/tools/receipt-scanner", title: "Free Receipt Scanner", description: "Scan receipts and extract transaction details instantly." },
+  ],
+  "what-is-document-parsing": [
+    { href: "/tools/pdf-to-text", title: "Free PDF to Text Extractor", description: "Extract text from PDF files instantly. No sign-up required." },
+    { href: "/tools/ai-summarizer", title: "Free AI Document Summarizer", description: "Summarize key information from any document instantly." },
+  ],
+  "automate-data-entry": [
+    { href: "/tools/invoice-parser", title: "Free Invoice Parser", description: "Extract invoice data automatically in your browser." },
+    { href: "/tools/bank-statement-parser", title: "Free Bank Statement Parser", description: "Extract transactions from bank statements automatically." },
+  ],
+  "nanonets-alternatives": [
+    { href: "/tools/invoice-parser", title: "Free Invoice Parser", description: "Try Parsli's free invoice parser — no sign-up required." },
+    { href: "/tools/pdf-to-excel", title: "Free PDF to Excel Converter", description: "Convert PDF tables to Excel instantly in your browser." },
+  ],
+  "best-pdf-parser-tools": [
+    { href: "/tools/pdf-to-excel", title: "Free PDF to Excel Converter", description: "Convert PDF tables to Excel — runs entirely in your browser." },
+    { href: "/tools/pdf-to-text", title: "Free PDF to Text Extractor", description: "Extract all text content from PDF files instantly." },
+    { href: "/tools/pdf-table-extractor", title: "Free PDF Table Extractor", description: "Extract tables from PDF documents into structured data." },
+  ],
+  "parseur-alternatives": [
+    { href: "/tools/invoice-parser", title: "Free Invoice Parser", description: "Try Parsli's free invoice parser — no sign-up required." },
+    { href: "/tools/pdf-to-excel", title: "Free PDF to Excel Converter", description: "Convert PDF tables to Excel instantly." },
+  ],
+  "best-email-parser-tools": [
+    { href: "/tools/pdf-to-text", title: "Free PDF to Text Extractor", description: "Extract text from PDF attachments instantly." },
+    { href: "/tools/ai-summarizer", title: "Free AI Document Summarizer", description: "Summarize key info from email attachments." },
+  ],
+  "extract-data-from-pdf-automatically": [
+    { href: "/tools/pdf-to-excel", title: "Free PDF to Excel Converter", description: "Convert PDF tables to Excel instantly in your browser." },
+    { href: "/tools/pdf-to-text", title: "Free PDF to Text Extractor", description: "Extract all text from PDF files. No sign-up required." },
+    { href: "/tools/pdf-table-extractor", title: "Free PDF Table Extractor", description: "Extract tables from PDFs into structured data." },
+  ],
+  "automate-invoice-data-extraction": [
+    { href: "/tools/invoice-parser", title: "Free Invoice Parser", description: "Extract data from invoices automatically in your browser." },
+    { href: "/tools/receipt-scanner", title: "Free Receipt Scanner", description: "Scan receipts and extract transaction details." },
+  ],
+  "mailparser-alternatives": [
+    { href: "/tools/pdf-to-text", title: "Free PDF to Text Extractor", description: "Extract text from PDF email attachments." },
+    { href: "/tools/invoice-parser", title: "Free Invoice Parser", description: "Parse invoice data from email attachments." },
+  ],
+  "extract-bank-statement-data-pdf": [
+    { href: "/tools/bank-statement-parser", title: "Free Bank Statement Parser", description: "Extract transactions, balances, and account details from bank statements." },
+    { href: "/tools/pdf-to-excel", title: "Free PDF to Excel Converter", description: "Convert bank statement PDFs to Excel." },
+  ],
+  "parse-emails-to-google-sheets": [
+    { href: "/tools/pdf-to-excel", title: "Free PDF to Excel Converter", description: "Convert PDF attachments to spreadsheets instantly." },
+    { href: "/tools/excel-to-json", title: "Free Excel to JSON Converter", description: "Convert spreadsheet data to JSON format." },
+  ],
+  "email-attachments-to-spreadsheet": [
+    { href: "/tools/pdf-to-excel", title: "Free PDF to Excel Converter", description: "Convert PDF attachments to Excel spreadsheets." },
+    { href: "/tools/invoice-parser", title: "Free Invoice Parser", description: "Extract structured data from invoice attachments." },
+  ],
+  "document-parsing-api": [
+    { href: "/tools/pdf-to-excel", title: "Free PDF to Excel Converter", description: "Try our free browser-based converter before using the API." },
+    { href: "/tools/invoice-parser", title: "Free Invoice Parser", description: "Test document parsing free before integrating the API." },
+  ],
+  "agentic-document-extraction": [
+    { href: "/tools/ai-summarizer", title: "Free AI Document Summarizer", description: "See AI document analysis in action — free in your browser." },
+    { href: "/tools/invoice-parser", title: "Free Invoice Parser", description: "Try AI-powered extraction on invoices instantly." },
+  ],
+}
+
 function extractFaqItems(content: ContentBlock[]) {
   const faqIdx = content.findIndex(
     (b) => b.type === "heading" && b.level === 2 && b.text === "Frequently Asked Questions"
@@ -389,30 +458,32 @@ export default function BlogPostPage({
             {post.content.map((block, index) => renderBlock(block, index))}
           </div>
 
-          {/* Free Tool callout for relevant blog posts */}
-          {post.slug === "extract-data-pdf-to-excel" && (
-            <div className="mt-12 rounded-xl border border-primary/20 bg-primary/[0.03] p-6">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <span className="text-primary text-lg">&#9889;</span>
+          {/* Free Tool callouts for relevant blog posts */}
+          {blogToTools[post.slug] && (
+            <div className="mt-12 space-y-4">
+              <h2 className="text-lg font-semibold">Try our free tools</h2>
+              {blogToTools[post.slug].map((tool) => (
+                <div key={tool.href} className="rounded-xl border border-primary/20 bg-primary/[0.03] p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <span className="text-primary text-lg">&#9889;</span>
+                    </div>
+                    <div>
+                      <p className="font-semibold mb-1">{tool.title}</p>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        {tool.description}
+                      </p>
+                      <Link
+                        href={tool.href}
+                        className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline underline-offset-4"
+                      >
+                        Try it free
+                        <ArrowRight className="h-3 w-3" />
+                      </Link>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold mb-1">
-                    Try our free PDF to Excel converter
-                  </p>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Convert PDF tables to Excel instantly in your browser. No
-                    sign-up, no uploads — your files stay on your device.
-                  </p>
-                  <Link
-                    href="/tools/pdf-to-excel"
-                    className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline underline-offset-4"
-                  >
-                    Convert PDF to Excel free
-                    <ArrowRight className="h-3 w-3" />
-                  </Link>
-                </div>
-              </div>
+              ))}
             </div>
           )}
 

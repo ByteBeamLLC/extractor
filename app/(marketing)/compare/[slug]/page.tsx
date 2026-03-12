@@ -418,6 +418,38 @@ export default function AlternativePage({
         </div>
       </section>
 
+      {/* ═══════ Free Tools ═══════ */}
+      <section className="py-16 sm:py-20">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+          <h2 className="text-xl font-bold text-center mb-4">
+            Try Our Free Tools
+          </h2>
+          <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-8">
+            No sign-up required. Everything runs in your browser.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Link href="/tools/pdf-to-excel" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">
+              PDF to Excel <ArrowRight className="h-3 w-3 text-muted-foreground" />
+            </Link>
+            <Link href="/tools/invoice-parser" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">
+              Invoice Parser <ArrowRight className="h-3 w-3 text-muted-foreground" />
+            </Link>
+            <Link href="/tools/image-to-text" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">
+              Image to Text <ArrowRight className="h-3 w-3 text-muted-foreground" />
+            </Link>
+            <Link href="/tools/bank-statement-parser" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">
+              Bank Statement Parser <ArrowRight className="h-3 w-3 text-muted-foreground" />
+            </Link>
+            <Link href="/tools/receipt-scanner" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">
+              Receipt Scanner <ArrowRight className="h-3 w-3 text-muted-foreground" />
+            </Link>
+            <Link href="/tools" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">
+              All 22 Free Tools <ArrowRight className="h-3 w-3 text-muted-foreground" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* ═══════ 10. Related Comparisons ═══════ */}
       <section className="py-16 sm:py-20 bg-muted/30">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">

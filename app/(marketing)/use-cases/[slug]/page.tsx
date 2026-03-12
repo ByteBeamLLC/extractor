@@ -9,6 +9,53 @@ import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd, faqJsonLd } from "@/lib/seo/json-ld"
 import { getUseCaseBySlug, getAllUseCaseSlugs } from "@/lib/seo/use-cases"
 
+const useCaseTools: Record<string, { href: string; title: string; description: string }[]> = {
+  "invoice-parsing": [
+    { href: "/tools/invoice-parser", title: "Free Invoice Parser", description: "Extract vendor info, line items, and totals from invoices instantly." },
+    { href: "/tools/receipt-scanner", title: "Free Receipt Scanner", description: "Scan receipts and extract transaction details in your browser." },
+  ],
+  "email-parsing": [
+    { href: "/tools/pdf-to-text", title: "Free PDF to Text Extractor", description: "Extract text content from PDF email attachments instantly." },
+    { href: "/tools/ai-summarizer", title: "Free AI Document Summarizer", description: "Summarize key information from any document instantly." },
+  ],
+  "pdf-data-extraction": [
+    { href: "/tools/pdf-to-excel", title: "Free PDF to Excel Converter", description: "Convert PDF tables to Excel instantly in your browser." },
+    { href: "/tools/pdf-to-text", title: "Free PDF to Text Extractor", description: "Extract all text content from PDF files. Works instantly." },
+    { href: "/tools/pdf-table-extractor", title: "Free PDF Table Extractor", description: "Extract tables from PDF documents into structured data." },
+  ],
+  "receipt-scanning": [
+    { href: "/tools/receipt-scanner", title: "Free Receipt Scanner", description: "Scan receipts and extract transaction details in your browser." },
+    { href: "/tools/image-to-text", title: "Free Image to Text (OCR)", description: "Extract text from receipt images using AI-powered OCR." },
+  ],
+  "document-automation": [
+    { href: "/tools/invoice-parser", title: "Free Invoice Parser", description: "Extract data from invoices automatically in your browser." },
+    { href: "/tools/bank-statement-parser", title: "Free Bank Statement Parser", description: "Extract transactions and balances from bank statements." },
+    { href: "/tools/ai-summarizer", title: "Free AI Document Summarizer", description: "Summarize key information from any document instantly." },
+  ],
+  "intelligent-document-processing": [
+    { href: "/tools/ai-summarizer", title: "Free AI Document Summarizer", description: "Extract and summarize key information from any document." },
+    { href: "/tools/invoice-parser", title: "Free Invoice Parser", description: "Extract structured data from invoices automatically." },
+    { href: "/tools/image-to-text", title: "Free Image to Text (OCR)", description: "Extract text from images using AI-powered OCR." },
+  ],
+  "ocr-data-extraction": [
+    { href: "/tools/image-to-text", title: "Free Image to Text (OCR)", description: "Extract text from images using AI-powered OCR. 12 languages." },
+    { href: "/tools/photo-to-text", title: "Free Photo to Text", description: "Convert photographed documents into editable text." },
+    { href: "/tools/handwriting-to-text", title: "Free Handwriting to Text", description: "Convert handwritten notes into digital text." },
+  ],
+  "pdf-to-excel": [
+    { href: "/tools/pdf-to-excel", title: "Free PDF to Excel Converter", description: "Convert PDF tables to Excel instantly. No sign-up required." },
+    { href: "/tools/pdf-table-extractor", title: "Free PDF Table Extractor", description: "Extract tables from PDF documents into structured data." },
+  ],
+  "pdf-to-csv": [
+    { href: "/tools/pdf-to-excel", title: "Free PDF to Excel Converter", description: "Convert PDF tables to downloadable spreadsheets instantly." },
+    { href: "/tools/excel-to-csv", title: "Free Excel to CSV Converter", description: "Convert Excel files to CSV format for easy processing." },
+  ],
+  "pdf-to-json": [
+    { href: "/tools/pdf-to-excel", title: "Free PDF to Excel Converter", description: "Extract PDF table data into spreadsheet format." },
+    { href: "/tools/excel-to-json", title: "Free Excel to JSON Converter", description: "Convert spreadsheets to structured JSON format." },
+  ],
+}
+
 /** Use-case slugs that have matching parser templates */
 const templateMap: Record<string, { templateId: string; ctaLabel: string }> = {
   "invoice-parsing": {
@@ -176,24 +223,30 @@ export default function UseCasePage({
         </div>
       </section>
 
-      {/* Free Tool Banner (PDF-related use cases only) */}
-      {["pdf-to-excel", "pdf-data-extraction", "pdf-to-csv"].includes(useCase.slug) && (
+      {/* Free Tools */}
+      {useCaseTools[useCase.slug] && (
         <section className="py-10 sm:py-12">
-          <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-            <Link
-              href="/tools/pdf-to-excel"
-              className="group flex items-center justify-between rounded-xl border border-primary/20 bg-primary/[0.03] p-5 sm:p-6 hover:border-primary/40 transition-colors"
-            >
-              <div>
-                <p className="font-semibold mb-0.5">
-                  Try our free PDF to Excel converter
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Convert simple PDF tables to Excel instantly. No sign-up, runs in your browser.
-                </p>
-              </div>
-              <ArrowRight className="h-5 w-5 text-primary shrink-0 ml-4 group-hover:translate-x-0.5 transition-transform" />
-            </Link>
+          <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+            <h2 className="text-lg font-semibold mb-4">Try our free tools</h2>
+            <div className="grid sm:grid-cols-2 gap-4">
+              {useCaseTools[useCase.slug].map((tool) => (
+                <Link
+                  key={tool.href}
+                  href={tool.href}
+                  className="group flex items-center justify-between rounded-xl border border-primary/20 bg-primary/[0.03] p-5 hover:border-primary/40 transition-colors"
+                >
+                  <div>
+                    <p className="font-semibold mb-0.5 group-hover:text-primary transition-colors">
+                      {tool.title}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {tool.description}
+                    </p>
+                  </div>
+                  <ArrowRight className="h-5 w-5 text-primary shrink-0 ml-4 group-hover:translate-x-0.5 transition-transform" />
+                </Link>
+              ))}
+            </div>
           </div>
         </section>
       )}

@@ -11,6 +11,52 @@ import {
   getDocumentTypeBySlug,
   getAllDocumentTypeSlugs,
 } from "@/lib/seo/document-types"
+
+const documentTypeTools: Record<string, { href: string; title: string; description: string }[]> = {
+  invoices: [
+    { href: "/tools/invoice-parser", title: "Invoice Parser", description: "Extract vendor info, line items, and totals from invoices." },
+    { href: "/tools/pdf-to-excel", title: "PDF to Excel", description: "Convert invoice PDFs to Excel spreadsheets." },
+    { href: "/tools/image-to-text", title: "Image to Text (OCR)", description: "Extract text from scanned invoice images." },
+  ],
+  receipts: [
+    { href: "/tools/receipt-scanner", title: "Receipt Scanner", description: "Scan receipts and extract transaction details." },
+    { href: "/tools/image-to-text", title: "Image to Text (OCR)", description: "Extract text from receipt images using OCR." },
+    { href: "/tools/photo-to-text", title: "Photo to Text", description: "Convert photographed receipts into editable text." },
+  ],
+  emails: [
+    { href: "/tools/pdf-to-text", title: "PDF to Text", description: "Extract text from PDF email attachments." },
+    { href: "/tools/ai-summarizer", title: "AI Summarizer", description: "Summarize key information from email documents." },
+  ],
+  pdfs: [
+    { href: "/tools/pdf-to-excel", title: "PDF to Excel", description: "Convert PDF tables to Excel spreadsheets." },
+    { href: "/tools/pdf-to-text", title: "PDF to Text", description: "Extract all text content from PDF files." },
+    { href: "/tools/pdf-merger", title: "PDF Merger", description: "Combine multiple PDF files into one document." },
+    { href: "/tools/pdf-splitter", title: "PDF Splitter", description: "Split PDFs into individual pages or ranges." },
+    { href: "/tools/pdf-compressor", title: "PDF Compressor", description: "Reduce PDF file size while maintaining quality." },
+    { href: "/tools/pdf-table-extractor", title: "PDF Table Extractor", description: "Extract tables from PDF documents into structured data." },
+  ],
+  spreadsheets: [
+    { href: "/tools/excel-to-json", title: "Excel to JSON", description: "Convert Excel spreadsheets to structured JSON." },
+    { href: "/tools/json-to-excel", title: "JSON to Excel", description: "Convert JSON data into Excel spreadsheets." },
+    { href: "/tools/excel-to-csv", title: "Excel to CSV", description: "Convert Excel files to CSV format." },
+    { href: "/tools/csv-to-excel", title: "CSV to Excel", description: "Convert CSV files into formatted Excel spreadsheets." },
+  ],
+  "bank-statements": [
+    { href: "/tools/bank-statement-parser", title: "Bank Statement Parser", description: "Extract transactions, balances, and account details." },
+    { href: "/tools/pdf-to-excel", title: "PDF to Excel", description: "Convert bank statement PDFs to Excel." },
+    { href: "/tools/pdf-to-text", title: "PDF to Text", description: "Extract text from bank statement PDFs." },
+  ],
+  contracts: [
+    { href: "/tools/pdf-to-text", title: "PDF to Text", description: "Extract full text from contract PDFs." },
+    { href: "/tools/ai-summarizer", title: "AI Summarizer", description: "Summarize key clauses from contracts." },
+    { href: "/tools/pdf-merger", title: "PDF Merger", description: "Combine contract documents into one PDF." },
+  ],
+  forms: [
+    { href: "/tools/image-to-text", title: "Image to Text (OCR)", description: "Extract text from scanned form images." },
+    { href: "/tools/pdf-to-text", title: "PDF to Text", description: "Extract text from PDF forms." },
+    { href: "/tools/handwriting-to-text", title: "Handwriting to Text", description: "Convert handwritten form entries into digital text." },
+  ],
+}
 import { getUseCaseBySlug } from "@/lib/seo/use-cases"
 import { getIndustryBySlug } from "@/lib/seo/industries"
 
@@ -141,6 +187,39 @@ export default function DocumentTypePage({
           </div>
         </div>
       </section>
+
+      {/* Free Tools */}
+      {documentTypeTools[docType.slug] && (
+        <section className="py-16 sm:py-20">
+          <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-center mb-4">
+              Free Tools for {docType.name}
+            </h2>
+            <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-8">
+              Try these free browser-based tools. No sign-up required.
+            </p>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {documentTypeTools[docType.slug].map((tool) => (
+                <Link
+                  key={tool.href}
+                  href={tool.href}
+                  className="group rounded-xl border bg-card p-5 hover:border-primary/30 transition-colors"
+                >
+                  <h3 className="font-semibold text-sm mb-1 group-hover:text-primary transition-colors">
+                    {tool.title}
+                  </h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {tool.description}
+                  </p>
+                  <span className="inline-flex items-center gap-1 text-xs text-primary mt-2">
+                    Try free <ArrowRight className="h-3 w-3" />
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* FAQ */}
       <section className="py-16 sm:py-20">

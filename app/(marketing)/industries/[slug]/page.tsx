@@ -14,6 +14,50 @@ import {
 import { getUseCaseBySlug } from "@/lib/seo/use-cases"
 import { getDocumentTypeBySlug } from "@/lib/seo/document-types"
 
+const industryTools: Record<string, { href: string; title: string; description: string }[]> = {
+  finance: [
+    { href: "/tools/invoice-parser", title: "Invoice Parser", description: "Extract vendor info, line items, and totals from invoices." },
+    { href: "/tools/receipt-scanner", title: "Receipt Scanner", description: "Scan receipts and extract transaction details." },
+    { href: "/tools/bank-statement-parser", title: "Bank Statement Parser", description: "Extract transactions and balances from bank statements." },
+    { href: "/tools/pdf-to-excel", title: "PDF to Excel", description: "Convert financial PDF tables to Excel spreadsheets." },
+  ],
+  "real-estate": [
+    { href: "/tools/pdf-to-text", title: "PDF to Text", description: "Extract text from property documents and contracts." },
+    { href: "/tools/ai-summarizer", title: "AI Summarizer", description: "Summarize key details from lengthy property documents." },
+    { href: "/tools/pdf-merger", title: "PDF Merger", description: "Combine multiple property documents into one PDF." },
+  ],
+  logistics: [
+    { href: "/tools/invoice-parser", title: "Invoice Parser", description: "Extract data from shipping invoices and bills of lading." },
+    { href: "/tools/pdf-to-excel", title: "PDF to Excel", description: "Convert logistics PDF reports to spreadsheets." },
+    { href: "/tools/pdf-to-text", title: "PDF to Text", description: "Extract text from shipping documents and manifests." },
+  ],
+  healthcare: [
+    { href: "/tools/image-to-text", title: "Image to Text (OCR)", description: "Extract text from scanned medical documents." },
+    { href: "/tools/pdf-to-text", title: "PDF to Text", description: "Extract text from medical PDF reports and forms." },
+    { href: "/tools/ai-summarizer", title: "AI Summarizer", description: "Summarize key information from medical documents." },
+  ],
+  legal: [
+    { href: "/tools/pdf-to-text", title: "PDF to Text", description: "Extract text from legal documents and contracts." },
+    { href: "/tools/ai-summarizer", title: "AI Summarizer", description: "Summarize key clauses from lengthy legal documents." },
+    { href: "/tools/pdf-merger", title: "PDF Merger", description: "Combine case files and legal documents into one PDF." },
+  ],
+  ecommerce: [
+    { href: "/tools/invoice-parser", title: "Invoice Parser", description: "Extract data from supplier and vendor invoices." },
+    { href: "/tools/receipt-scanner", title: "Receipt Scanner", description: "Scan and extract data from purchase receipts." },
+    { href: "/tools/pdf-to-excel", title: "PDF to Excel", description: "Convert product catalogs and reports to Excel." },
+  ],
+  hr: [
+    { href: "/tools/resume-parser", title: "Resume Parser", description: "Extract contact info, experience, skills from resumes." },
+    { href: "/tools/pdf-to-text", title: "PDF to Text", description: "Extract text from HR documents and policies." },
+    { href: "/tools/image-to-text", title: "Image to Text (OCR)", description: "Digitize scanned employee documents." },
+  ],
+  insurance: [
+    { href: "/tools/pdf-to-text", title: "PDF to Text", description: "Extract text from insurance policies and claims." },
+    { href: "/tools/ai-summarizer", title: "AI Summarizer", description: "Summarize key terms from insurance documents." },
+    { href: "/tools/image-to-text", title: "Image to Text (OCR)", description: "Digitize scanned claim forms and documents." },
+  ],
+}
+
 export function generateStaticParams() {
   return getAllIndustrySlugs().map((slug) => ({ slug }))
 }
@@ -144,6 +188,39 @@ export default function IndustryPage({
           </div>
         </div>
       </section>
+
+      {/* Free Tools */}
+      {industryTools[industry.slug] && (
+        <section className="py-16 sm:py-20 bg-muted/30">
+          <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-center mb-4">
+              Try Our Free Tools
+            </h2>
+            <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-8">
+              Get started with free browser-based tools. No sign-up required.
+            </p>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {industryTools[industry.slug].map((tool) => (
+                <Link
+                  key={tool.href}
+                  href={tool.href}
+                  className="group rounded-xl border bg-card p-5 hover:border-primary/30 transition-colors"
+                >
+                  <h3 className="font-semibold text-sm mb-1 group-hover:text-primary transition-colors">
+                    {tool.title}
+                  </h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {tool.description}
+                  </p>
+                  <span className="inline-flex items-center gap-1 text-xs text-primary mt-2">
+                    Try free <ArrowRight className="h-3 w-3" />
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* FAQ */}
       <section className="py-16 sm:py-20">

@@ -10,7 +10,13 @@ const footerLinks = {
     { href: "/solutions/document-parsing-api", label: "Document Parsing API" },
   ],
   Tools: [
-    { href: "/tools/pdf-to-excel", label: "PDF to Excel Converter" },
+    { href: "/tools", label: "All Tools" },
+    { href: "/tools/pdf-to-excel", label: "PDF to Excel" },
+    { href: "/tools/invoice-parser", label: "Invoice Parser" },
+    { href: "/tools/image-to-text", label: "Image to Text (OCR)" },
+    { href: "/tools/pdf-merger", label: "PDF Merger" },
+    { href: "/tools/receipt-scanner", label: "Receipt Scanner" },
+    { href: "/tools/bank-statement-parser", label: "Bank Statement Parser" },
   ],
   Resources: [
     { href: "/blog", label: "Blog" },
