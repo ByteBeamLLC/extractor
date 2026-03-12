@@ -291,14 +291,14 @@ export default function PdfToExcelToolPage() {
             </Link>{" "}
             are built for that. Or see how Parsli compares to{" "}
             <Link
-              href="/alternative/docparser"
+              href="/compare/docparser"
               className="text-primary hover:underline underline-offset-4"
             >
               Docparser
             </Link>{" "}
             and{" "}
             <Link
-              href="/alternative/nanonets"
+              href="/compare/nanonets"
               className="text-primary hover:underline underline-offset-4"
             >
               Nanonets

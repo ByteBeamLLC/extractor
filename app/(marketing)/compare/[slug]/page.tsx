@@ -28,12 +28,30 @@ export async function generateMetadata({
     title: alt.metaTitle,
     description: alt.metaDescription,
     alternates: {
-      canonical: `https://parsli.co/alternative/${alt.slug}`,
+      canonical: `https://parsli.co/compare/${alt.slug}`,
     },
     openGraph: {
       title: alt.metaTitle,
       description: alt.metaDescription,
-      url: `https://parsli.co/alternative/${alt.slug}`,
+      url: `https://parsli.co/compare/${alt.slug}`,
+      type: "article",
+      publishedTime: alt.publishedAt,
+      modifiedTime: alt.updatedAt,
+      authors: ["Talal Bazerbachi"],
+      images: [
+        {
+          url: "https://parsli.co/parsli-og.png",
+          width: 1200,
+          height: 630,
+          alt: alt.metaTitle,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: alt.metaTitle,
+      description: alt.metaDescription,
+      images: ["https://parsli.co/parsli-og.png"],
     },
   }
 }
@@ -51,10 +69,10 @@ export default function AlternativePage({
       <JsonLd
         data={breadcrumbJsonLd([
           { name: "Home", url: "https://parsli.co" },
-          { name: "Alternatives", url: "https://parsli.co/alternative" },
+          { name: "Compare", url: "https://parsli.co/compare" },
           {
             name: `${alt.competitor} Alternative`,
-            url: `https://parsli.co/alternative/${alt.slug}`,
+            url: `https://parsli.co/compare/${alt.slug}`,
           },
         ])}
       />
@@ -70,7 +88,7 @@ export default function AlternativePage({
         data={blogPostJsonLd({
           title: alt.metaTitle,
           description: alt.metaDescription,
-          url: `https://parsli.co/alternative/${alt.slug}`,
+          url: `https://parsli.co/compare/${alt.slug}`,
           publishedAt: alt.publishedAt,
           updatedAt: alt.updatedAt,
           author: "Talal Bazerbachi",
@@ -413,7 +431,7 @@ export default function AlternativePage({
               return (
                 <Link
                   key={relSlug}
-                  href={`/alternative/${relSlug}`}
+                  href={`/compare/${relSlug}`}
                   className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors"
                 >
                   Parsli vs {name}

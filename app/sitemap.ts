@@ -38,10 +38,52 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     {
+      url: `${BASE_URL}/compare`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE_URL}/tools`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
       url: `${BASE_URL}/tools/pdf-to-excel`,
       lastModified: now,
       changeFrequency: "monthly",
       priority: 0.8,
+    },
+    {
+      url: `${BASE_URL}/use-cases`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${BASE_URL}/solutions`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE_URL}/integrations`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${BASE_URL}/industries`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${BASE_URL}/document-types`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7,
     },
     {
       url: `${BASE_URL}/privacy`,
@@ -92,12 +134,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })
   )
 
-  const alternativePages: MetadataRoute.Sitemap = getAllAlternativeSlugs().map(
+  const comparePages: MetadataRoute.Sitemap = getAllAlternativeSlugs().map(
     (slug) => ({
-      url: `${BASE_URL}/alternative/${slug}`,
+      url: `${BASE_URL}/compare/${slug}`,
       lastModified: now,
       changeFrequency: "monthly" as const,
-      priority: 0.6,
+      priority: 0.8,
     })
   )
 
@@ -124,7 +166,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...blogPages,
     ...useCasePages,
     ...integrationPages,
-    ...alternativePages,
+    ...comparePages,
     ...industryPages,
     ...documentTypePages,
   ]

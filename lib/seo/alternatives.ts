@@ -116,7 +116,7 @@ export const alternatives: AlternativeData[] = [
   {
     slug: "parseur",
     competitor: "Parseur",
-    publishedAt: "2026-01-15",
+    publishedAt: "2026-01-08",
     updatedAt: "2026-03-12",
     readTime: "8 min read",
     metaTitle: "Less Expensive Parseur Alternative for 2026 | Parsli",
@@ -349,7 +349,7 @@ export const alternatives: AlternativeData[] = [
   {
     slug: "docparser",
     competitor: "Docparser",
-    publishedAt: "2026-01-20",
+    publishedAt: "2026-01-13",
     updatedAt: "2026-03-12",
     readTime: "7 min read",
     metaTitle: "AI-Powered Docparser Alternative for 2026 | Parsli",
@@ -564,7 +564,7 @@ export const alternatives: AlternativeData[] = [
   {
     slug: "nanonets",
     competitor: "Nanonets",
-    publishedAt: "2026-02-01",
+    publishedAt: "2026-01-22",
     updatedAt: "2026-03-12",
     readTime: "8 min read",
     metaTitle: "Less Expensive Nanonets Alternative for 2026 | Parsli",
@@ -779,7 +779,7 @@ export const alternatives: AlternativeData[] = [
   {
     slug: "upstage",
     competitor: "Upstage",
-    publishedAt: "2026-02-15",
+    publishedAt: "2026-01-28",
     updatedAt: "2026-03-12",
     readTime: "7 min read",
     metaTitle: "Parsli vs Upstage Document Parse — Best Alternative in 2026",
@@ -977,7 +977,7 @@ export const alternatives: AlternativeData[] = [
   {
     slug: "parsio",
     competitor: "Parsio",
-    publishedAt: "2026-03-12",
+    publishedAt: "2026-01-17",
     updatedAt: "2026-03-12",
     readTime: "7 min read",
     metaTitle: "Less Expensive Parsio Alternative for 2026 | Parsli",
@@ -1197,7 +1197,7 @@ export const alternatives: AlternativeData[] = [
   {
     slug: "docsumo",
     competitor: "Docsumo",
-    publishedAt: "2026-03-12",
+    publishedAt: "2026-01-25",
     updatedAt: "2026-03-12",
     readTime: "8 min read",
     metaTitle: "Self-Service Docsumo Alternative for 2026 | Parsli",
@@ -1419,7 +1419,7 @@ export const alternatives: AlternativeData[] = [
   {
     slug: "rossum",
     competitor: "Rossum",
-    publishedAt: "2026-03-12",
+    publishedAt: "2026-02-01",
     updatedAt: "2026-03-12",
     readTime: "7 min read",
     metaTitle: "Affordable Rossum Alternative for 2026 | Parsli",
@@ -1636,7 +1636,7 @@ export const alternatives: AlternativeData[] = [
   {
     slug: "klippa",
     competitor: "Klippa",
-    publishedAt: "2026-03-12",
+    publishedAt: "2026-02-04",
     updatedAt: "2026-03-12",
     readTime: "6 min read",
     metaTitle: "Klippa Alternative with Transparent Pricing for 2026 | Parsli",
@@ -1840,7 +1840,7 @@ export const alternatives: AlternativeData[] = [
   {
     slug: "base64ai",
     competitor: "Base64.ai",
-    publishedAt: "2026-03-12",
+    publishedAt: "2026-02-07",
     updatedAt: "2026-03-12",
     readTime: "6 min read",
     metaTitle: "Base64.ai Alternative for Non-Developers in 2026 | Parsli",
@@ -2027,7 +2027,7 @@ export const alternatives: AlternativeData[] = [
   {
     slug: "textract",
     competitor: "Amazon Textract",
-    publishedAt: "2026-03-12",
+    publishedAt: "2026-02-10",
     updatedAt: "2026-03-12",
     readTime: "7 min read",
     metaTitle: "Amazon Textract Alternative — No-Code Document Extraction | Parsli",
@@ -2221,7 +2221,7 @@ export const alternatives: AlternativeData[] = [
   {
     slug: "google-document-ai",
     competitor: "Google Document AI",
-    publishedAt: "2026-03-12",
+    publishedAt: "2026-02-13",
     updatedAt: "2026-03-12",
     readTime: "7 min read",
     metaTitle: "Google Document AI Alternative — No-Code Extraction | Parsli",
@@ -2403,7 +2403,7 @@ export const alternatives: AlternativeData[] = [
   {
     slug: "azure-document-intelligence",
     competitor: "Azure Document Intelligence",
-    publishedAt: "2026-03-12",
+    publishedAt: "2026-02-16",
     updatedAt: "2026-03-12",
     readTime: "6 min read",
     metaTitle: "Azure Document Intelligence Alternative — No-Code | Parsli",
@@ -2585,7 +2585,7 @@ export const alternatives: AlternativeData[] = [
   {
     slug: "mailparser",
     competitor: "Mailparser",
-    publishedAt: "2026-03-12",
+    publishedAt: "2026-02-19",
     updatedAt: "2026-03-12",
     readTime: "7 min read",
     metaTitle: "AI-Powered Mailparser Alternative for 2026 | Parsli",
@@ -2783,7 +2783,7 @@ export const alternatives: AlternativeData[] = [
   {
     slug: "abbyy",
     competitor: "ABBYY",
-    publishedAt: "2026-03-12",
+    publishedAt: "2026-02-21",
     updatedAt: "2026-03-12",
     readTime: "8 min read",
     metaTitle: "Modern ABBYY Alternative for 2026 | Parsli",
@@ -2880,7 +2880,7 @@ export const alternatives: AlternativeData[] = [
   {
     slug: "llamaparse",
     competitor: "LlamaParse",
-    publishedAt: "2026-03-12",
+    publishedAt: "2026-02-23",
     updatedAt: "2026-03-12",
     readTime: "7 min read",
     metaTitle: "LlamaParse Alternative for Business Teams | Parsli",
@@ -2963,7 +2963,7 @@ export const alternatives: AlternativeData[] = [
   {
     slug: "landing-ai",
     competitor: "Landing AI",
-    publishedAt: "2026-03-12",
+    publishedAt: "2026-02-25",
     updatedAt: "2026-03-12",
     readTime: "7 min read",
     metaTitle: "Landing AI Alternative with Transparent Pricing | Parsli",
@@ -3053,7 +3053,7 @@ export const alternatives: AlternativeData[] = [
   {
     slug: "pulse-ai",
     competitor: "Pulse AI",
-    publishedAt: "2026-03-12",
+    publishedAt: "2026-02-27",
     updatedAt: "2026-03-12",
     readTime: "6 min read",
     metaTitle: "Pulse AI (RunPulse) Alternative for Self-Service Teams | Parsli",
@@ -3136,7 +3136,7 @@ export const alternatives: AlternativeData[] = [
   {
     slug: "cradl-ai",
     competitor: "Cradl AI",
-    publishedAt: "2026-03-12",
+    publishedAt: "2026-03-01",
     updatedAt: "2026-03-12",
     readTime: "7 min read",
     metaTitle: "Cradl AI Alternative — More Pages, Less Cost | Parsli",
@@ -3225,7 +3225,7 @@ export const alternatives: AlternativeData[] = [
   {
     slug: "airparser",
     competitor: "Airparser",
-    publishedAt: "2026-03-12",
+    publishedAt: "2026-03-03",
     updatedAt: "2026-03-12",
     readTime: "6 min read",
     metaTitle: "Airparser Alternative — Better Value Per Page | Parsli",
@@ -3304,7 +3304,7 @@ export const alternatives: AlternativeData[] = [
   {
     slug: "mindee",
     competitor: "Mindee",
-    publishedAt: "2026-03-12",
+    publishedAt: "2026-03-05",
     updatedAt: "2026-03-12",
     readTime: "7 min read",
     metaTitle: "Mindee Alternative with No-Code Interface | Parsli",
@@ -3386,7 +3386,7 @@ export const alternatives: AlternativeData[] = [
   {
     slug: "reducto",
     competitor: "Reducto",
-    publishedAt: "2026-03-12",
+    publishedAt: "2026-03-06",
     updatedAt: "2026-03-12",
     readTime: "6 min read",
     metaTitle: "Reducto Alternative for Non-Technical Teams | Parsli",
@@ -3468,7 +3468,7 @@ export const alternatives: AlternativeData[] = [
   {
     slug: "sensible",
     competitor: "Sensible",
-    publishedAt: "2026-03-12",
+    publishedAt: "2026-03-07",
     updatedAt: "2026-03-12",
     readTime: "7 min read",
     metaTitle: "Sensible Alternative at 93% Lower Cost | Parsli",
@@ -3551,7 +3551,7 @@ export const alternatives: AlternativeData[] = [
   {
     slug: "uipath",
     competitor: "UiPath",
-    publishedAt: "2026-03-12",
+    publishedAt: "2026-03-08",
     updatedAt: "2026-03-12",
     readTime: "7 min read",
     metaTitle: "UiPath Document Understanding Alternative | Parsli",
@@ -3641,7 +3641,7 @@ export const alternatives: AlternativeData[] = [
   {
     slug: "hyperscience",
     competitor: "Hyperscience",
-    publishedAt: "2026-03-12",
+    publishedAt: "2026-03-09",
     updatedAt: "2026-03-12",
     readTime: "6 min read",
     metaTitle: "Hyperscience Alternative — 99% Cheaper Per Page | Parsli",
@@ -3724,7 +3724,7 @@ export const alternatives: AlternativeData[] = [
   {
     slug: "veryfi",
     competitor: "Veryfi",
-    publishedAt: "2026-03-12",
+    publishedAt: "2026-03-10",
     updatedAt: "2026-03-12",
     readTime: "6 min read",
     metaTitle: "Veryfi Alternative — General-Purpose Extraction | Parsli",
@@ -3805,7 +3805,7 @@ export const alternatives: AlternativeData[] = [
   {
     slug: "unstructured",
     competitor: "Unstructured.io",
-    publishedAt: "2026-03-12",
+    publishedAt: "2026-03-11",
     updatedAt: "2026-03-12",
     readTime: "6 min read",
     metaTitle: "Unstructured.io Alternative for Business Data | Parsli",
