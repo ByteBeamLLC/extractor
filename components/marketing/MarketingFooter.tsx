@@ -26,10 +26,11 @@ const footerLinks = {
     { href: "/use-cases/receipt-scanning", label: "Receipt Scanning" },
   ],
   Compare: [
-    { href: "/alternative/nanonets", label: "vs Nanonets" },
-    { href: "/alternative/docparser", label: "vs Docparser" },
-    { href: "/alternative/parseur", label: "vs Parseur" },
-    { href: "/alternative/upstage", label: "vs Upstage" },
+    { href: "/compare", label: "All Comparisons" },
+    { href: "/compare/nanonets", label: "vs Nanonets" },
+    { href: "/compare/docparser", label: "vs Docparser" },
+    { href: "/compare/parseur", label: "vs Parseur" },
+    { href: "/compare/upstage", label: "vs Upstage" },
   ],
 }
 
