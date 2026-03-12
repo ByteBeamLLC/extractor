@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { AuthButton } from "@/components/marketing/shared/AuthButton"
 import { JsonLd } from "@/components/marketing/shared/JsonLd"
-import { breadcrumbJsonLd, faqJsonLd } from "@/lib/seo/json-ld"
+import { breadcrumbJsonLd, faqJsonLd, blogPostJsonLd } from "@/lib/seo/json-ld"
 import {
   getAlternativeBySlug,
   getAllAlternativeSlugs,
@@ -51,6 +51,7 @@ export default function AlternativePage({
       <JsonLd
         data={breadcrumbJsonLd([
           { name: "Home", url: "https://parsli.co" },
+          { name: "Alternatives", url: "https://parsli.co/alternative" },
           {
             name: `${alt.competitor} Alternative`,
             url: `https://parsli.co/alternative/${alt.slug}`,
@@ -64,6 +65,16 @@ export default function AlternativePage({
             answer: f.answer,
           }))
         )}
+      />
+      <JsonLd
+        data={blogPostJsonLd({
+          title: alt.metaTitle,
+          description: alt.metaDescription,
+          url: `https://parsli.co/alternative/${alt.slug}`,
+          publishedAt: alt.publishedAt,
+          updatedAt: alt.updatedAt,
+          author: "Talal Bazerbachi",
+        })}
       />
 
       {/* ═══════ 1. Hero ═══════ */}
@@ -98,6 +109,29 @@ export default function AlternativePage({
             No credit card required &middot; 30 free pages/month &middot; Full
             API access
           </p>
+          <div className="mt-8 flex items-center justify-center gap-2 text-sm text-muted-foreground flex-wrap">
+            <span>By Talal Bazerbachi, Founder at Parsli</span>
+            <span aria-hidden="true">&middot;</span>
+            <time dateTime={alt.publishedAt}>
+              Published{" "}
+              {new Date(alt.publishedAt).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </time>
+            <span aria-hidden="true">&middot;</span>
+            <time dateTime={alt.updatedAt}>
+              Updated{" "}
+              {new Date(alt.updatedAt).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </time>
+            <span aria-hidden="true">&middot;</span>
+            <span>{alt.readTime}</span>
+          </div>
         </div>
       </section>
 
@@ -307,8 +341,37 @@ export default function AlternativePage({
         </div>
       </section>
 
-      {/* ═══════ 8. Getting Started / CTA ═══════ */}
+      {/* ═══════ 8. ROI Stats ═══════ */}
       <section className="py-16 sm:py-20">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
+            What Teams Get with Parsli
+          </h2>
+          <div className="grid sm:grid-cols-3 gap-6">
+            <div className="rounded-xl border bg-card p-6 text-center">
+              <p className="text-4xl font-bold text-primary mb-2">&lt;3s</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Average processing time per document
+              </p>
+            </div>
+            <div className="rounded-xl border bg-card p-6 text-center">
+              <p className="text-4xl font-bold text-primary mb-2">95%+</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Extraction accuracy on complex layouts and scanned documents
+              </p>
+            </div>
+            <div className="rounded-xl border bg-card p-6 text-center">
+              <p className="text-4xl font-bold text-primary mb-2">50k+</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Documents processed across all customer accounts
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════ 9. Getting Started / CTA ═══════ */}
+      <section className="py-16 sm:py-20 bg-muted/30">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-2xl sm:text-3xl font-bold mb-4">
             Ready to Switch from {alt.competitor}?
@@ -337,24 +400,27 @@ export default function AlternativePage({
         </div>
       </section>
 
-      {/* ═══════ 9. Related Comparisons ═══════ */}
+      {/* ═══════ 10. Related Comparisons ═══════ */}
       <section className="py-16 sm:py-20 bg-muted/30">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-xl font-bold text-center mb-8">
             Other Comparisons
           </h2>
           <div className="flex flex-wrap items-center justify-center gap-3">
-            {alt.relatedAlternatives.map((slug) => (
-              <Link
-                key={slug}
-                href={`/alternative/${slug}`}
-                className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors"
-              >
-                Parsli vs{" "}
-                {slug.charAt(0).toUpperCase() + slug.slice(1)}
-                <ArrowRight className="h-3 w-3 text-muted-foreground" />
-              </Link>
-            ))}
+            {alt.relatedAlternatives.map((relSlug) => {
+              const rel = getAlternativeBySlug(relSlug)
+              const name = rel?.competitor ?? relSlug
+              return (
+                <Link
+                  key={relSlug}
+                  href={`/alternative/${relSlug}`}
+                  className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors"
+                >
+                  Parsli vs {name}
+                  <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                </Link>
+              )
+            })}
             <Link
               href="/pricing"
               className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors"
