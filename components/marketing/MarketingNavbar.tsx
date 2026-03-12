@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils"
 import { APP_URL } from "@/lib/config"
 
 const navLinks = [
-  { href: "/tools/pdf-to-excel", label: "Tools" },
+  { href: "/tools", label: "Tools" },
   { href: "/pricing", label: "Pricing" },
   { href: "/docs", label: "Docs" },
   { href: "/blog", label: "Blog" },

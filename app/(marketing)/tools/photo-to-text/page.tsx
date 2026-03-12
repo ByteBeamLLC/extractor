@@ -5,11 +5,9 @@ import {
   Zap,
   UserX,
   Upload,
-  FileSpreadsheet,
   Download,
   ArrowRight,
   Sparkles,
-  Table,
   FileText,
   Code2,
   Monitor,
@@ -18,40 +16,42 @@ import {
   Users,
   GraduationCap,
   Building2,
-  BarChart3,
   Lightbulb,
   Star,
+  Camera,
+  ScanText,
+  Briefcase,
 } from "lucide-react"
-import { PdfToExcelTool } from "@/components/tools/PdfToExcelTool"
+import { PhotoToTextTool } from "@/components/tools/PhotoToTextTool"
 import { AuthButton } from "@/components/marketing/shared/AuthButton"
 import { Button } from "@/components/ui/button"
 import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld"
 
 export const metadata: Metadata = {
-  title: "PDF to Excel Converter — Free, Instant, No Sign-Up | Parsli",
+  title: "Photo to Text — Free OCR, Instant, No Sign-Up | Parsli",
   description:
-    "Convert PDF tables to Excel (.xlsx) instantly in your browser. Free, no sign-up, no file uploads to servers. Your data stays private. Works with invoices, bank statements, reports, and more.",
+    "Extract text from photos instantly using OCR in your browser. Free, no sign-up, no file uploads to servers. Take a photo of any text and convert it to digital text.",
   keywords: [
-    "pdf to excel converter",
-    "pdf to excel free",
-    "convert pdf to excel",
-    "pdf to xlsx",
-    "pdf table to excel",
-    "pdf to spreadsheet",
-    "extract table from pdf",
-    "pdf to excel online free",
-    "pdf to excel no sign up",
-    "pdf converter free",
+    "photo to text",
+    "photo to text converter",
+    "extract text from photo",
+    "photo ocr",
+    "picture to text",
+    "convert photo to text",
+    "text from photo",
+    "photo text extractor",
+    "photo to text free",
+    "photo to text online",
   ],
   alternates: {
-    canonical: "https://parsli.co/tools/pdf-to-excel",
+    canonical: "https://parsli.co/tools/photo-to-text",
   },
   openGraph: {
-    title: "PDF to Excel Converter — Free, Instant, No Sign-Up",
+    title: "Photo to Text — Free OCR, Instant, No Sign-Up",
     description:
-      "Convert PDF tables to Excel instantly in your browser. Free forever, no sign-up required, your data never leaves your device.",
-    url: "https://parsli.co/tools/pdf-to-excel",
+      "Extract text from photos instantly using OCR in your browser. Free forever, no sign-up required, your data never leaves your device.",
+    url: "https://parsli.co/tools/photo-to-text",
   },
 }
 
@@ -60,7 +60,7 @@ const features = [
     icon: Shield,
     title: "Private & secure",
     description:
-      "Your PDF is processed entirely in your browser. Files never leave your device.",
+      "Your photo is processed entirely in your browser. Files never leave your device.",
   },
   {
     icon: UserX,
@@ -72,101 +72,102 @@ const features = [
     icon: Zap,
     title: "Free & unlimited",
     description:
-      "No limits, no watermarks, no paywalls. Convert as many PDFs as you want.",
+      "No limits, no watermarks, no paywalls. Extract text from as many photos as you want.",
   },
 ]
 
 const steps = [
   {
     icon: Upload,
-    title: "Upload your PDF",
-    description: "Drag and drop your PDF or click to browse. Up to 50 MB.",
+    title: "Upload your photo",
+    description:
+      "Take a photo with your camera or drag and drop an existing image. Supports JPG, PNG, and more.",
   },
   {
-    icon: Table,
-    title: "Auto-detect tables",
+    icon: ScanText,
+    title: "OCR extracts text",
     description:
-      "The tool detects rows and columns from your PDF layout automatically.",
+      "The tool uses optical character recognition to detect and extract all text from your photo.",
   },
   {
     icon: Download,
-    title: "Download Excel",
+    title: "Copy or download",
     description:
-      "Preview the data, then download as a clean .xlsx file. That's it.",
+      "Copy the extracted text to your clipboard or download it as a .txt file.",
   },
 ]
 
 const personas = [
   {
-    icon: BarChart3,
-    title: "Accountants & Finance Teams",
+    icon: Briefcase,
+    title: "Travelers",
     description:
-      "Extract data from invoices, bank statements, and financial reports without manual entry.",
+      "Photograph signs, menus, and documents in foreign languages and extract the text for translation.",
   },
   {
     icon: Users,
     title: "Small Business Owners",
     description:
-      "Quickly convert supplier invoices and receipts into spreadsheets for bookkeeping.",
+      "Snap photos of receipts, business cards, and invoices to digitize contact info and expenses.",
   },
   {
     icon: GraduationCap,
-    title: "Students & Researchers",
+    title: "Students",
     description:
-      "Pull data tables from academic papers and reports into Excel for analysis.",
+      "Photograph textbook pages, whiteboard notes, and handouts to create searchable digital notes.",
   },
   {
     icon: Building2,
-    title: "Operations & Admin",
+    title: "Field Workers",
     description:
-      "Convert PDF reports, price lists, and catalogs into editable spreadsheets.",
+      "Capture text from equipment labels, serial numbers, safety signs, and field documents.",
   },
 ]
 
 const faqs = [
   {
-    q: "Is this tool really free?",
+    q: "Is this photo to text tool free?",
     a: "Yes, completely free with no limits. There are no hidden charges, no watermarks, and no sign-up required. We built this as a free utility for the community.",
   },
   {
-    q: "Do you store or upload my PDF files?",
-    a: "No. Your PDF is processed entirely in your browser using JavaScript. The file never leaves your device and is never sent to any server. Your data stays 100% private.",
+    q: "Do you store or upload my photos?",
+    a: "No. Your photo is processed entirely in your browser using JavaScript and Tesseract.js. The file never leaves your device and is never sent to any server. Your data stays 100% private.",
   },
   {
-    q: "What types of PDFs work best?",
-    a: "This tool works best with PDFs that contain text-based tables — invoices, bank statements, financial reports, data exports, and similar structured documents. It extracts the text positions and reconstructs the table layout.",
+    q: "What photo formats are supported?",
+    a: "JPG/JPEG, PNG, GIF, BMP, and WebP. Most phone cameras save photos as JPG, which works perfectly with this tool.",
   },
   {
-    q: "Does this work with scanned PDFs or images?",
-    a: "No. This tool extracts text that's embedded in the PDF. Scanned documents (images of text) require OCR, which this tool doesn't include. For scanned PDFs, try Parsli's AI-powered extraction which handles images, scans, and complex layouts.",
+    q: "What languages does the OCR support?",
+    a: "12 languages: English, Arabic, French, German, Spanish, Italian, Portuguese, Russian, Chinese (Simplified & Traditional), Japanese, and Korean. Select the language before uploading your photo.",
   },
   {
-    q: "What if the table layout doesn't look right?",
-    a: "Simple, well-structured tables convert accurately. But complex PDF layouts — merged cells, multi-column pages, nested tables, or inconsistent spacing — can be challenging for rule-based extraction. For complex documents, Parsli's AI extraction understands document context and handles these cases automatically.",
+    q: "How do I get the best results from a photo?",
+    a: "Use good, even lighting without shadows or glare. Hold your camera directly above the text to avoid skewing. Make sure the text is in focus and the image is high resolution. Crop to just the text area for best accuracy.",
   },
   {
-    q: "Can I convert multiple pages?",
-    a: "Yes. Multi-page PDFs are supported. If all pages have the same table structure, they're combined into one sheet. If pages have different layouts, each page becomes a separate Excel sheet.",
+    q: "Can I photograph a sign or menu and extract the text?",
+    a: "Yes. Photos of signs, menus, posters, and printed materials work well as long as the text is clear and the photo is well-lit. For best results, get close enough that the text is large in the frame.",
+  },
+  {
+    q: "Does this work with handwritten text in photos?",
+    a: "It can recognize some clear handwriting, but accuracy varies. For dedicated handwriting recognition, try our Handwriting to Text tool or Parsli's AI-powered extraction for difficult handwriting.",
   },
   {
     q: "What's the difference between this and Parsli?",
-    a: "This free tool does simple table extraction from text-based PDFs. Parsli is a full AI-powered document extraction platform — it handles scanned documents, complex layouts, images, and lets you define custom schemas for exactly what data to extract. It also connects to Google Sheets, Zapier, Make, and 5,000+ apps automatically.",
+    a: "This free tool does basic OCR text extraction from photos. Parsli is a full AI-powered document extraction platform — it handles complex layouts, poor quality images, and lets you define custom schemas for extracting specific data fields. It also connects to Google Sheets, Zapier, Make, and 5,000+ apps automatically.",
   },
   {
-    q: "What file size limit is there?",
-    a: "Up to 50 MB. Since everything runs in your browser, very large files may take longer to process depending on your device.",
+    q: "Can I take a photo and extract text on my phone?",
+    a: "Yes. This tool works on iPhone, iPad, and Android devices. Take a photo with your camera, open this page in your browser, and upload it to extract the text instantly.",
   },
   {
-    q: "How do I convert a PDF to Excel without installing software?",
-    a: "Just open this page, drag and drop your PDF file, and click Download. The conversion happens entirely in your browser — no software to install, no account to create, and no files uploaded to any server. It works on any device with a modern browser.",
-  },
-  {
-    q: "Can I convert a PDF to Excel on my phone?",
-    a: "Yes. This tool works on iPhone, iPad, and Android devices. Open the page in your mobile browser, upload your PDF, and download the Excel file directly to your device.",
+    q: "What's the maximum file size?",
+    a: "Up to 20 MB. Most phone photos are well under this limit. Since everything runs in your browser, very large images may take longer to process on older devices.",
   },
 ]
 
-export default function PdfToExcelToolPage() {
+export default function PhotoToTextToolPage() {
   return (
     <>
       <JsonLd
@@ -174,8 +175,8 @@ export default function PdfToExcelToolPage() {
           { name: "Home", url: "https://parsli.co" },
           { name: "Tools", url: "https://parsli.co/tools" },
           {
-            name: "PDF to Excel Converter",
-            url: "https://parsli.co/tools/pdf-to-excel",
+            name: "Photo to Text",
+            url: "https://parsli.co/tools/photo-to-text",
           },
         ])}
       />
@@ -183,9 +184,9 @@ export default function PdfToExcelToolPage() {
         data={{
           "@context": "https://schema.org",
           "@type": "SoftwareApplication",
-          name: "Parsli PDF to Excel Converter",
+          name: "Parsli Photo to Text",
           description:
-            "Free browser-based tool to convert PDF tables to Excel spreadsheets. No sign-up required.",
+            "Free browser-based tool to extract text from photos using OCR. Supports 12 languages. No sign-up required.",
           applicationCategory: "UtilitiesApplication",
           operatingSystem: "Web Browser",
           offers: {
@@ -210,7 +211,7 @@ export default function PdfToExcelToolPage() {
         }}
       />
 
-      {/* ═══════ 1. Hero + Tool ═══════ */}
+      {/* 1. Hero + Tool */}
       <section className="relative pt-24 sm:pt-28 pb-16">
         <div className="absolute inset-0 -z-10">
           <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-primary/5 rounded-full blur-3xl" />
@@ -218,15 +219,15 @@ export default function PdfToExcelToolPage() {
 
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 text-center">
           <div className="inline-flex items-center gap-2 rounded-full border bg-card px-4 py-1.5 text-sm text-muted-foreground mb-6">
-            <FileSpreadsheet className="h-4 w-4 text-primary" />
-            PDF to Excel Converter
+            <Camera className="h-4 w-4 text-primary" />
+            Photo to Text
           </div>
 
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-[1.1] mb-4">
-            Convert PDF to Excel
+            Extract Text from Photos
           </h1>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-3">
-            Free, instant, no sign-up
+            Free OCR &mdash; instant, no sign-up
           </p>
 
           {/* Social proof */}
@@ -241,7 +242,7 @@ export default function PdfToExcelToolPage() {
             <span>Trusted by thousands of users</span>
           </div>
 
-          <PdfToExcelTool />
+          <PhotoToTextTool />
 
           <p className="mt-6 text-xs text-muted-foreground">
             100% client-side processing &middot; No data sent to any server
@@ -250,7 +251,7 @@ export default function PdfToExcelToolPage() {
         </div>
       </section>
 
-      {/* ═══════ 2. API / Product Upsell (EARLY) ═══════ */}
+      {/* 2. API / Product Upsell */}
       <section className="py-10 sm:py-12 border-t">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <div className="rounded-xl border bg-card p-6 sm:p-8 flex flex-col sm:flex-row items-start gap-5">
@@ -259,12 +260,12 @@ export default function PdfToExcelToolPage() {
             </div>
             <div className="flex-1">
               <h2 className="font-semibold text-lg mb-1">
-                Want to extract PDF data via API?
+                Need to extract data from photos at scale?
               </h2>
               <p className="text-sm text-muted-foreground leading-relaxed mb-4">
                 Integrate AI-powered document extraction into your workflow.
-                Build automations, batch-process hundreds of documents, and get
-                structured JSON output with custom schemas.
+                Batch-process hundreds of photos, get structured JSON output
+                with custom schemas, and automate everything.
               </p>
               <div className="flex items-center gap-4">
                 <Link
@@ -286,25 +287,25 @@ export default function PdfToExcelToolPage() {
         </div>
       </section>
 
-      {/* ═══════ 3. Cross-Sell Links ═══════ */}
+      {/* 3. Cross-Sell Links */}
       <section className="pb-10 sm:pb-12">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <p className="text-sm text-muted-foreground text-center leading-relaxed">
-            Processing invoices or bank statements at scale?{" "}
+            Working with screenshots?{" "}
             <Link
-              href="/solutions/invoice-parsing"
+              href="/tools/screenshot-to-text"
               className="text-primary hover:underline underline-offset-4"
             >
-              Invoice Parsing
+              Screenshot to Text
             </Link>{" "}
-            and{" "}
+            is optimized for screen captures. For handwritten notes, try{" "}
             <Link
-              href="/solutions/bank-statement-extraction"
+              href="/tools/handwriting-to-text"
               className="text-primary hover:underline underline-offset-4"
             >
-              Bank Statement Extraction
-            </Link>{" "}
-            are built for that. Or see how Parsli compares to{" "}
+              Handwriting to Text
+            </Link>
+            . Or see how Parsli compares to{" "}
             <Link
               href="/compare/docparser"
               className="text-primary hover:underline underline-offset-4"
@@ -323,11 +324,11 @@ export default function PdfToExcelToolPage() {
         </div>
       </section>
 
-      {/* ═══════ 4. Why Use This Tool ═══════ */}
+      {/* 4. Why Use This Tool */}
       <section className="py-16 sm:py-20 bg-muted/30">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
-            Why use this PDF to Excel converter
+            Why use this photo to text converter
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
             {features.map((f) => (
@@ -348,7 +349,7 @@ export default function PdfToExcelToolPage() {
         </div>
       </section>
 
-      {/* ═══════ 5. How It Works ═══════ */}
+      {/* 5. How It Works */}
       <section className="py-16 sm:py-20">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
@@ -374,28 +375,28 @@ export default function PdfToExcelToolPage() {
             ))}
           </div>
 
-          {/* Important notes callout */}
+          {/* Note callout */}
           <div className="mt-8 rounded-lg border-l-4 border-primary bg-primary/5 px-6 py-4 max-w-2xl mx-auto">
             <p className="text-sm text-muted-foreground leading-relaxed">
-              <span className="font-medium text-foreground">Note:</span> This
-              tool works best with text-based PDFs that have clear table
-              structures. Scanned documents and images require OCR — try{" "}
+              <span className="font-medium text-foreground">Tip:</span> For
+              best results, use a well-lit, focused photo with the text clearly
+              visible. For complex documents that need structured data
+              extraction, try{" "}
               <Link
-                href="/solutions/pdf-to-excel"
+                href="/solutions/ai-ocr"
                 className="text-primary hover:underline underline-offset-4"
               >
                 Parsli AI
-              </Link>{" "}
-              for those.
+              </Link>
+              .
             </p>
           </div>
         </div>
       </section>
 
-      {/* ═══════ 6. Educational Content ═══════ */}
+      {/* 6. Educational Content */}
       <section className="py-16 sm:py-20 bg-muted/30">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          {/* What this tool handles vs Parsli AI */}
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
             What this tool handles
           </h2>
@@ -408,23 +409,23 @@ export default function PdfToExcelToolPage() {
               <ul className="space-y-3 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <span className="text-green-600 mt-0.5">&#10003;</span>
-                  Invoices with line item tables
+                  Photos of signs, menus, and posters
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-600 mt-0.5">&#10003;</span>
-                  Bank and financial statements
+                  Business cards and labels
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-600 mt-0.5">&#10003;</span>
-                  Data exports and reports
+                  Receipts and printed invoices
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-600 mt-0.5">&#10003;</span>
-                  Price lists and product catalogs
+                  Book and magazine pages
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-600 mt-0.5">&#10003;</span>
-                  Simple, well-structured table layouts
+                  Equipment labels and serial numbers
                 </li>
               </ul>
             </div>
@@ -436,15 +437,15 @@ export default function PdfToExcelToolPage() {
               <ul className="space-y-3 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
-                  Scanned documents and images (OCR)
+                  Structured data extraction from photos
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
-                  Complex multi-column layouts
+                  Poor quality or low-light photos
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
-                  Custom data extraction schemas
+                  Custom extraction schemas for specific fields
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
@@ -452,59 +453,61 @@ export default function PdfToExcelToolPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
-                  Batch processing hundreds of documents
+                  Batch processing hundreds of photos
                 </li>
               </ul>
             </div>
           </div>
 
-          {/* Tips for better conversion */}
+          {/* Tips */}
           <div className="mt-16 max-w-3xl mx-auto">
             <div className="flex items-center gap-2 mb-6">
               <Lightbulb className="h-5 w-5 text-primary" />
               <h3 className="text-xl font-bold">
-                Tips for better PDF to Excel conversion
+                Tips for better photo text extraction
               </h3>
             </div>
             <div className="space-y-6">
               <div>
                 <h4 className="font-semibold mb-2">
-                  Use text-based PDFs, not scanned images
+                  Use good, even lighting
                 </h4>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  If you can select and copy text in your PDF, this tool will work
-                  well. If the PDF is a scanned image, you&apos;ll need OCR — try
-                  Parsli AI for that.
+                  Natural daylight or bright, even artificial lighting works
+                  best. Avoid shadows across the text, direct glare from
+                  reflective surfaces, and uneven lighting that creates dark
+                  spots.
                 </p>
               </div>
               <div>
                 <h4 className="font-semibold mb-2">
-                  Clean table structure converts best
+                  Hold the camera straight and steady
                 </h4>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  PDFs with clear, grid-like tables — consistent columns, uniform
-                  row heights, no merged cells — produce the most accurate
+                  Point your camera directly at the text to minimize perspective
+                  distortion. A straight-on angle produces much better OCR
+                  results than photos taken at an angle.
+                </p>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-2">
+                  Make sure text is in focus
+                </h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Blurry text is the most common cause of poor OCR accuracy. Tap
+                  on the text area in your camera app to focus, and hold the
+                  phone steady while taking the photo.
+                </p>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-2">
+                  Get close enough for the text to be readable
+                </h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  If the text is small in the photo, the OCR engine may
+                  struggle. Get close enough that individual characters are
+                  clearly visible. Crop the image to the text area for best
                   results.
-                </p>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-2">
-                  Check for special characters and currencies
-                </h4>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  The tool auto-detects numbers, currencies ($, €, £), and
-                  percentages. If your PDF uses unusual formatting, double-check
-                  the Excel output.
-                </p>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-2">
-                  Multi-page documents are supported
-                </h4>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Pages with the same table structure are combined into one sheet.
-                  Different layouts get separate sheets — check all tabs in your
-                  downloaded file.
                 </p>
               </div>
             </div>
@@ -512,7 +515,7 @@ export default function PdfToExcelToolPage() {
         </div>
       </section>
 
-      {/* ═══════ 7. Perfect For (User Personas) ═══════ */}
+      {/* 7. Perfect For */}
       <section className="py-16 sm:py-20">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
@@ -535,7 +538,7 @@ export default function PdfToExcelToolPage() {
         </div>
       </section>
 
-      {/* ═══════ 8. FAQ ═══════ */}
+      {/* 8. FAQ */}
       <section className="py-16 sm:py-20">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
@@ -554,48 +557,49 @@ export default function PdfToExcelToolPage() {
         </div>
       </section>
 
-      {/* ═══════ 9. SEO Comparison Table + Content ═══════ */}
+      {/* 9. SEO Content */}
       <section className="py-16 sm:py-20 bg-muted/30 border-t">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-xl sm:text-2xl font-bold mb-4">
-            How to Convert PDF to Excel for Free
+            How to Extract Text from Photos for Free
           </h2>
           <p className="text-muted-foreground leading-relaxed mb-4">
-            Converting PDF files to Excel spreadsheets is one of the most common
-            document tasks for businesses and individuals. Whether you need to
-            extract financial data from bank statements, pull line items from
-            invoices, or convert reports into editable spreadsheets, a reliable
-            PDF to Excel converter saves hours of manual data entry.
+            Extracting text from photos is something everyone needs at some
+            point &mdash; whether you&apos;re grabbing a recipe from a cookbook
+            photo, copying text from a sign while traveling, or digitizing a
+            printed document with your phone camera. A reliable photo to text
+            converter eliminates the tedious process of manually retyping
+            everything you see.
           </p>
           <p className="text-muted-foreground leading-relaxed mb-4">
-            Most online converters require you to upload your files to their
-            servers, create an account, or pay for a subscription. This tool is
-            different — it runs entirely in your browser using JavaScript. Your
-            PDF is processed on your own device and never sent anywhere. It&apos;s
-            completely free, with no limits on the number of conversions.
+            Most online OCR tools require you to upload your photos to their
+            servers, create accounts, or pay for subscriptions. This tool is
+            different &mdash; it runs entirely in your browser using Tesseract.js
+            OCR. Your photo is processed on your own device and never sent
+            anywhere. It&apos;s completely free, with no limits on the number of
+            photos you can process.
           </p>
 
           <h2 className="text-xl sm:text-2xl font-bold mt-10 mb-4">
-            When Do You Need AI-Powered PDF Extraction?
+            When Do You Need AI-Powered Photo Extraction?
           </h2>
           <p className="text-muted-foreground leading-relaxed mb-4">
-            This free converter handles text-based PDFs with clear table
-            structures. But real-world documents are often more complex —
-            scanned papers, inconsistent layouts, merged cells, or data spread
-            across multiple sections. That&apos;s where AI-powered extraction
-            comes in.
+            This free tool handles clear photos with printed text well. But
+            real-world photos often have challenges &mdash; poor lighting,
+            skewed angles, curved surfaces, or you need to extract specific
+            data fields rather than all the text. That&apos;s where AI-powered
+            extraction comes in.
           </p>
           <p className="text-muted-foreground leading-relaxed mb-4">
-            Parsli uses Google&apos;s Gemini AI to understand the full context of
-            your documents. You define a schema — the exact fields you want
-            extracted — and the AI pulls structured data from any document type,
-            including scanned images, handwritten forms, and complex layouts.
-            The extracted data flows automatically to Google Sheets, Zapier,
-            Make, webhooks, or your own API.
+            Parsli uses Google&apos;s Gemini AI to understand the full context
+            of your documents. You define a schema &mdash; the exact fields you
+            want extracted &mdash; and the AI pulls structured data from any
+            photo or document type. The extracted data flows automatically to
+            Google Sheets, Zapier, Make, webhooks, or your own API.
           </p>
 
           <h2 className="text-xl sm:text-2xl font-bold mt-10 mb-4">
-            PDF to Excel: Free Tool vs AI Extraction
+            Photo to Text: Free OCR vs AI Extraction
           </h2>
           <div className="border rounded-lg overflow-hidden mb-6">
             <table className="w-full text-sm">
@@ -605,7 +609,7 @@ export default function PdfToExcelToolPage() {
                     Feature
                   </th>
                   <th className="text-left px-4 py-2.5 font-semibold">
-                    Free Tool
+                    Free OCR Tool
                   </th>
                   <th className="text-left px-4 py-2.5 font-semibold">
                     Parsli AI
@@ -614,12 +618,12 @@ export default function PdfToExcelToolPage() {
               </thead>
               <tbody>
                 {[
-                  ["Text-based PDFs", "Yes", "Yes"],
-                  ["Scanned PDFs / images", "No", "Yes"],
+                  ["Clear photo text", "Yes", "Yes"],
+                  ["Poor quality photos", "Basic", "Advanced"],
                   ["Custom extraction schema", "No", "Yes"],
-                  ["Complex layouts", "Basic", "Advanced"],
+                  ["Handwritten text", "Basic", "Advanced"],
+                  ["Multi-language support", "12 languages", "50+ languages"],
                   ["Automated workflows", "No", "Yes"],
-                  ["Google Sheets integration", "No", "Yes"],
                   ["API access", "No", "Yes"],
                   ["Price", "Free", "Free tier + paid plans"],
                 ].map(([feature, free, ai]) => (
@@ -635,36 +639,30 @@ export default function PdfToExcelToolPage() {
         </div>
       </section>
 
-      {/* ═══════ 10. Works Everywhere ═══════ */}
+      {/* 10. Works Everywhere */}
       <section className="py-12 sm:py-16">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-lg font-semibold text-center mb-8">
-            Works everywhere — no install needed
+            Works everywhere &mdash; no install needed
           </h2>
           <div className="grid grid-cols-3 gap-6 max-w-md mx-auto">
             <div className="text-center">
               <Monitor className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
-              <p className="text-xs text-muted-foreground">
-                Desktop
-              </p>
+              <p className="text-xs text-muted-foreground">Desktop</p>
               <p className="text-[10px] text-muted-foreground/60">
                 Chrome, Firefox, Safari, Edge
               </p>
             </div>
             <div className="text-center">
               <Smartphone className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
-              <p className="text-xs text-muted-foreground">
-                Mobile
-              </p>
+              <p className="text-xs text-muted-foreground">Mobile</p>
               <p className="text-[10px] text-muted-foreground/60">
                 iOS, Android
               </p>
             </div>
             <div className="text-center">
               <Tablet className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
-              <p className="text-xs text-muted-foreground">
-                Tablet
-              </p>
+              <p className="text-xs text-muted-foreground">Tablet</p>
               <p className="text-[10px] text-muted-foreground/60">
                 iPad, Android tablets
               </p>
@@ -673,14 +671,14 @@ export default function PdfToExcelToolPage() {
         </div>
       </section>
 
-      {/* ═══════ 11. Final CTA ═══════ */}
+      {/* 11. Final CTA */}
       <section className="py-16 sm:py-20 bg-muted/30 border-t">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 text-center">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 text-primary mb-6">
             <Sparkles className="h-7 w-7" />
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold mb-4">
-            Stop re-keying data from PDFs manually.
+            Stop transcribing text from photos manually.
           </h2>
           <p className="text-muted-foreground max-w-xl mx-auto mb-8 leading-relaxed">
             Parsli extracts structured data from any document — PDFs, images,
@@ -707,18 +705,18 @@ export default function PdfToExcelToolPage() {
         </div>
       </section>
 
-      {/* ═══════ 12. Related Links ═══════ */}
+      {/* 12. Related Links */}
       <section className="py-12 sm:py-16 border-t">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-lg font-semibold mb-6">Related Resources</h2>
           <div className="flex flex-wrap gap-3">
             {[
-              { href: "/solutions/pdf-to-excel", label: "PDF to Excel Solution" },
-              { href: "/use-cases/pdf-to-excel", label: "PDF to Excel Use Case" },
-              { href: "/use-cases/pdf-data-extraction", label: "PDF Data Extraction" },
-              { href: "/blog/extract-data-pdf-to-excel", label: "How to Extract PDF Data" },
-              { href: "/solutions/invoice-parsing", label: "Invoice Parsing" },
-              { href: "/solutions/bank-statement-extraction", label: "Bank Statement Extraction" },
+              { href: "/tools/image-to-text", label: "Image to Text (OCR)" },
+              { href: "/tools/screenshot-to-text", label: "Screenshot to Text" },
+              { href: "/tools/handwriting-to-text", label: "Handwriting to Text" },
+              { href: "/tools/pdf-to-text", label: "PDF to Text" },
+              { href: "/tools/pdf-to-excel", label: "PDF to Excel" },
+              { href: "/solutions/ai-ocr", label: "AI OCR Solution" },
               { href: "/docs", label: "Documentation" },
               { href: "/pricing", label: "Pricing" },
             ].map((link) => (

@@ -5,7 +5,7 @@ import {
   Zap,
   UserX,
   Upload,
-  FileSpreadsheet,
+  FileJson2,
   Download,
   ArrowRight,
   Sparkles,
@@ -22,36 +22,36 @@ import {
   Lightbulb,
   Star,
 } from "lucide-react"
-import { PdfToExcelTool } from "@/components/tools/PdfToExcelTool"
+import { ExcelToJsonTool } from "@/components/tools/ExcelToJsonTool"
 import { AuthButton } from "@/components/marketing/shared/AuthButton"
 import { Button } from "@/components/ui/button"
 import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld"
 
 export const metadata: Metadata = {
-  title: "PDF to Excel Converter — Free, Instant, No Sign-Up | Parsli",
+  title: "Excel to JSON Converter — Free, Instant, No Sign-Up | Parsli",
   description:
-    "Convert PDF tables to Excel (.xlsx) instantly in your browser. Free, no sign-up, no file uploads to servers. Your data stays private. Works with invoices, bank statements, reports, and more.",
+    "Convert Excel spreadsheets (.xlsx, .xls) to JSON instantly in your browser. Free, no sign-up, no file uploads to servers. Your data stays private.",
   keywords: [
-    "pdf to excel converter",
-    "pdf to excel free",
-    "convert pdf to excel",
-    "pdf to xlsx",
-    "pdf table to excel",
-    "pdf to spreadsheet",
-    "extract table from pdf",
-    "pdf to excel online free",
-    "pdf to excel no sign up",
-    "pdf converter free",
+    "excel to json converter",
+    "excel to json free",
+    "convert excel to json",
+    "xlsx to json",
+    "spreadsheet to json",
+    "excel to json online",
+    "excel to json no sign up",
+    "xls to json",
+    "convert spreadsheet to json",
+    "excel json converter free",
   ],
   alternates: {
-    canonical: "https://parsli.co/tools/pdf-to-excel",
+    canonical: "https://parsli.co/tools/excel-to-json",
   },
   openGraph: {
-    title: "PDF to Excel Converter — Free, Instant, No Sign-Up",
+    title: "Excel to JSON Converter — Free, Instant, No Sign-Up",
     description:
-      "Convert PDF tables to Excel instantly in your browser. Free forever, no sign-up required, your data never leaves your device.",
-    url: "https://parsli.co/tools/pdf-to-excel",
+      "Convert Excel files to JSON instantly in your browser. Free forever, no sign-up required, your data never leaves your device.",
+    url: "https://parsli.co/tools/excel-to-json",
   },
 }
 
@@ -60,7 +60,7 @@ const features = [
     icon: Shield,
     title: "Private & secure",
     description:
-      "Your PDF is processed entirely in your browser. Files never leave your device.",
+      "Your Excel file is processed entirely in your browser. Files never leave your device.",
   },
   {
     icon: UserX,
@@ -72,54 +72,54 @@ const features = [
     icon: Zap,
     title: "Free & unlimited",
     description:
-      "No limits, no watermarks, no paywalls. Convert as many PDFs as you want.",
+      "No limits, no watermarks, no paywalls. Convert as many files as you want.",
   },
 ]
 
 const steps = [
   {
     icon: Upload,
-    title: "Upload your PDF",
-    description: "Drag and drop your PDF or click to browse. Up to 50 MB.",
+    title: "Upload your Excel file",
+    description: "Drag and drop your .xlsx or .xls file, or click to browse. Up to 50 MB.",
   },
   {
     icon: Table,
-    title: "Auto-detect tables",
+    title: "Auto-convert to JSON",
     description:
-      "The tool detects rows and columns from your PDF layout automatically.",
+      "The first row becomes object keys. Each subsequent row becomes a JSON object in the array.",
   },
   {
     icon: Download,
-    title: "Download Excel",
+    title: "Copy or download",
     description:
-      "Preview the data, then download as a clean .xlsx file. That's it.",
+      "Copy the JSON to your clipboard or download it as a .json file. That's it.",
   },
 ]
 
 const personas = [
   {
-    icon: BarChart3,
-    title: "Accountants & Finance Teams",
+    icon: Code2,
+    title: "Developers & Engineers",
     description:
-      "Extract data from invoices, bank statements, and financial reports without manual entry.",
+      "Quickly convert spreadsheet data into JSON for APIs, databases, and config files.",
+  },
+  {
+    icon: BarChart3,
+    title: "Data Analysts",
+    description:
+      "Transform Excel exports into JSON format for data pipelines and visualization tools.",
   },
   {
     icon: Users,
-    title: "Small Business Owners",
+    title: "Product & Project Managers",
     description:
-      "Quickly convert supplier invoices and receipts into spreadsheets for bookkeeping.",
+      "Convert spreadsheet-based specs, lists, and trackers into structured JSON data.",
   },
   {
     icon: GraduationCap,
     title: "Students & Researchers",
     description:
-      "Pull data tables from academic papers and reports into Excel for analysis.",
-  },
-  {
-    icon: Building2,
-    title: "Operations & Admin",
-    description:
-      "Convert PDF reports, price lists, and catalogs into editable spreadsheets.",
+      "Turn research data from Excel into JSON for academic tools and web applications.",
   },
 ]
 
@@ -129,44 +129,44 @@ const faqs = [
     a: "Yes, completely free with no limits. There are no hidden charges, no watermarks, and no sign-up required. We built this as a free utility for the community.",
   },
   {
-    q: "Do you store or upload my PDF files?",
-    a: "No. Your PDF is processed entirely in your browser using JavaScript. The file never leaves your device and is never sent to any server. Your data stays 100% private.",
+    q: "Do you store or upload my Excel files?",
+    a: "No. Your Excel file is processed entirely in your browser using JavaScript. The file never leaves your device and is never sent to any server. Your data stays 100% private.",
   },
   {
-    q: "What types of PDFs work best?",
-    a: "This tool works best with PDFs that contain text-based tables — invoices, bank statements, financial reports, data exports, and similar structured documents. It extracts the text positions and reconstructs the table layout.",
+    q: "How does the Excel to JSON conversion work?",
+    a: "The tool reads the first sheet of your Excel file. The first row is used as the keys (property names) for each JSON object. Every subsequent row becomes an object in the resulting JSON array.",
   },
   {
-    q: "Does this work with scanned PDFs or images?",
-    a: "No. This tool extracts text that's embedded in the PDF. Scanned documents (images of text) require OCR, which this tool doesn't include. For scanned PDFs, try Parsli's AI-powered extraction which handles images, scans, and complex layouts.",
+    q: "What if my Excel file has multiple sheets?",
+    a: "Currently, the tool converts the first sheet. If you need data from other sheets, you can copy the data into the first sheet or use Parsli's API for multi-sheet extraction.",
   },
   {
-    q: "What if the table layout doesn't look right?",
-    a: "Simple, well-structured tables convert accurately. But complex PDF layouts — merged cells, multi-column pages, nested tables, or inconsistent spacing — can be challenging for rule-based extraction. For complex documents, Parsli's AI extraction understands document context and handles these cases automatically.",
+    q: "Does it handle numbers and dates correctly?",
+    a: "Yes. Numbers remain as numeric values in JSON (not strings). Dates are converted based on how Excel stores them. For complex date formatting, you may want to check the output.",
   },
   {
-    q: "Can I convert multiple pages?",
-    a: "Yes. Multi-page PDFs are supported. If all pages have the same table structure, they're combined into one sheet. If pages have different layouts, each page becomes a separate Excel sheet.",
+    q: "What Excel formats are supported?",
+    a: "Both .xlsx (modern Excel) and .xls (legacy Excel 97-2003) formats are supported.",
   },
   {
     q: "What's the difference between this and Parsli?",
-    a: "This free tool does simple table extraction from text-based PDFs. Parsli is a full AI-powered document extraction platform — it handles scanned documents, complex layouts, images, and lets you define custom schemas for exactly what data to extract. It also connects to Google Sheets, Zapier, Make, and 5,000+ apps automatically.",
+    a: "This free tool does direct Excel-to-JSON conversion. Parsli is a full AI-powered document extraction platform — it handles PDFs, images, scanned documents, and lets you define custom schemas for exactly what data to extract.",
+  },
+  {
+    q: "Can I convert Excel to JSON on my phone?",
+    a: "Yes. This tool works on iPhone, iPad, and Android devices. Open the page in your mobile browser, upload your Excel file, and copy or download the JSON output.",
   },
   {
     q: "What file size limit is there?",
     a: "Up to 50 MB. Since everything runs in your browser, very large files may take longer to process depending on your device.",
   },
   {
-    q: "How do I convert a PDF to Excel without installing software?",
-    a: "Just open this page, drag and drop your PDF file, and click Download. The conversion happens entirely in your browser — no software to install, no account to create, and no files uploaded to any server. It works on any device with a modern browser.",
-  },
-  {
-    q: "Can I convert a PDF to Excel on my phone?",
-    a: "Yes. This tool works on iPhone, iPad, and Android devices. Open the page in your mobile browser, upload your PDF, and download the Excel file directly to your device.",
+    q: "Is the JSON output minified or pretty-printed?",
+    a: "The JSON output is pretty-printed with 2-space indentation for readability. When you copy or download it, you get the same formatted output.",
   },
 ]
 
-export default function PdfToExcelToolPage() {
+export default function ExcelToJsonToolPage() {
   return (
     <>
       <JsonLd
@@ -174,8 +174,8 @@ export default function PdfToExcelToolPage() {
           { name: "Home", url: "https://parsli.co" },
           { name: "Tools", url: "https://parsli.co/tools" },
           {
-            name: "PDF to Excel Converter",
-            url: "https://parsli.co/tools/pdf-to-excel",
+            name: "Excel to JSON Converter",
+            url: "https://parsli.co/tools/excel-to-json",
           },
         ])}
       />
@@ -183,9 +183,9 @@ export default function PdfToExcelToolPage() {
         data={{
           "@context": "https://schema.org",
           "@type": "SoftwareApplication",
-          name: "Parsli PDF to Excel Converter",
+          name: "Parsli Excel to JSON Converter",
           description:
-            "Free browser-based tool to convert PDF tables to Excel spreadsheets. No sign-up required.",
+            "Free browser-based tool to convert Excel spreadsheets to JSON. No sign-up required.",
           applicationCategory: "UtilitiesApplication",
           operatingSystem: "Web Browser",
           offers: {
@@ -210,7 +210,7 @@ export default function PdfToExcelToolPage() {
         }}
       />
 
-      {/* ═══════ 1. Hero + Tool ═══════ */}
+      {/* 1. Hero + Tool */}
       <section className="relative pt-24 sm:pt-28 pb-16">
         <div className="absolute inset-0 -z-10">
           <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-primary/5 rounded-full blur-3xl" />
@@ -218,12 +218,12 @@ export default function PdfToExcelToolPage() {
 
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 text-center">
           <div className="inline-flex items-center gap-2 rounded-full border bg-card px-4 py-1.5 text-sm text-muted-foreground mb-6">
-            <FileSpreadsheet className="h-4 w-4 text-primary" />
-            PDF to Excel Converter
+            <FileJson2 className="h-4 w-4 text-primary" />
+            Excel to JSON Converter
           </div>
 
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-[1.1] mb-4">
-            Convert PDF to Excel
+            Convert Excel to JSON
           </h1>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-3">
             Free, instant, no sign-up
@@ -241,7 +241,7 @@ export default function PdfToExcelToolPage() {
             <span>Trusted by thousands of users</span>
           </div>
 
-          <PdfToExcelTool />
+          <ExcelToJsonTool />
 
           <p className="mt-6 text-xs text-muted-foreground">
             100% client-side processing &middot; No data sent to any server
@@ -250,7 +250,7 @@ export default function PdfToExcelToolPage() {
         </div>
       </section>
 
-      {/* ═══════ 2. API / Product Upsell (EARLY) ═══════ */}
+      {/* 2. API / Product Upsell */}
       <section className="py-10 sm:py-12 border-t">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <div className="rounded-xl border bg-card p-6 sm:p-8 flex flex-col sm:flex-row items-start gap-5">
@@ -259,12 +259,12 @@ export default function PdfToExcelToolPage() {
             </div>
             <div className="flex-1">
               <h2 className="font-semibold text-lg mb-1">
-                Want to extract PDF data via API?
+                Need to extract structured JSON from any document?
               </h2>
               <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-                Integrate AI-powered document extraction into your workflow.
-                Build automations, batch-process hundreds of documents, and get
-                structured JSON output with custom schemas.
+                Parsli&apos;s AI extracts structured JSON from PDFs, images, invoices,
+                and more. Define custom schemas, automate workflows, and
+                integrate with your stack via API.
               </p>
               <div className="flex items-center gap-4">
                 <Link
@@ -286,48 +286,48 @@ export default function PdfToExcelToolPage() {
         </div>
       </section>
 
-      {/* ═══════ 3. Cross-Sell Links ═══════ */}
+      {/* 3. Cross-Sell Links */}
       <section className="pb-10 sm:pb-12">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <p className="text-sm text-muted-foreground text-center leading-relaxed">
-            Processing invoices or bank statements at scale?{" "}
+            Need other conversions? Try our{" "}
             <Link
-              href="/solutions/invoice-parsing"
+              href="/tools/json-to-excel"
               className="text-primary hover:underline underline-offset-4"
             >
-              Invoice Parsing
+              JSON to Excel
+            </Link>
+            ,{" "}
+            <Link
+              href="/tools/excel-to-csv"
+              className="text-primary hover:underline underline-offset-4"
+            >
+              Excel to CSV
+            </Link>
+            , or{" "}
+            <Link
+              href="/tools/pdf-to-excel"
+              className="text-primary hover:underline underline-offset-4"
+            >
+              PDF to Excel
             </Link>{" "}
-            and{" "}
+            converters. Or see all{" "}
             <Link
-              href="/solutions/bank-statement-extraction"
+              href="/tools"
               className="text-primary hover:underline underline-offset-4"
             >
-              Bank Statement Extraction
-            </Link>{" "}
-            are built for that. Or see how Parsli compares to{" "}
-            <Link
-              href="/compare/docparser"
-              className="text-primary hover:underline underline-offset-4"
-            >
-              Docparser
-            </Link>{" "}
-            and{" "}
-            <Link
-              href="/compare/nanonets"
-              className="text-primary hover:underline underline-offset-4"
-            >
-              Nanonets
+              free tools
             </Link>
             .
           </p>
         </div>
       </section>
 
-      {/* ═══════ 4. Why Use This Tool ═══════ */}
+      {/* 4. Why Use This Tool */}
       <section className="py-16 sm:py-20 bg-muted/30">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
-            Why use this PDF to Excel converter
+            Why use this Excel to JSON converter
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
             {features.map((f) => (
@@ -348,7 +348,7 @@ export default function PdfToExcelToolPage() {
         </div>
       </section>
 
-      {/* ═══════ 5. How It Works ═══════ */}
+      {/* 5. How It Works */}
       <section className="py-16 sm:py-20">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
@@ -374,28 +374,27 @@ export default function PdfToExcelToolPage() {
             ))}
           </div>
 
-          {/* Important notes callout */}
+          {/* Note callout */}
           <div className="mt-8 rounded-lg border-l-4 border-primary bg-primary/5 px-6 py-4 max-w-2xl mx-auto">
             <p className="text-sm text-muted-foreground leading-relaxed">
               <span className="font-medium text-foreground">Note:</span> This
-              tool works best with text-based PDFs that have clear table
-              structures. Scanned documents and images require OCR — try{" "}
+              tool converts the first sheet of your Excel file. The first row
+              is used as JSON keys. For multi-sheet or complex extraction, try{" "}
               <Link
-                href="/solutions/pdf-to-excel"
+                href="/solutions/document-parsing-api"
                 className="text-primary hover:underline underline-offset-4"
               >
                 Parsli AI
-              </Link>{" "}
-              for those.
+              </Link>
+              .
             </p>
           </div>
         </div>
       </section>
 
-      {/* ═══════ 6. Educational Content ═══════ */}
+      {/* 6. Educational Content */}
       <section className="py-16 sm:py-20 bg-muted/30">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          {/* What this tool handles vs Parsli AI */}
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
             What this tool handles
           </h2>
@@ -408,23 +407,23 @@ export default function PdfToExcelToolPage() {
               <ul className="space-y-3 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <span className="text-green-600 mt-0.5">&#10003;</span>
-                  Invoices with line item tables
+                  Spreadsheets with headers in the first row
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-600 mt-0.5">&#10003;</span>
-                  Bank and financial statements
+                  Data exports from CRMs, ERPs, and databases
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-600 mt-0.5">&#10003;</span>
-                  Data exports and reports
+                  Contact lists, product catalogs, inventory sheets
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-600 mt-0.5">&#10003;</span>
-                  Price lists and product catalogs
+                  Configuration data and lookup tables
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-600 mt-0.5">&#10003;</span>
-                  Simple, well-structured table layouts
+                  Simple, flat data structures
                 </li>
               </ul>
             </div>
@@ -436,15 +435,15 @@ export default function PdfToExcelToolPage() {
               <ul className="space-y-3 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
-                  Scanned documents and images (OCR)
+                  Extracting data from PDFs and images
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
-                  Complex multi-column layouts
+                  Scanned documents requiring OCR
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
-                  Custom data extraction schemas
+                  Custom JSON schemas with validation
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
@@ -458,53 +457,52 @@ export default function PdfToExcelToolPage() {
             </div>
           </div>
 
-          {/* Tips for better conversion */}
+          {/* Tips */}
           <div className="mt-16 max-w-3xl mx-auto">
             <div className="flex items-center gap-2 mb-6">
               <Lightbulb className="h-5 w-5 text-primary" />
               <h3 className="text-xl font-bold">
-                Tips for better PDF to Excel conversion
+                Tips for better Excel to JSON conversion
               </h3>
             </div>
             <div className="space-y-6">
               <div>
                 <h4 className="font-semibold mb-2">
-                  Use text-based PDFs, not scanned images
+                  Use clear header names in the first row
                 </h4>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  If you can select and copy text in your PDF, this tool will work
-                  well. If the PDF is a scanned image, you&apos;ll need OCR — try
-                  Parsli AI for that.
+                  The first row of your spreadsheet becomes the JSON key names.
+                  Use descriptive, consistent names like &quot;first_name&quot; or
+                  &quot;email&quot; for clean JSON output.
                 </p>
               </div>
               <div>
                 <h4 className="font-semibold mb-2">
-                  Clean table structure converts best
+                  Keep data in a single sheet
                 </h4>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  PDFs with clear, grid-like tables — consistent columns, uniform
-                  row heights, no merged cells — produce the most accurate
-                  results.
+                  This tool converts the first sheet. If your data spans
+                  multiple sheets, consolidate it first or use Parsli for
+                  multi-sheet handling.
                 </p>
               </div>
               <div>
                 <h4 className="font-semibold mb-2">
-                  Check for special characters and currencies
+                  Remove empty rows and columns
                 </h4>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  The tool auto-detects numbers, currencies ($, €, £), and
-                  percentages. If your PDF uses unusual formatting, double-check
-                  the Excel output.
+                  Empty rows will create objects with empty values. Clean up
+                  your spreadsheet before converting for the best JSON output.
                 </p>
               </div>
               <div>
                 <h4 className="font-semibold mb-2">
-                  Multi-page documents are supported
+                  Numbers stay as numbers
                 </h4>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Pages with the same table structure are combined into one sheet.
-                  Different layouts get separate sheets — check all tabs in your
-                  downloaded file.
+                  Numeric cells are preserved as JSON numbers, not strings.
+                  Text cells remain as strings. This gives you properly typed
+                  JSON data.
                 </p>
               </div>
             </div>
@@ -512,7 +510,7 @@ export default function PdfToExcelToolPage() {
         </div>
       </section>
 
-      {/* ═══════ 7. Perfect For (User Personas) ═══════ */}
+      {/* 7. Perfect For */}
       <section className="py-16 sm:py-20">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
@@ -535,7 +533,7 @@ export default function PdfToExcelToolPage() {
         </div>
       </section>
 
-      {/* ═══════ 8. FAQ ═══════ */}
+      {/* 8. FAQ */}
       <section className="py-16 sm:py-20">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
@@ -554,48 +552,47 @@ export default function PdfToExcelToolPage() {
         </div>
       </section>
 
-      {/* ═══════ 9. SEO Comparison Table + Content ═══════ */}
+      {/* 9. SEO Content + Comparison Table */}
       <section className="py-16 sm:py-20 bg-muted/30 border-t">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-xl sm:text-2xl font-bold mb-4">
-            How to Convert PDF to Excel for Free
+            How to Convert Excel to JSON for Free
           </h2>
           <p className="text-muted-foreground leading-relaxed mb-4">
-            Converting PDF files to Excel spreadsheets is one of the most common
-            document tasks for businesses and individuals. Whether you need to
-            extract financial data from bank statements, pull line items from
-            invoices, or convert reports into editable spreadsheets, a reliable
-            PDF to Excel converter saves hours of manual data entry.
+            Converting Excel spreadsheets to JSON is a common task for
+            developers, data analysts, and anyone working with web APIs.
+            Whether you need to import spreadsheet data into a database,
+            configure a web application, or feed data into a pipeline, a
+            reliable Excel to JSON converter saves time and eliminates manual
+            formatting.
           </p>
           <p className="text-muted-foreground leading-relaxed mb-4">
             Most online converters require you to upload your files to their
             servers, create an account, or pay for a subscription. This tool is
             different — it runs entirely in your browser using JavaScript. Your
-            PDF is processed on your own device and never sent anywhere. It&apos;s
-            completely free, with no limits on the number of conversions.
+            Excel file is processed on your own device and never sent anywhere.
+            It&apos;s completely free, with no limits on conversions.
           </p>
 
           <h2 className="text-xl sm:text-2xl font-bold mt-10 mb-4">
-            When Do You Need AI-Powered PDF Extraction?
+            When Do You Need AI-Powered Document Extraction?
           </h2>
           <p className="text-muted-foreground leading-relaxed mb-4">
-            This free converter handles text-based PDFs with clear table
-            structures. But real-world documents are often more complex —
-            scanned papers, inconsistent layouts, merged cells, or data spread
-            across multiple sections. That&apos;s where AI-powered extraction
-            comes in.
+            This free converter handles straightforward Excel-to-JSON
+            conversion. But if you need to extract structured data from PDFs,
+            images, scanned documents, or complex layouts — that&apos;s where
+            AI-powered extraction comes in.
           </p>
           <p className="text-muted-foreground leading-relaxed mb-4">
             Parsli uses Google&apos;s Gemini AI to understand the full context of
             your documents. You define a schema — the exact fields you want
-            extracted — and the AI pulls structured data from any document type,
-            including scanned images, handwritten forms, and complex layouts.
-            The extracted data flows automatically to Google Sheets, Zapier,
-            Make, webhooks, or your own API.
+            extracted — and the AI pulls structured JSON from any document
+            type. The extracted data flows automatically to Google Sheets,
+            Zapier, Make, webhooks, or your own API.
           </p>
 
           <h2 className="text-xl sm:text-2xl font-bold mt-10 mb-4">
-            PDF to Excel: Free Tool vs AI Extraction
+            Excel to JSON: Free Tool vs AI Extraction
           </h2>
           <div className="border rounded-lg overflow-hidden mb-6">
             <table className="w-full text-sm">
@@ -614,10 +611,10 @@ export default function PdfToExcelToolPage() {
               </thead>
               <tbody>
                 {[
-                  ["Text-based PDFs", "Yes", "Yes"],
-                  ["Scanned PDFs / images", "No", "Yes"],
-                  ["Custom extraction schema", "No", "Yes"],
-                  ["Complex layouts", "Basic", "Advanced"],
+                  ["Excel files (.xlsx/.xls)", "Yes", "Yes"],
+                  ["PDFs & images", "No", "Yes"],
+                  ["Custom JSON schemas", "No", "Yes"],
+                  ["Multi-sheet support", "First sheet", "All sheets"],
                   ["Automated workflows", "No", "Yes"],
                   ["Google Sheets integration", "No", "Yes"],
                   ["API access", "No", "Yes"],
@@ -635,7 +632,7 @@ export default function PdfToExcelToolPage() {
         </div>
       </section>
 
-      {/* ═══════ 10. Works Everywhere ═══════ */}
+      {/* 10. Works Everywhere */}
       <section className="py-12 sm:py-16">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-lg font-semibold text-center mb-8">
@@ -644,27 +641,21 @@ export default function PdfToExcelToolPage() {
           <div className="grid grid-cols-3 gap-6 max-w-md mx-auto">
             <div className="text-center">
               <Monitor className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
-              <p className="text-xs text-muted-foreground">
-                Desktop
-              </p>
+              <p className="text-xs text-muted-foreground">Desktop</p>
               <p className="text-[10px] text-muted-foreground/60">
                 Chrome, Firefox, Safari, Edge
               </p>
             </div>
             <div className="text-center">
               <Smartphone className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
-              <p className="text-xs text-muted-foreground">
-                Mobile
-              </p>
+              <p className="text-xs text-muted-foreground">Mobile</p>
               <p className="text-[10px] text-muted-foreground/60">
                 iOS, Android
               </p>
             </div>
             <div className="text-center">
               <Tablet className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
-              <p className="text-xs text-muted-foreground">
-                Tablet
-              </p>
+              <p className="text-xs text-muted-foreground">Tablet</p>
               <p className="text-[10px] text-muted-foreground/60">
                 iPad, Android tablets
               </p>
@@ -673,14 +664,14 @@ export default function PdfToExcelToolPage() {
         </div>
       </section>
 
-      {/* ═══════ 11. Final CTA ═══════ */}
+      {/* 11. Final CTA */}
       <section className="py-16 sm:py-20 bg-muted/30 border-t">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 text-center">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 text-primary mb-6">
             <Sparkles className="h-7 w-7" />
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold mb-4">
-            Stop re-keying data from PDFs manually.
+            Stop reformatting spreadsheet data by hand.
           </h2>
           <p className="text-muted-foreground max-w-xl mx-auto mb-8 leading-relaxed">
             Parsli extracts structured data from any document — PDFs, images,
@@ -707,18 +698,17 @@ export default function PdfToExcelToolPage() {
         </div>
       </section>
 
-      {/* ═══════ 12. Related Links ═══════ */}
+      {/* 12. Related Links */}
       <section className="py-12 sm:py-16 border-t">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-lg font-semibold mb-6">Related Resources</h2>
           <div className="flex flex-wrap gap-3">
             {[
-              { href: "/solutions/pdf-to-excel", label: "PDF to Excel Solution" },
-              { href: "/use-cases/pdf-to-excel", label: "PDF to Excel Use Case" },
-              { href: "/use-cases/pdf-data-extraction", label: "PDF Data Extraction" },
-              { href: "/blog/extract-data-pdf-to-excel", label: "How to Extract PDF Data" },
-              { href: "/solutions/invoice-parsing", label: "Invoice Parsing" },
-              { href: "/solutions/bank-statement-extraction", label: "Bank Statement Extraction" },
+              { href: "/tools/json-to-excel", label: "JSON to Excel Converter" },
+              { href: "/tools/excel-to-csv", label: "Excel to CSV Converter" },
+              { href: "/tools/csv-to-excel", label: "CSV to Excel Converter" },
+              { href: "/tools/pdf-to-excel", label: "PDF to Excel Converter" },
+              { href: "/solutions/document-parsing-api", label: "Document Parsing API" },
               { href: "/docs", label: "Documentation" },
               { href: "/pricing", label: "Pricing" },
             ].map((link) => (
