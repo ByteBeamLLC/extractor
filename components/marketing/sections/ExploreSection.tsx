@@ -6,6 +6,7 @@ import {
   Lightbulb,
   Building2,
   FileText,
+  GraduationCap,
 } from "lucide-react"
 import { SectionWrapper } from "@/components/marketing/shared/SectionWrapper"
 
@@ -54,6 +55,15 @@ const hubs = [
     href: "/document-types",
     color: "text-indigo-500",
     bgColor: "bg-indigo-50 dark:bg-indigo-950/50",
+  },
+  {
+    icon: GraduationCap,
+    name: "Guides",
+    description:
+      "Step-by-step tutorials on extracting data from invoices, PDFs, bank statements, and more.",
+    href: "/guides",
+    color: "text-teal-500",
+    bgColor: "bg-teal-50 dark:bg-teal-950/50",
   },
 ]
 

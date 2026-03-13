@@ -6,6 +6,7 @@ import { getAllAlternativeSlugs } from "@/lib/seo/alternatives"
 import { getAllIntegrationSlugs } from "@/lib/seo/integrations"
 import { getAllIndustrySlugs } from "@/lib/seo/industries"
 import { getAllDocumentTypeSlugs } from "@/lib/seo/document-types"
+import { getAllGuides } from "@/lib/seo/guides"
 
 const BASE_URL = "https://parsli.co"
 
@@ -216,6 +217,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.7,
     },
     {
+      url: `${BASE_URL}/guides`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
       url: `${BASE_URL}/privacy`,
       lastModified: now,
       changeFrequency: "yearly",
@@ -290,6 +297,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.7,
     }))
 
+  const guidePages: MetadataRoute.Sitemap = getAllGuides().map((guide) => ({
+    url: `${BASE_URL}/guides/${guide.slug}`,
+    lastModified: new Date(guide.updatedAt),
+    changeFrequency: "monthly" as const,
+    priority: 0.7,
+  }))
+
   return [
     ...staticPages,
     ...solutionPages,
@@ -299,5 +313,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...comparePages,
     ...industryPages,
     ...documentTypePages,
+    ...guidePages,
   ]
 }
