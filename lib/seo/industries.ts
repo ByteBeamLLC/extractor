@@ -29,14 +29,14 @@ export const industries: IndustryData[] = [
       { title: "Audit Trail Gaps", description: "Paper-based processes make it hard to maintain a clean, searchable audit trail." },
     ],
     useCases: [
-      { title: "Invoice Processing", description: "Extract vendor, amount, line items, and due dates from invoices automatically." },
+      { title: "Invoice Processing", description: "Extract vendor, amount, line items, and due dates from invoices automatically. Learn how to [automate invoice processing for small business](/guides/automate-invoice-processing-for-small-business) or [extract invoice data to QuickBooks](/guides/extract-invoice-data-to-quickbooks)." },
       { title: "Bank Statement Parsing", description: "Pull transaction data from bank statements into structured spreadsheet format." },
-      { title: "Receipt Digitization", description: "Scan and extract expense receipt data for reimbursement and tax records." },
+      { title: "Receipt Digitization", description: "Scan and extract expense receipt data for reimbursement and [tax forms](/guides/extract-data-from-tax-forms)." },
       { title: "Financial Report Extraction", description: "Extract key figures from quarterly reports, balance sheets, and P&L statements." },
     ],
     faqs: [
-      { question: "What financial documents does Parsli support?", answer: "Parsli processes invoices, bank statements, receipts, purchase orders, financial reports, tax forms, and any PDF or image-based financial document." },
-      { question: "Can Parsli integrate with accounting software?", answer: "Yes. Use Zapier, Make, or webhooks to send extracted data to QuickBooks, Xero, FreshBooks, or any accounting platform." },
+      { question: "What financial documents does Parsli support?", answer: "Parsli processes invoices, bank statements, receipts, purchase orders, financial reports, [tax forms](/guides/extract-data-from-tax-forms), and any PDF or image-based financial document." },
+      { question: "Can Parsli integrate with accounting software?", answer: "Yes. Use Zapier, Make, or webhooks to send extracted data to [QuickBooks](/guides/extract-invoice-data-to-quickbooks), Xero, FreshBooks, or any accounting platform." },
       { question: "How accurate is financial document parsing?", answer: "Parsli achieves 95%+ accuracy on standard financial documents. Confidence scores flag uncertain extractions for human review." },
     ],
     relatedUseCases: ["invoice-parsing", "receipt-scanning", "pdf-to-excel"],
@@ -53,12 +53,12 @@ export const industries: IndustryData[] = [
     heroDescription:
       "Extract structured data from leases, contracts, property listings, and closing documents. Reduce manual data entry and process paperwork faster.",
     painPoints: [
-      { title: "Contract-Heavy Workflows", description: "Real estate deals generate dozens of documents that need data extracted and organized." },
+      { title: "Contract-Heavy Workflows", description: "Real estate deals generate dozens of documents that need data extracted and organized. See how to [extract data from contracts](/guides/extract-data-from-contracts) automatically." },
       { title: "Slow Closing Processes", description: "Manual document review delays closings and frustrates clients." },
       { title: "Scattered Property Data", description: "Key property details are locked in PDFs across multiple systems." },
     ],
     useCases: [
-      { title: "Lease Extraction", description: "Pull tenant names, rent amounts, terms, and renewal dates from lease agreements." },
+      { title: "Lease Extraction", description: "Pull tenant names, rent amounts, terms, and renewal dates from lease agreements. Also useful for [extracting data from utility bills](/guides/extract-data-from-utility-bills) across properties." },
       { title: "Closing Document Processing", description: "Extract key data from HUD statements, title documents, and closing disclosures." },
       { title: "Property Listing Parsing", description: "Extract property details, pricing, and specifications from listing documents." },
       { title: "Inspection Report Digitization", description: "Convert inspection reports into structured data for tracking and follow-up." },
@@ -87,9 +87,9 @@ export const industries: IndustryData[] = [
       { title: "Tracking Data Gaps", description: "Key shipment data locked in PDFs creates visibility gaps across the supply chain." },
     ],
     useCases: [
-      { title: "Bill of Lading Parsing", description: "Extract shipper, consignee, cargo details, and shipping terms from BOL documents." },
+      { title: "Bill of Lading Parsing", description: "Extract shipper, consignee, cargo details, and shipping terms from BOL documents. See our guide on [extracting data from shipping documents](/guides/extract-data-from-shipping-documents)." },
       { title: "Packing List Extraction", description: "Pull item descriptions, quantities, weights, and dimensions from packing lists." },
-      { title: "Customs Document Processing", description: "Extract HS codes, values, and origin data from customs declarations and commercial invoices." },
+      { title: "Customs Document Processing", description: "Extract HS codes, values, and origin data from customs declarations and commercial invoices. Combine with [batch document processing](/guides/batch-process-documents-automatically) for high-volume operations." },
       { title: "Delivery Note Digitization", description: "Convert delivery receipts and POD documents into structured tracking data." },
     ],
     faqs: [
@@ -116,14 +116,14 @@ export const industries: IndustryData[] = [
       { title: "Data Silos", description: "Patient information trapped in PDFs and scanned documents can't be searched or analyzed." },
     ],
     useCases: [
-      { title: "Insurance Claim Processing", description: "Extract patient info, procedure codes, and amounts from insurance claim forms." },
+      { title: "Insurance Claim Processing", description: "Extract patient info, procedure codes, and amounts from [insurance claim forms](/guides/extract-data-from-insurance-claims)." },
       { title: "Lab Report Parsing", description: "Pull test results, reference ranges, and patient identifiers from lab reports." },
-      { title: "Patient Intake Forms", description: "Digitize patient registration forms and extract demographics, insurance, and medical history." },
+      { title: "Patient Intake Forms", description: "Digitize patient registration forms and extract demographics, insurance, and medical history. See our guide on [extracting data from medical records](/guides/extract-data-from-medical-records)." },
       { title: "Referral Document Processing", description: "Extract physician notes, diagnoses, and referral details from referral letters." },
     ],
     faqs: [
       { question: "Is Parsli HIPAA compliant?", answer: "Parsli uses encryption at rest and in transit with row-level security. Contact us for details on our security practices and BAA availability." },
-      { question: "Can it handle handwritten medical forms?", answer: "The AI can process handwritten text, though accuracy depends on legibility. Clear handwriting yields good results." },
+      { question: "Can it handle handwritten medical forms?", answer: "The AI can process handwritten text, though accuracy depends on legibility. Clear handwriting yields good results. Learn more about [extracting data from handwritten documents](/guides/extract-data-from-handwritten-documents)." },
       { question: "Does Parsli work with EHR systems?", answer: "Use the REST API or webhook integrations to send extracted data to any EHR or practice management system." },
     ],
     relatedUseCases: ["pdf-data-extraction", "ocr-data-extraction", "document-automation"],
@@ -145,14 +145,14 @@ export const industries: IndustryData[] = [
       { title: "Key Terms Get Missed", description: "Important contract clauses and dates get overlooked during manual review." },
     ],
     useCases: [
-      { title: "Contract Data Extraction", description: "Pull party names, effective dates, terms, renewal clauses, and key obligations from contracts." },
+      { title: "Contract Data Extraction", description: "Pull party names, effective dates, terms, renewal clauses, and key obligations from contracts. Follow our step-by-step guide to [extract data from contracts](/guides/extract-data-from-contracts)." },
       { title: "Court Filing Processing", description: "Extract case numbers, parties, filing dates, and key information from court documents." },
-      { title: "Due Diligence Automation", description: "Batch-process document rooms and extract key data points across hundreds of files." },
+      { title: "Due Diligence Automation", description: "[Batch-process documents automatically](/guides/batch-process-documents-automatically) across document rooms and extract key data points from hundreds of files." },
       { title: "Compliance Document Review", description: "Extract regulatory references, deadlines, and requirements from compliance documents." },
     ],
     faqs: [
       { question: "Can Parsli handle complex legal document layouts?", answer: "Yes. The AI understands multi-column layouts, numbered paragraphs, tables, and nested sections common in legal documents." },
-      { question: "Is there an API for bulk processing?", answer: "Yes. The REST API supports automated batch processing for due diligence and large document sets." },
+      { question: "Is there an API for bulk processing?", answer: "Yes. The REST API supports automated [batch processing](/guides/batch-process-documents-automatically) for due diligence and large document sets. Extracted data can be output as [PDF to JSON](/guides/pdf-to-json-extraction)." },
       { question: "Can I extract specific clauses from contracts?", answer: "Yes. Define fields for specific clause types (termination, indemnification, etc.) and the AI will locate and extract them." },
     ],
     relatedUseCases: ["pdf-data-extraction", "document-automation"],
@@ -204,7 +204,7 @@ export const industries: IndustryData[] = [
     ],
     useCases: [
       { title: "Resume Parsing", description: "Extract candidate name, contact info, skills, experience, and education from resumes in any format." },
-      { title: "Onboarding Form Processing", description: "Digitize tax forms, direct deposit authorizations, and employment agreements." },
+      { title: "Onboarding Form Processing", description: "Digitize [tax forms](/guides/extract-data-from-tax-forms), direct deposit authorizations, and employment agreements." },
       { title: "Certificate Extraction", description: "Pull certification names, dates, issuing authorities, and expiration dates from credential documents." },
       { title: "Timesheet Processing", description: "Extract hours, dates, and project codes from timesheet documents and images." },
     ],
@@ -232,9 +232,9 @@ export const industries: IndustryData[] = [
       { title: "Policy Data Locked in PDFs", description: "Key policy terms and coverage details are buried in unstructured PDF documents." },
     ],
     useCases: [
-      { title: "Claims Form Processing", description: "Extract claimant info, incident details, damage descriptions, and amounts from claims forms." },
+      { title: "Claims Form Processing", description: "Extract claimant info, incident details, damage descriptions, and amounts from claims forms. See our guide on [extracting data from insurance claims](/guides/extract-data-from-insurance-claims)." },
       { title: "Policy Document Parsing", description: "Pull coverage limits, deductibles, effective dates, and terms from policy documents." },
-      { title: "Supporting Document Extraction", description: "Process police reports, medical records, and repair estimates attached to claims." },
+      { title: "Supporting Document Extraction", description: "Process police reports, [medical records](/guides/extract-data-from-medical-records), and repair estimates attached to claims." },
       { title: "Application Processing", description: "Extract applicant information, risk factors, and coverage requests from insurance applications." },
     ],
     faqs: [

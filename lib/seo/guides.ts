@@ -307,7 +307,7 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "AP teams need to match invoice line items against purchase orders and receiving reports (3-way matching). Extracting line items into structured data makes this matching automatic — flag discrepancies in quantity or price before approving payment.",
+        text: "AP teams need to match invoice line items against purchase orders and receiving reports (3-way matching). Extracting line items into structured data makes this matching automatic — flag discrepancies in quantity or price before approving payment. Once matched, you can [push the data to QuickBooks](/guides/extract-invoice-data-to-quickbooks) to close the loop on your AP workflow.",
       },
       {
         type: "heading",
@@ -415,11 +415,11 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "Extracting line items from invoices doesn't have to mean hours of copy-paste or brittle Python scripts. AI-powered extraction handles the layout variation, scanned documents, and multi-page tables that make this problem hard — and it does it without per-vendor configuration.",
+        text: "Extracting line items from invoices doesn't have to mean hours of copy-paste or brittle Python scripts. AI-powered extraction handles the layout variation, scanned documents, and multi-page tables that make this problem hard — and it does it [without code or technical setup](/guides/extract-data-from-pdfs-without-code).",
       },
       {
         type: "paragraph",
-        text: "Whether you're processing 10 invoices a month or 10,000, the right extraction approach turns invoice data from a bottleneck into a pipeline. Start with the [free invoice parser](/tools/invoice-parser) to see what automated extraction looks like in practice.",
+        text: "Whether you're a [small business processing 10 invoices a month](/guides/automate-invoice-processing-for-small-business) or an enterprise handling 10,000, the right extraction approach turns invoice data from a bottleneck into a pipeline. For high-volume scenarios, [batch processing](/guides/batch-process-documents-automatically) lets you extract from hundreds of invoices in one run. Start with the [free invoice parser](/tools/invoice-parser) to see what automated extraction looks like in practice.",
       },
       { type: "cta" },
     ],
@@ -532,7 +532,7 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "Bank statement extraction is the process of pulling structured data — transactions, dates, amounts, descriptions, and balances — from bank statement PDFs or images into a format your software can process, like Excel, CSV, or JSON.",
+        text: "Bank statement extraction is the process of pulling structured data — transactions, dates, amounts, descriptions, and balances — from bank statement PDFs or images into a format your software can process, like Excel, CSV, or [JSON](/guides/extract-data-from-excel-to-json).",
       },
       {
         type: "paragraph",
@@ -695,7 +695,7 @@ const guides: GuideData[] = [
     faqs: [
       {
         question: "What data can I extract from bank statements?",
-        answer: "You can extract transaction dates, descriptions, debit amounts, credit amounts, running balances, account numbers, statement periods, and opening/closing balances. Some extraction tools also identify transaction categories.",
+        answer: "You can extract transaction dates, descriptions, debit amounts, credit amounts, running balances, account numbers, statement periods, and opening/closing balances. Some extraction tools also identify transaction categories. The same extraction approach works for related financial documents like [tax forms](/guides/extract-data-from-tax-forms) and [utility bills](/guides/extract-data-from-utility-bills).",
       },
       {
         question: "Can I extract data from scanned bank statements?",
@@ -840,7 +840,7 @@ const guides: GuideData[] = [
           "Works on crumpled, faded, and low-quality receipt images",
           "No per-receipt cost on free tier (30 pages/month)",
           "Batch processing for multiple receipts",
-          "Connects to Zapier and Make for workflow automation",
+          "Connects to Zapier and [Make](/guides/automate-receipt-processing-with-make) for workflow automation",
         ],
         cons: [
           "Cloud-based processing",
@@ -891,7 +891,7 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "Whether you're tracking personal expenses or processing thousands of business receipts, there's a better approach than manual data entry. Start with our [free receipt scanner](/tools/receipt-scanner) to see what automated extraction looks like.",
+        text: "Whether you're a [small business tracking expenses](/guides/automate-invoice-processing-for-small-business) or processing thousands of business receipts, there's a better approach than manual data entry. For high volumes, [batch processing](/guides/batch-process-documents-automatically) lets you extract from hundreds of receipts at once. Start with our [free receipt scanner](/tools/receipt-scanner) to see what automated extraction looks like.",
       },
       { type: "cta" },
     ],
@@ -1050,7 +1050,7 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "AI extraction understands table structure the way humans do — by reading headers, recognizing row patterns, and inferring column alignment from content. It handles borderless tables, merged cells, multi-page tables, and scanned documents without per-document configuration.",
+        text: "AI extraction understands table structure the way humans do — by reading headers, recognizing row patterns, and inferring column alignment from content. It handles borderless tables, merged cells, multi-page tables, and scanned documents [without code or per-document configuration](/guides/extract-data-from-pdfs-without-code). Need structured output? You can export extracted tables as [JSON](/guides/pdf-to-json-extraction) or push them to spreadsheets.",
       },
       {
         type: "tool-callout",
@@ -1099,7 +1099,7 @@ const guides: GuideData[] = [
       },
       {
         question: "What output format should I use for extracted tables?",
-        answer: "CSV or Excel for spreadsheet workflows, JSON for API integrations and databases. Parsli supports all formats plus direct Google Sheets export.",
+        answer: "CSV or Excel for spreadsheet workflows, [JSON for API integrations](/guides/pdf-to-json-extraction) and databases. Parsli supports all formats plus direct Google Sheets export. The same table extraction works across document types — invoices, [contracts](/guides/extract-data-from-contracts), reports, and more.",
       },
     ],
     relatedTools: [
@@ -1199,7 +1199,7 @@ const guides: GuideData[] = [
         type: "step",
         number: 4,
         title: "Connect your output destination",
-        description: "Route extracted data to Google Sheets, your ERP, or any system via Zapier, Make, or Parsli's API. Data flows from email to spreadsheet without you touching it.",
+        description: "Route extracted data to Google Sheets, your ERP, or any system via [Zapier](/guides/parse-email-attachments-with-zapier), [Make](/guides/automate-receipt-processing-with-make), or Parsli's API. Data flows from email to spreadsheet without you touching it.",
       },
       {
         type: "tool-callout",
@@ -1229,7 +1229,7 @@ const guides: GuideData[] = [
           "**Vendor invoice processing** — Forward supplier invoices to Parsli, [extract line items](/guides/extract-line-items-from-invoices) and totals, push to your AP system.",
           "**Expense receipt collection** — Employees forward receipts, data is [extracted and categorized](/guides/convert-receipts-to-spreadsheet) automatically.",
           "**Bank statement processing** — Forward monthly statements, [extract transactions](/guides/extract-data-from-bank-statements) into your reconciliation spreadsheet.",
-          "**Order confirmation tracking** — Extract order numbers, amounts, and delivery dates from confirmation emails.",
+          "**Order confirmation tracking** — Extract order numbers, amounts, and delivery dates from confirmation emails. For high-volume inboxes, combine email parsing with [batch document processing](/guides/batch-process-documents-automatically) to handle hundreds of attachments automatically.",
         ],
       },
       {
@@ -1345,8 +1345,8 @@ const guides: GuideData[] = [
         items: [
           "**Speed** — Extract data from a PO in seconds instead of 10-15 minutes of manual entry.",
           "**Accuracy** — Eliminate transcription errors that cause invoice matching failures and payment delays.",
-          "**3-way matching** — Automatically match POs against invoices and goods receipts to flag discrepancies.",
-          "**Audit trail** — Structured data with timestamps creates a complete procurement audit trail.",
+          "**3-way matching** — Automatically match POs against invoices and goods receipts to flag discrepancies. Pair this with [shipping document extraction](/guides/extract-data-from-shipping-documents) to add delivery verification to the match.",
+          "**Audit trail** — Structured data with timestamps creates a complete procurement audit trail. Feed extracted PO data into [QuickBooks](/guides/extract-invoice-data-to-quickbooks) for seamless accounting.",
         ],
       },
       {
@@ -1397,7 +1397,7 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "Purchase order extraction is the first step in automating procurement. Once PO data flows into your systems automatically, you can build automated 3-way matching, spend analytics, and [vendor management](/guides/extract-vendor-information-from-invoices) workflows on top of it.",
+        text: "Purchase order extraction is the first step in automating procurement. Once PO data flows into your systems automatically, you can build automated 3-way matching, spend analytics, and [vendor management](/guides/extract-vendor-information-from-invoices) workflows on top of it. You can also extract related documents like [contracts](/guides/extract-data-from-contracts) to centralize your supplier data.",
       },
       { type: "cta" },
     ],
@@ -1459,7 +1459,7 @@ const guides: GuideData[] = [
     content: [
       {
         type: "paragraph",
-        text: "Most small and mid-sized businesses track invoices in Google Sheets. It's free, shareable, and everyone knows how to use it. The problem is getting data from invoice PDFs into the spreadsheet — that part is still manual for most teams.",
+        text: "Most [small and mid-sized businesses](/guides/automate-invoice-processing-for-small-business) track invoices in Google Sheets. It's free, shareable, and everyone knows how to use it. The problem is getting data from invoice PDFs into the spreadsheet — that part is still manual for most teams.",
       },
       {
         type: "paragraph",
@@ -1537,14 +1537,14 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "Once this pipeline is set up, you never touch [invoice data](/guides/extract-line-items-from-invoices) manually again. Vendors email invoices, data flows to your Google Sheet, and you focus on analysis and decision-making instead of data entry.",
+        text: "Once this pipeline is set up, you never touch [invoice data](/guides/extract-line-items-from-invoices) manually again. Vendors email invoices, data flows to your Google Sheet, and you focus on analysis and decision-making instead of data entry. If you also need data in your accounting software, check out our guide on [sending invoice data to QuickBooks](/guides/extract-invoice-data-to-quickbooks).",
       },
       { type: "cta" },
     ],
     faqs: [
       {
         question: "Do I need Zapier to connect Parsli to Google Sheets?",
-        answer: "No. Parsli has a native Google Sheets integration — connect directly from the Export tab. No third-party automation tool required.",
+        answer: "No. Parsli has a native Google Sheets integration — connect directly from the Export tab. No third-party automation tool required. However, if you want to add extra steps like Slack notifications or CRM updates, you can use [Zapier](/guides/parse-email-attachments-with-zapier) on top.",
       },
       {
         question: "How fast does extracted data appear in Google Sheets?",
@@ -1666,7 +1666,7 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "Modern AI extraction tools like Parsli combine OCR and semantic extraction in one step. Upload a scanned document, define your schema, and get structured data back. No OCR preprocessing, no text parsing scripts — the AI reads the document the way a human would. Works with [invoices](/guides/extract-line-items-from-invoices), [bank statements](/guides/extract-data-from-bank-statements), [receipts](/guides/convert-receipts-to-spreadsheet), and any other document type.",
+        text: "Modern AI extraction tools like Parsli combine OCR and semantic extraction in one step. Upload a scanned document, define your schema, and get structured data back. No OCR preprocessing, no text parsing scripts — the AI reads the document the way a human would. Works with [invoices](/guides/extract-line-items-from-invoices), [bank statements](/guides/extract-data-from-bank-statements), [receipts](/guides/convert-receipts-to-spreadsheet), [medical records](/guides/extract-data-from-medical-records), [tax forms](/guides/extract-data-from-tax-forms), and any other document type.",
       },
       {
         type: "tool-callout",
@@ -1722,7 +1722,7 @@ const guides: GuideData[] = [
       },
       {
         question: "Can AI extract data from handwritten documents?",
-        answer: "AI extraction can handle neat handwriting with reasonable accuracy, but results vary with handwriting quality. For forms with handwritten entries in defined fields, accuracy is typically good. For fully handwritten documents, accuracy decreases.",
+        answer: "AI extraction can handle neat handwriting with reasonable accuracy, but results vary with handwriting quality. For forms with handwritten entries in defined fields, accuracy is typically good. For fully handwritten documents, accuracy decreases. See our dedicated guide on [extracting data from handwritten documents](/guides/extract-data-from-handwritten-documents) for tips on improving results.",
       },
       {
         question: "Is Tesseract OCR good enough for document extraction?",
@@ -1826,7 +1826,7 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "Connect Google Sheets directly from Parsli's Export tab. Upload PDFs (or [forward them via email](/guides/parse-email-attachments-automatically)), and extracted data appears as new rows in your spreadsheet automatically. No Zapier, no scripts, no middleware.",
+        text: "Connect Google Sheets directly from Parsli's Export tab. Upload PDFs (or [forward them via email](/guides/parse-email-attachments-automatically)), and extracted data appears as new rows in your spreadsheet automatically. No Zapier, no scripts, no middleware — it's a fully [no-code solution](/guides/extract-data-from-pdfs-without-code).",
       },
       {
         type: "tool-callout",
@@ -1852,7 +1852,7 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "Google Sheets is where your team works. PDFs are where your data is locked. The right automation bridge eliminates the gap — data flows from documents to spreadsheets without manual intervention, so you can focus on analysis instead of data entry. Try our [free PDF to Excel tool](/tools/pdf-to-excel) to get started.",
+        text: "Google Sheets is where your team works. PDFs are where your data is locked. The right automation bridge eliminates the gap — data flows from documents to spreadsheets without manual intervention, so you can focus on analysis instead of data entry. Need a different output format? You can also [export to JSON](/guides/extract-data-from-excel-to-json) or use [batch processing](/guides/batch-process-documents-automatically) to handle hundreds of PDFs at once. Try our [free PDF to Excel tool](/tools/pdf-to-excel) to get started.",
       },
       { type: "cta" },
     ],
@@ -1943,7 +1943,7 @@ const guides: GuideData[] = [
         items: [
           "**AP automation** — Vendor details determine which approval workflow to route the [invoice](/guides/extract-line-items-from-invoices) through and which GL code to assign.",
           "**Tax compliance** — Tax IDs (EIN, VAT number) must be captured accurately for 1099 reporting and VAT reclaims.",
-          "**Vendor master management** — Extracted vendor data keeps your vendor database current without manual updates.",
+          "**Vendor master management** — Extracted vendor data keeps your vendor database current without manual updates. Enrich your vendor records with data from [contracts](/guides/extract-data-from-contracts) for a complete supplier profile.",
           "**Duplicate detection** — Matching vendor names and addresses across invoices helps detect duplicate payments. See our [purchase order guide](/guides/extract-data-from-purchase-orders) for 3-way matching.",
         ],
       },
@@ -2012,7 +2012,7 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "Vendor information extraction is a foundational step in AP automation. Once you have clean, structured vendor data flowing from [invoices](/solutions/invoice-parsing) into your systems, everything downstream — approval routing, tax reporting, spend analytics — gets easier and more accurate.",
+        text: "Vendor information extraction is a foundational step in AP automation. Once you have clean, structured vendor data flowing from [invoices](/solutions/invoice-parsing) into your systems, everything downstream — approval routing, tax reporting, spend analytics — gets easier and more accurate. Push extracted vendor data directly to [QuickBooks](/guides/extract-invoice-data-to-quickbooks) to keep your accounting records in sync, or apply the same approach to [recurring vendor bills like utilities](/guides/extract-data-from-utility-bills).",
       },
       { type: "cta" },
     ],

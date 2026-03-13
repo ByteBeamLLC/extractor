@@ -36,8 +36,8 @@ export const documentTypes: DocumentTypeData[] = [
     supportedFormats: ["PDF", "Scanned PDF", "PNG", "JPG", "Word (.docx)", "Email attachments"],
     faqs: [
       { question: "Can Parsli extract line items from invoices?", answer: "Yes. Use the table field type to extract multi-row line items including description, quantity, unit price, and line total." },
-      { question: "Does it handle invoices in different layouts?", answer: "Yes. The AI adapts to any invoice layout without template configuration." },
-      { question: "Can I auto-process invoices from email?", answer: "Yes. Connect Gmail and filter by sender to auto-extract data from invoice attachments." },
+      { question: "Does it handle invoices in different layouts?", answer: "Yes. The AI adapts to any invoice layout without template configuration. Perfect for [small business invoice automation](/guides/automate-invoice-processing-for-small-business)." },
+      { question: "Can I auto-process invoices from email?", answer: "Yes. Connect Gmail and filter by sender to auto-extract data from invoice attachments. You can also [parse email attachments with Zapier](/guides/parse-email-attachments-with-zapier) or [extract invoice data to QuickBooks](/guides/extract-invoice-data-to-quickbooks)." },
     ],
     relatedUseCases: ["invoice-parsing", "email-parsing", "pdf-to-excel"],
     relatedIndustries: ["finance", "ecommerce", "logistics"],
@@ -65,7 +65,7 @@ export const documentTypes: DocumentTypeData[] = [
     faqs: [
       { question: "Can it read blurry or faded receipts?", answer: "Parsli's AI handles common quality issues including blur, fading, and poor lighting. Clearer images yield better results." },
       { question: "Does it extract individual items?", answer: "Yes. Use the table field type to extract each line item with name, quantity, and price." },
-      { question: "Can I process receipts from my phone?", answer: "Yes. Upload phone photos through the web interface or send images to a Parsli webhook." },
+      { question: "Can I process receipts from my phone?", answer: "Yes. Upload phone photos through the web interface or send images to a Parsli webhook. You can also [automate receipt processing with Make](/guides/automate-receipt-processing-with-make) for hands-free workflows." },
     ],
     relatedUseCases: ["receipt-scanning", "ocr-data-extraction"],
     relatedIndustries: ["finance", "ecommerce"],
@@ -92,7 +92,7 @@ export const documentTypes: DocumentTypeData[] = [
     faqs: [
       { question: "Is my email data secure?", answer: "Yes. Parsli only requests read-only Gmail access. We cannot send, delete, or modify your emails." },
       { question: "Can I filter which emails get processed?", answer: "Yes. Set a sender filter so only emails from specific addresses are processed." },
-      { question: "Does it work with Outlook?", answer: "Currently Parsli has native Gmail integration. For Outlook, forward emails to a Parsli webhook or use Zapier/Make." },
+      { question: "Does it work with Outlook?", answer: "Currently Parsli has native Gmail integration. For Outlook, forward emails to a Parsli webhook or [parse email attachments with Zapier](/guides/parse-email-attachments-with-zapier)." },
     ],
     relatedUseCases: ["email-parsing", "document-automation"],
     relatedIndustries: ["ecommerce", "logistics", "insurance"],
@@ -106,7 +106,7 @@ export const documentTypes: DocumentTypeData[] = [
       "AI-powered PDF data extraction. Digital PDFs, scanned PDFs, forms, tables, and complex layouts. Built-in OCR. Get structured JSON or CSV. Start free.",
     h1: "PDF Data Extraction",
     heroDescription:
-      "Extract structured data from any PDF — digital, scanned, forms, tables, or complex multi-page documents. Built-in OCR handles any quality.",
+      "Extract structured data from any PDF — digital, scanned, forms, tables, or complex multi-page documents. Built-in OCR handles any quality. Try [extracting data from PDFs without code](/guides/extract-data-from-pdfs-without-code) or convert [PDF to JSON](/guides/pdf-to-json-extraction) in minutes.",
     extractableFields: [
       { name: "Text Fields", description: "Any text content: names, addresses, reference numbers, descriptions." },
       { name: "Tables", description: "Multi-row, multi-column table data with structure preserved." },
@@ -116,8 +116,8 @@ export const documentTypes: DocumentTypeData[] = [
     ],
     supportedFormats: ["Digital PDF", "Scanned PDF", "Image-based PDF", "Fillable PDF forms", "Multi-page PDF"],
     faqs: [
-      { question: "Can Parsli handle scanned PDFs?", answer: "Yes. Built-in OCR reads text from scanned documents, photos, and image-based PDFs." },
-      { question: "What about multi-page PDFs?", answer: "Parsli processes all pages. One multi-page document uses one page credit." },
+      { question: "Can Parsli handle scanned PDFs?", answer: "Yes. Built-in OCR reads text from scanned documents, photos, and image-based PDFs. No coding required — see how to [extract data from PDFs without code](/guides/extract-data-from-pdfs-without-code)." },
+      { question: "What about multi-page PDFs?", answer: "Parsli processes all pages. One multi-page document uses one page credit. For large volumes, learn how to [batch process documents automatically](/guides/batch-process-documents-automatically)." },
       { question: "Can I extract tables from PDFs?", answer: "Yes. Use the table field type to extract structured table data with rows and columns preserved." },
     ],
     relatedUseCases: ["pdf-data-extraction", "pdf-to-excel", "pdf-to-csv", "pdf-to-json"],
@@ -141,7 +141,7 @@ export const documentTypes: DocumentTypeData[] = [
     ],
     supportedFormats: ["Excel (.xlsx)", "Excel (.xls)", "CSV files", "Spreadsheet images/screenshots"],
     faqs: [
-      { question: "Why use AI to extract from spreadsheets?", answer: "Spreadsheets often have complex layouts with merged cells, multiple header rows, and mixed content. The AI understands the structure and extracts clean data." },
+      { question: "Why use AI to extract from spreadsheets?", answer: "Spreadsheets often have complex layouts with merged cells, multiple header rows, and mixed content. The AI understands the structure and extracts clean data. You can also [extract data from Excel to JSON](/guides/extract-data-from-excel-to-json) for developer workflows." },
       { question: "Can it handle multi-sheet Excel files?", answer: "Parsli processes the content of uploaded Excel files. For multi-sheet files, the AI reads across sheets." },
       { question: "What about CSV files?", answer: "Yes. CSV files are supported as input. The AI can extract specific data points even from messy CSV data." },
     ],
@@ -184,7 +184,7 @@ export const documentTypes: DocumentTypeData[] = [
       "AI contract data extraction. Pull party names, dates, terms, obligations, and key clauses from any contract format. Start free.",
     h1: "Contract Data Extraction",
     heroDescription:
-      "Extract key terms, dates, parties, and obligations from contracts automatically. Speed up contract review and due diligence workflows.",
+      "Extract key terms, dates, parties, and obligations from contracts automatically. Speed up contract review and due diligence workflows. Follow our guide on [extracting data from contracts](/guides/extract-data-from-contracts).",
     extractableFields: [
       { name: "Party Names", description: "Names and details of all contracting parties." },
       { name: "Effective Date", description: "Contract start date or execution date." },
@@ -197,7 +197,7 @@ export const documentTypes: DocumentTypeData[] = [
     faqs: [
       { question: "Can Parsli extract specific clauses?", answer: "Yes. Define fields for specific clause types and the AI will locate and extract them from the document." },
       { question: "Does it handle long contracts?", answer: "Yes. Parsli processes all pages of a document regardless of length." },
-      { question: "Can I process contracts in bulk?", answer: "Yes. Use the REST API to batch-process document sets for due diligence or contract review projects." },
+      { question: "Can I process contracts in bulk?", answer: "Yes. Use the REST API to [batch-process documents automatically](/guides/batch-process-documents-automatically) for due diligence or contract review projects." },
     ],
     relatedUseCases: ["pdf-data-extraction", "document-automation"],
     relatedIndustries: ["legal", "real-estate", "insurance"],
@@ -221,7 +221,7 @@ export const documentTypes: DocumentTypeData[] = [
     ],
     supportedFormats: ["Fillable PDF forms", "Paper forms (photos)", "Scanned forms", "Word document forms", "Image files"],
     faqs: [
-      { question: "Can Parsli read handwritten form entries?", answer: "The AI can process handwritten text, though accuracy depends on legibility. Clear handwriting yields good results." },
+      { question: "Can Parsli read handwritten form entries?", answer: "The AI can process handwritten text, though accuracy depends on legibility. Clear handwriting yields good results. Learn more in our guide on [extracting data from handwritten documents](/guides/extract-data-from-handwritten-documents)." },
       { question: "Does it detect checkboxes?", answer: "Yes. Use a boolean field type to detect checked/unchecked checkboxes on forms." },
       { question: "Can I process different form layouts with one parser?", answer: "Yes. Parsli's AI adapts to different layouts. One parser can handle variations of the same form type." },
     ],

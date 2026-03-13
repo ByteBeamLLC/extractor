@@ -95,7 +95,7 @@ export const solutions: SolutionPage[] = [
       {
         title: "Works with Any Document Type",
         description:
-          "Bank statements, invoices, reports, receipts — if it has data, Parsli can extract it into a spreadsheet.",
+          "Bank statements, invoices, reports, receipts — if it has data, Parsli can [extract data from PDFs without code](/guides/extract-data-from-pdfs-without-code) into a spreadsheet.",
       },
       {
         title: "No Code Required",
@@ -139,7 +139,7 @@ export const solutions: SolutionPage[] = [
       {
         question: "What formats can I export to?",
         answer:
-          "Excel (.xlsx), CSV, or directly to Google Sheets. You can also get structured JSON via the API for custom workflows.",
+          "Excel (.xlsx), CSV, or directly to Google Sheets. You can also get [structured JSON via the API](/guides/pdf-to-json-extraction) for custom workflows.",
       },
       {
         question: "How accurate is the conversion?",
@@ -150,7 +150,7 @@ export const solutions: SolutionPage[] = [
         question:
           "What's the difference between the free tool and Parsli AI?",
         answer:
-          "The free PDF to Excel tool handles simple text-based PDFs. Parsli AI handles scanned documents, complex layouts, custom extraction schemas, batch processing, and automation via integrations and API.",
+          "The free PDF to Excel tool handles simple text-based PDFs. Parsli AI handles scanned documents, complex layouts, custom extraction schemas, [batch document processing](/guides/batch-process-documents-automatically), and automation via integrations and API.",
       },
     ],
     adCopyVariants: [
@@ -245,14 +245,14 @@ export const solutions: SolutionPage[] = [
       {
         title: "Integrates with Your Workflow",
         description:
-          "Connect to QuickBooks, Xero, Google Sheets, or any tool via Zapier, Make, webhooks, or REST API.",
+          "Connect to [QuickBooks](/guides/extract-invoice-data-to-quickbooks), Xero, Google Sheets, or any tool via [Zapier](/guides/parse-email-attachments-with-zapier), [Make](/guides/automate-receipt-processing-with-make), webhooks, or REST API.",
       },
     ],
     seoSections: [
       {
         heading: "Why Automate Invoice Processing?",
         content:
-          "If your team processes more than 50 invoices per month, manual data entry is costing you real money. An AP clerk spends 3-5 minutes per invoice on data entry — that's 4+ hours per week just on typing. And manual entry has a 1-4% error rate, which means incorrect payments, duplicate entries, and time spent fixing mistakes.\n\nAutomated invoice parsing eliminates the data entry step entirely. The AI reads the invoice, extracts the fields you need, and sends structured data to your accounting system. Your team reviews and approves instead of typing — which is faster, more accurate, and far less tedious.",
+          "If your team processes more than 50 invoices per month, manual data entry is costing you real money. An AP clerk spends 3-5 minutes per invoice on data entry — that's 4+ hours per week just on typing. And manual entry has a 1-4% error rate, which means incorrect payments, duplicate entries, and time spent fixing mistakes.\n\nAutomated invoice parsing eliminates the data entry step entirely. The AI reads the invoice, extracts the fields you need, and sends structured data to your accounting system. Your team reviews and approves instead of typing — which is faster, more accurate, and far less tedious. Learn how to [automate invoice processing for your small business](/guides/automate-invoice-processing-for-small-business).",
       },
       {
         heading: "What Data Can Be Extracted from Invoices?",
@@ -289,7 +289,7 @@ export const solutions: SolutionPage[] = [
       {
         question: "Is there an API for invoice processing?",
         answer:
-          "Yes. Send invoices via REST API and get structured JSON back in under 3 seconds. Perfect for integrating invoice extraction into your own applications.",
+          "Yes. Send invoices via REST API and get [structured JSON back](/guides/pdf-to-json-extraction) in under 3 seconds. Perfect for integrating invoice extraction into your own applications.",
       },
     ],
     adCopyVariants: [
@@ -385,7 +385,7 @@ export const solutions: SolutionPage[] = [
       {
         title: "Processes Multi-Page Statements",
         description:
-          "50-page annual statement? No problem. Parsli processes every page and returns one clean, unified dataset.",
+          "50-page annual statement? No problem. Parsli processes every page and returns one clean, unified dataset. You can also [batch process documents automatically](/guides/batch-process-documents-automatically).",
       },
     ],
     seoSections: [
@@ -524,19 +524,19 @@ export const solutions: SolutionPage[] = [
       {
         title: "5,000+ App Integrations",
         description:
-          "Connect to Google Sheets, Zapier, Make, and thousands more. Or use webhooks and the REST API for custom workflows.",
+          "Connect to Google Sheets, [Zapier](/guides/parse-email-attachments-with-zapier), [Make](/guides/automate-receipt-processing-with-make), and thousands more. Or use webhooks and the REST API for custom workflows.",
       },
     ],
     seoSections: [
       {
         heading: "What Is No-Code Document Parsing?",
         content:
-          "No-code document parsing means extracting structured data from documents — PDFs, invoices, receipts, forms — without writing any code. Instead of building custom scripts or configuring regex patterns, you use a visual interface to tell the system what data you need, and AI handles the extraction.\n\nThis is a fundamental shift from traditional document processing. Older tools require developers to write parsing rules or draw extraction zones for every document template. With no-code AI parsing, anyone on your team — operations, finance, HR — can set up a document parser in minutes.",
+          "No-code document parsing means extracting structured data from documents — PDFs, invoices, receipts, forms — without writing any code. Instead of building custom scripts or configuring regex patterns, you use a visual interface to tell the system what data you need, and AI handles the extraction. See how to [extract data from PDFs without code](/guides/extract-data-from-pdfs-without-code).\n\nThis is a fundamental shift from traditional document processing. Older tools require developers to write parsing rules or draw extraction zones for every document template. With no-code AI parsing, anyone on your team — operations, finance, HR — can set up a document parser in minutes.",
       },
       {
         heading: "Who Needs a No-Code Document Parser?",
         content:
-          "Any team that regularly processes documents but doesn't have developer resources to build custom extraction. Common examples: finance teams processing invoices, HR teams handling resumes and applications, operations teams managing shipping documents, and real estate teams extracting data from contracts.\n\nIf your current process involves someone manually reading documents and typing data into a spreadsheet or system, a no-code document parser can automate that entire step. The ROI is immediate — less manual work, fewer errors, faster turnaround.",
+          "Any team that regularly processes documents but doesn't have developer resources to build custom extraction. Common examples: finance teams processing invoices, HR teams handling resumes and applications, operations teams managing [shipping documents](/guides/extract-data-from-shipping-documents), and real estate teams [extracting data from contracts](/guides/extract-data-from-contracts). Other popular use cases include healthcare teams processing [medical records](/guides/extract-data-from-medical-records), claims departments handling [insurance claims](/guides/extract-data-from-insurance-claims), accountants extracting data from [tax forms](/guides/extract-data-from-tax-forms), and facilities teams digitizing [utility bills](/guides/extract-data-from-utility-bills).\n\nIf your current process involves someone manually reading documents and typing data into a spreadsheet or system, a no-code document parser can automate that entire step. The ROI is immediate — less manual work, fewer errors, faster turnaround.",
       },
       {
         heading: "No-Code vs Developer-Built Document Parsing",
@@ -569,7 +569,7 @@ export const solutions: SolutionPage[] = [
       {
         question: "Can I automate document processing end-to-end?",
         answer:
-          "Yes. Connect via email forwarding, API, Zapier, Make, or webhooks for fully hands-free processing. Documents in, structured data out — automatically.",
+          "Yes. Connect via email forwarding, API, Zapier, Make, or webhooks for fully hands-free processing. You can even [batch process documents automatically](/guides/batch-process-documents-automatically). Documents in, structured data out — automatically.",
       },
     ],
     adCopyVariants: [
@@ -642,7 +642,7 @@ export const solutions: SolutionPage[] = [
         step: "3",
         title: "Get Structured JSON Response",
         description:
-          "Receive clean, typed JSON with extracted fields, confidence scores, and metadata. Ready for your pipeline.",
+          "Receive clean, typed JSON with extracted fields, confidence scores, and metadata. Ready for your pipeline. Learn more about [PDF to JSON extraction](/guides/pdf-to-json-extraction).",
       },
     ],
     benefits: [
@@ -654,7 +654,7 @@ export const solutions: SolutionPage[] = [
       {
         title: "Any Document Type",
         description:
-          "PDF, JPEG, PNG, TIFF, Word — send any document format. Built-in OCR handles scanned and image-based documents.",
+          "PDF, JPEG, PNG, TIFF, Word — send any document format. You can even [extract data from Excel to JSON](/guides/extract-data-from-excel-to-json). Built-in OCR handles scanned and image-based documents.",
       },
       {
         title: "Custom Extraction Schemas",
@@ -681,7 +681,7 @@ export const solutions: SolutionPage[] = [
       {
         heading: "Building Your Own OCR vs Using an API",
         content:
-          "Building an in-house document parsing pipeline typically requires: Tesseract or a commercial OCR engine, text extraction and cleanup, custom parsing logic per document type, table detection, and ongoing maintenance. That's 2-4 weeks of development per document type, plus infra costs and maintenance.\n\nA document parsing API like Parsli replaces all of that with a single endpoint. You get AI-powered extraction that handles any document type, any layout, with built-in OCR — all for a predictable per-page price. The trade-off is straightforward: build and maintain it yourself, or pay per page for a solution that just works.",
+          "Building an in-house document parsing pipeline typically requires: Tesseract or a commercial OCR engine, text extraction and cleanup, custom parsing logic per document type, table detection, and ongoing maintenance. That's 2-4 weeks of development per document type, plus infra costs and maintenance.\n\nA document parsing API like Parsli replaces all of that with a single endpoint. You get AI-powered extraction that handles any document type — from [contracts](/guides/extract-data-from-contracts) and [medical records](/guides/extract-data-from-medical-records) to [insurance claims](/guides/extract-data-from-insurance-claims) and [tax forms](/guides/extract-data-from-tax-forms) — any layout, with built-in OCR, all for a predictable per-page price. The trade-off is straightforward: build and maintain it yourself, or pay per page for a solution that just works.",
       },
     ],
     faq: [
@@ -713,7 +713,7 @@ export const solutions: SolutionPage[] = [
       {
         question: "Do you support webhooks for async processing?",
         answer:
-          "Yes. Configure webhook callbacks to receive results when extraction completes. Ideal for batch processing and background jobs.",
+          "Yes. Configure webhook callbacks to receive results when extraction completes. Ideal for [batch document processing](/guides/batch-process-documents-automatically) and background jobs.",
       },
     ],
     codeExample: {

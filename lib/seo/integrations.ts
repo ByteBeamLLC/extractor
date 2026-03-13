@@ -31,12 +31,12 @@ export const integrations: IntegrationData[] = [
       "Auto-refreshes when Google Sheets recalculates",
       "CSV format compatible with any spreadsheet",
       "Works with shared and team spreadsheets",
-      "Combine with Google Sheets formulas and charts",
+      "Combine with Google Sheets formulas and charts for [no-code PDF extraction](/guides/extract-data-from-pdfs-without-code)",
     ],
     faqs: [
       { question: "How does the Google Sheets integration work?", answer: "Parsli provides a CSV data feed URL for each parser. You use Google Sheets' IMPORTDATA function to pull this data into your spreadsheet. It refreshes automatically." },
       { question: "Can I choose which fields appear in the spreadsheet?", answer: "Yes. The CSV output includes all fields from your parser schema. The column headers match your field names." },
-      { question: "Does it work with Excel?", answer: "The CSV feed URL works with any tool that can fetch CSV data. For Excel, you can use Power Query to import from the URL." },
+      { question: "Does it work with Excel?", answer: "The CSV feed URL works with any tool that can fetch CSV data. For Excel, you can use Power Query to import from the URL. You can also [extract data from Excel to JSON](/guides/extract-data-from-excel-to-json) directly." },
     ],
   },
   {
@@ -47,7 +47,7 @@ export const integrations: IntegrationData[] = [
       "Connect Parsli to 5,000+ apps with Zapier. Auto-send extracted document data to CRMs, spreadsheets, databases, and more. No code required.",
     h1: "Zapier Integration",
     heroDescription:
-      "Connect Parsli to 5,000+ apps through Zapier. Every time a document is processed, extracted data automatically flows to your Zap — CRMs, databases, project management tools, and more.",
+      "Connect Parsli to 5,000+ apps through Zapier. Every time a document is processed, extracted data automatically flows to your Zap — CRMs, databases, project management tools, and more. See how to [parse email attachments with Zapier](/guides/parse-email-attachments-with-zapier).",
     steps: [
       { title: "Create a Zap", description: "In Zapier, create a new Zap with the 'Webhooks by Zapier' trigger and choose 'Catch Hook'." },
       { title: "Copy Webhook URL", description: "Copy the webhook URL that Zapier generates for your Zap." },
@@ -64,7 +64,7 @@ export const integrations: IntegrationData[] = [
     faqs: [
       { question: "How does Parsli send data to Zapier?", answer: "Parsli sends a webhook POST request to your Zapier webhook URL every time a document is processed. The payload contains all extracted fields." },
       { question: "Can I test the integration?", answer: "Yes. In Parsli, click the Test button after adding the Zapier integration to send a sample payload. Zapier will detect the fields automatically." },
-      { question: "What data format does Parsli send?", answer: "Parsli sends JSON with all extracted fields, plus metadata like parser name, document ID, file name, and timestamp." },
+      { question: "What data format does Parsli send?", answer: "Parsli sends JSON with all extracted fields, plus metadata like parser name, document ID, file name, and timestamp. Great for [invoice automation for small business](/guides/automate-invoice-processing-for-small-business) workflows." },
     ],
   },
   {
@@ -75,7 +75,7 @@ export const integrations: IntegrationData[] = [
       "Connect Parsli to Make (formerly Integromat) for powerful visual document processing automation. Send extracted data to any Make scenario via webhooks.",
     h1: "Make (Integromat) Integration",
     heroDescription:
-      "Build powerful visual automations with Make. When Parsli processes a document, extracted data flows into your Make scenario for routing, transformation, and delivery.",
+      "Build powerful visual automations with Make. When Parsli processes a document, extracted data flows into your Make scenario for routing, transformation, and delivery. Follow our guide to [automate receipt processing with Make](/guides/automate-receipt-processing-with-make).",
     steps: [
       { title: "Create a Make Scenario", description: "In Make, create a new scenario with a Custom Webhook module as the trigger." },
       { title: "Copy Webhook URL", description: "Copy the webhook URL that Make generates." },
@@ -91,7 +91,7 @@ export const integrations: IntegrationData[] = [
     ],
     faqs: [
       { question: "Does Parsli have a native Make integration?", answer: "Parsli connects to Make via webhooks, which is Make's recommended approach for custom integrations. It works with Make's Custom Webhook module." },
-      { question: "Can I transform data in Make?", answer: "Yes. Make's scenario builder lets you transform, filter, aggregate, and route data using dozens of built-in modules." },
+      { question: "Can I transform data in Make?", answer: "Yes. Make's scenario builder lets you transform, filter, aggregate, and route data using dozens of built-in modules. Perfect for converting [PDF to JSON](/guides/pdf-to-json-extraction) at scale." },
       { question: "Is there a delay in data delivery?", answer: "No. Parsli sends webhook data in real-time as soon as document processing completes." },
     ],
   },
@@ -115,7 +115,7 @@ export const integrations: IntegrationData[] = [
       "Read-only Gmail access (safe and secure)",
       "Filter by sender address",
       "Processes all attachment types",
-      "Combine with other integrations for end-to-end automation",
+      "Combine with other integrations for end-to-end automation — [no code required](/guides/extract-data-from-pdfs-without-code)",
     ],
     faqs: [
       { question: "Is my Gmail data safe?", answer: "Yes. Parsli only requests read-only access. We cannot send, delete, or modify your emails. Only attachment data is extracted." },
@@ -143,10 +143,10 @@ export const integrations: IntegrationData[] = [
       "Inbound and outbound webhooks",
       "Bearer token and Basic auth",
       "JSON payload format",
-      "Connect to any backend or service",
+      "Connect to any backend or service for [batch document processing](/guides/batch-process-documents-automatically)",
     ],
     faqs: [
-      { question: "What's the webhook payload format?", answer: "Outbound webhooks send JSON with event type, parser info, extracted data, and document metadata (filename, MIME type, page count)." },
+      { question: "What's the webhook payload format?", answer: "Outbound webhooks send JSON with event type, parser info, extracted data, and document metadata (filename, MIME type, page count). Ideal for [PDF to JSON extraction](/guides/pdf-to-json-extraction) pipelines." },
       { question: "Can I use webhooks without API keys?", answer: "Yes. Inbound webhook URLs are unique per parser and don't require API key authentication. They use a token embedded in the URL." },
       { question: "Are webhooks reliable?", answer: "Parsli sends webhook requests immediately after extraction. If your endpoint is down, the data is still stored in Parsli and accessible via the API." },
     ],
@@ -163,7 +163,7 @@ export const integrations: IntegrationData[] = [
     steps: [
       { title: "Create an API Key", description: "In your parser's API tab, click Create Key. Copy the key immediately — it's shown only once." },
       { title: "Send a Document", description: "POST to /api/v1/extract with your API key in the Authorization header and the file as base64 JSON or multipart form data." },
-      { title: "Receive Structured JSON", description: "The API returns typed JSON matching your parser's schema, plus document metadata." },
+      { title: "Receive Structured JSON", description: "The API returns typed JSON matching your parser's schema, plus document metadata. See our guide on [PDF to JSON extraction](/guides/pdf-to-json-extraction)." },
       { title: "Integrate into Your App", description: "Use the API from any language — Python, Node.js, Java, Go, or any HTTP client." },
     ],
     benefits: [
@@ -175,7 +175,7 @@ export const integrations: IntegrationData[] = [
     ],
     faqs: [
       { question: "What authentication does the API use?", answer: "Bearer token authentication. Pass your API key in the Authorization header: 'Authorization: Bearer ext_YOUR_KEY'." },
-      { question: "What's the rate limit?", answer: "API requests are limited by your plan's monthly page allowance. Each successful extraction uses one page credit." },
+      { question: "What's the rate limit?", answer: "API requests are limited by your plan's monthly page allowance. Each successful extraction uses one page credit. For high volumes, learn how to [batch process documents automatically](/guides/batch-process-documents-automatically)." },
       { question: "Is there an SDK?", answer: "Not yet, but the API uses standard HTTP and JSON, so any HTTP client works. We provide curl examples in the docs." },
     ],
   },

@@ -34,7 +34,7 @@ export const useCases: UseCaseData[] = [
       {
         title: "Can't Keep Up with Volume",
         description:
-          "As your business grows, so does the number of invoices. Hiring more people to process them isn't scalable or cost-effective.",
+          "As your business grows, so does the number of invoices. Hiring more people to process them isn't scalable or cost-effective. Learn how to [automate invoice processing for your small business](/guides/automate-invoice-processing-for-small-business).",
       },
     ],
     features: [
@@ -51,12 +51,12 @@ export const useCases: UseCaseData[] = [
       {
         title: "Auto-Process from Gmail",
         description:
-          "Connect Gmail to automatically extract data from invoice email attachments as they arrive. No manual upload needed.",
+          "Connect Gmail to automatically extract data from invoice email attachments as they arrive. You can also [parse email attachments with Zapier](/guides/parse-email-attachments-with-zapier). No manual upload needed.",
       },
       {
         title: "Export to Accounting Tools",
         description:
-          "Send extracted data to Google Sheets, QuickBooks (via Zapier), Xero, or your own accounting system via webhooks.",
+          "Send extracted data to Google Sheets, [QuickBooks (via Zapier)](/guides/extract-invoice-data-to-quickbooks), Xero, or your own accounting system via webhooks.",
       },
     ],
     faqs: [
@@ -122,7 +122,7 @@ export const useCases: UseCaseData[] = [
       {
         title: "Route Data Anywhere",
         description:
-          "Send extracted email data to Google Sheets, Zapier, Make, CRMs, or any webhook endpoint.",
+          "Send extracted email data to Google Sheets, [Zapier](/guides/parse-email-attachments-with-zapier), [Make](/guides/automate-receipt-processing-with-make), CRMs, or any webhook endpoint.",
       },
     ],
     faqs: [
@@ -151,7 +151,7 @@ export const useCases: UseCaseData[] = [
       "Extract structured data from PDFs automatically using AI. Handles scanned PDFs, digital PDFs, tables, forms, and complex layouts. Built-in OCR. Start free.",
     h1: "Extract Data from PDFs Automatically with AI",
     heroDescription:
-      "Turn any PDF into structured, usable data. Parsli's AI reads text, tables, forms, and even handwritten content from both digital and scanned PDFs.",
+      "Turn any PDF into structured, usable data. Parsli's AI reads text, tables, forms, and even [handwritten content](/guides/extract-data-from-handwritten-documents) from both digital and scanned PDFs.",
     painPoints: [
       {
         title: "PDFs Lock Away Your Data",
@@ -166,14 +166,14 @@ export const useCases: UseCaseData[] = [
       {
         title: "Every PDF is Different",
         description:
-          "Invoices, contracts, reports — each has a different layout. You need an intelligent solution that adapts to any PDF format.",
+          "Invoices, [contracts](/guides/extract-data-from-contracts), reports — each has a different layout. You need an intelligent solution that adapts to any PDF format.",
       },
     ],
     features: [
       {
         title: "Digital & Scanned PDFs",
         description:
-          "Works with both native digital PDFs and scanned document images. Built-in OCR handles any quality.",
+          "Works with both native digital PDFs and scanned document images. Built-in OCR handles any quality. Learn how to [extract data from PDFs without code](/guides/extract-data-from-pdfs-without-code).",
       },
       {
         title: "Table Extraction",
@@ -183,12 +183,12 @@ export const useCases: UseCaseData[] = [
       {
         title: "Custom Schema",
         description:
-          "Define exactly what data you need. The AI uses your schema to extract only relevant information.",
+          "Define exactly what data you need — whether it's [tax forms](/guides/extract-data-from-tax-forms), [utility bills](/guides/extract-data-from-utility-bills), or [shipping documents](/guides/extract-data-from-shipping-documents). The AI uses your schema to extract only relevant information.",
       },
       {
         title: "Batch Processing",
         description:
-          "Process hundreds of PDFs through the API or Gmail automation. Each extraction takes just seconds.",
+          "Process hundreds of PDFs through the API or Gmail automation. Each extraction takes just seconds. See how to [batch process documents automatically](/guides/batch-process-documents-automatically).",
       },
     ],
     faqs: [
@@ -247,7 +247,7 @@ export const useCases: UseCaseData[] = [
       },
       {
         title: "Expense Automation",
-        description: "Route receipt data to Google Sheets, accounting software, or expense management tools via Zapier.",
+        description: "Route receipt data to Google Sheets, accounting software, or expense management tools via Zapier. See how to [automate receipt processing with Make](/guides/automate-receipt-processing-with-make).",
       },
     ],
     faqs: [
@@ -277,7 +277,7 @@ export const useCases: UseCaseData[] = [
     painPoints: [
       {
         title: "Manual Processing Doesn't Scale",
-        description: "As document volume grows, manual processing becomes a bottleneck. You need automation that grows with your business.",
+        description: "As document volume grows, manual processing becomes a bottleneck. You need automation that grows with your business — like [batch document processing](/guides/batch-process-documents-automatically).",
       },
       {
         title: "Disconnected Tools",
@@ -291,7 +291,7 @@ export const useCases: UseCaseData[] = [
     features: [
       {
         title: "No-Code Setup",
-        description: "Create parsers, define schemas, and connect integrations entirely through the web interface. Zero coding required.",
+        description: "Create parsers, define schemas, and connect integrations entirely through the web interface. Zero coding required. Learn how to [extract data from PDFs without code](/guides/extract-data-from-pdfs-without-code).",
       },
       {
         title: "Multi-Source Ingestion",
@@ -299,7 +299,7 @@ export const useCases: UseCaseData[] = [
       },
       {
         title: "Workflow Integrations",
-        description: "Connect to Zapier (5,000+ apps), Make, Google Sheets, and custom webhooks for end-to-end automation.",
+        description: "Connect to [Zapier](/guides/parse-email-attachments-with-zapier) (5,000+ apps), [Make](/guides/automate-receipt-processing-with-make), Google Sheets, and custom webhooks for end-to-end automation.",
       },
       {
         title: "Consistent Output",
@@ -317,7 +317,7 @@ export const useCases: UseCaseData[] = [
       },
       {
         question: "Can I automate different document types?",
-        answer: "Yes. Create separate parsers for each document type (invoices, receipts, contracts, etc.) and route documents to the right parser automatically.",
+        answer: "Yes. Create separate parsers for each document type (invoices, receipts, [contracts](/guides/extract-data-from-contracts), etc.) and route documents to the right parser automatically.",
       },
     ],
   },
@@ -337,7 +337,7 @@ export const useCases: UseCaseData[] = [
       },
       {
         title: "Complex Document Layouts",
-        description: "Real-world documents have tables, multi-column layouts, headers, footers, and mixed content. Basic tools can't handle this.",
+        description: "Real-world documents — from [medical records](/guides/extract-data-from-medical-records) to [insurance claims](/guides/extract-data-from-insurance-claims) — have tables, multi-column layouts, headers, footers, and mixed content. Basic tools can't handle this.",
       },
       {
         title: "Enterprise Integration",
@@ -351,7 +351,7 @@ export const useCases: UseCaseData[] = [
       },
       {
         title: "Structured Output",
-        description: "Define your schema once. The AI consistently produces clean, typed JSON output matching your specification.",
+        description: "Define your schema once. The AI consistently produces clean, typed [JSON output](/guides/pdf-to-json-extraction) matching your specification.",
       },
       {
         title: "Confidence Scoring",
@@ -359,7 +359,7 @@ export const useCases: UseCaseData[] = [
       },
       {
         title: "Enterprise Integrations",
-        description: "REST API, webhooks, Zapier, Make, and Google Sheets. Connect to any business system.",
+        description: "REST API, webhooks, [Zapier](/guides/parse-email-attachments-with-zapier), [Make](/guides/automate-receipt-processing-with-make), and Google Sheets. Connect to any business system.",
       },
     ],
     faqs: [
@@ -407,11 +407,11 @@ export const useCases: UseCaseData[] = [
       },
       {
         title: "Handles Poor Quality",
-        description: "Faded text, skewed scans, phone photos, handwriting — the AI handles real-world document quality issues.",
+        description: "Faded text, skewed scans, phone photos, [handwriting](/guides/extract-data-from-handwritten-documents) — the AI handles real-world document quality issues.",
       },
       {
         title: "Structured Output",
-        description: "Get clean JSON, not raw text. Define your schema and receive organized data ready for your systems.",
+        description: "Get clean [JSON](/guides/pdf-to-json-extraction), not raw text. Define your schema and receive organized data ready for your systems.",
       },
       {
         title: "Multi-Language Support",
@@ -471,7 +471,7 @@ export const useCases: UseCaseData[] = [
       },
       {
         title: "Batch Conversion",
-        description: "Convert hundreds of PDFs to spreadsheet data through the API or Gmail automation.",
+        description: "Convert hundreds of PDFs to spreadsheet data through the API or Gmail automation. Learn how to [batch process documents automatically](/guides/batch-process-documents-automatically).",
       },
     ],
     faqs: [
@@ -523,7 +523,7 @@ export const useCases: UseCaseData[] = [
       },
       {
         title: "API Access",
-        description: "Use the REST API to convert PDFs to CSV programmatically as part of your data pipeline.",
+        description: "Use the REST API to convert PDFs to CSV programmatically as part of your data pipeline. You can also [extract data from Excel to JSON](/guides/extract-data-from-excel-to-json).",
       },
       {
         title: "Google Sheets Feed",
@@ -571,11 +571,11 @@ export const useCases: UseCaseData[] = [
     features: [
       {
         title: "Typed JSON Output",
-        description: "Fields are typed (text, number, decimal, date, boolean). The AI returns properly typed JSON, not just strings.",
+        description: "Fields are typed (text, number, decimal, date, boolean). The AI returns properly typed JSON, not just strings. Learn more about [PDF to JSON extraction](/guides/pdf-to-json-extraction).",
       },
       {
         title: "Nested Objects & Arrays",
-        description: "Support for nested object fields, arrays, and table types. Complex document structures map to clean JSON.",
+        description: "Support for nested object fields, arrays, and table types. Complex document structures map to clean JSON. See also [extracting data from Excel to JSON](/guides/extract-data-from-excel-to-json).",
       },
       {
         title: "REST API",
