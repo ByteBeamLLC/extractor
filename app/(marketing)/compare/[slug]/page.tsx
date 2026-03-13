@@ -11,6 +11,80 @@ import {
   getAlternativeBySlug,
   getAllAlternativeSlugs,
 } from "@/lib/seo/alternatives"
+import { getAllBlogPosts } from "@/lib/seo/blog-posts"
+import { getAllSolutions } from "@/lib/seo/solutions"
+
+/* Map comparison slugs to related blog posts */
+const compareToBlog: Record<string, string[]> = {
+  parseur: ["parseur-alternatives", "best-email-parser-tools", "best-invoice-ocr-software"],
+  docparser: ["best-pdf-parser-tools", "best-invoice-ocr-software", "extract-data-pdf-to-excel"],
+  parsio: ["parseur-alternatives", "best-email-parser-tools", "best-invoice-ocr-software"],
+  docsumo: ["best-invoice-ocr-software", "automate-invoice-data-extraction", "nanonets-alternatives"],
+  nanonets: ["nanonets-alternatives", "best-invoice-ocr-software", "automate-invoice-data-extraction"],
+  rossum: ["best-invoice-ocr-software", "automate-invoice-data-extraction"],
+  klippa: ["best-invoice-ocr-software", "automate-data-entry"],
+  "base64ai": ["document-parsing-api", "agentic-document-extraction"],
+  textract: ["extract-data-from-pdf-automatically", "document-parsing-api", "best-pdf-parser-tools"],
+  "google-document-ai": ["extract-data-from-pdf-automatically", "document-parsing-api", "best-pdf-parser-tools"],
+  "azure-document-intelligence": ["extract-data-from-pdf-automatically", "document-parsing-api"],
+  mailparser: ["mailparser-alternatives", "best-email-parser-tools", "parse-emails-to-google-sheets"],
+  abbyy: ["best-invoice-ocr-software", "what-is-document-parsing"],
+  llamaparse: ["document-parsing-api", "agentic-document-extraction", "best-pdf-parser-tools"],
+  mindee: ["best-invoice-ocr-software", "document-parsing-api"],
+  reducto: ["document-parsing-api", "agentic-document-extraction"],
+  sensible: ["document-parsing-api", "best-pdf-parser-tools"],
+  uipath: ["automate-data-entry", "automate-invoice-data-extraction"],
+  hyperscience: ["automate-data-entry", "what-is-document-parsing"],
+  veryfi: ["best-invoice-ocr-software", "automate-invoice-data-extraction"],
+  unstructured: ["document-parsing-api", "agentic-document-extraction"],
+  upstage: ["document-parsing-api", "agentic-document-extraction"],
+  "landing-ai": ["document-parsing-api", "agentic-document-extraction"],
+  "pulse-ai": ["document-parsing-api", "agentic-document-extraction"],
+  "cradl-ai": ["automate-data-entry", "best-invoice-ocr-software"],
+  airparser: ["best-email-parser-tools", "automate-data-entry"],
+}
+
+/* Map comparison slugs to related solutions */
+const compareToSolutions: Record<string, string[]> = {
+  parseur: ["no-code-document-parser", "invoice-parsing"],
+  docparser: ["pdf-to-excel", "document-parsing-api"],
+  parsio: ["no-code-document-parser", "invoice-parsing"],
+  docsumo: ["invoice-parsing", "document-parsing-api"],
+  nanonets: ["invoice-parsing", "no-code-document-parser"],
+  rossum: ["invoice-parsing"],
+  klippa: ["invoice-parsing", "no-code-document-parser"],
+  "base64ai": ["document-parsing-api"],
+  textract: ["document-parsing-api", "pdf-to-excel"],
+  "google-document-ai": ["document-parsing-api", "pdf-to-excel"],
+  "azure-document-intelligence": ["document-parsing-api"],
+  mailparser: ["no-code-document-parser", "invoice-parsing"],
+  abbyy: ["invoice-parsing", "no-code-document-parser"],
+  llamaparse: ["document-parsing-api"],
+  mindee: ["invoice-parsing", "document-parsing-api"],
+  reducto: ["document-parsing-api"],
+  sensible: ["document-parsing-api"],
+  uipath: ["no-code-document-parser", "invoice-parsing"],
+  hyperscience: ["no-code-document-parser", "invoice-parsing"],
+  veryfi: ["invoice-parsing"],
+  unstructured: ["document-parsing-api"],
+  upstage: ["document-parsing-api"],
+  "landing-ai": ["document-parsing-api"],
+  "pulse-ai": ["document-parsing-api"],
+  "cradl-ai": ["no-code-document-parser", "invoice-parsing"],
+  airparser: ["no-code-document-parser"],
+}
+
+function getRelatedBlogPosts(slug: string) {
+  const slugs = compareToBlog[slug] ?? []
+  const allPosts = getAllBlogPosts()
+  return allPosts.filter((p) => slugs.includes(p.slug))
+}
+
+function getRelatedSolutionsForCompare(slug: string) {
+  const slugs = compareToSolutions[slug] ?? []
+  const allSolutions = getAllSolutions()
+  return allSolutions.filter((s) => slugs.includes(s.slug))
+}
 
 export function generateStaticParams() {
   return getAllAlternativeSlugs().map((slug) => ({ slug }))
@@ -449,6 +523,62 @@ export default function AlternativePage({
           </div>
         </div>
       </section>
+
+      {/* ═══════ Related Blog Posts & Solutions ═══════ */}
+      {(getRelatedBlogPosts(alt.slug).length > 0 ||
+        getRelatedSolutionsForCompare(alt.slug).length > 0) && (
+        <section className="py-16 sm:py-20 bg-muted/30">
+          <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+            <h2 className="text-xl font-bold text-center mb-8">
+              Learn More
+            </h2>
+            <div className="space-y-6">
+              {getRelatedSolutionsForCompare(alt.slug).length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground mb-3">
+                    Solutions
+                  </h3>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    {getRelatedSolutionsForCompare(alt.slug).map((solution) => (
+                      <Link
+                        key={solution.slug}
+                        href={`/solutions/${solution.slug}`}
+                        className="group rounded-lg border bg-card p-4 hover:border-primary/30 transition-colors"
+                      >
+                        <h4 className="font-semibold text-sm group-hover:text-primary transition-colors mb-1">
+                          {solution.h1}
+                        </h4>
+                        <p className="text-xs text-muted-foreground line-clamp-2">
+                          {solution.subtitle}
+                        </p>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {getRelatedBlogPosts(alt.slug).length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground mb-3">
+                    From the Blog
+                  </h3>
+                  <div className="flex flex-wrap gap-3">
+                    {getRelatedBlogPosts(alt.slug).map((post) => (
+                      <Link
+                        key={post.slug}
+                        href={`/blog/${post.slug}`}
+                        className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors"
+                      >
+                        {post.title}
+                        <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ═══════ 10. Related Comparisons ═══════ */}
       <section className="py-16 sm:py-20 bg-muted/30">

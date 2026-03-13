@@ -251,6 +251,73 @@ export default function UseCasePage({
         </section>
       )}
 
+      {/* Related Resources */}
+      <section className="py-16 sm:py-20">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+          <h2 className="text-sm font-semibold text-muted-foreground mb-4">
+            Related Resources
+          </h2>
+          <div className="flex flex-wrap gap-3">
+            {useCase.slug === "invoice-parsing" && (
+              <>
+                <Link href="/solutions/invoice-parsing" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">Invoice Parsing Solution <ArrowRight className="h-3 w-3 text-muted-foreground" /></Link>
+                <Link href="/compare/nanonets" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">Parsli vs Nanonets <ArrowRight className="h-3 w-3 text-muted-foreground" /></Link>
+                <Link href="/blog/best-invoice-ocr-software" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">Best Invoice OCR Software <ArrowRight className="h-3 w-3 text-muted-foreground" /></Link>
+              </>
+            )}
+            {useCase.slug === "email-parsing" && (
+              <>
+                <Link href="/compare/parseur" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">Parsli vs Parseur <ArrowRight className="h-3 w-3 text-muted-foreground" /></Link>
+                <Link href="/compare/mailparser" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">Parsli vs Mailparser <ArrowRight className="h-3 w-3 text-muted-foreground" /></Link>
+                <Link href="/blog/best-email-parser-tools" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">Best Email Parser Tools <ArrowRight className="h-3 w-3 text-muted-foreground" /></Link>
+              </>
+            )}
+            {useCase.slug === "pdf-data-extraction" && (
+              <>
+                <Link href="/solutions/pdf-to-excel" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">PDF to Excel Solution <ArrowRight className="h-3 w-3 text-muted-foreground" /></Link>
+                <Link href="/compare/docparser" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">Parsli vs Docparser <ArrowRight className="h-3 w-3 text-muted-foreground" /></Link>
+                <Link href="/blog/extract-data-from-pdf-automatically" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">Extract Data from PDF Automatically <ArrowRight className="h-3 w-3 text-muted-foreground" /></Link>
+              </>
+            )}
+            {useCase.slug === "receipt-scanning" && (
+              <>
+                <Link href="/solutions/invoice-parsing" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">Invoice Parsing Solution <ArrowRight className="h-3 w-3 text-muted-foreground" /></Link>
+                <Link href="/compare/veryfi" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">Parsli vs Veryfi <ArrowRight className="h-3 w-3 text-muted-foreground" /></Link>
+              </>
+            )}
+            {useCase.slug === "document-automation" && (
+              <>
+                <Link href="/solutions/no-code-document-parser" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">No-Code Document Parser <ArrowRight className="h-3 w-3 text-muted-foreground" /></Link>
+                <Link href="/compare/parseur" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">Parsli vs Parseur <ArrowRight className="h-3 w-3 text-muted-foreground" /></Link>
+                <Link href="/blog/automate-data-entry" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">Automate Data Entry Guide <ArrowRight className="h-3 w-3 text-muted-foreground" /></Link>
+              </>
+            )}
+            {useCase.slug === "intelligent-document-processing" && (
+              <>
+                <Link href="/solutions/no-code-document-parser" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">No-Code Document Parser <ArrowRight className="h-3 w-3 text-muted-foreground" /></Link>
+                <Link href="/blog/what-is-document-parsing" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">What Is Document Parsing? <ArrowRight className="h-3 w-3 text-muted-foreground" /></Link>
+                <Link href="/compare/nanonets" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">Parsli vs Nanonets <ArrowRight className="h-3 w-3 text-muted-foreground" /></Link>
+              </>
+            )}
+            {useCase.slug === "ocr-data-extraction" && (
+              <>
+                <Link href="/solutions/document-parsing-api" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">Document Parsing API <ArrowRight className="h-3 w-3 text-muted-foreground" /></Link>
+                <Link href="/compare/textract" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">Parsli vs Amazon Textract <ArrowRight className="h-3 w-3 text-muted-foreground" /></Link>
+              </>
+            )}
+            {(useCase.slug === "pdf-to-excel" || useCase.slug === "pdf-to-csv" || useCase.slug === "pdf-to-json") && (
+              <>
+                <Link href="/solutions/pdf-to-excel" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">PDF to Excel Solution <ArrowRight className="h-3 w-3 text-muted-foreground" /></Link>
+                <Link href="/compare/docparser" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">Parsli vs Docparser <ArrowRight className="h-3 w-3 text-muted-foreground" /></Link>
+                <Link href="/blog/extract-data-pdf-to-excel" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">PDF to Excel Guide <ArrowRight className="h-3 w-3 text-muted-foreground" /></Link>
+              </>
+            )}
+            <Link href="/compare" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">All Comparisons <ArrowRight className="h-3 w-3 text-muted-foreground" /></Link>
+            <Link href="/blog" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">Blog <ArrowRight className="h-3 w-3 text-muted-foreground" /></Link>
+          </div>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="py-16 sm:py-20 bg-muted/30">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 text-center">

@@ -11,6 +11,7 @@ import {
   getDocumentTypeBySlug,
   getAllDocumentTypeSlugs,
 } from "@/lib/seo/document-types"
+import { getSolutionBySlug } from "@/lib/seo/solutions"
 
 const documentTypeTools: Record<string, { href: string; title: string; description: string }[]> = {
   invoices: [
@@ -284,6 +285,27 @@ export default function DocumentTypePage({
                 </Link>
               )
             })}
+            {docType.relatedSolutions?.map((slug) => {
+              const sol = getSolutionBySlug(slug)
+              if (!sol) return null
+              return (
+                <Link
+                  key={slug}
+                  href={`/solutions/${slug}`}
+                  className="group rounded-xl border bg-card p-5 hover:border-primary/30 transition-colors"
+                >
+                  <Badge variant="secondary" className="mb-2 text-xs">Solution</Badge>
+                  <h3 className="font-semibold text-sm mb-1 group-hover:text-primary transition-colors">{sol.h1}</h3>
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    Learn more <ArrowRight className="h-3 w-3" />
+                  </span>
+                </Link>
+              )
+            })}
+          </div>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link href="/compare" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">Compare Alternatives <ArrowRight className="h-3 w-3 text-muted-foreground" /></Link>
+            <Link href="/blog" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">Blog <ArrowRight className="h-3 w-3 text-muted-foreground" /></Link>
           </div>
         </div>
       </section>

@@ -49,6 +49,8 @@ const solutionRelatedLinks: Record<
     { href: "/use-cases/pdf-to-excel", label: "PDF to Excel Use Case" },
     { href: "/use-cases/pdf-data-extraction", label: "PDF Data Extraction" },
     { href: "/blog/extract-data-pdf-to-excel", label: "How to Extract Data from PDF to Excel" },
+    { href: "/compare/docparser", label: "Parsli vs Docparser" },
+    { href: "/compare/textract", label: "Parsli vs Amazon Textract" },
     { href: "/solutions/bank-statement-extraction", label: "Bank Statement Extraction" },
   ],
   "invoice-parsing": [
@@ -57,6 +59,9 @@ const solutionRelatedLinks: Record<
     { href: "/use-cases/invoice-parsing", label: "Invoice Parsing Use Case" },
     { href: "/use-cases/receipt-scanning", label: "Receipt Scanning" },
     { href: "/blog/best-invoice-ocr-software", label: "Best Invoice OCR Software" },
+    { href: "/compare/nanonets", label: "Parsli vs Nanonets" },
+    { href: "/compare/docsumo", label: "Parsli vs Docsumo" },
+    { href: "/compare/rossum", label: "Parsli vs Rossum" },
     { href: "/solutions/no-code-document-parser", label: "No-Code Document Parser" },
   ],
   "bank-statement-extraction": [
@@ -65,6 +70,8 @@ const solutionRelatedLinks: Record<
     { href: "/use-cases/pdf-data-extraction", label: "PDF Data Extraction" },
     { href: "/use-cases/pdf-to-excel", label: "PDF to Excel" },
     { href: "/blog/extract-bank-statement-data-pdf", label: "Extract Bank Statement Data from PDF" },
+    { href: "/compare/docparser", label: "Parsli vs Docparser" },
+    { href: "/compare/parseur", label: "Parsli vs Parseur" },
     { href: "/solutions/pdf-to-excel", label: "PDF to Excel Solution" },
   ],
   "no-code-document-parser": [
@@ -74,6 +81,8 @@ const solutionRelatedLinks: Record<
     { href: "/use-cases/document-automation", label: "Document Automation" },
     { href: "/use-cases/intelligent-document-processing", label: "Intelligent Document Processing" },
     { href: "/blog/what-is-document-parsing", label: "What Is Document Parsing?" },
+    { href: "/compare/parseur", label: "Parsli vs Parseur" },
+    { href: "/compare/nanonets", label: "Parsli vs Nanonets" },
     { href: "/solutions/invoice-parsing", label: "Invoice Parsing Solution" },
   ],
   "document-parsing-api": [
@@ -82,6 +91,8 @@ const solutionRelatedLinks: Record<
     { href: "/use-cases/ocr-data-extraction", label: "OCR Data Extraction" },
     { href: "/integrations/api", label: "REST API Integration" },
     { href: "/integrations/webhooks", label: "Webhooks Integration" },
+    { href: "/compare/textract", label: "Parsli vs Amazon Textract" },
+    { href: "/compare/google-document-ai", label: "Parsli vs Google Document AI" },
     { href: "/docs#api", label: "API Documentation" },
   ],
 }

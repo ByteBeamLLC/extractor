@@ -14,6 +14,7 @@ import {
   type ContentBlock,
 } from "@/lib/seo/blog-posts"
 import { getAllSolutions } from "@/lib/seo/solutions"
+import { getAlternativeBySlug } from "@/lib/seo/alternatives"
 
 /* Map blog slugs to related solution slugs */
 const blogToSolutions: Record<string, string[]> = {
@@ -168,6 +169,37 @@ const blogToTools: Record<string, { href: string; title: string; description: st
     { href: "/tools/ai-summarizer", title: "Free AI Document Summarizer", description: "See AI document analysis in action — free in your browser." },
     { href: "/tools/invoice-parser", title: "Free Invoice Parser", description: "Try AI-powered extraction on invoices instantly." },
   ],
+}
+
+/* Map blog slugs to related comparison pages */
+const blogToCompare: Record<string, string[]> = {
+  "parseur-alternatives": ["parseur", "docparser", "parsio", "docsumo"],
+  "nanonets-alternatives": ["nanonets", "parseur", "docparser", "docsumo"],
+  "mailparser-alternatives": ["mailparser", "parseur", "parsio", "docparser"],
+  "best-invoice-ocr-software": ["nanonets", "docparser", "rossum", "docsumo"],
+  "best-pdf-parser-tools": ["docparser", "parseur", "nanonets", "textract"],
+  "best-email-parser-tools": ["parseur", "mailparser", "parsio"],
+  "extract-data-pdf-to-excel": ["docparser", "parseur", "textract"],
+  "what-is-document-parsing": ["nanonets", "docsumo", "textract"],
+  "automate-data-entry": ["parseur", "nanonets", "docsumo"],
+  "extract-data-from-pdf-automatically": ["textract", "google-document-ai", "docparser"],
+  "automate-invoice-data-extraction": ["nanonets", "docsumo", "rossum"],
+  "extract-bank-statement-data-pdf": ["docparser", "parseur", "nanonets"],
+  "parse-emails-to-google-sheets": ["parseur", "mailparser", "parsio"],
+  "email-attachments-to-spreadsheet": ["mailparser", "parseur", "parsio"],
+  "document-parsing-api": ["textract", "google-document-ai", "azure-document-intelligence"],
+  "agentic-document-extraction": ["nanonets", "docsumo", "google-document-ai"],
+}
+
+function getRelatedComparisons(blogSlug: string) {
+  const slugs = blogToCompare[blogSlug] ?? []
+  return slugs
+    .map((s) => {
+      const alt = getAlternativeBySlug(s)
+      if (!alt) return null
+      return { slug: alt.slug, competitor: alt.competitor, attackAngle: alt.attackAngle }
+    })
+    .filter(Boolean) as { slug: string; competitor: string; attackAngle: string }[]
 }
 
 function extractFaqItems(content: ContentBlock[]) {
@@ -504,6 +536,25 @@ export default function BlogPostPage({
                     <p className="text-sm text-muted-foreground line-clamp-2">
                       {solution.subtitle}
                     </p>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Related Comparisons */}
+          {getRelatedComparisons(post.slug).length > 0 && (
+            <div className="mt-12 pt-10 border-t">
+              <h2 className="text-xl font-bold mb-6">Compare Parsli</h2>
+              <div className="flex flex-wrap gap-3">
+                {getRelatedComparisons(post.slug).map((comp) => (
+                  <Link
+                    key={comp.slug}
+                    href={`/compare/${comp.slug}`}
+                    className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors"
+                  >
+                    Parsli vs {comp.competitor}
+                    <ArrowRight className="h-3 w-3 text-muted-foreground" />
                   </Link>
                 ))}
               </div>
