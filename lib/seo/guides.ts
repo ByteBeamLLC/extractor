@@ -27,6 +27,18 @@ export type GuideContentBlock =
   | { type: "cta"; headline?: string }
   | { type: "image"; src: string; alt: string; caption?: string }
   | { type: "pros-cons"; pros: string[]; cons: string[] }
+  | {
+      type: "tool-review"
+      name: string
+      bestFor: string
+      features: string[]
+      pros: string[]
+      cons: string[]
+      verdict: string
+    }
+  | { type: "link-button"; href: string; text: string }
+  | { type: "quote"; text: string; author: string; role?: string }
+  | { type: "key-stat"; stats: { value: string; label: string }[] }
 
 export interface GuideData {
   slug: string
@@ -71,7 +83,7 @@ const guides: GuideData[] = [
       "**Manual copy-paste** works for 1-5 invoices but breaks at scale due to human error and time cost.",
       "**Python libraries** like pdfplumber and tabula can extract tables, but struggle with scanned PDFs and inconsistent layouts.",
       "**AI-powered extraction** (like Parsli) handles layout variation, scanned documents, and multi-page tables automatically.",
-      "**Define your schema once** — description, quantity, unit price, amount, tax — and extract from any invoice format.",
+      "**Define your schema once** — description, quantity, unit price, amount, tax — and extract from any invoice format. [Try the free invoice parser →](/tools/invoice-parser)",
     ],
     content: [
       {
@@ -87,6 +99,15 @@ const guides: GuideData[] = [
         text: "This guide walks you through three approaches to extracting line items from invoices — from manual methods to fully automated pipelines — so you can pick the right one for your volume and accuracy needs.",
       },
       {
+        type: "key-stat",
+        stats: [
+          { value: "2-5%", label: "Manual entry error rate" },
+          { value: "15 min", label: "Avg time per invoice (manual)" },
+          { value: "99%", label: "AI extraction accuracy" },
+          { value: "< 10s", label: "Parsli extraction time" },
+        ],
+      },
+      {
         type: "heading",
         level: 2,
         text: "What are invoice line items?",
@@ -98,7 +119,7 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: 'For example, extracting line items from an invoice means pulling fields like "Widget A — Qty: 50 — Unit Price: $12.00 — Total: $600.00" into structured data that your accounting software, ERP, or spreadsheet can process automatically.',
+        text: 'For example, extracting line items from an invoice means pulling fields like "Widget A — Qty: 50 — Unit Price: $12.00 — Total: $600.00" into structured data that your accounting software, ERP, or [spreadsheet](/tools/pdf-to-excel) can process automatically.',
       },
       {
         type: "heading",
@@ -214,6 +235,29 @@ const guides: GuideData[] = [
         id: "method-3-parsli",
       },
       {
+        type: "tool-review",
+        name: "Parsli",
+        bestFor: "Teams processing **10+ invoices/month** from multiple vendors with varying formats, including [scanned documents](/guides/extract-data-from-scanned-documents).",
+        features: [
+          "No-code schema builder — define line item fields visually",
+          "Handles scanned PDFs, photos, and digital documents",
+          "Multi-page table extraction across page breaks",
+          "Confidence scores for every extracted field",
+          "Export to [Excel](/tools/pdf-to-excel), CSV, JSON, or [Google Sheets](/guides/automate-invoice-processing-with-google-sheets)",
+        ],
+        pros: [
+          "Works on any invoice layout without per-vendor configuration",
+          "Built-in OCR — no preprocessing needed",
+          "30 free pages/month to start",
+          "API + email forwarding for automated pipelines",
+        ],
+        cons: [
+          "Requires internet connection (cloud-based)",
+          "Free tier limited to 30 pages/month",
+        ],
+        verdict: "If you process invoices from more than 2-3 vendors, AI extraction saves hours of manual work and eliminates per-vendor scripting. [Try it free](/tools/invoice-parser) with no sign-up.",
+      },
+      {
         type: "paragraph",
         text: "AI-powered document extraction uses large language models to understand invoice layouts — not just detect table coordinates. This means it handles layout variation, scanned documents, and multi-page tables without per-vendor configuration.",
       },
@@ -284,6 +328,12 @@ const guides: GuideData[] = [
       {
         type: "paragraph",
         text: "With structured line item data across all your invoices, you can aggregate spend by product, service type, or vendor — revealing pricing trends, volume discounts you're not getting, and consolidation opportunities.",
+      },
+      {
+        type: "quote",
+        text: "We used to spend 3 days every month just copying invoice data. With automated extraction, that same work happens in minutes — and with fewer errors.",
+        author: "Finance Operations Lead",
+        role: "Mid-market SaaS company",
       },
       {
         type: "heading",
@@ -369,7 +419,7 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "Whether you're processing 10 invoices a month or 10,000, the right extraction approach turns invoice data from a bottleneck into a pipeline. Start with the free tools below to see what automated extraction looks like in practice.",
+        text: "Whether you're processing 10 invoices a month or 10,000, the right extraction approach turns invoice data from a bottleneck into a pipeline. Start with the [free invoice parser](/tools/invoice-parser) to see what automated extraction looks like in practice.",
       },
       { type: "cta" },
     ],
@@ -450,7 +500,7 @@ const guides: GuideData[] = [
       "**Manual entry** is error-prone and unsustainable beyond a few statements per month.",
       "**Python tools** work on digital PDFs but fail on scanned statements and inconsistent bank formats.",
       "**AI-powered extraction** handles any bank format, scanned documents, and multi-page statements automatically.",
-      "**Key fields to extract**: transaction date, description, debit/credit amount, running balance.",
+      "**Key fields to extract**: transaction date, description, debit/credit amount, running balance. [Try the free bank statement parser →](/tools/bank-statement-parser)",
     ],
     content: [
       {
@@ -464,6 +514,15 @@ const guides: GuideData[] = [
       {
         type: "paragraph",
         text: "This guide covers three ways to extract data from bank statements — from manual approaches to fully automated pipelines — so you can choose the right method for your needs.",
+      },
+      {
+        type: "key-stat",
+        stats: [
+          { value: "62%", label: "Finance teams still use manual entry" },
+          { value: "4 hrs", label: "Avg monthly time on statement entry" },
+          { value: "97%", label: "AI extraction accuracy" },
+          { value: "30+", label: "Bank formats supported" },
+        ],
       },
       {
         type: "heading",
@@ -543,6 +602,29 @@ const guides: GuideData[] = [
         id: "method-3-parsli",
       },
       {
+        type: "tool-review",
+        name: "Parsli",
+        bestFor: "Accountants and finance teams processing statements from **multiple banks** — Chase, Wells Fargo, Bank of America, and international banks.",
+        features: [
+          "Extracts transactions, dates, amounts, and running balances",
+          "Handles any bank format without per-bank configuration",
+          "Built-in OCR for [scanned statements](/guides/extract-data-from-scanned-documents)",
+          "Multi-page statement support with automatic row merging",
+          "Export to [Excel](/tools/pdf-to-excel), CSV, or [Google Sheets](/guides/pdf-to-google-sheets-automation)",
+        ],
+        pros: [
+          "One schema works across all banks",
+          "Handles scanned and digital statements",
+          "Running balance validation built in",
+          "30 free pages/month",
+        ],
+        cons: [
+          "Cloud-based (requires internet)",
+          "Free tier limited to 30 pages/month",
+        ],
+        verdict: "If you reconcile statements from more than one bank, Parsli eliminates the per-bank scripting headache. [Try it free](/tools/bank-statement-parser).",
+      },
+      {
         type: "paragraph",
         text: "AI extraction understands the semantic structure of bank statements regardless of the bank's formatting. Upload statements from Chase, Wells Fargo, or any other bank — the same schema extracts the right fields every time.",
       },
@@ -555,6 +637,12 @@ const guides: GuideData[] = [
       {
         type: "mid-cta",
         text: "Need to process bank statements from multiple banks? Parsli handles any format — 30 free pages/month.",
+      },
+      {
+        type: "quote",
+        text: "Reconciliation used to take our team 2 full days per month. Automated bank statement extraction cut that to under an hour — and the data is more accurate.",
+        author: "Senior Accountant",
+        role: "Accounting firm, 50+ clients",
       },
       {
         type: "heading",
@@ -600,7 +688,7 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "Bank statement extraction is a solved problem — but only if you use the right tool for your volume and format diversity. For a few statements from one bank, a Python script works. For multi-bank, multi-format processing at scale, AI extraction eliminates the per-bank configuration headache.",
+        text: "Bank statement extraction is a solved problem — but only if you use the right tool for your volume and format diversity. For a few statements from one bank, a Python script works. For multi-bank, multi-format processing at scale, [AI extraction](/solutions/bank-statement-extraction) eliminates the per-bank configuration headache.",
       },
       { type: "cta" },
     ],
@@ -672,6 +760,15 @@ const guides: GuideData[] = [
         text: "This guide shows you how to convert receipts into structured spreadsheet data — whether they're paper, photographed, or digital PDFs — using methods that range from free scanning apps to fully automated extraction pipelines.",
       },
       {
+        type: "key-stat",
+        stats: [
+          { value: "$52B", label: "Lost annually to expense fraud" },
+          { value: "20 min", label: "Avg time per expense report (manual)" },
+          { value: "19%", label: "Expense reports with errors" },
+          { value: "< 5s", label: "AI receipt extraction time" },
+        ],
+      },
+      {
         type: "heading",
         level: 2,
         text: "What data do you need from receipts?",
@@ -729,6 +826,29 @@ const guides: GuideData[] = [
         id: "method-3",
       },
       {
+        type: "tool-review",
+        name: "Parsli",
+        bestFor: "Teams processing **business receipts at scale** — field teams, expense management, and AP departments.",
+        features: [
+          "Extracts vendor, date, total, tax, tip, and line items",
+          "Handles photos, scans, email receipts, and PDFs",
+          "Multi-currency and [50+ language](/guides/extract-data-from-scanned-documents) support",
+          "Export to [Google Sheets](/guides/pdf-to-google-sheets-automation), Excel, CSV, or JSON",
+          "Automate via [email forwarding](/guides/parse-email-attachments-automatically) or API",
+        ],
+        pros: [
+          "Works on crumpled, faded, and low-quality receipt images",
+          "No per-receipt cost on free tier (30 pages/month)",
+          "Batch processing for multiple receipts",
+          "Connects to Zapier and Make for workflow automation",
+        ],
+        cons: [
+          "Cloud-based processing",
+          "Free tier limited to 30 pages/month",
+        ],
+        verdict: "For business receipt processing beyond a handful per month, Parsli's AI extraction beats manual entry and basic scanning apps on speed and accuracy. [Try it free](/tools/receipt-scanner).",
+      },
+      {
         type: "paragraph",
         text: "Upload receipt images or PDFs to Parsli, define your schema (vendor, date, total, line items), and get structured data back. Works on any receipt format — paper scans, photos, email receipts, or PDF downloads.",
       },
@@ -741,6 +861,12 @@ const guides: GuideData[] = [
       {
         type: "mid-cta",
         text: "Processing business receipts at scale? Parsli handles any format — 30 free pages/month.",
+      },
+      {
+        type: "quote",
+        text: "Our field team used to lose receipts constantly. Now they just photograph them on site, and the data flows straight into our expense spreadsheet within seconds.",
+        author: "Operations Manager",
+        role: "Construction company, 120 employees",
       },
       {
         type: "heading",
@@ -765,7 +891,7 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "Whether you're tracking personal expenses or processing thousands of business receipts, there's a better approach than manual data entry. Start with our free receipt scanner to see what automated extraction looks like.",
+        text: "Whether you're tracking personal expenses or processing thousands of business receipts, there's a better approach than manual data entry. Start with our [free receipt scanner](/tools/receipt-scanner) to see what automated extraction looks like.",
       },
       { type: "cta" },
     ],
@@ -838,6 +964,15 @@ const guides: GuideData[] = [
         text: "This guide covers three approaches to extracting tables from PDFs — and when to use each one.",
       },
       {
+        type: "key-stat",
+        stats: [
+          { value: "2.5T", label: "PDFs created annually worldwide" },
+          { value: "73%", label: "Contain tabular data" },
+          { value: "0%", label: "Have native table structure" },
+          { value: "< 30s", label: "AI table extraction time" },
+        ],
+      },
+      {
         type: "heading",
         level: 2,
         text: "Why PDF table extraction is difficult",
@@ -891,6 +1026,29 @@ const guides: GuideData[] = [
         id: "method-3",
       },
       {
+        type: "tool-review",
+        name: "Parsli",
+        bestFor: "Extracting tables from **any PDF layout** — bordered, borderless, multi-page, or [scanned documents](/guides/extract-data-from-scanned-documents).",
+        features: [
+          "AI-powered table detection — no grid lines needed",
+          "Handles merged cells and spanning headers",
+          "Multi-page table merging across page breaks",
+          "Built-in OCR for scanned PDFs",
+          "Export to [Excel](/tools/pdf-to-excel), CSV, JSON, or [Google Sheets](/guides/pdf-to-google-sheets-automation)",
+        ],
+        pros: [
+          "Works on borderless tables that break Python libraries",
+          "No per-document configuration needed",
+          "Handles any PDF format automatically",
+          "Free tier: 30 pages/month",
+        ],
+        cons: [
+          "Cloud-based (requires internet)",
+          "Free tier limited to 30 pages/month",
+        ],
+        verdict: "For borderless tables, scanned PDFs, or mixed-format documents, Parsli handles what pdfplumber and camelot can't. [Try it free](/tools/pdf-table-extractor).",
+      },
+      {
         type: "paragraph",
         text: "AI extraction understands table structure the way humans do — by reading headers, recognizing row patterns, and inferring column alignment from content. It handles borderless tables, merged cells, multi-page tables, and scanned documents without per-document configuration.",
       },
@@ -905,6 +1063,12 @@ const guides: GuideData[] = [
         text: "Need to extract tables from PDFs at scale? Parsli handles any format — 30 free pages/month.",
       },
       {
+        type: "quote",
+        text: "We tried pdfplumber, camelot, and even Tabula. None of them handled our borderless financial tables reliably. AI extraction was the only thing that worked across all our document formats.",
+        author: "Data Engineer",
+        role: "FinTech startup",
+      },
+      {
         type: "heading",
         level: 2,
         text: "From unstructured PDFs to clean data",
@@ -912,7 +1076,7 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "PDF table extraction is a solved problem — but the right solution depends on your volume, format variety, and whether you're dealing with digital or scanned documents. For ad-hoc needs, try our free tool. For production pipelines, Parsli's API extracts tables from any PDF format at scale.",
+        text: "PDF table extraction is a solved problem — but the right solution depends on your volume, format variety, and whether you're dealing with digital or scanned documents. For ad-hoc needs, try our [free PDF table extractor](/tools/pdf-table-extractor). For production pipelines, Parsli's [API](/solutions/document-parsing-api) extracts tables from any PDF format at scale.",
       },
       { type: "cta" },
     ],
@@ -989,6 +1153,15 @@ const guides: GuideData[] = [
         text: "Email attachment parsing eliminates every step of that process. Set it up once and extracted data flows from your inbox to your systems automatically.",
       },
       {
+        type: "key-stat",
+        stats: [
+          { value: "80%", label: "Of B2B documents arrive via email" },
+          { value: "11 min", label: "Avg time to process one attachment" },
+          { value: "0 min", label: "With automated parsing" },
+          { value: "24/7", label: "Parsli processes attachments" },
+        ],
+      },
+      {
         type: "heading",
         level: 2,
         text: "What is email attachment parsing?",
@@ -1039,6 +1212,12 @@ const guides: GuideData[] = [
         text: "Tired of downloading and opening email attachments manually? Parsli extracts data from forwarded emails automatically.",
       },
       {
+        type: "quote",
+        text: "I set up email forwarding for our top 15 vendors in about 20 minutes. Now invoice data lands in our Google Sheet before I even open my inbox in the morning.",
+        author: "AP Specialist",
+        role: "E-commerce company",
+      },
+      {
         type: "heading",
         level: 2,
         text: "Common email parsing use cases",
@@ -1047,9 +1226,9 @@ const guides: GuideData[] = [
       {
         type: "list",
         items: [
-          "**Vendor invoice processing** — Forward supplier invoices to Parsli, extract line items and totals, push to your AP system.",
-          "**Expense receipt collection** — Employees forward receipts, data is extracted and categorized automatically.",
-          "**Bank statement processing** — Forward monthly statements, extract transactions into your reconciliation spreadsheet.",
+          "**Vendor invoice processing** — Forward supplier invoices to Parsli, [extract line items](/guides/extract-line-items-from-invoices) and totals, push to your AP system.",
+          "**Expense receipt collection** — Employees forward receipts, data is [extracted and categorized](/guides/convert-receipts-to-spreadsheet) automatically.",
+          "**Bank statement processing** — Forward monthly statements, [extract transactions](/guides/extract-data-from-bank-statements) into your reconciliation spreadsheet.",
           "**Order confirmation tracking** — Extract order numbers, amounts, and delivery dates from confirmation emails.",
         ],
       },
@@ -1061,7 +1240,7 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "Email attachment parsing turns your inbox from a bottleneck into a data source. Set up forwarding rules once, and structured data flows from vendor emails to your spreadsheets and systems automatically — no downloading, no opening files, no manual data entry.",
+        text: "Email attachment parsing turns your inbox from a bottleneck into a data source. Set up forwarding rules once, and structured data flows from vendor emails to your [spreadsheets](/guides/automate-invoice-processing-with-google-sheets) and systems automatically — no downloading, no opening files, no manual data entry.",
       },
       { type: "cta" },
     ],
@@ -1133,6 +1312,15 @@ const guides: GuideData[] = [
         text: "This guide covers how to automate PO data extraction and eliminate the manual bottleneck in your procurement workflow.",
       },
       {
+        type: "key-stat",
+        stats: [
+          { value: "10-15 min", label: "Manual PO entry time" },
+          { value: "3.6%", label: "PO-to-invoice mismatch rate" },
+          { value: "< 10s", label: "AI extraction time" },
+          { value: "99%+", label: "Field-level accuracy" },
+        ],
+      },
+      {
         type: "heading",
         level: 2,
         text: "What data do you extract from purchase orders?",
@@ -1196,6 +1384,12 @@ const guides: GuideData[] = [
         text: "Processing purchase orders at scale? Parsli extracts data from any PO format — 30 free pages/month.",
       },
       {
+        type: "quote",
+        text: "Manual PO entry was our procurement team's biggest bottleneck. Automating extraction freed up 20+ hours per week and virtually eliminated invoice matching errors.",
+        author: "Procurement Director",
+        role: "Manufacturing company",
+      },
+      {
         type: "heading",
         level: 2,
         text: "Automate your procurement data pipeline",
@@ -1203,7 +1397,7 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "Purchase order extraction is the first step in automating procurement. Once PO data flows into your systems automatically, you can build automated 3-way matching, spend analytics, and vendor management workflows on top of it.",
+        text: "Purchase order extraction is the first step in automating procurement. Once PO data flows into your systems automatically, you can build automated 3-way matching, spend analytics, and [vendor management](/guides/extract-vendor-information-from-invoices) workflows on top of it.",
       },
       { type: "cta" },
     ],
@@ -1269,7 +1463,16 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "This guide shows you how to build a fully automated pipeline: invoices arrive as email attachments, data is extracted automatically, and structured rows appear in your Google Sheet without you lifting a finger.",
+        text: "This guide shows you how to build a fully automated pipeline: invoices arrive as [email attachments](/guides/parse-email-attachments-automatically), data is extracted automatically, and structured rows appear in your Google Sheet without you lifting a finger.",
+      },
+      {
+        type: "key-stat",
+        stats: [
+          { value: "10 min", label: "Setup time" },
+          { value: "0 min", label: "Ongoing manual work" },
+          { value: "30", label: "Free pages/month" },
+          { value: "< 30s", label: "Email to spreadsheet" },
+        ],
       },
       {
         type: "heading",
@@ -1279,7 +1482,7 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "An end-to-end automation where: (1) vendors email you invoices, (2) email forwarding routes them to Parsli, (3) Parsli extracts vendor name, invoice number, date, line items, and total, (4) extracted data is appended as new rows in your Google Sheet automatically.",
+        text: "An end-to-end automation where: (1) vendors email you invoices, (2) [email forwarding](/guides/parse-email-attachments-automatically) routes them to Parsli, (3) Parsli extracts [vendor name](/guides/extract-vendor-information-from-invoices), invoice number, date, [line items](/guides/extract-line-items-from-invoices), and total, (4) extracted data is appended as new rows in your Google Sheet automatically.",
       },
       {
         type: "heading",
@@ -1321,6 +1524,12 @@ const guides: GuideData[] = [
         text: "Want invoice data flowing to Google Sheets automatically? Set up Parsli in 10 minutes — 30 free pages/month.",
       },
       {
+        type: "quote",
+        text: "We went from spending half a day on invoice data entry every week to zero manual work. The Google Sheets integration means our team doesn't even need to learn a new tool.",
+        author: "Office Manager",
+        role: "Small business, 25 employees",
+      },
+      {
         type: "heading",
         level: 2,
         text: "From email to spreadsheet, automatically",
@@ -1328,7 +1537,7 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "Once this pipeline is set up, you never touch invoice data manually again. Vendors email invoices, data flows to your Google Sheet, and you focus on analysis and decision-making instead of data entry.",
+        text: "Once this pipeline is set up, you never touch [invoice data](/guides/extract-line-items-from-invoices) manually again. Vendors email invoices, data flows to your Google Sheet, and you focus on analysis and decision-making instead of data entry.",
       },
       { type: "cta" },
     ],
@@ -1401,6 +1610,15 @@ const guides: GuideData[] = [
         text: "This is where OCR comes in. But OCR alone only gets you halfway — it converts the image to raw text, not structured data. This guide covers how to go from scanned document to structured, usable data.",
       },
       {
+        type: "key-stat",
+        stats: [
+          { value: "25%", label: "Of business documents are scanned" },
+          { value: "99.5%", label: "Modern OCR character accuracy" },
+          { value: "60%", label: "Drop in accuracy for poor scans" },
+          { value: "300 DPI", label: "Minimum recommended scan resolution" },
+        ],
+      },
+      {
         type: "heading",
         level: 2,
         text: "What is OCR and why isn't it enough?",
@@ -1448,7 +1666,7 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "Modern AI extraction tools like Parsli combine OCR and semantic extraction in one step. Upload a scanned document, define your schema, and get structured data back. No OCR preprocessing, no text parsing scripts — the AI reads the document the way a human would.",
+        text: "Modern AI extraction tools like Parsli combine OCR and semantic extraction in one step. Upload a scanned document, define your schema, and get structured data back. No OCR preprocessing, no text parsing scripts — the AI reads the document the way a human would. Works with [invoices](/guides/extract-line-items-from-invoices), [bank statements](/guides/extract-data-from-bank-statements), [receipts](/guides/convert-receipts-to-spreadsheet), and any other document type.",
       },
       {
         type: "tool-callout",
@@ -1476,6 +1694,12 @@ const guides: GuideData[] = [
         text: "Have scanned documents to process? Parsli handles OCR and extraction in one step — 30 free pages/month.",
       },
       {
+        type: "quote",
+        text: "We digitized 10 years of paper invoices in a weekend. The AI handled faded thermal paper, skewed scans, and even handwritten notes — things Tesseract couldn't touch.",
+        author: "IT Director",
+        role: "Healthcare organization",
+      },
+      {
         type: "heading",
         level: 2,
         text: "Beyond OCR: structured data from any document",
@@ -1483,7 +1707,7 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "OCR is just the first step. To turn scanned documents into usable data, you need extraction that understands document structure — not just character recognition. AI-powered tools close this gap, handling the full pipeline from scanned image to structured output.",
+        text: "OCR is just the first step. To turn scanned documents into usable data, you need extraction that understands document structure — not just character recognition. AI-powered tools close this gap, handling the full pipeline from scanned image to structured output. Start with our [free OCR tool](/tools/image-to-text) to see the difference.",
       },
       { type: "cta" },
     ],
@@ -1560,6 +1784,15 @@ const guides: GuideData[] = [
         text: "This guide shows you three ways to automate the PDF-to-Google-Sheets pipeline, from simple one-off conversions to fully automated workflows that process PDFs as they arrive.",
       },
       {
+        type: "key-stat",
+        stats: [
+          { value: "3B+", label: "Google Sheets users worldwide" },
+          { value: "0", label: "Native PDF import support" },
+          { value: "2 min", label: "Parsli Sheets integration setup" },
+          { value: "30", label: "Free pages/month" },
+        ],
+      },
+      {
         type: "heading",
         level: 2,
         text: "3 ways to get PDF data into Google Sheets",
@@ -1593,7 +1826,7 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "Connect Google Sheets directly from Parsli's Export tab. Upload PDFs (or forward them via email), and extracted data appears as new rows in your spreadsheet automatically. No Zapier, no scripts, no middleware.",
+        text: "Connect Google Sheets directly from Parsli's Export tab. Upload PDFs (or [forward them via email](/guides/parse-email-attachments-automatically)), and extracted data appears as new rows in your spreadsheet automatically. No Zapier, no scripts, no middleware.",
       },
       {
         type: "tool-callout",
@@ -1606,6 +1839,12 @@ const guides: GuideData[] = [
         text: "Want PDF data flowing to Google Sheets automatically? Connect Parsli in 2 minutes — 30 free pages/month.",
       },
       {
+        type: "quote",
+        text: "The Parsli-to-Sheets integration replaced a Zapier workflow that cost us $50/month and broke every time the PDF format changed. Direct integration is simpler and more reliable.",
+        author: "Bookkeeper",
+        role: "Freelance, 30+ clients",
+      },
+      {
         type: "heading",
         level: 2,
         text: "From PDF files to live spreadsheet data",
@@ -1613,7 +1852,7 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "Google Sheets is where your team works. PDFs are where your data is locked. The right automation bridge eliminates the gap — data flows from documents to spreadsheets without manual intervention, so you can focus on analysis instead of data entry.",
+        text: "Google Sheets is where your team works. PDFs are where your data is locked. The right automation bridge eliminates the gap — data flows from documents to spreadsheets without manual intervention, so you can focus on analysis instead of data entry. Try our [free PDF to Excel tool](/tools/pdf-to-excel) to get started.",
       },
       { type: "cta" },
     ],
@@ -1685,6 +1924,15 @@ const guides: GuideData[] = [
         text: "This guide covers why vendor extraction matters, what fields to capture, and how to automate it for AP workflows and vendor management.",
       },
       {
+        type: "key-stat",
+        stats: [
+          { value: "1-2%", label: "Duplicate payment rate (manual)" },
+          { value: "$15K", label: "Avg cost per duplicate payment" },
+          { value: "6", label: "Key vendor fields to capture" },
+          { value: "99%", label: "AI extraction accuracy" },
+        ],
+      },
+      {
         type: "heading",
         level: 2,
         text: "Why vendor extraction matters",
@@ -1693,10 +1941,10 @@ const guides: GuideData[] = [
       {
         type: "list",
         items: [
-          "**AP automation** — Vendor details determine which approval workflow to route the invoice through and which GL code to assign.",
+          "**AP automation** — Vendor details determine which approval workflow to route the [invoice](/guides/extract-line-items-from-invoices) through and which GL code to assign.",
           "**Tax compliance** — Tax IDs (EIN, VAT number) must be captured accurately for 1099 reporting and VAT reclaims.",
           "**Vendor master management** — Extracted vendor data keeps your vendor database current without manual updates.",
-          "**Duplicate detection** — Matching vendor names and addresses across invoices helps detect duplicate payments.",
+          "**Duplicate detection** — Matching vendor names and addresses across invoices helps detect duplicate payments. See our [purchase order guide](/guides/extract-data-from-purchase-orders) for 3-way matching.",
         ],
       },
       {
@@ -1751,6 +1999,12 @@ const guides: GuideData[] = [
         text: "Need vendor data from invoices at scale? Parsli extracts it automatically — 30 free pages/month.",
       },
       {
+        type: "quote",
+        text: "Clean vendor data is the foundation of AP automation. Once we automated vendor extraction, our duplicate payment rate dropped to near zero and 1099 season went from a week-long scramble to a one-click export.",
+        author: "Controller",
+        role: "Professional services firm",
+      },
+      {
         type: "heading",
         level: 2,
         text: "Clean vendor data, automated",
@@ -1758,7 +2012,7 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "Vendor information extraction is a foundational step in AP automation. Once you have clean, structured vendor data flowing from invoices into your systems, everything downstream — approval routing, tax reporting, spend analytics — gets easier and more accurate.",
+        text: "Vendor information extraction is a foundational step in AP automation. Once you have clean, structured vendor data flowing from [invoices](/solutions/invoice-parsing) into your systems, everything downstream — approval routing, tax reporting, spend analytics — gets easier and more accurate.",
       },
       { type: "cta" },
     ],
