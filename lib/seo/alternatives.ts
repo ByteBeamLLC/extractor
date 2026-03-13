@@ -72,7 +72,7 @@ const universalFaqs: AlternativeData["faqs"] = [
   {
     question: "Do I need technical skills to use Parsli?",
     answer:
-      "No. The visual schema builder uses plain English descriptions. Anyone on your team — operations, finance, HR — can set up a parser and start extracting data in minutes.",
+      "No. The visual schema builder uses plain English descriptions. Anyone on your team — operations, finance, HR — can set up a parser and [start extracting data from PDFs without code](/guides/extract-data-from-pdfs-without-code) in minutes.",
   },
   {
     question: "What kind of support does Parsli offer?",
@@ -92,7 +92,7 @@ const universalFaqs: AlternativeData["faqs"] = [
   {
     question: "Can Parsli handle scanned documents?",
     answer:
-      "Yes. Built-in OCR powered by Google Gemini 2.5 Pro reads scanned and image-based PDFs. No separate OCR tool required.",
+      "Yes. Built-in OCR powered by Google Gemini 2.5 Pro reads scanned and image-based PDFs, including [handwritten documents](/guides/extract-data-from-handwritten-documents). No separate OCR tool required.",
   },
   {
     question: "Is there a free plan?",
@@ -299,13 +299,13 @@ export const alternatives: AlternativeData[] = [
       {
         question: "When should I choose Parsli over Parseur?",
         answer:
-          "Choose Parsli if you want more pages per tier at a lower price, need instant AI extraction without templates, process diverse document types beyond email, want full API access on the free plan, or prefer transparent self-service pricing.",
+          "Choose Parsli if you want more pages per tier at a lower price, need instant AI extraction without templates, process diverse document types beyond email, want full API access on the free plan, or prefer transparent self-service pricing. You can also [automate invoice processing for small business](/guides/automate-invoice-processing-for-small-business) teams with Parsli's visual schema builder.",
       },
       ...universalFaqs,
       {
         question: "How do I migrate from Parseur to Parsli?",
         answer:
-          "Sign up for free, recreate your extraction schema in the visual builder (5-10 minutes per parser), and start sending documents. No data migration needed — just redirect your document sources to Parsli.",
+          "Sign up for free, recreate your extraction schema in the visual builder (5-10 minutes per parser), and start sending documents. No data migration needed — just redirect your document sources to Parsli. You can even [parse email attachments with Zapier](/guides/parse-email-attachments-with-zapier) to automate the workflow.",
       },
     ],
     chooseParsli: universalChooseParsli,
@@ -341,7 +341,7 @@ export const alternatives: AlternativeData[] = [
       {
         title: "No-Code Schema Builder",
         description:
-          "Parsli's visual schema builder lets anyone define extraction fields with names, types, and plain English instructions. No templates to configure, no zones to draw, no rules to write. It's the fastest way to go from 'I need this data' to 'I have this data.'",
+          "Parsli's visual schema builder lets anyone define extraction fields with names, types, and plain English instructions. No templates to configure, no zones to draw, no rules to write. It's the fastest way to go from 'I need this data' to 'I have this data.' Learn how to [extract data from PDFs without code](/guides/extract-data-from-pdfs-without-code).",
       },
     ],
     relatedAlternatives: ["docparser", "nanonets", "parsio", "docsumo"],
@@ -514,7 +514,7 @@ export const alternatives: AlternativeData[] = [
       {
         question: "When should I choose Parsli over Docparser?",
         answer:
-          "Choose Parsli if you want AI extraction that adapts to any layout without templates, need to handle diverse document formats without per-format setup, want a perpetual free tier, or need full API access on every plan.",
+          "Choose Parsli if you want AI extraction that adapts to any layout without templates, need to handle diverse document formats without per-format setup, want a perpetual free tier, or need full API access on every plan. Parsli makes it easy to [batch process documents automatically](/guides/batch-process-documents-automatically) without creating templates for each layout.",
       },
       ...universalFaqs,
       {
@@ -546,7 +546,7 @@ export const alternatives: AlternativeData[] = [
       {
         title: "Zero Setup Per Document Type",
         description:
-          "With Parsli, you define your schema once — field names, types, and extraction instructions. The same schema works on any variation of that document type. A new vendor sends a different invoice layout? The AI handles it. No template updates, no zone redrawing, no maintenance.",
+          "With Parsli, you define your schema once — field names, types, and extraction instructions. The same schema works on any variation of that document type. A new vendor sends a different invoice layout? The AI handles it. No template updates, no zone redrawing, no maintenance. See how to [automate invoice processing for small business](/guides/automate-invoice-processing-for-small-business).",
       },
       {
         title: "Modern AI Technology",
@@ -556,7 +556,7 @@ export const alternatives: AlternativeData[] = [
       {
         title: "Perpetual Free Tier",
         description:
-          "Parsli's free plan includes 30 pages/month with no time limit, full API access, and all integrations. Docparser offers only a 14-day trial. This means you can fully evaluate Parsli before committing — and small-volume users can use it indefinitely.",
+          "Parsli's free plan includes 30 pages/month with no time limit, full API access, and all integrations. Docparser offers only a 14-day trial. This means you can fully evaluate Parsli before committing — and small-volume users can use it indefinitely. Try [PDF to JSON extraction](/guides/pdf-to-json-extraction) on the free plan.",
       },
     ],
     relatedAlternatives: ["parseur", "nanonets", "parsio", "mailparser"],
@@ -729,7 +729,7 @@ export const alternatives: AlternativeData[] = [
       {
         question: "When should I choose Parsli over Nanonets?",
         answer:
-          "Choose Parsli if you want the same AI extraction quality at a fraction of the cost, need instant setup without training data, want transparent self-service pricing, or process diverse document types beyond invoices.",
+          "Choose Parsli if you want the same AI extraction quality at a fraction of the cost, need instant setup without training data, want transparent self-service pricing, or process diverse document types beyond invoices. You can even [extract invoice data to QuickBooks](/guides/extract-invoice-data-to-quickbooks) using Parsli's integrations.",
       },
       ...universalFaqs,
       {
@@ -761,7 +761,7 @@ export const alternatives: AlternativeData[] = [
       {
         title: "Zero Training Required",
         description:
-          "Nanonets requires labeled training documents for custom document types — you annotate examples, train the model, and wait for results. Parsli's AI is pre-trained and works immediately. Define your schema and start extracting in minutes, not days.",
+          "Nanonets requires labeled training documents for custom document types — you annotate examples, train the model, and wait for results. Parsli's AI is pre-trained and works immediately. Define your schema and start extracting in minutes, not days. Learn how to [batch process documents automatically](/guides/batch-process-documents-automatically).",
       },
       {
         title: "Self-Service Everything",
@@ -771,7 +771,7 @@ export const alternatives: AlternativeData[] = [
       {
         title: "Flexible for Any Document Type",
         description:
-          "Nanonets excels at invoice processing with pre-trained models. But what about contracts, forms, shipping documents, or custom document types? Parsli's AI handles any document type with the same schema-based approach — no separate models to train.",
+          "Nanonets excels at invoice processing with pre-trained models. But what about [contracts](/guides/extract-data-from-contracts), forms, [shipping documents](/guides/extract-data-from-shipping-documents), or custom document types? Parsli's AI handles any document type with the same schema-based approach — no separate models to train.",
       },
     ],
     relatedAlternatives: ["parseur", "docparser", "docsumo", "rossum"],
@@ -959,17 +959,17 @@ export const alternatives: AlternativeData[] = [
       {
         title: "No-Code for Everyone",
         description:
-          "Non-technical users — operations managers, finance teams, HR staff — can create parsers, define schemas, upload documents, and review results without writing a single line of code. With Upstage, every interaction requires API calls and developer involvement.",
+          "Non-technical users — operations managers, finance teams, HR staff — can create parsers, define schemas, upload documents, and review results without writing a single line of code. With Upstage, every interaction requires API calls and developer involvement. See how to [extract data from Excel to JSON](/guides/extract-data-from-excel-to-json) or any other format.",
       },
       {
         title: "Built-In Integrations",
         description:
-          "Google Sheets, Zapier, Make, Power Automate, Gmail automation, and webhooks are all built into Parsli. With Upstage, you'd need to build every integration yourself — connecting the API to your spreadsheets, automation tools, and email workflows manually.",
+          "Google Sheets, Zapier, Make, Power Automate, Gmail automation, and webhooks are all built into Parsli. With Upstage, you'd need to build every integration yourself — connecting the API to your spreadsheets, automation tools, and email workflows manually. Learn how to [parse email attachments with Zapier](/guides/parse-email-attachments-with-zapier).",
       },
       {
         title: "Simpler, Predictable Pricing",
         description:
-          "Parsli charges per page with all features included. Upstage uses API credit-based pricing where different operations may consume different amounts. Parsli's model is simpler to budget — you know exactly what 1,000 pages will cost before you start.",
+          "Parsli charges per page with all features included. Upstage uses API credit-based pricing where different operations may consume different amounts. Parsli's model is simpler to budget — you know exactly what 1,000 pages will cost before you start. See our guide on [PDF to JSON extraction](/guides/pdf-to-json-extraction).",
       },
     ],
     relatedAlternatives: ["base64ai", "textract", "google-document-ai"],
@@ -1148,7 +1148,7 @@ export const alternatives: AlternativeData[] = [
       {
         question: "When should I choose Parsli over Parsio?",
         answer:
-          "Choose Parsli if you want more pages per tier, need a flexible visual schema builder for diverse document types, want full API access on the free plan, or process documents beyond email (PDFs, Word, Excel, images).",
+          "Choose Parsli if you want more pages per tier, need a flexible visual schema builder for diverse document types, want full API access on the free plan, or process documents beyond email (PDFs, Word, Excel, images). You can also [automate receipt processing with Make](/guides/automate-receipt-processing-with-make) using Parsli.",
       },
       ...universalFaqs,
       {
@@ -1179,7 +1179,7 @@ export const alternatives: AlternativeData[] = [
       {
         title: "Gemini 2.5 Pro for Any Document",
         description:
-          "Parsli is powered by Google Gemini 2.5 Pro — a state-of-the-art multimodal AI that reads any document type: invoices, contracts, bank statements, medical records, or custom formats. No separate models, no training data — one AI engine for everything.",
+          "Parsli is powered by Google Gemini 2.5 Pro — a state-of-the-art multimodal AI that reads any document type: invoices, [contracts](/guides/extract-data-from-contracts), bank statements, [medical records](/guides/extract-data-from-medical-records), or custom formats. No separate models, no training data — one AI engine for everything.",
       },
       {
         title: "Full API on Every Plan",
@@ -1368,7 +1368,7 @@ export const alternatives: AlternativeData[] = [
       {
         question: "When should I choose Parsli over Docsumo?",
         answer:
-          "Choose Parsli if you want instant setup without model training, need transparent self-service pricing under $100/month, process diverse document types, want a no-code solution accessible to non-technical team members, or need a perpetual free tier to evaluate.",
+          "Choose Parsli if you want instant setup without model training, need transparent self-service pricing under $100/month, process diverse document types, want a no-code solution accessible to non-technical team members, or need a perpetual free tier to evaluate. Parsli is ideal to [automate invoice processing for small business](/guides/automate-invoice-processing-for-small-business) teams.",
       },
       ...universalFaqs,
       {
@@ -1406,12 +1406,12 @@ export const alternatives: AlternativeData[] = [
       {
         title: "Fully Self-Service",
         description:
-          "With Parsli, there's no onboarding call, no implementation phase, no dedicated account setup. Everything is in the app: sign up, build your schema with plain English field descriptions, upload a document, and see results. Non-technical team members can do this themselves.",
+          "With Parsli, there's no onboarding call, no implementation phase, no dedicated account setup. Everything is in the app: sign up, build your schema with plain English field descriptions, upload a document, and see results. Non-technical team members can do this themselves. Learn how to [extract data from medical records](/guides/extract-data-from-medical-records) or any other document type.",
       },
       {
         title: "Transparent, Predictable Pricing",
         description:
-          "Parsli's pricing is published on the website — page counts, feature tiers, and monthly costs. No 'contact us for pricing,' no per-document negotiation, no annual contracts required. You know exactly what you'll pay before you commit.",
+          "Parsli's pricing is published on the website — page counts, feature tiers, and monthly costs. No 'contact us for pricing,' no per-document negotiation, no annual contracts required. You know exactly what you'll pay before you commit. Get started with [PDF to JSON extraction](/guides/pdf-to-json-extraction).",
       },
     ],
     relatedAlternatives: ["nanonets", "rossum", "parsio", "parseur"],
@@ -1585,7 +1585,7 @@ export const alternatives: AlternativeData[] = [
       {
         question: "When should I choose Parsli over Rossum?",
         answer:
-          "Choose Parsli if you're a small to mid-size team, want self-service setup in minutes instead of an implementation project, need affordable per-page pricing, or want to extract data from diverse document types beyond AP invoices.",
+          "Choose Parsli if you're a small to mid-size team, want self-service setup in minutes instead of an implementation project, need affordable per-page pricing, or want to extract data from diverse document types beyond AP invoices. See how to [automate invoice processing for small business](/guides/automate-invoice-processing-for-small-business).",
       },
       ...universalFaqs,
       {
@@ -1623,7 +1623,7 @@ export const alternatives: AlternativeData[] = [
       {
         title: "Flexible Beyond AP",
         description:
-          "Rossum is purpose-built for accounts payable: invoices, purchase orders, and credit notes. Parsli's AI handles any document type with the same schema-based approach — contracts, forms, bank statements, emails, medical records. One platform for all your document data needs.",
+          "Rossum is purpose-built for accounts payable: invoices, purchase orders, and credit notes. Parsli's AI handles any document type with the same schema-based approach — [contracts](/guides/extract-data-from-contracts), forms, bank statements, emails, [medical records](/guides/extract-data-from-medical-records). One platform for all your document data needs.",
       },
       {
         title: "Transparent Self-Service Pricing",
@@ -1790,7 +1790,7 @@ export const alternatives: AlternativeData[] = [
       {
         question: "When should I choose Parsli over Klippa?",
         answer:
-          "Choose Parsli if you want transparent published pricing, need a perpetual free tier to evaluate, want self-service setup without a sales process, or need to process diverse document types beyond receipts and IDs.",
+          "Choose Parsli if you want transparent published pricing, need a perpetual free tier to evaluate, want self-service setup without a sales process, or need to process diverse document types beyond receipts and IDs. Learn how to [automate receipt processing with Make](/guides/automate-receipt-processing-with-make).",
       },
       ...universalFaqs,
       {
@@ -1827,7 +1827,7 @@ export const alternatives: AlternativeData[] = [
       {
         title: "Any Document Type, One Platform",
         description:
-          "Klippa specializes in receipts, invoices, and identity documents. Parsli's visual schema builder handles any document type — contracts, bank statements, forms, purchase orders, or custom formats — using the same AI engine and interface.",
+          "Klippa specializes in receipts, invoices, and identity documents. Parsli's visual schema builder handles any document type — [contracts](/guides/extract-data-from-contracts), bank statements, forms, purchase orders, or custom formats — using the same AI engine and interface.",
       },
       {
         title: "Minutes to First Extraction",
@@ -2014,12 +2014,12 @@ export const alternatives: AlternativeData[] = [
       {
         title: "Visual Schema Builder",
         description:
-          "Parsli's schema builder lets anyone define extraction fields with plain English descriptions — no API parameters to configure, no code to write. Define 'Invoice Total' as a currency field and the AI knows what to extract. Anyone on your team can build and maintain schemas.",
+          "Parsli's schema builder lets anyone define extraction fields with plain English descriptions — no API parameters to configure, no code to write. Define 'Invoice Total' as a currency field and the AI knows what to extract. Anyone on your team can build and maintain schemas. See how to [extract invoice data to QuickBooks](/guides/extract-invoice-data-to-quickbooks).",
       },
       {
         title: "Predictable Page-Based Pricing",
         description:
-          "Base64.ai uses credit-based pricing that varies by operation type — making monthly costs hard to predict. Parsli charges per page with all features included. You know exactly what 500 or 5,000 pages will cost before you commit.",
+          "Base64.ai uses credit-based pricing that varies by operation type — making monthly costs hard to predict. Parsli charges per page with all features included. You know exactly what 500 or 5,000 pages will cost before you commit. Ideal for teams that want to [batch process documents automatically](/guides/batch-process-documents-automatically).",
       },
     ],
     relatedAlternatives: ["upstage", "textract", "google-document-ai", "azure-document-intelligence"],
@@ -2176,7 +2176,7 @@ export const alternatives: AlternativeData[] = [
       {
         question: "Can Parsli replace Amazon Textract in my pipeline?",
         answer:
-          "For most use cases — invoices, forms, receipts, PDFs — yes. Parsli's API returns structured JSON matching your schema, which replaces both Textract's OCR step and your custom parsing code. For highly specialized or compliance-critical pipelines already on AWS, Textract may still be the right foundation.",
+          "For most use cases — invoices, forms, receipts, PDFs — yes. Parsli's API returns structured JSON matching your schema, which replaces both Textract's OCR step and your custom parsing code. You can [extract invoice data to QuickBooks](/guides/extract-invoice-data-to-quickbooks) or [batch process documents automatically](/guides/batch-process-documents-automatically). For highly specialized or compliance-critical pipelines already on AWS, Textract may still be the right foundation.",
       },
     ],
     chooseParsli: universalChooseParsli,
@@ -2198,7 +2198,7 @@ export const alternatives: AlternativeData[] = [
       {
         title: "Structured Output vs Raw OCR",
         description:
-          "Amazon Textract returns raw text blocks with bounding box coordinates — useful for building document AI systems, but not immediately usable business data. Parsli returns structured JSON matching your schema: 'invoice_total': 1250.00, 'vendor_name': 'Acme Corp'. No post-processing code needed.",
+          "Amazon Textract returns raw text blocks with bounding box coordinates — useful for building document AI systems, but not immediately usable business data. Parsli returns structured JSON matching your schema: 'invoice_total': 1250.00, 'vendor_name': 'Acme Corp'. No post-processing code needed. See our guide on [PDF to JSON extraction](/guides/pdf-to-json-extraction).",
       },
       {
         title: "Zero Engineering Setup",
@@ -2208,7 +2208,7 @@ export const alternatives: AlternativeData[] = [
       {
         title: "Accessible to Non-Technical Teams",
         description:
-          "Textract is a developer API. To use it, someone on your team needs to write and maintain code. Parsli's no-code interface lets operations managers, finance staff, and other non-technical users create parsers, run extractions, and export results without developer involvement.",
+          "Textract is a developer API. To use it, someone on your team needs to write and maintain code. Parsli's no-code interface lets operations managers, finance staff, and other non-technical users create parsers, run extractions, and export results without developer involvement. Learn how to [automate invoice processing for small business](/guides/automate-invoice-processing-for-small-business) teams.",
       },
       {
         title: "Predictable Flat-Rate Pricing",
@@ -2347,7 +2347,7 @@ export const alternatives: AlternativeData[] = [
       {
         question: "When should I choose Google Document AI over Parsli?",
         answer:
-          "Choose Google Document AI if you're already on GCP and need native integration with Vertex AI, BigQuery, or Cloud Storage, require specialized pre-trained processors (W2, 1099, identity documents), need enterprise-scale Google Cloud SLAs, or are building a document AI product on Google infrastructure.",
+          "Choose Google Document AI if you're already on GCP and need native integration with Vertex AI, BigQuery, or Cloud Storage, require specialized pre-trained processors (W2, 1099, identity documents), need enterprise-scale Google Cloud SLAs, or are building a document AI product on Google infrastructure. If you need to process tax forms with Parsli instead, see our guide on [extracting data from tax forms](/guides/extract-data-from-tax-forms).",
       },
       {
         question: "When should I choose Parsli over Google Document AI?",
@@ -2390,7 +2390,7 @@ export const alternatives: AlternativeData[] = [
       {
         title: "Schema-Matched Structured Output",
         description:
-          "Google Document AI returns a processor-specific entity list that varies by document type. Parsli returns structured JSON that exactly matches your schema — the fields you defined, with the names you chose, in the format you need. No transformation code required.",
+          "Google Document AI returns a processor-specific entity list that varies by document type. Parsli returns structured JSON that exactly matches your schema — the fields you defined, with the names you chose, in the format you need. No transformation code required. Learn more about [PDF to JSON extraction](/guides/pdf-to-json-extraction).",
       },
       {
         title: "Built-In Google Sheets Integration",
@@ -2529,7 +2529,7 @@ export const alternatives: AlternativeData[] = [
       {
         question: "When should I choose Azure Document Intelligence over Parsli?",
         answer:
-          "Choose Azure Document Intelligence if you're in the Microsoft/Azure ecosystem and need native Logic Apps or Power Automate integration, require specialized prebuilt models (W2, 1099, health insurance cards), need enterprise Azure SLAs, or are building a document processing pipeline on Azure infrastructure.",
+          "Choose Azure Document Intelligence if you're in the Microsoft/Azure ecosystem and need native Logic Apps or Power Automate integration, require specialized prebuilt models (W2, 1099, health insurance cards), need enterprise Azure SLAs, or are building a document processing pipeline on Azure infrastructure. For processing tax forms with Parsli, see our guide on [extracting data from tax forms](/guides/extract-data-from-tax-forms).",
       },
       {
         question: "When should I choose Parsli over Azure Document Intelligence?",
@@ -2572,7 +2572,7 @@ export const alternatives: AlternativeData[] = [
       {
         title: "Accessible to Non-Technical Teams",
         description:
-          "Parsli's visual schema builder lets anyone define extraction fields in plain English. Operations managers, finance teams, and HR staff can build parsers, run extractions, and review results independently. Azure Document Intelligence requires a developer for every step.",
+          "Parsli's visual schema builder lets anyone define extraction fields in plain English. Operations managers, finance teams, and HR staff can build parsers, run extractions, and review results independently. Azure Document Intelligence requires a developer for every step. See how to [extract data from insurance claims](/guides/extract-data-from-insurance-claims) or [contracts](/guides/extract-data-from-contracts) without code.",
       },
       {
         title: "Predictable Flat-Rate Pricing",
@@ -2733,7 +2733,7 @@ export const alternatives: AlternativeData[] = [
       {
         question: "When should I choose Parsli over Mailparser?",
         answer:
-          "Choose Parsli if your email formats vary across senders, you're tired of maintaining rules that break, you need to extract data from email attachments (PDFs, images) as well as email body, or you also process non-email documents like standalone PDFs or scanned documents.",
+          "Choose Parsli if your email formats vary across senders, you're tired of maintaining rules that break, you need to extract data from email attachments (PDFs, images) as well as email body, or you also process non-email documents like standalone PDFs or scanned documents. Learn how to [parse email attachments with Zapier](/guides/parse-email-attachments-with-zapier).",
       },
       ...universalFaqs,
       {
@@ -2765,12 +2765,12 @@ export const alternatives: AlternativeData[] = [
       {
         title: "Extract from Attachments, Not Just Email Body",
         description:
-          "Many business emails carry the real data in PDF or image attachments — not the email body. Parsli's AI extracts structured data from both: it reads the email text and processes any attached PDFs, images, Word docs, or Excel files with the same schema. Mailparser has limited support for structured attachment extraction.",
+          "Many business emails carry the real data in PDF or image attachments — not the email body. Parsli's AI extracts structured data from both: it reads the email text and processes any attached PDFs, images, Word docs, or Excel files with the same schema. Mailparser has limited support for structured attachment extraction. See how to [automate receipt processing with Make](/guides/automate-receipt-processing-with-make).",
       },
       {
         title: "One Platform for All Document Types",
         description:
-          "Mailparser is built for email. What about the PDF invoices your team receives directly? The scanned contracts? The Excel reports? Parsli handles all of them with the same schema-based approach — so you don't need separate tools for email workflows and document workflows.",
+          "Mailparser is built for email. What about the PDF invoices your team receives directly? The scanned [contracts](/guides/extract-data-from-contracts)? The Excel reports? Parsli handles all of them with the same schema-based approach — so you don't need separate tools for email workflows and document workflows. You can even [extract data from Excel to JSON](/guides/extract-data-from-excel-to-json).",
       },
       {
         title: "Zero Ongoing Maintenance",
@@ -2851,7 +2851,7 @@ export const alternatives: AlternativeData[] = [
     faqs: [
       { question: "How does Parsli pricing compare to ABBYY?", answer: "Parsli starts at $33/month with a perpetual free tier — self-service, no contracts. ABBYY uses enterprise pricing negotiated through sales, typically costing thousands per year with implementation fees on top. For SMBs, Parsli is dramatically more accessible." },
       { question: "When should I choose ABBYY over Parsli?", answer: "Choose ABBYY if you need deep enterprise integrations (SAP, Salesforce, UiPath), require process mining alongside document extraction, need the track record of a 30-year company for compliance, or run a large-scale enterprise deployment with dedicated partner support." },
-      { question: "When should I choose Parsli over ABBYY?", answer: "Choose Parsli if you want self-service setup in minutes, need transparent published pricing, process a few hundred to a few thousand documents monthly, want a no-code interface accessible to non-technical team members, or need a perpetual free tier." },
+      { question: "When should I choose Parsli over ABBYY?", answer: "Choose Parsli if you want self-service setup in minutes, need transparent published pricing, process a few hundred to a few thousand documents monthly, want a no-code interface accessible to non-technical team members, or need a perpetual free tier. You can [batch process documents automatically](/guides/batch-process-documents-automatically) without an enterprise implementation project." },
       ...universalFaqs,
       { question: "How do I migrate from ABBYY to Parsli?", answer: "Sign up for free, recreate your extraction schemas in Parsli's visual builder (define fields with plain English descriptions), and start sending documents. No templates to migrate — the AI handles any layout. Most setups are live in under 15 minutes." },
     ],
@@ -2873,7 +2873,7 @@ export const alternatives: AlternativeData[] = [
       { title: "Self-Service vs Enterprise Sales", description: "ABBYY is built for enterprise procurement: sales conversations, custom quotes, implementation projects, and partner engagements. Parsli is built for getting started now — sign up, build your schema, extract data in minutes. No calls, no contracts, no consultants." },
       { title: "Modern AI-Native Architecture", description: "ABBYY built its foundation on traditional OCR and added AI/ML over time. Parsli was built on Google Gemini 2.5 Pro from day one — a state-of-the-art multimodal AI that understands document context, meaning, and structure natively." },
       { title: "Transparent Published Pricing", description: "ABBYY doesn't publish pricing — you need to talk to sales or a partner. Parsli's pricing is on the website: page counts, feature tiers, monthly costs. You can evaluate, budget, and decide without any sales interaction." },
-      { title: "Minutes, Not Months", description: "ABBYY deployments typically involve scoping, configuration, testing, and rollout phases. Parsli's visual schema builder lets you define extraction fields and process your first document in under 10 minutes. Every minute of deployment time is a cost." },
+      { title: "Minutes, Not Months", description: "ABBYY deployments typically involve scoping, configuration, testing, and rollout phases. Parsli's visual schema builder lets you define extraction fields and process your first document in under 10 minutes. Every minute of deployment time is a cost. Get started with [PDF to JSON extraction](/guides/pdf-to-json-extraction)." },
     ],
     relatedAlternatives: ["uipath", "hyperscience", "nanonets", "rossum"],
   },
@@ -2934,7 +2934,7 @@ export const alternatives: AlternativeData[] = [
     faqs: [
       { question: "How is Parsli different from LlamaParse?", answer: "LlamaParse converts documents into Markdown/text for LLM pipelines. Parsli extracts structured business data (invoice totals, vendor names, line items) as named JSON fields ready for spreadsheets and automation. Different tools for different goals." },
       { question: "When should I choose LlamaParse over Parsli?", answer: "Choose LlamaParse if you're building RAG/LLM pipelines and need documents converted to Markdown for vector databases, want deep integration with the LlamaIndex ecosystem, or need a Python-native SDK for developer workflows." },
-      { question: "When should I choose Parsli over LlamaParse?", answer: "Choose Parsli if you need structured field extraction (not just text conversion), want non-technical team members to use it, need built-in Google Sheets/Zapier/Gmail integrations, or want named JSON fields ready for business workflows." },
+      { question: "When should I choose Parsli over LlamaParse?", answer: "Choose Parsli if you need structured field extraction (not just text conversion), want non-technical team members to use it, need built-in Google Sheets/Zapier/Gmail integrations, or want named JSON fields ready for business workflows. See our guide on [PDF to JSON extraction](/guides/pdf-to-json-extraction)." },
       ...universalFaqs,
       { question: "Can Parsli replace LlamaParse in my pipeline?", answer: "It depends on your use case. If you need structured business data (invoice fields, form data, table rows), yes — Parsli's API returns schema-matched JSON. If you need document-to-Markdown conversion for RAG pipelines, LlamaParse is the better fit." },
     ],
@@ -2953,7 +2953,7 @@ export const alternatives: AlternativeData[] = [
       "Choose based on whether you need RAG/LLM parsing (LlamaParse) or structured business extraction (Parsli)",
     ],
     deepDiveReasons: [
-      { title: "Structured Fields vs Text Chunks", description: "LlamaParse converts documents into Markdown or text — great for feeding LLMs, but not ready for business use. Parsli extracts named, typed fields: 'invoice_total': 1250.00, 'vendor_name': 'Acme Corp'. The output plugs directly into spreadsheets, accounting tools, and automation workflows." },
+      { title: "Structured Fields vs Text Chunks", description: "LlamaParse converts documents into Markdown or text — great for feeding LLMs, but not ready for business use. Parsli extracts named, typed fields: 'invoice_total': 1250.00, 'vendor_name': 'Acme Corp'. The output plugs directly into spreadsheets, accounting tools, and automation workflows. You can even [extract invoice data to QuickBooks](/guides/extract-invoice-data-to-quickbooks)." },
       { title: "No Python Required", description: "LlamaParse is a Python SDK — every operation requires writing code. Parsli's web interface lets operations managers, finance staff, and other non-technical users build schemas, run extractions, and review results without writing a single line." },
       { title: "Business Integrations Built In", description: "Parsli connects to Google Sheets, Zapier, Make, Gmail, and webhooks with one-click setup. LlamaParse is designed to feed into LlamaIndex pipelines and vector databases — it has no built-in connections to the business tools most teams already use." },
       { title: "Predictable Page-Based Pricing", description: "LlamaParse uses credit-based pricing where costs vary 1x to 90x depending on the parsing mode. A page can cost 1 credit or 90 credits. Parsli charges per page with all features included — you know exactly what 1,000 pages costs." },
@@ -3024,7 +3024,7 @@ export const alternatives: AlternativeData[] = [
     faqs: [
       { question: "How does Parsli pricing compare to Landing AI?", answer: "Parsli charges flat monthly rates starting at $33/month. Landing AI uses credit-based pricing where costs vary by document complexity. Parsli's model is more predictable — you know what 1,000 pages costs before you start." },
       { question: "When should I choose Landing AI over Parsli?", answer: "Choose Landing AI if you need HIPAA compliance, want visual grounding that traces extractions to exact document regions, require very high accuracy on complex document types, or have a technical team comfortable with credit-based pricing." },
-      { question: "When should I choose Parsli over Landing AI?", answer: "Choose Parsli if you want flat predictable pricing, need non-technical team members to use it independently, want built-in Google Sheets/Zapier integrations, or prefer a simpler schema builder with no developer setup." },
+      { question: "When should I choose Parsli over Landing AI?", answer: "Choose Parsli if you want flat predictable pricing, need non-technical team members to use it independently, want built-in Google Sheets/Zapier integrations, or prefer a simpler schema builder with no developer setup. Parsli lets you [extract data from handwritten documents](/guides/extract-data-from-handwritten-documents) and [medical records](/guides/extract-data-from-medical-records) with the same no-code interface." },
       ...universalFaqs,
       { question: "How does Landing AI's accuracy compare to Parsli?", answer: "Landing AI reports 99.16% accuracy on the DocVQA benchmark. Parsli achieves 95%+ accuracy powered by Gemini 2.5 Pro. For most business documents (invoices, forms, receipts), both deliver reliable results — the difference is in setup complexity and pricing model." },
     ],
@@ -3107,7 +3107,7 @@ export const alternatives: AlternativeData[] = [
     faqs: [
       { question: "How does Parsli compare to Pulse AI (RunPulse)?", answer: "Pulse AI is an enterprise document extraction API built for high-volume processing with proprietary models. Parsli is a self-service platform starting at $33/month with a no-code interface. Pulse AI is for engineering teams processing millions of pages; Parsli is for teams that need extraction without engineering." },
       { question: "When should I choose Pulse AI over Parsli?", answer: "Choose Pulse AI if you process millions of documents at enterprise scale, need self-hosted/VPC deployment, require the highest possible table extraction accuracy, or have a dedicated engineering team to build on their API." },
-      { question: "When should I choose Parsli over Pulse AI?", answer: "Choose Parsli if you want self-service setup without sales calls, need non-technical team members to use it, want built-in integrations to Sheets and Zapier, or need transparent published pricing from $33/month." },
+      { question: "When should I choose Parsli over Pulse AI?", answer: "Choose Parsli if you want self-service setup without sales calls, need non-technical team members to use it, want built-in integrations to Sheets and Zapier, or need transparent published pricing from $33/month. You can [batch process documents automatically](/guides/batch-process-documents-automatically) without enterprise-level infrastructure." },
       ...universalFaqs,
       { question: "How do I evaluate Parsli vs Pulse AI?", answer: "Sign up for Parsli's free tier (30 pages/month, no credit card) and test with your actual documents. For Pulse AI, you'll need to contact their sales team for API access and pricing. Parsli lets you run a complete proof of concept before any commitment." },
     ],
@@ -3127,7 +3127,7 @@ export const alternatives: AlternativeData[] = [
     ],
     deepDiveReasons: [
       { title: "Self-Service vs Enterprise Sales", description: "Pulse AI requires contacting sales for pricing and API access. Parsli lets you sign up, build a schema, and extract your first document in 10 minutes — no calls, no contracts, no waiting." },
-      { title: "No-Code Interface", description: "Pulse AI is an API for developers. Parsli provides a visual schema builder that any team member can use — operations, finance, HR. No Python, no SDK, no engineering involvement needed." },
+      { title: "No-Code Interface", description: "Pulse AI is an API for developers. Parsli provides a visual schema builder that any team member can use — operations, finance, HR. No Python, no SDK, no engineering involvement needed. See how to [extract data from shipping documents](/guides/extract-data-from-shipping-documents) or any other document type." },
       { title: "Built-In Business Integrations", description: "With Pulse AI, you build every integration yourself. Parsli connects to Google Sheets, Zapier, Make, Gmail, and webhooks with one-click setup." },
       { title: "Free Tier for Real Evaluation", description: "Parsli's free plan gives you 30 pages/month with full features — enough to run a real proof of concept. Pulse AI requires an enterprise engagement to evaluate." },
     ],
@@ -3196,7 +3196,7 @@ export const alternatives: AlternativeData[] = [
     faqs: [
       { question: "How does Parsli compare to Cradl AI?", answer: "Both are no-code document extraction platforms. The key difference: Cradl AI uses active learning that improves with corrections over time. Parsli uses Gemini 2.5 Pro that works accurately from document one. Parsli also offers more pages per tier at a lower price." },
       { question: "When should I choose Cradl AI over Parsli?", answer: "Choose Cradl AI if you want active learning that improves from your corrections, need anti-hallucination guardrails as a core feature, prefer a human-in-the-loop validation workflow, or have document types where accuracy improves meaningfully from feedback." },
-      { question: "When should I choose Parsli over Cradl AI?", answer: "Choose Parsli if you want instant accuracy without a learning period, need more pages per tier at a lower price, want built-in Gmail/Sheets/Zapier integrations, or process diverse document types including emails." },
+      { question: "When should I choose Parsli over Cradl AI?", answer: "Choose Parsli if you want instant accuracy without a learning period, need more pages per tier at a lower price, want built-in Gmail/Sheets/Zapier integrations, or process diverse document types including emails. You can [parse email attachments with Zapier](/guides/parse-email-attachments-with-zapier) or [automate receipt processing with Make](/guides/automate-receipt-processing-with-make)." },
       ...universalFaqs,
       { question: "How do I migrate from Cradl AI to Parsli?", answer: "Sign up for free, recreate your extraction fields in Parsli's schema builder (plain English descriptions — no model re-training), and start sending documents. The AI works immediately on any document layout." },
     ],
@@ -3297,7 +3297,7 @@ export const alternatives: AlternativeData[] = [
       { title: "10x More Pages Per Dollar", description: "Airparser's entry plan costs $39/month for 100 credits (39¢/document). Parsli's Business plan delivers 10,000 pages for $349/month (3.5¢/page). Even at entry level, Parsli provides significantly more pages for less money." },
       { title: "Perpetual Free Tier", description: "Parsli's free plan includes 30 pages/month with no time limit, full API access, and all integrations. Airparser offers a limited trial with 30 credits. Parsli lets you evaluate indefinitely." },
       { title: "Full API on Every Plan", description: "Parsli includes REST API, webhooks, and all integrations from the free plan up. Airparser reserves API access for paid plans." },
-      { title: "More Document Types", description: "Parsli handles PDFs, images, scanned documents, Word, Excel, and emails — all with the same AI engine. Airparser covers common types but Parsli's format support is broader." },
+      { title: "More Document Types", description: "Parsli handles PDFs, images, scanned documents, Word, Excel, and emails — all with the same AI engine. Airparser covers common types but Parsli's format support is broader. Extract data from [contracts](/guides/extract-data-from-contracts), [utility bills](/guides/extract-data-from-utility-bills), [shipping documents](/guides/extract-data-from-shipping-documents), and more." },
     ],
     relatedAlternatives: ["cradl-ai", "parseur", "parsio", "mailparser"],
   },
@@ -3357,7 +3357,7 @@ export const alternatives: AlternativeData[] = [
     faqs: [
       { question: "How does Parsli compare to Mindee?", answer: "Mindee is a developer API with pre-built and custom document models. Parsli is a no-code platform with a visual schema builder. Both extract structured data, but Parsli is accessible to non-technical users while Mindee requires engineering resources." },
       { question: "When should I choose Mindee over Parsli?", answer: "Choose Mindee if you need pre-built models for specialized document types (passports, IDs), require multi-language handwriting recognition, want a developer-native API with comprehensive SDKs, or are building document extraction into your own product." },
-      { question: "When should I choose Parsli over Mindee?", answer: "Choose Parsli if you want non-technical team members to use it, need built-in integrations (Sheets, Zapier, Gmail), want better volume pricing at scale, or prefer a visual no-code interface over API integration." },
+      { question: "When should I choose Parsli over Mindee?", answer: "Choose Parsli if you want non-technical team members to use it, need built-in integrations (Sheets, Zapier, Gmail), want better volume pricing at scale, or prefer a visual no-code interface over API integration. Parsli also handles [handwritten documents](/guides/extract-data-from-handwritten-documents) via Gemini 2.5 Pro." },
       ...universalFaqs,
       { question: "How do I migrate from Mindee to Parsli?", answer: "Sign up for free, define your extraction fields in Parsli's visual schema builder (no API code needed), and start uploading documents. For API users, switch to Parsli's REST API with structured JSON response." },
     ],
@@ -3379,7 +3379,7 @@ export const alternatives: AlternativeData[] = [
       { title: "No-Code Platform vs Developer API", description: "Mindee is built for developers — every extraction requires API calls and code. Parsli's visual schema builder lets anyone define extraction fields with plain English and run parsers from a web interface. Your operations team doesn't need to wait for engineering resources." },
       { title: "Better Volume Pricing", description: "Mindee charges $0.05-$0.10 per additional page beyond plan limits. Parsli's Business plan delivers 10,000 pages for $349/month (3.5¢/page). At scale, the cost difference is significant." },
       { title: "Built-In Business Integrations", description: "Parsli connects to Google Sheets, Zapier, Make, Gmail, and webhooks out of the box. With Mindee, you build every integration yourself through their API." },
-      { title: "Flexible Schema for Any Document", description: "Mindee's strength is pre-built models for specific document types. Parsli's schema builder handles any document type — define your fields with plain English and the AI extracts from any layout." },
+      { title: "Flexible Schema for Any Document", description: "Mindee's strength is pre-built models for specific document types. Parsli's schema builder handles any document type — define your fields with plain English and the AI extracts from any layout. Process [insurance claims](/guides/extract-data-from-insurance-claims), [tax forms](/guides/extract-data-from-tax-forms), or [Excel to JSON](/guides/extract-data-from-excel-to-json) conversions." },
     ],
     relatedAlternatives: ["base64ai", "reducto", "upstage", "veryfi"],
   },
@@ -3459,9 +3459,9 @@ export const alternatives: AlternativeData[] = [
     ],
     deepDiveReasons: [
       { title: "Complete Platform vs Raw API", description: "Reducto provides an extraction API. To use it, you build the schema interface, document management, results viewer, integration layer, and error handling. Parsli provides all of that out of the box — web interface, schema builder, Sheets/Zapier/Gmail integrations, and document management." },
-      { title: "No Engineering Required", description: "Every Reducto integration requires a developer writing code. Parsli's no-code interface lets operations managers, finance teams, and other non-technical users build and run extraction workflows independently." },
+      { title: "No Engineering Required", description: "Every Reducto integration requires a developer writing code. Parsli's no-code interface lets operations managers, finance teams, and other non-technical users build and run extraction workflows independently. Learn how to [extract data from contracts](/guides/extract-data-from-contracts) or any document type without engineering." },
       { title: "Predictable Monthly Pricing", description: "Reducto's per-page billing varies with volume and can be hard to predict monthly. Parsli's flat monthly plans give you a fixed cost with a clear page budget — no surprises." },
-      { title: "Built-In Integrations", description: "Parsli connects to Google Sheets, Zapier, Make, Gmail, and webhooks with one-click setup. With Reducto, every downstream integration is custom development work." },
+      { title: "Built-In Integrations", description: "Parsli connects to Google Sheets, Zapier, Make, Gmail, and webhooks with one-click setup. With Reducto, every downstream integration is custom development work. See how to [parse email attachments with Zapier](/guides/parse-email-attachments-with-zapier) or [automate receipt processing with Make](/guides/automate-receipt-processing-with-make)." },
     ],
     relatedAlternatives: ["llamaparse", "landing-ai", "mindee", "base64ai"],
   },
@@ -3522,7 +3522,7 @@ export const alternatives: AlternativeData[] = [
     faqs: [
       { question: "How does Parsli pricing compare to Sensible?", answer: "Parsli starts at $33/month ($27 annually). Sensible's paid plan starts at $499/month for 750 documents. That's a 93% cost difference at entry level. Parsli's perpetual free tier includes 30 pages/month; Sensible's free tier offers 100 documents/month." },
       { question: "When should I choose Sensible over Parsli?", answer: "Choose Sensible if you need 150+ pre-built document configurations for fast deployment, require the precision of hybrid LLM + deterministic rules, need HIPAA or SOC 2 Type II compliance, or have developers comfortable with SenseML." },
-      { question: "When should I choose Parsli over Sensible?", answer: "Choose Parsli if you want affordable pricing under $100/month, need a no-code solution with no specialized syntax, want built-in Sheets/Zapier/Gmail integrations, or prefer plain English field definitions." },
+      { question: "When should I choose Parsli over Sensible?", answer: "Choose Parsli if you want affordable pricing under $100/month, need a no-code solution with no specialized syntax, want built-in Sheets/Zapier/Gmail integrations, or prefer plain English field definitions. Parsli handles [contracts](/guides/extract-data-from-contracts), [insurance claims](/guides/extract-data-from-insurance-claims), and any other document type with plain English — no SenseML needed." },
       ...universalFaqs,
       { question: "What is SenseML?", answer: "SenseML is Sensible's proprietary query language for defining extraction rules. It combines LLM-based and deterministic approaches. Parsli's alternative: plain English field descriptions in a visual schema builder — no specialized syntax to learn." },
     ],
@@ -3611,7 +3611,7 @@ export const alternatives: AlternativeData[] = [
     faqs: [
       { question: "How does Parsli compare to UiPath Document Understanding?", answer: "UiPath Document Understanding is a component of their enterprise automation platform — you need the full platform to use it. Parsli is a standalone document extraction tool starting at $33/month. If you only need document extraction, Parsli is dramatically simpler and cheaper." },
       { question: "When should I choose UiPath over Parsli?", answer: "Choose UiPath if you need end-to-end RPA automation beyond just extraction, require FedRAMP certification, need automatic document classification across many types, or are already invested in the UiPath ecosystem." },
-      { question: "When should I choose Parsli over UiPath?", answer: "Choose Parsli if you only need document extraction (not full RPA), want self-service setup without a platform deployment, need affordable pricing starting at $33/month, or want a standalone tool without platform lock-in." },
+      { question: "When should I choose Parsli over UiPath?", answer: "Choose Parsli if you only need document extraction (not full RPA), want self-service setup without a platform deployment, need affordable pricing starting at $33/month, or want a standalone tool without platform lock-in. You can [batch process documents automatically](/guides/batch-process-documents-automatically) and [extract invoice data to QuickBooks](/guides/extract-invoice-data-to-quickbooks) without any platform overhead." },
       ...universalFaqs,
       { question: "Do I need the full UiPath platform for document extraction?", answer: "Yes. UiPath Document Understanding is a capability within the UiPath automation platform — it cannot be purchased or used standalone. Parsli is a standalone document extraction tool that works independently." },
     ],
@@ -3695,7 +3695,7 @@ export const alternatives: AlternativeData[] = [
     faqs: [
       { question: "How does Parsli pricing compare to Hyperscience?", answer: "Parsli processes pages at 3.5¢ each (Business plan). Hyperscience reportedly charges up to $1.50/page with enterprise contracts. At 1,000 pages/month, that's $35 vs $1,500 — a 97% difference." },
       { question: "When should I choose Hyperscience over Parsli?", answer: "Choose Hyperscience if you need 99.5% accuracy for mission-critical workflows, require FedRAMP High certification, need strong handwriting recognition, or run an enterprise compliance workflow requiring human-in-the-loop validation." },
-      { question: "When should I choose Parsli over Hyperscience?", answer: "Choose Parsli if you want self-service setup without an implementation project, need affordable per-page pricing, want a perpetual free tier, or process documents that don't require enterprise-grade compliance certifications." },
+      { question: "When should I choose Parsli over Hyperscience?", answer: "Choose Parsli if you want self-service setup without an implementation project, need affordable per-page pricing, want a perpetual free tier, or process documents that don't require enterprise-grade compliance certifications. Parsli also handles [handwritten documents](/guides/extract-data-from-handwritten-documents) with Gemini 2.5 Pro." },
       ...universalFaqs,
       { question: "Is Hyperscience really $1.50 per page?", answer: "Hyperscience doesn't publish pricing. Reports and market analysis suggest enterprise contracts can cost up to $1.50/page. Contact Hyperscience directly for current pricing. Parsli's pricing is on our website — transparent and predictable." },
     ],
@@ -3716,7 +3716,7 @@ export const alternatives: AlternativeData[] = [
     deepDiveReasons: [
       { title: "97% Lower Per-Page Cost", description: "At $1.50/page, processing 1,000 documents with Hyperscience costs $1,500/month. Parsli's Business plan processes the same volume for $35. Even at Parsli's entry tier, the cost difference is staggering. For most business documents, Parsli's 95%+ accuracy is more than sufficient." },
       { title: "Self-Service in Minutes", description: "Hyperscience deployments are implementation projects: scoping, configuration, testing, pilot, rollout. Parsli: sign up, define your extraction schema, upload a document. 10 minutes from zero to structured data." },
-      { title: "No Enterprise Overhead", description: "Hyperscience is designed for large enterprises with dedicated implementation teams. Parsli is designed for teams of any size — from a solo operator processing 30 pages/month to a mid-market team handling thousands." },
+      { title: "No Enterprise Overhead", description: "Hyperscience is designed for large enterprises with dedicated implementation teams. Parsli is designed for teams of any size — from a solo operator processing 30 pages/month to a mid-market team handling thousands. Perfect to [automate invoice processing for small business](/guides/automate-invoice-processing-for-small-business)." },
       { title: "Transparent Pricing You Can Budget", description: "Hyperscience requires a sales conversation to get pricing. Parsli's pricing is on the website with exact page counts and monthly costs. You can budget, evaluate, and decide without talking to anyone." },
     ],
     relatedAlternatives: ["abbyy", "uipath", "rossum", "docsumo"],
@@ -3776,7 +3776,7 @@ export const alternatives: AlternativeData[] = [
     faqs: [
       { question: "How does Parsli pricing compare to Veryfi?", answer: "Parsli starts at $33/month. Veryfi has a $500/month minimum. At entry level, Parsli is 93% cheaper. Veryfi also charges different rates per document type, making costs less predictable." },
       { question: "When should I choose Veryfi over Parsli?", answer: "Choose Veryfi if you exclusively process financial documents (receipts, invoices, W-2s), need mobile SDKs for field receipt capture, require specialized financial document models, or have high-volume receipt processing needs." },
-      { question: "When should I choose Parsli over Veryfi?", answer: "Choose Parsli if you process diverse document types beyond financials, want affordable pricing under $100/month, need a no-code interface, or want predictable same-price-per-page billing." },
+      { question: "When should I choose Parsli over Veryfi?", answer: "Choose Parsli if you process diverse document types beyond financials, want affordable pricing under $100/month, need a no-code interface, or want predictable same-price-per-page billing. Parsli handles [tax forms](/guides/extract-data-from-tax-forms), [utility bills](/guides/extract-data-from-utility-bills), and any other document type." },
       ...universalFaqs,
       { question: "How do I migrate from Veryfi to Parsli?", answer: "Sign up for free, define your extraction fields in Parsli's schema builder, and start sending documents. Parsli handles receipts, invoices, and all other document types with the same AI engine." },
     ],
@@ -3796,7 +3796,7 @@ export const alternatives: AlternativeData[] = [
     ],
     deepDiveReasons: [
       { title: "93% Cheaper at Entry", description: "Veryfi's $500/month minimum vs Parsli's $33/month. For teams processing a few hundred documents monthly, Parsli eliminates the financial barrier entirely." },
-      { title: "Any Document, Not Just Financials", description: "Veryfi is built for receipts, invoices, and financial documents. What about contracts, forms, shipping documents, or custom formats? Parsli's schema builder handles any document type with the same AI engine." },
+      { title: "Any Document, Not Just Financials", description: "Veryfi is built for receipts, invoices, and financial documents. What about [contracts](/guides/extract-data-from-contracts), forms, [shipping documents](/guides/extract-data-from-shipping-documents), or custom formats? Parsli's schema builder handles any document type with the same AI engine." },
       { title: "Simple Uniform Pricing", description: "Veryfi charges different rates for receipts vs invoices vs other types. Parsli charges the same per page regardless — no calculating different rates for different document categories." },
       { title: "No-Code Web Interface", description: "Veryfi is API and SDK focused. Parsli provides a visual schema builder that non-technical team members can use independently — no developer needed." },
     ],
@@ -3857,7 +3857,7 @@ export const alternatives: AlternativeData[] = [
     faqs: [
       { question: "How is Parsli different from Unstructured.io?", answer: "Different tools for different purposes. Unstructured.io converts documents into chunks for LLM/RAG pipelines and vector databases. Parsli extracts structured business data — invoice totals, vendor names, line items — as named JSON fields for spreadsheets and automation workflows." },
       { question: "When should I choose Unstructured.io over Parsli?", answer: "Choose Unstructured.io if you're building RAG/LLM applications and need document chunks for vector databases, want the open-source version for self-hosting, need to process 65+ file types, or need connectors to Pinecone, Weaviate, or other vector stores." },
-      { question: "When should I choose Parsli over Unstructured.io?", answer: "Choose Parsli if you need structured field extraction (not text chunks), want data in spreadsheets and business tools, need non-technical team members to use it, or want built-in Google Sheets/Zapier integrations." },
+      { question: "When should I choose Parsli over Unstructured.io?", answer: "Choose Parsli if you need structured field extraction (not text chunks), want data in spreadsheets and business tools, need non-technical team members to use it, or want built-in Google Sheets/Zapier integrations. See our guides on [PDF to JSON extraction](/guides/pdf-to-json-extraction) and [Excel to JSON extraction](/guides/extract-data-from-excel-to-json)." },
       ...universalFaqs,
       { question: "Can I use both Parsli and Unstructured.io?", answer: "Yes, they serve different purposes. Use Unstructured.io to feed documents into your RAG/LLM pipeline, and Parsli to extract structured business data from the same documents for operational use — invoices, forms, reports, etc." },
     ],
@@ -3879,7 +3879,7 @@ export const alternatives: AlternativeData[] = [
       { title: "Business Data vs LLM Chunks", description: "Unstructured.io outputs chunked text with metadata — perfect for feeding LLMs and vector databases, but not directly usable business data. Parsli outputs structured JSON: 'invoice_total': 1250.00, 'vendor': 'Acme Corp'. The data goes straight to your spreadsheet or automation tool." },
       { title: "No-Code for Business Teams", description: "Unstructured.io is designed for AI engineers building data pipelines. Parsli's visual schema builder lets anyone on your team — operations, finance, HR — define extraction fields and get results without writing code." },
       { title: "Built-In Business Integrations", description: "Parsli connects to Google Sheets, Zapier, Make, Gmail, and webhooks. Unstructured.io connects to vector databases and LLM platforms. Different integration ecosystems for different use cases." },
-      { title: "Focused on What Businesses Need", description: "Most businesses need to extract specific data points from documents and route them to existing tools. Parsli is purpose-built for this workflow. Unstructured.io is purpose-built for AI/ML data preparation — a fundamentally different need." },
+      { title: "Focused on What Businesses Need", description: "Most businesses need to extract specific data points from documents and route them to existing tools. Parsli is purpose-built for this workflow — from [invoice processing for small business](/guides/automate-invoice-processing-for-small-business) to [extracting data from contracts](/guides/extract-data-from-contracts). Unstructured.io is purpose-built for AI/ML data preparation — a fundamentally different need." },
     ],
     relatedAlternatives: ["llamaparse", "reducto", "base64ai", "textract"],
   },
