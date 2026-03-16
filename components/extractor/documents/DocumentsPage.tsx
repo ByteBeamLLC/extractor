@@ -25,6 +25,8 @@ import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
 import type { Parser, ProcessedDocument } from "@/lib/extractor/types"
 import { DocumentUploader } from "@/components/extractor/test/DocumentUploader"
 import { ExtractionResultsView } from "@/components/extractor/test/ExtractionResultsView"
+import { TourStep } from "@/components/tour/TourStep"
+import { trackEvent } from "@/lib/analytics"
 
 const SOURCE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   upload: Upload,
@@ -122,6 +124,13 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
         setUploadResults(data.results)
         setUploadWarnings(data.warnings ?? [])
         setUploadState("completed")
+        trackEvent("first_value", {
+          user_id: session?.user?.id ?? "",
+          parser_id: parser.id,
+          document_id: data.document_id ?? "",
+          source_type: "upload",
+          is_first_extraction: documents.length === 0,
+        })
         // Refresh document list
         loadDocuments()
       } catch (err) {
@@ -152,18 +161,20 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold">Documents</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Upload documents and view extraction results.
-          </p>
+      <TourStep stepId="documents" side="bottom" align="center">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold">Documents</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Upload documents and view extraction results.
+            </p>
+          </div>
+          <Button onClick={() => setShowUploader(!showUploader)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Upload Document
+          </Button>
         </div>
-        <Button onClick={() => setShowUploader(!showUploader)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Upload Document
-        </Button>
-      </div>
+      </TourStep>
 
       {/* Upload Area */}
       {(showUploader || uploadState !== "idle") && (

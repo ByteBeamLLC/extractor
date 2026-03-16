@@ -12,6 +12,7 @@ import { PasswordInput } from "@/components/ui/password-input"
 import { PasswordStrength, getStrength } from "@/components/ui/password-strength"
 import { useSupabaseClient } from "@/lib/supabase/hooks"
 import { cn } from "@/lib/utils"
+import { trackEvent } from "@/lib/analytics"
 
 type AuthMode = "sign-in" | "sign-up" | "forgot-password" | "check-email"
 
@@ -96,7 +97,7 @@ function LoginForm() {
     setMessage(null)
     setPasswordError(null)
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -106,6 +107,11 @@ function LoginForm() {
         },
       })
       if (error) throw error
+      trackEvent("sign_up_completed", {
+        user_id: data.user?.id ?? "",
+        email,
+        source: "login_page",
+      })
       setMode("check-email")
     } catch (error) {
       setMessage({
@@ -310,7 +316,7 @@ function LoginForm() {
                 <div className="text-center text-sm text-muted-foreground">
                   {mode === "sign-in" ? (
                     <p>Don&apos;t have an account?{" "}
-                      <button type="button" onClick={() => { setMode("sign-up"); setMessage(null); setPasswordError(null) }}
+                      <button type="button" onClick={() => { trackEvent("sign_up_started", { source: "login_page" }); setMode("sign-up"); setMessage(null); setPasswordError(null) }}
                         className="font-medium text-primary hover:text-primary/80 hover:underline transition-colors">Sign up</button>
                     </p>
                   ) : mode === "sign-up" ? (

@@ -39,6 +39,7 @@ import type {
 } from "@/lib/schema"
 import { FieldEditor } from "./FieldEditor"
 import { useActiveParser } from "@/components/extractor/parser-context"
+import { TourStep } from "@/components/tour/TourStep"
 
 interface ParserSchemaBuilderProps {
   parser: Parser
@@ -238,46 +239,48 @@ export function ParserSchemaBuilder({ parser, onUpdate }: ParserSchemaBuilderPro
   return (
     <div className="space-y-6">
       {/* Toolbar */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <Button variant="outline" size="sm" onClick={() => setIsAddingField(true)}>
-          <Plus className="h-4 w-4 mr-1" />
-          Add Field
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isDetecting}
-        >
-          {isDetecting ? (
-            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-          ) : (
-            <Sparkles className="h-4 w-4 mr-1" />
-          )}
-          {isDetecting ? "Detecting..." : "Auto-Detect Fields"}
-        </Button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          className="hidden"
-          accept=".pdf,.png,.jpg,.jpeg,.webp,.tiff,.docx,.xlsx,.csv,.txt"
-          onChange={(e) => {
-            const file = e.target.files?.[0]
-            if (file) detectFields(file)
-            e.target.value = ""
-          }}
-        />
-        {hasChanges && (
-          <Button size="sm" onClick={handleSave} disabled={isSaving}>
-            {isSaving ? (
+      <TourStep stepId="schema" side="bottom" align="start">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="outline" size="sm" onClick={() => setIsAddingField(true)}>
+            <Plus className="h-4 w-4 mr-1" />
+            Add Field
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isDetecting}
+          >
+            {isDetecting ? (
               <Loader2 className="h-4 w-4 mr-1 animate-spin" />
             ) : (
-              <Save className="h-4 w-4 mr-1" />
+              <Sparkles className="h-4 w-4 mr-1" />
             )}
-            Save Changes
+            {isDetecting ? "Detecting..." : "Auto-Detect Fields"}
           </Button>
-        )}
-      </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            accept=".pdf,.png,.jpg,.jpeg,.webp,.tiff,.docx,.xlsx,.csv,.txt"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) detectFields(file)
+              e.target.value = ""
+            }}
+          />
+          {hasChanges && (
+            <Button size="sm" onClick={handleSave} disabled={isSaving}>
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-1" />
+              )}
+              Save Changes
+            </Button>
+          )}
+        </div>
+      </TourStep>
 
       {/* Auto-detect error */}
       {detectError && (

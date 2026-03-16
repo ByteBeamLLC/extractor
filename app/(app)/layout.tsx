@@ -5,6 +5,8 @@ import { createSupabaseServerComponentClient } from "@/lib/supabase/server"
 import { GlobalErrorBoundary } from "@/components/GlobalErrorBoundary"
 import { AppSidebar } from "@/components/app-sidebar"
 import { ActiveParserProvider } from "@/components/extractor/parser-context"
+import { TourProvider } from "@/components/tour/TourProvider"
+import { AnalyticsIdentifier } from "@/components/providers/AnalyticsIdentifier"
 import {
   SidebarProvider,
   SidebarInset,
@@ -27,17 +29,20 @@ export default async function AppLayout({
   return (
     <GlobalErrorBoundary>
       <SupabaseProvider initialSession={session}>
+        <AnalyticsIdentifier />
         <AuthDialogProvider>
           <ActiveParserProvider>
-            <SidebarProvider defaultOpen={defaultOpen}>
-              <AppSidebar />
-              <SidebarInset>
-                <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
-                  <SidebarTrigger className="-ml-1" />
-                </header>
-                <div className="flex-1">{children}</div>
-              </SidebarInset>
-            </SidebarProvider>
+            <TourProvider>
+              <SidebarProvider defaultOpen={defaultOpen}>
+                <AppSidebar />
+                <SidebarInset>
+                  <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
+                    <SidebarTrigger className="-ml-1" />
+                  </header>
+                  <div className="flex-1">{children}</div>
+                </SidebarInset>
+              </SidebarProvider>
+            </TourProvider>
           </ActiveParserProvider>
         </AuthDialogProvider>
       </SupabaseProvider>

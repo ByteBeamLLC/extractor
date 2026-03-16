@@ -11,6 +11,7 @@ import { PasswordInput } from "@/components/ui/password-input"
 import { PasswordStrength, getStrength } from "@/components/ui/password-strength"
 import { useSupabaseClient } from "@/lib/supabase/hooks"
 import { cn } from "@/lib/utils"
+import { trackEvent } from "@/lib/analytics"
 
 type AuthMode = "sign-in" | "sign-up" | "forgot-password" | "check-email"
 
@@ -137,7 +138,7 @@ export function AuthDialogProvider({ children }: { children: React.ReactNode }) 
     setPasswordError(null)
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -147,6 +148,11 @@ export function AuthDialogProvider({ children }: { children: React.ReactNode }) 
       if (error) {
         throw error
       }
+      trackEvent("sign_up_completed", {
+        user_id: data.user?.id ?? "",
+        email,
+        source: "auth_dialog",
+      })
       setMode("check-email")
     } catch (error) {
       setMessage({
@@ -453,6 +459,7 @@ export function AuthDialogProvider({ children }: { children: React.ReactNode }) 
                       <button
                         type="button"
                         onClick={() => {
+                          trackEvent("sign_up_started", { source: "auth_dialog" })
                           setMode("sign-up")
                           setMessage(null)
                           setPasswordError(null)

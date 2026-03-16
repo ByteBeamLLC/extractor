@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
 import type { Parser, ProcessedDocument } from "@/lib/extractor/types"
 import { IntegrationList } from "@/components/extractor/integrations/IntegrationList"
+import { TourStep } from "@/components/tour/TourStep"
 
 interface ExportPageProps {
   parser: Parser
@@ -195,40 +196,42 @@ export function ExportPage({ parser }: ExportPageProps) {
       </div>
 
       {/* Download Section */}
-      <div className="border rounded-xl p-6 bg-card space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="font-semibold">Download Data</h2>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {loading
-                ? "Loading..."
-                : completedCount > 0
-                  ? `${completedCount} processed document${completedCount !== 1 ? "s" : ""} available`
-                  : "No processed documents yet"}
+      <TourStep stepId="export" side="bottom" align="center">
+        <div className="border rounded-xl p-6 bg-card space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-semibold">Download Data</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {loading
+                  ? "Loading..."
+                  : completedCount > 0
+                    ? `${completedCount} processed document${completedCount !== 1 ? "s" : ""} available`
+                    : "No processed documents yet"}
+              </p>
+            </div>
+          </div>
+
+          {completedCount > 0 && (
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={handleDownloadCSV}>
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                CSV
+              </Button>
+              <Button variant="outline" onClick={handleDownloadJSON}>
+                <FileJson className="h-4 w-4 mr-2" />
+                JSON
+              </Button>
+            </div>
+          )}
+
+          {!loading && completedCount === 0 && (
+            <p className="text-xs text-muted-foreground">
+              Process some documents first, then come back to download the
+              extracted data.
             </p>
-          </div>
+          )}
         </div>
-
-        {completedCount > 0 && (
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={handleDownloadCSV}>
-              <FileSpreadsheet className="h-4 w-4 mr-2" />
-              CSV
-            </Button>
-            <Button variant="outline" onClick={handleDownloadJSON}>
-              <FileJson className="h-4 w-4 mr-2" />
-              JSON
-            </Button>
-          </div>
-        )}
-
-        {!loading && completedCount === 0 && (
-          <p className="text-xs text-muted-foreground">
-            Process some documents first, then come back to download the
-            extracted data.
-          </p>
-        )}
-      </div>
+      </TourStep>
 
       {/* Integrations Section */}
       <div className="border rounded-xl p-6 bg-card">

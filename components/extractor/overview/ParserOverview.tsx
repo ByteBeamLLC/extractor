@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { formatDistanceToNow } from "date-fns"
@@ -14,12 +14,15 @@ import {
   Mail,
   ArrowRight,
   BarChart3,
+  HelpCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
 import type { Parser, ProcessedDocument } from "@/lib/extractor/types"
 import { ParserOnboarding } from "@/components/extractor/onboarding/ParserOnboarding"
+import { TourStep } from "@/components/tour/TourStep"
+import { useTour } from "@/components/tour/TourProvider"
 
 interface ParserOverviewProps {
   parser: Parser
@@ -37,9 +40,13 @@ export function ParserOverview({ parser, onUpdate }: ParserOverviewProps) {
   const [copied, setCopied] = useState(false)
   const [integrationCount, setIntegrationCount] = useState(0)
 
-  // Onboarding
+  // Onboarding (legacy banner for template parsers)
   const [onboardingVisible, setOnboardingVisible] = useState(showOnboarding)
   const [onboardingStep, setOnboardingStep] = useState(0)
+
+  // Product tour
+  const { startTour, hasCompletedTour, isActive: tourActive } = useTour()
+  const tourStartAttempted = useRef(false)
 
   useEffect(() => {
     async function load() {
@@ -62,6 +69,19 @@ export function ParserOverview({ parser, onUpdate }: ParserOverviewProps) {
     }
     load()
   }, [parser.id, session?.user?.id, supabase])
+
+  // Auto-start product tour for fresh parsers (first-time users)
+  useEffect(() => {
+    if (tourStartAttempted.current) return
+    tourStartAttempted.current = true
+
+    if (tourActive || hasCompletedTour()) return
+    // Fresh parser: no fields and no documents
+    if (parser.fields.length > 0 || parser.document_count > 0) return
+
+    const timer = setTimeout(() => startTour(), 400)
+    return () => clearTimeout(timer)
+  }, [tourActive, hasCompletedTour, parser.fields.length, parser.document_count, startTour])
 
   const handleCopyEmail = async () => {
     if (!parser.inbound_email) return
@@ -179,52 +199,65 @@ export function ParserOverview({ parser, onUpdate }: ParserOverviewProps) {
       )}
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Link href={`/parsers/${parser.id}/documents`}>
-          <div className="border rounded-xl p-4 bg-card hover:border-primary/50 hover:shadow-sm transition-all flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <Upload className="h-5 w-5 text-primary" />
+      <TourStep stepId="overview" side="bottom" align="center">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Link href={`/parsers/${parser.id}/documents`}>
+            <div className="border rounded-xl p-4 bg-card hover:border-primary/50 hover:shadow-sm transition-all flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <Upload className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">Upload Document</p>
+                <p className="text-xs text-muted-foreground">
+                  Test extraction with a file
+                </p>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium">Upload Document</p>
-              <p className="text-xs text-muted-foreground">
-                Test extraction with a file
-              </p>
-            </div>
-            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
-          </div>
-        </Link>
+          </Link>
 
-        <Link href={`/parsers/${parser.id}/schema`}>
-          <div className="border rounded-xl p-4 bg-card hover:border-primary/50 hover:shadow-sm transition-all flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <ListChecks className="h-5 w-5 text-primary" />
+          <Link href={`/parsers/${parser.id}/schema`}>
+            <div className="border rounded-xl p-4 bg-card hover:border-primary/50 hover:shadow-sm transition-all flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <ListChecks className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">Edit Schema</p>
+                <p className="text-xs text-muted-foreground">
+                  Define extraction fields
+                </p>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium">Edit Schema</p>
-              <p className="text-xs text-muted-foreground">
-                Define extraction fields
-              </p>
-            </div>
-            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
-          </div>
-        </Link>
+          </Link>
 
-        <Link href={`/parsers/${parser.id}/export`}>
-          <div className="border rounded-xl p-4 bg-card hover:border-primary/50 hover:shadow-sm transition-all flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <Plug className="h-5 w-5 text-primary" />
+          <Link href={`/parsers/${parser.id}/export`}>
+            <div className="border rounded-xl p-4 bg-card hover:border-primary/50 hover:shadow-sm transition-all flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <Plug className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">Add Integration</p>
+                <p className="text-xs text-muted-foreground">
+                  Connect to external tools
+                </p>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium">Add Integration</p>
-              <p className="text-xs text-muted-foreground">
-                Connect to external tools
-              </p>
-            </div>
-            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
-          </div>
-        </Link>
-      </div>
+          </Link>
+        </div>
+      </TourStep>
+
+      {/* Retake tour link */}
+      {!tourActive && hasCompletedTour() && (
+        <button
+          onClick={startTour}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
+        >
+          <HelpCircle className="h-3.5 w-3.5" />
+          Take a tour
+        </button>
+      )}
 
       {/* Recent Documents */}
       {recentDocs.length > 0 && (

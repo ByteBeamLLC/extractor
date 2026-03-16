@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button"
 import type { Parser } from "@/lib/extractor/types"
 import { DocumentUploader } from "@/components/extractor/test/DocumentUploader"
+import { TourStep } from "@/components/tour/TourStep"
 
 interface ImportPageProps {
   parser: Parser
@@ -56,39 +57,41 @@ export function ImportPage({ parser }: ImportPageProps) {
 
       {/* Email Forwarding */}
       {parser.inbound_email && (
-        <div className="border rounded-xl p-6 bg-card space-y-4">
-          <div className="flex items-center gap-2">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Mail className="h-5 w-5 text-primary" />
+        <TourStep stepId="import" side="bottom" align="center">
+          <div className="border rounded-xl p-6 bg-card space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Mail className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="font-semibold">By Email</h2>
+                <p className="text-xs text-muted-foreground">
+                  Forward emails with attachments to automatically extract data
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="font-semibold">By Email</h2>
-              <p className="text-xs text-muted-foreground">
-                Forward emails with attachments to automatically extract data
-              </p>
+
+            <div className="flex items-center gap-2 p-4 bg-muted/50 rounded-lg">
+              <code className="text-sm font-mono flex-1 font-semibold">
+                {parser.inbound_email}
+              </code>
+              <Button variant="outline" size="sm" onClick={handleCopyEmail}>
+                {emailCopied ? (
+                  <Check className="h-4 w-4 text-green-500 mr-1.5" />
+                ) : (
+                  <Copy className="h-4 w-4 mr-1.5" />
+                )}
+                {emailCopied ? "Copied" : "Copy address"}
+              </Button>
             </div>
-          </div>
 
-          <div className="flex items-center gap-2 p-4 bg-muted/50 rounded-lg">
-            <code className="text-sm font-mono flex-1 font-semibold">
-              {parser.inbound_email}
-            </code>
-            <Button variant="outline" size="sm" onClick={handleCopyEmail}>
-              {emailCopied ? (
-                <Check className="h-4 w-4 text-green-500 mr-1.5" />
-              ) : (
-                <Copy className="h-4 w-4 mr-1.5" />
-              )}
-              {emailCopied ? "Copied" : "Copy address"}
-            </Button>
+            <p className="text-xs text-muted-foreground">
+              Set up automatic email forwarding from your inbox to process
+              documents as they arrive. Attachments (PDF, images, Word, Excel)
+              will be extracted automatically.
+            </p>
           </div>
-
-          <p className="text-xs text-muted-foreground">
-            Set up automatic email forwarding from your inbox to process
-            documents as they arrive. Attachments (PDF, images, Word, Excel)
-            will be extracted automatically.
-          </p>
-        </div>
+        </TourStep>
       )}
 
       {/* Direct Upload */}
