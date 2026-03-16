@@ -153,7 +153,7 @@ export const blogPosts: BlogPost[] = [
       {
         type: "list",
         items: [
-          "Privacy — you're uploading potentially sensitive documents (invoices, bank statements, contracts) to a third-party server. Most free tools have vague privacy policies about how they handle uploaded files.",
+          "Privacy — you're uploading potentially sensitive documents (invoices, bank statements, [contracts](/guides/extract-data-from-contracts)) to a third-party server. Most free tools have vague privacy policies about how they handle uploaded files.",
           "Quality is hit-or-miss — these tools typically use basic PDF parsing, not AI. Complex tables often come out garbled.",
           "Scanned PDFs are poorly handled — most free tools have limited or no OCR capability.",
           "Daily usage limits and file size restrictions on free tiers",
@@ -196,7 +196,7 @@ export const blogPosts: BlogPost[] = [
       {
         type: "list",
         items: [
-          "You need to process hundreds or thousands of PDFs in a batch",
+          "You need to [process hundreds or thousands of PDFs in a batch](/guides/batch-process-documents-automatically)",
           "You want full control over extraction logic and post-processing",
           "Your documents have consistent formatting you can write rules for",
           "You're already working in a Python environment and need programmatic access",
@@ -253,7 +253,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "If you want AI-powered extraction without writing code or managing APIs, no-code platforms wrap the AI in a user-friendly interface. You define what data you want to extract, upload your documents, and get structured output — typically as Excel, CSV, Google Sheets, or JSON.",
+        text: "If you want AI-powered extraction [without writing code](/guides/extract-data-from-pdfs-without-code) or managing APIs, no-code platforms wrap the AI in a user-friendly interface. You define what data you want to extract, upload your documents, and get structured output — typically as Excel, CSV, Google Sheets, or [JSON](/guides/pdf-to-json-extraction).",
       },
       {
         type: "paragraph",
@@ -289,8 +289,8 @@ export const blogPosts: BlogPost[] = [
           "One-off, simple table from a native PDF → Manual copy-paste or Adobe Acrobat",
           "Regular extractions from clean, digitally-created PDFs → Adobe Acrobat or tabula-py",
           "Scanned documents (invoices, bank statements, receipts) → AI-powered tool (cloud API or no-code platform)",
-          "High-volume batch processing with developer resources → Python libraries + OCR, or cloud AI APIs",
-          "Recurring extractions without coding → No-code AI platform like Parsli",
+          "[High-volume batch processing](/guides/batch-process-documents-automatically) with developer resources → Python libraries + OCR, or cloud AI APIs",
+          "Recurring extractions [without coding](/guides/extract-data-from-pdfs-without-code) → No-code AI platform like Parsli",
           "Sensitive documents where privacy matters → Local Python libraries (no data leaves your machine) or a trusted platform with clear data handling policies",
         ],
       },
@@ -361,7 +361,7 @@ export const blogPosts: BlogPost[] = [
     content: [
       {
         type: "paragraph",
-        text: "Invoice processing is one of those problems that sounds simple until you actually try to automate it. Every vendor sends invoices in a different format. Some are native PDFs, some are scanned. Some are emailed as attachments, others arrive through a portal. And somehow, your accounting team needs to pull out the same fields — vendor name, invoice number, line items, totals, tax amounts — from all of them.",
+        text: "Invoice processing is one of those problems that sounds simple until you actually try to automate it. Every vendor sends invoices in a different format. Some are native PDFs, some are scanned. Some are [emailed as attachments](/guides/parse-email-attachments-with-zapier), others arrive through a portal. And somehow, your accounting team needs to pull out the same fields — vendor name, invoice number, line items, totals, tax amounts — from all of them.",
       },
       {
         type: "paragraph",
@@ -386,7 +386,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Other factors that matter: pricing model (per page, per document, flat rate), integration options (API, Zapier, accounting software), handling of scanned vs. native PDFs, and how much manual review is needed after extraction.",
+        text: "Other factors that matter: pricing model (per page, per document, flat rate), integration options (API, Zapier, [accounting software like QuickBooks](/guides/extract-invoice-data-to-quickbooks)), handling of scanned vs. native PDFs, and how much manual review is needed after extraction.",
       },
       {
         type: "heading",
@@ -403,7 +403,7 @@ export const blogPosts: BlogPost[] = [
         items: [
           "Strong accuracy once trained on your specific invoice formats",
           "Good pre-built models for common document types (invoices, receipts, purchase orders)",
-          "Integrations with QuickBooks, Xero, SAP, and other accounting platforms",
+          "Integrations with [QuickBooks](/guides/extract-invoice-data-to-quickbooks), Xero, SAP, and other accounting platforms",
           "Approval workflows for human-in-the-loop review",
           "Well-documented API for developers",
         ],
@@ -412,7 +412,7 @@ export const blogPosts: BlogPost[] = [
       {
         type: "list",
         items: [
-          "Pricing starts at $499/month for the Starter plan — this prices out many small businesses and freelancers",
+          "Pricing starts at $499/month for the Starter plan — this prices out many [small businesses](/guides/automate-invoice-processing-for-small-business) and freelancers",
           "Requires training data — you need to label sample invoices before the model works well on your documents",
           "Training per document type — a model trained on one vendor's invoices won't automatically work on a different vendor's format without additional training",
           "Setup time is hours to days depending on document complexity and volume of training data",
@@ -575,7 +575,7 @@ export const blogPosts: BlogPost[] = [
       { type: "heading", level: 3, text: "Azure Form Recognizer (now Azure AI Document Intelligence)" },
       {
         type: "paragraph",
-        text: "Microsoft's document extraction API. Strong pre-built models for invoices, receipts, and tax forms. Integrates naturally with the Microsoft ecosystem (Power Automate, Dynamics). Custom model training available.",
+        text: "Microsoft's document extraction API. Strong pre-built models for invoices, receipts, and [tax forms](/guides/extract-data-from-tax-forms). Integrates naturally with the Microsoft ecosystem (Power Automate, Dynamics). Custom model training available.",
       },
       { type: "heading", level: 3, text: "When cloud APIs are the right choice" },
       {
@@ -632,7 +632,7 @@ export const blogPosts: BlogPost[] = [
           "Newer platform — smaller community and fewer third-party integrations than established tools",
           "No custom model training — relies entirely on the pre-trained Gemini model (which is powerful, but some edge cases may benefit from custom training)",
           "Enterprise features (SSO, audit logs, custom SLAs) are still growing",
-          "No native QuickBooks or Xero integration yet (available via Zapier/Make)",
+          "No native [QuickBooks](/guides/extract-invoice-data-to-quickbooks) or Xero integration yet (available via Zapier/Make)",
           "Per-page pricing means costs scale with volume, unlike flat-rate tools",
         ],
       },
@@ -686,7 +686,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "No invoice OCR tool achieves 100% accuracy on all documents. Even the best AI models occasionally misread handwritten notes, extract the wrong field from an unusual layout, or struggle with extremely low-quality scans. Plan for a human review step, especially when you first set up any tool. As you process more documents and understand where errors occur, you can optimize your extraction schema, add validation rules, or adjust your workflow.",
+        text: "No invoice OCR tool achieves 100% accuracy on all documents. Even the best AI models occasionally misread [handwritten notes](/guides/extract-data-from-handwritten-documents), extract the wrong field from an unusual layout, or struggle with extremely low-quality scans. Plan for a human review step, especially when you first set up any tool. As you process more documents and understand where errors occur, you can optimize your extraction schema, add validation rules, or adjust your workflow.",
       },
       {
         type: "paragraph",
@@ -733,7 +733,7 @@ export const blogPosts: BlogPost[] = [
     content: [
       {
         type: "paragraph",
-        text: "Every business runs on documents — invoices, bank statements, contracts, emails, and forms — but the data locked inside them is almost never machine-readable by default. Document parsing is the process of automatically extracting structured, usable data from those files, so it can be stored, analyzed, or fed into other systems without manual copy-paste."
+        text: "Every business runs on documents — invoices, bank statements, [contracts](/guides/extract-data-from-contracts), emails, and forms — but the data locked inside them is almost never machine-readable by default. Document parsing is the process of automatically extracting structured, usable data from those files, so it can be stored, analyzed, or fed into other systems without manual copy-paste."
       },
       {
         type: "paragraph",
@@ -746,7 +746,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Document parsing is the automated extraction of specific fields and values from unstructured or semi-structured documents into a structured format like JSON, CSV, or a database row. A parser receives a raw file — a PDF invoice, a scanned contract, an email with an attached receipt — and returns a clean, organized output: vendor name, invoice number, line items, totals, dates."
+        text: "Document parsing is the automated extraction of specific fields and values from unstructured or semi-structured documents into a structured format like [JSON](/guides/pdf-to-json-extraction), CSV, or a database row. A parser receives a raw file — a PDF invoice, a scanned contract, an email with an attached receipt — and returns a clean, organized output: vendor name, invoice number, line items, totals, dates."
       },
       {
         type: "paragraph",
@@ -802,7 +802,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Email-based document parsing is especially valuable for accounts payable teams that receive invoices as PDF attachments via Gmail or Outlook. Connecting a dedicated inbox to a parsing pipeline means every incoming document is automatically processed and its data forwarded to a spreadsheet or ERP system."
+        text: "Email-based document parsing is especially valuable for accounts payable teams that receive invoices as PDF attachments via Gmail or Outlook — or for operations teams processing [insurance claims](/guides/extract-data-from-insurance-claims) and [utility bills](/guides/extract-data-from-utility-bills). Connecting a dedicated inbox to a parsing pipeline means every incoming document is automatically processed and its data forwarded to a spreadsheet or ERP system."
       },
       {
         type: "heading",
@@ -811,7 +811,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "JPEG, PNG, and TIFF images of physical documents are fully parseable with modern AI. Common examples include photographed receipts, scanned intake forms, handwritten or printed checks, and photos of shipping labels. The key requirement is sufficient image resolution — most AI parsers perform well on images captured with a standard smartphone camera."
+        text: "JPEG, PNG, and TIFF images of physical documents are fully parseable with modern AI. Common examples include photographed receipts, scanned intake forms, [handwritten or printed checks](/guides/extract-data-from-handwritten-documents), and photos of [shipping labels](/guides/extract-data-from-shipping-documents). The key requirement is sufficient image resolution — most AI parsers perform well on images captured with a standard smartphone camera."
       },
       {
         type: "heading",
@@ -820,7 +820,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "DOCX and XLSX files are semi-structured and contain embedded text that can be read directly without OCR. Parsing Word documents is useful for extracting data from standardized contract templates, employment agreements, or intake forms. Excel parsing is less about OCR and more about identifying which cells or columns contain the target fields across different spreadsheet layouts."
+        text: "DOCX and XLSX files are semi-structured and contain embedded text that can be read directly without OCR. Parsing Word documents is useful for extracting data from standardized contract templates, employment agreements, or intake forms. [Excel parsing](/guides/extract-data-from-excel-to-json) is less about OCR and more about identifying which cells or columns contain the target fields across different spreadsheet layouts."
       },
       {
         type: "heading",
@@ -861,7 +861,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "The extracted fields are assembled into the target output format. Most parsers can produce JSON, CSV, or direct integrations with spreadsheets and databases. Some systems apply post-processing at this step: normalizing date formats, standardizing currency codes, or validating that required fields are present. The final output is delivered via API response, webhook, or direct integration."
+        text: "The extracted fields are assembled into the target output format. Most parsers can produce [JSON](/guides/pdf-to-json-extraction), CSV, or direct integrations with spreadsheets and databases. Some systems apply post-processing at this step: normalizing date formats, standardizing currency codes, or validating that required fields are present. The final output is delivered via API response, webhook, or direct integration."
       },
       {
         type: "heading",
@@ -918,7 +918,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Forwarding a Gmail inbox to a document parser enables fully automated data capture from incoming emails. Common applications include extracting order details from e-commerce confirmation emails, pulling tracking numbers from shipping notifications, and capturing client request details from inbound support emails. The parsed data flows automatically into a spreadsheet, CRM, or database."
+        text: "Forwarding a Gmail inbox to a document parser enables fully automated data capture from incoming emails. Common applications include extracting order details from e-commerce confirmation emails, pulling tracking numbers from [shipping notifications](/guides/extract-data-from-shipping-documents), and capturing client request details from inbound support emails. The parsed data flows automatically into a spreadsheet, CRM, or database."
       },
       {
         type: "heading",
@@ -940,7 +940,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "No-code document parsing platforms abstract all of that into a web interface. You define the fields you want to extract, upload documents or connect an inbox, and the platform handles the entire pipeline. The trade-off is less customization compared to raw API access, but for most structured-data extraction tasks, no-code tools produce equivalent results in a fraction of the setup time."
+        text: "[No-code document parsing](/guides/extract-data-from-pdfs-without-code) platforms abstract all of that into a web interface. You define the fields you want to extract, upload documents or connect an inbox, and the platform handles the entire pipeline. The trade-off is less customization compared to raw API access, but for most structured-data extraction tasks, no-code tools produce equivalent results in a fraction of the setup time."
       },
       {
         type: "paragraph",
@@ -1022,7 +1022,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Parsli supports PDFs (both native and scanned), JPEG and PNG images, Word documents (DOCX), and Excel files (XLSX). It also processes email body content and email attachments when connected to a Gmail inbox via the email forwarding feature. For most structured document extraction use cases — invoices, bank statements, contracts, forms — Parsli handles the file types you are most likely to encounter."
+        text: "Parsli supports PDFs (both native and scanned), JPEG and PNG images, Word documents (DOCX), and Excel files (XLSX). It also processes email body content and [email attachments](/guides/parse-email-attachments-with-zapier) when connected to a Gmail inbox via the email forwarding feature. For most structured document extraction use cases — invoices, bank statements, contracts, forms — Parsli handles the file types you are most likely to encounter."
       },
       {
         type: "heading",
@@ -1031,7 +1031,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Accuracy for AI-powered document parsing on clearly structured documents like invoices and bank statements typically exceeds 95% for key fields, and is often above 99% on high-quality native PDFs. Accuracy decreases on low-resolution scans, handwritten text, and highly complex multi-column layouts. The best way to evaluate accuracy for your specific documents is to run a sample batch through a free trial — most platforms including Parsli offer free tiers for exactly this purpose."
+        text: "Accuracy for AI-powered document parsing on clearly structured documents like invoices and bank statements typically exceeds 95% for key fields, and is often above 99% on high-quality native PDFs. Accuracy decreases on low-resolution scans, [handwritten text](/guides/extract-data-from-handwritten-documents), and highly complex multi-column layouts. The best way to evaluate accuracy for your specific documents is to run a [sample batch](/guides/batch-process-documents-automatically) through a free trial — most platforms including Parsli offer free tiers for exactly this purpose."
       },
       {
         type: "cta",
@@ -1067,7 +1067,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "For most teams, data entry automation is not a single tool but a combination of approaches applied to different data sources. A company might use Zapier to move data between connected apps, a Python script to process structured CSV exports, and an AI document parser to handle the invoice PDFs and scanned forms that no other tool can read. This guide covers the full landscape so you can choose the right method for your specific situation."
+        text: "For most teams, data entry automation is not a single tool but a combination of approaches applied to different data sources. A company might use [Zapier to parse email attachments](/guides/parse-email-attachments-with-zapier), a Python script to process structured CSV exports, and an AI document parser to handle the invoice PDFs and scanned forms that no other tool can read. This guide covers the full landscape so you can choose the right method for your specific situation."
       },
       {
         type: "heading",
@@ -1133,7 +1133,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Invoice and PO automation is the highest-ROI application of data entry automation for most businesses. Automating invoice capture, validation, and ERP entry typically reduces per-invoice processing cost by 60–80% compared to manual workflows. The key challenge is layout variability across vendors — AI parsers handle this without per-vendor template setup."
+        text: "Invoice and PO automation is the highest-ROI application of data entry automation for most businesses. Automating [invoice capture for small businesses](/guides/automate-invoice-processing-for-small-business), validation, and ERP entry typically reduces per-invoice processing cost by 60–80% compared to manual workflows. The key challenge is layout variability across vendors — AI parsers handle this without per-vendor template setup."
       },
       {
         type: "heading",
@@ -1151,7 +1151,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Paper-based intake forms, printed questionnaires, and scanned application forms are common in healthcare, legal, and government workflows. OCR and AI extraction can capture structured responses from these documents — checkboxes, text fields, signatures — and write them directly to a database or CRM, eliminating the transcription step entirely."
+        text: "Paper-based intake forms, printed questionnaires, and scanned application forms are common in [healthcare](/guides/extract-data-from-medical-records), legal, and government workflows. OCR and AI extraction can capture structured responses from these documents — checkboxes, text fields, signatures — and write them directly to a database or CRM, eliminating the transcription step entirely."
       },
       {
         type: "heading",
@@ -1212,9 +1212,9 @@ export const blogPosts: BlogPost[] = [
         items: [
           "If your data is already in spreadsheets or structured CSV files — use Excel Power Query or a Zapier/Make workflow",
           "If your data arrives as clean digital PDFs from a single consistent source — use a template-based parser like Docparser for low cost",
-          "If your data arrives as invoices from multiple vendors with different layouts — use an AI document parser like Parsli",
-          "If your data arrives as scanned documents or photographed receipts — use an AI parser with built-in OCR",
-          "If you need to connect extraction output to existing software systems with APIs — add Zapier, Make, or webhooks as a downstream layer",
+          "If your data arrives as invoices from multiple vendors with different layouts — use an AI document parser like Parsli to [automate invoice processing](/guides/automate-invoice-processing-for-small-business)",
+          "If your data arrives as scanned documents or photographed [receipts](/guides/automate-receipt-processing-with-make) — use an AI parser with built-in OCR",
+          "If you need to connect extraction output to existing software systems with APIs — add Zapier, [Make](/guides/automate-receipt-processing-with-make), or webhooks as a downstream layer",
           "If you have engineering resources and need deep customization at high volume — consider a cloud API like AWS Textract with custom integration code"
         ]
       },
@@ -1323,7 +1323,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Extracted data can be exported as CSV or JSON, pushed directly to a connected Google Sheet, or forwarded via webhook to any downstream application. For ongoing automation, configure a webhook or a Zapier/Make integration to receive new extraction results automatically as documents are processed. The entire pipeline from document receipt to structured data in your target system requires no manual steps."
+        text: "Extracted data can be exported as CSV or [JSON](/guides/pdf-to-json-extraction), pushed directly to a connected Google Sheet, or forwarded via webhook to any downstream application. For ongoing automation, configure a webhook or a Zapier/Make integration to receive new extraction results automatically as documents are processed. The entire pipeline from document receipt to structured data in your target system requires no manual steps."
       },
       {
         type: "paragraph",
@@ -1422,7 +1422,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "This guide compares 7 Nanonets alternatives across price, ease of setup, extraction approach, and integrations. Whether you process invoices, bank statements, contracts, or custom forms, there is a platform in this list that fits your budget and technical capabilities — including options that start at $0 and require no training data at all."
+        text: "This guide compares 7 Nanonets alternatives across price, ease of setup, extraction approach, and integrations. Whether you process invoices, bank statements, [contracts](/guides/extract-data-from-contracts), or custom forms, there is a platform in this list that fits your budget and technical capabilities — including options that start at $0 and require no training data at all."
       },
       {
         type: "heading",
@@ -1440,7 +1440,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "For enterprise teams processing tens of thousands of pages monthly, this price point is justifiable. For small businesses, accountants, logistics coordinators, and operations managers who need to automate one or two document workflows, it is several multiples of what the job requires."
+        text: "For enterprise teams processing tens of thousands of pages monthly, this price point is justifiable. For [small businesses](/guides/automate-invoice-processing-for-small-business), accountants, [logistics coordinators](/guides/extract-data-from-shipping-documents), and operations managers who need to automate one or two document workflows, it is several multiples of what the job requires."
       },
       {
         type: "heading",
@@ -1462,7 +1462,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Nanonets is designed for enterprise workflows with dedicated IT resources. The platform includes sophisticated model management, workflow approval chains, and ERP integrations built for large organizations. For a 5-person accounting firm or a solo operations manager, this complexity adds overhead without adding value. Simpler tools accomplish the same extraction tasks with less configuration."
+        text: "Nanonets is designed for enterprise workflows with dedicated IT resources. The platform includes sophisticated model management, workflow approval chains, and ERP integrations built for large organizations. For a 5-person accounting firm or a solo operations manager, this complexity adds overhead without adding value. Simpler [no-code tools](/guides/extract-data-from-pdfs-without-code) accomplish the same extraction tasks with less configuration."
       },
       {
         type: "heading",
@@ -1650,7 +1650,7 @@ export const blogPosts: BlogPost[] = [
       {
         type: "list",
         items: [
-          "Need native ERP integrations with QuickBooks, Xero, or SAP for enterprise AP workflows",
+          "Need native ERP integrations with [QuickBooks](/guides/extract-invoice-data-to-quickbooks), Xero, or SAP for enterprise AP workflows",
           "Process extremely high volumes of a single standardized document type and want custom model precision",
           "Require SOC 2 Type II certification today and cannot wait for Parsli to achieve certification",
           "Have dedicated ML or data team resources to manage model training and maintenance",
@@ -1953,7 +1953,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "The trade-off is verbosity. Extracting a table requires specifying table settings, tolerances, and sometimes custom logic for edge cases. For straightforward documents, pdfplumber is overkill. For complex invoices, contracts, or reports where layout matters, it is the most reliable Python option available.",
+        text: "The trade-off is verbosity. Extracting a table requires specifying table settings, tolerances, and sometimes custom logic for edge cases. For straightforward documents, pdfplumber is overkill. For complex invoices, [contracts](/guides/extract-data-from-contracts), or reports where layout matters, it is the most reliable Python option available.",
       },
       {
         type: "heading",
@@ -1984,7 +1984,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "PyMuPDF is a Python binding for the MuPDF rendering library and is significantly faster than any pure-Python PDF library. It is the best choice when you need to extract raw text at scale — for example, pre-processing large batches of native PDFs before feeding them into an LLM or a search index. It also supports rendering PDFs to images, which makes it useful as a first step before applying an OCR model.",
+        text: "PyMuPDF is a Python binding for the MuPDF rendering library and is significantly faster than any pure-Python PDF library. It is the best choice when you need to extract raw text at scale — for example, pre-processing [large batches of native PDFs](/guides/batch-process-documents-automatically) before feeding them into an LLM or a search index. It also supports rendering PDFs to images, which makes it useful as a first step before applying an OCR model.",
       },
       {
         type: "mid-cta",
@@ -2032,7 +2032,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Azure AI Document Intelligence (formerly Form Recognizer) offers prebuilt models for invoices, receipts, business cards, W-2s, and general documents, as well as a custom model option for domain-specific layouts. It integrates tightly with the Azure ecosystem and Azure OpenAI Service, making it a practical choice for teams already building on Microsoft infrastructure. Pricing starts at $0.01 per page for read operations and increases for prebuilt and custom models.",
+        text: "Azure AI Document Intelligence (formerly Form Recognizer) offers prebuilt models for invoices, receipts, business cards, [W-2s](/guides/extract-data-from-tax-forms), and general documents, as well as a custom model option for domain-specific layouts. It integrates tightly with the Azure ecosystem and Azure OpenAI Service, making it a practical choice for teams already building on Microsoft infrastructure. Pricing starts at $0.01 per page for read operations and increases for prebuilt and custom models.",
       },
       {
         type: "heading",
@@ -2110,7 +2110,7 @@ export const blogPosts: BlogPost[] = [
           "If you are a developer extracting tables from native PDFs and want full programmatic control — use pdfplumber or camelot",
           "If you need raw text from native PDFs at high speed for LLM or RAG pipelines — use PyMuPDF",
           "If you need to process scanned PDFs and are already on AWS or Google Cloud — use AWS Textract or Google Document AI",
-          "If you need structured extraction from both scanned and native PDFs without writing code — use Parsli",
+          "If you need structured extraction from both scanned and native PDFs [without writing code](/guides/extract-data-from-pdfs-without-code) — use Parsli",
           "If you process documents from many different senders or formats and cannot afford to maintain per-format templates — use an AI-powered tool like Parsli rather than a template-based platform",
         ],
       },
@@ -2130,7 +2130,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "For table extraction from native PDFs, camelot produces the cleanest output. For general-purpose extraction with maximum flexibility, pdfplumber gives you the most control over layout-sensitive documents. For raw text at scale or when you need to render pages as images, PyMuPDF is the fastest option. The right choice depends on whether your primary target is tables, text, or form fields.",
+        text: "For table extraction from native PDFs, camelot produces the cleanest output. For general-purpose extraction with maximum flexibility, pdfplumber gives you the most control over layout-sensitive documents. For raw text at scale or when you need to render pages as images, PyMuPDF is the fastest option. If you need [PDF data as JSON](/guides/pdf-to-json-extraction), consider a no-code AI tool. The right choice depends on whether your primary target is tables, text, or form fields.",
       },
       {
         type: "heading",
@@ -2221,7 +2221,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Parseur works by having you highlight fields on a sample email or document — the positions of those highlights become the template the parser uses on every future document from that source. This approach is straightforward to set up for a single, known format. The problem is that real-world document intake is rarely that clean. Suppliers change their invoice layouts. Carriers update their shipping notification emails. Each change requires a new template or a manual fix.",
+        text: "Parseur works by having you highlight fields on a sample email or document — the positions of those highlights become the template the parser uses on every future document from that source. This approach is straightforward to set up for a single, known format. The problem is that real-world document intake is rarely that clean. Suppliers change their invoice layouts. Carriers update their [shipping notification](/guides/extract-data-from-shipping-documents) emails. Each change requires a new template or a manual fix.",
       },
       {
         type: "paragraph",
@@ -2243,7 +2243,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "The template approach simply does not scale to high-variety document environments. A procurement team processing invoices from hundreds of vendors cannot feasibly maintain hundreds of templates. Accounts payable teams, logistics operators, and e-commerce businesses with diverse supplier bases consistently hit this ceiling and begin evaluating AI-powered alternatives that handle any layout out of the box.",
+        text: "The template approach simply does not scale to high-variety document environments. A procurement team processing invoices from hundreds of vendors cannot feasibly maintain hundreds of templates. Accounts payable teams, [logistics operators](/guides/extract-data-from-shipping-documents), and e-commerce businesses with diverse supplier bases consistently hit this ceiling and begin evaluating AI-powered alternatives that handle any layout out of the box.",
       },
       {
         type: "heading",
@@ -2468,7 +2468,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Parseur's AI features are layered on top of a template-based core. For email attachments, Parseur still relies on template matching for structured extraction. Parsli applies Gemini 2.5 Pro vision reasoning to the attachment directly — it reads the invoice, contract, or statement the way a human would, extracting the fields you specified in your schema without any template layer.",
+        text: "Parseur's AI features are layered on top of a template-based core. For email attachments, Parseur still relies on template matching for structured extraction. Parsli applies Gemini 2.5 Pro vision reasoning to the attachment directly — it reads the invoice, [contract](/guides/extract-data-from-contracts), or statement the way a human would, extracting the fields you specified in your schema without any template layer.",
       },
       {
         type: "heading",
@@ -2639,7 +2639,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "The harder cases are emails with PDF or image attachments — invoices, receipts, shipping documents — where the data lives not in the email body but in the attached file. A capable email parser needs to open that attachment, apply OCR if necessary, and extract the fields alongside or instead of the body text. This is where many email-focused tools fall short and where AI-powered platforms have a clear advantage.",
+        text: "The harder cases are emails with PDF or image attachments — invoices, receipts, [shipping documents](/guides/extract-data-from-shipping-documents) — where the data lives not in the email body but in the attached file. A capable email parser needs to open that attachment, apply OCR if necessary, and extract the fields alongside or instead of the body text. This is where many email-focused tools fall short and where AI-powered platforms have a clear advantage.",
       },
       {
         type: "heading",
@@ -2657,7 +2657,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Accounts payable teams receive dozens to hundreds of vendor invoices by email every month, typically as PDF attachments. Manually entering invoice number, vendor name, line items, amounts, and due dates into accounting software is time-consuming and error-prone. An email parser that handles PDF attachments can extract all of those fields automatically and push them to QuickBooks, Xero, or a Google Sheet for review and approval.",
+        text: "Accounts payable teams receive dozens to hundreds of vendor invoices by email every month, typically as PDF attachments. Manually entering invoice number, vendor name, line items, amounts, and due dates into accounting software is time-consuming and error-prone. An email parser that handles PDF attachments can extract all of those fields automatically and push them to [QuickBooks](/guides/extract-invoice-data-to-quickbooks), Xero, or a Google Sheet for review and approval.",
       },
       {
         type: "heading",
@@ -2666,7 +2666,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "E-commerce and logistics teams receive order confirmations and shipping notifications in high volumes, often from multiple carriers and platforms with different email formats. Automatically extracting order numbers, tracking codes, expected delivery dates, and customer details eliminates manual lookups and keeps fulfillment data up to date without human intervention.",
+        text: "E-commerce and [logistics teams](/guides/extract-data-from-shipping-documents) receive order confirmations and shipping notifications in high volumes, often from multiple carriers and platforms with different email formats. Automatically extracting order numbers, tracking codes, expected delivery dates, and customer details eliminates manual lookups and keeps fulfillment data up to date without human intervention.",
       },
       {
         type: "heading",
@@ -2684,7 +2684,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Finance teams that manage employee expense reimbursements often receive forwarded receipts as image or PDF attachments. An email parser with attachment OCR capability can extract vendor name, date, total amount, and category from each receipt automatically — replacing a tedious manual process and reducing the chance of duplicate or misclassified claims.",
+        text: "Finance teams that manage employee expense reimbursements often receive forwarded receipts as image or PDF attachments. An email parser with attachment OCR capability can extract vendor name, date, total amount, and category from each [receipt automatically](/guides/automate-receipt-processing-with-make) — replacing a tedious manual process and reducing the chance of duplicate or misclassified claims.",
       },
       {
         type: "heading",
@@ -2780,7 +2780,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Make is a visual automation platform similar to Zapier but with more flexible logic for complex workflows. You can build an email-triggered scenario that downloads attachments, sends them to an AI parsing module or an external API, and routes the structured output to any connected app. Make's per-operation pricing can be cost-effective at moderate volumes. It requires more configuration than a dedicated email parser but gives you more control over the full workflow.",
+        text: "Make is a visual automation platform similar to Zapier but with more flexible logic for complex workflows. You can build an email-triggered scenario that downloads attachments, sends them to an AI parsing module or an external API, and routes the structured output to any connected app. Make is particularly useful for [automating receipt processing](/guides/automate-receipt-processing-with-make). Make's per-operation pricing can be cost-effective at moderate volumes. It requires more configuration than a dedicated email parser but gives you more control over the full workflow.",
       },
       {
         type: "heading",
@@ -2933,7 +2933,7 @@ export const blogPosts: BlogPost[] = [
     content: [
       {
         type: "paragraph",
-        text: "Extracting structured data from PDFs used to require either expensive enterprise software or a developer willing to write brittle regex patterns. In 2026, that is no longer the case. AI-powered tools can now read a PDF — whether it was generated natively or scanned on a decades-old photocopier — and return clean, structured data in seconds.",
+        text: "Extracting structured data from PDFs used to require either expensive enterprise software or a developer willing to write brittle regex patterns. In 2026, that is no longer the case. [AI-powered no-code tools](/guides/extract-data-from-pdfs-without-code) can now read a PDF — whether it was generated natively or scanned on a decades-old photocopier — and return clean, structured data in seconds.",
       },
       {
         type: "paragraph",
@@ -2986,7 +2986,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Some PDFs contain unstructured narrative text — terms and conditions, contract clauses, or notes fields. Extracting specific data points from these sections requires natural language understanding, not just pattern matching. Large language models are particularly well suited to identifying and returning specific facts from free-form prose.",
+        text: "Some PDFs contain unstructured narrative text — terms and conditions, [contract clauses](/guides/extract-data-from-contracts), or notes fields. Extracting specific data points from these sections requires natural language understanding, not just pattern matching. Large language models are particularly well suited to identifying and returning specific facts from free-form prose.",
       },
       {
         type: "heading",
@@ -3039,7 +3039,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Extraction results appear in a structured viewer alongside the original document. You can review individual field values, confirm line item tables, and flag any results for manual correction. Export options include JSON, CSV, Google Sheets via the IMPORTDATA formula, webhooks for real-time downstream systems, and integrations with Zapier and Make.",
+        text: "Extraction results appear in a structured viewer alongside the original document. You can review individual field values, confirm line item tables, and flag any results for manual correction. Export options include [JSON](/guides/pdf-to-json-extraction), CSV, Google Sheets via the IMPORTDATA formula, webhooks for real-time downstream systems, and integrations with [Zapier](/guides/parse-email-attachments-with-zapier) and [Make](/guides/automate-receipt-processing-with-make).",
       },
       {
         type: "mid-cta",
@@ -3169,7 +3169,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "On clean, native PDFs with consistent structure, AI extraction accuracy is typically 97 to 99 percent for standard fields. Scanned documents with good scan quality achieve 92 to 97 percent. Accuracy degrades with poor scan quality, handwritten content, or heavily stylized layouts. Building in a spot-check review step for the first few weeks of a new document type is good practice regardless of the tool.",
+        text: "On clean, native PDFs with consistent structure, AI extraction accuracy is typically 97 to 99 percent for standard fields. Scanned documents with good scan quality achieve 92 to 97 percent. Accuracy degrades with poor scan quality, [handwritten content](/guides/extract-data-from-handwritten-documents), or heavily stylized layouts. Building in a spot-check review step for the first few weeks of a new document type is good practice regardless of the tool.",
       },
       {
         type: "cta",
@@ -3299,7 +3299,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "AI-powered tools use large vision-language models to understand invoice content the same way a human reader would — by interpreting the document visually, not by matching field positions against a template. This means the same extraction logic handles a net-30 invoice from a Fortune 500 vendor and a handwritten-style PDF from a small contractor, without any additional configuration.",
+        text: "AI-powered tools use large vision-language models to understand invoice content the same way a human reader would — by interpreting the document visually, not by matching field positions against a template. This means the same extraction logic handles a net-30 invoice from a Fortune 500 vendor and a [handwritten-style PDF](/guides/extract-data-from-handwritten-documents) from a small contractor, without any additional configuration.",
       },
       {
         type: "paragraph",
@@ -3342,7 +3342,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "After each extraction, results appear in a structured viewer alongside the original document for easy spot-checking. During initial setup, review the first ten to twenty invoices manually to confirm field accuracy. Once confident, export results automatically via CSV download, Google Sheets sync, or webhook to your downstream accounting system. The Zapier integration makes it straightforward to push new extraction results directly to QuickBooks, Xero, or any other tool in your stack.",
+        text: "After each extraction, results appear in a structured viewer alongside the original document for easy spot-checking. During initial setup, review the first ten to twenty invoices manually to confirm field accuracy. Once confident, export results automatically via CSV download, Google Sheets sync, or webhook to your downstream accounting system. The [Zapier integration](/guides/parse-email-attachments-with-zapier) makes it straightforward to push new extraction results directly to [QuickBooks](/guides/extract-invoice-data-to-quickbooks), Xero, or any other tool in your stack.",
       },
       {
         type: "heading",
@@ -3369,7 +3369,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "The Parsli-Zapier integration allows you to trigger a Zap whenever a new document is processed. You can map extracted invoice fields — vendor, invoice number, total, line items — to the corresponding fields in a QuickBooks or Xero bill creation action. This creates bills in your accounting software automatically from emailed invoices with no manual step.",
+        text: "The Parsli-Zapier integration allows you to trigger a Zap whenever a new document is processed. You can map extracted invoice fields — vendor, invoice number, total, line items — to the corresponding fields in a [QuickBooks or Xero bill creation action](/guides/extract-invoice-data-to-quickbooks). This creates bills in your accounting software automatically from emailed invoices with no manual step.",
       },
       {
         type: "heading",
@@ -3427,7 +3427,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "The most common path is through Zapier. Connect Parsli to Zapier and create a Zap that fires when a new document is extracted. Map the extracted fields — vendor, amount, line items, due date — to the QuickBooks Create Bill action. The Zap runs automatically for every invoice processed, pushing new bills into QuickBooks without any manual data entry step.",
+        text: "The most common path is through Zapier. Connect Parsli to Zapier and create a Zap that fires when a new document is extracted. Map the extracted fields — vendor, amount, line items, due date — to the [QuickBooks Create Bill action](/guides/extract-invoice-data-to-quickbooks). The Zap runs automatically for every invoice processed, pushing new bills into QuickBooks without any manual data entry step.",
       },
       {
         type: "heading",
@@ -3436,7 +3436,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "For small businesses without dedicated IT resources, the best tool is one that requires no template setup, handles varied vendor formats, and integrates with existing tools. Parsli's free plan covers 30 pages per month — enough for many small business invoice volumes — and the paid Starter plan at $33 per month handles larger volumes. The Gmail integration eliminates manual upload for teams that receive invoices by email.",
+        text: "For [small businesses](/guides/automate-invoice-processing-for-small-business) without dedicated IT resources, the best tool is one that requires no template setup, handles varied vendor formats, and integrates with existing tools. Parsli's free plan covers 30 pages per month — enough for many small business invoice volumes — and the paid Starter plan at $33 per month handles larger volumes. The Gmail integration eliminates manual upload for teams that receive invoices by email.",
       },
       {
         type: "heading",
@@ -3633,7 +3633,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Make includes basic email trigger modules that can watch an inbox and extract simple fields from email body text. Like Zapier, it is primarily a workflow automation platform rather than a dedicated parser, and its native parsing capabilities are limited. For teams already using Make for other automations, it can handle simple email extraction without adding another tool. For complex document parsing from email attachments, connecting Make to a dedicated parser API produces better results.",
+        text: "Make includes basic email trigger modules that can watch an inbox and extract simple fields from email body text. Like Zapier, it is primarily a workflow automation platform rather than a dedicated parser, and its native parsing capabilities are limited. For teams already using Make for other automations, it can handle simple email extraction without adding another tool. For complex document parsing from email attachments, connecting [Make to a dedicated parser](/guides/automate-receipt-processing-with-make) API produces better results.",
       },
       {
         type: "heading",
@@ -3749,7 +3749,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Mailparser's core capability is email body text extraction with limited PDF support. For teams whose actual data is inside attached invoices, receipts, or shipping documents, Mailparser requires either a separate document parsing tool or manual extraction. Parsli handles email body and PDF attachments in a single workflow — same schema, same output destination, zero additional tooling.",
+        text: "Mailparser's core capability is email body text extraction with limited PDF support. For teams whose actual data is inside attached invoices, [receipts](/guides/automate-receipt-processing-with-make), or [shipping documents](/guides/extract-data-from-shipping-documents), Mailparser requires either a separate document parsing tool or manual extraction. Parsli handles email body and PDF attachments in a single workflow — same schema, same output destination, zero additional tooling.",
       },
       {
         type: "heading",
@@ -3941,7 +3941,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Statements downloaded directly from online banking portals are native PDFs — the text layer is embedded and extractable. Statements that were printed and then scanned — common for older documents, tax filings, and mortgage applications — exist as image PDFs with no text layer at all. Extracting data from those requires OCR or AI vision, not just a PDF text reader.",
+        text: "Statements downloaded directly from online banking portals are native PDFs — the text layer is embedded and extractable. Statements that were printed and then scanned — common for older documents, [tax filings](/guides/extract-data-from-tax-forms), and mortgage applications — exist as image PDFs with no text layer at all. Extracting data from those requires OCR or AI vision, not just a PDF text reader.",
       },
       {
         type: "heading",
@@ -4087,7 +4087,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Many small business owners still receive bank statements by email as PDF attachments and manage their cash flow manually in a spreadsheet. Automating the extraction step — forwarding the email to Parsli, getting back a clean transaction table — turns a weekly manual task into something that happens in the background without any effort.",
+        text: "Many [small business owners](/guides/automate-invoice-processing-for-small-business) still receive bank statements by email as PDF attachments and manage their cash flow manually in a spreadsheet. Automating the extraction step — forwarding the email to Parsli, getting back a clean transaction table — turns a weekly manual task into something that happens in the background without any effort.",
       },
       {
         type: "paragraph",
@@ -4141,7 +4141,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "For non-developers who need reliable extraction across multiple bank formats, Parsli is the strongest option in 2026. It handles native and scanned PDFs, requires no template setup, and exports to spreadsheets directly. For developers who need batch processing at scale and are comfortable managing infrastructure, AWS Textract AnalyzeDocument or pdfplumber combined with pandas is a cost-effective alternative.",
+        text: "For non-developers who need reliable extraction across multiple bank formats, Parsli is the strongest option in 2026. It handles native and scanned PDFs, requires no template setup, and exports to spreadsheets directly. For developers who need [batch processing at scale](/guides/batch-process-documents-automatically) and are comfortable managing infrastructure, AWS Textract AnalyzeDocument or pdfplumber combined with pandas is a cost-effective alternative.",
       },
       {
         type: "cta",
@@ -4189,7 +4189,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Consider how much time is lost to a single recurring email type. A team that receives 30 vendor invoices per week and manually copies the invoice number, vendor name, line items, and total into a spreadsheet is spending several hours every week on a task that provides no analytical value — only accurate data entry. That time compounds across months.",
+        text: "Consider how much time is lost to a single recurring email type. A team that receives 30 vendor invoices per week and manually copies the invoice number, vendor name, line items, and total into a spreadsheet is spending several hours every week on a task that provides no analytical value — only accurate data entry. [Small businesses](/guides/automate-invoice-processing-for-small-business) feel this burden most acutely. That time compounds across months.",
       },
       {
         type: "paragraph",
@@ -4286,7 +4286,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "If your workflow involves PDF invoices, scanned receipts, or any document-type attachments, Zapier Email Parser is not the right tool. It handles the routing but cannot perform the extraction that the attachment requires.",
+        text: "If your workflow involves PDF invoices, scanned receipts, or any document-type attachments, Zapier Email Parser is not the right tool. It handles the routing but cannot perform the extraction that the attachment requires. For attachment-heavy workflows, see our guide on [parsing email attachments with Zapier](/guides/parse-email-attachments-with-zapier).",
       },
       {
         type: "heading",
@@ -4440,7 +4440,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "PDFs are the most common attachment type for business documents. Invoices, bank statements, contracts, purchase orders, and tax forms are almost universally distributed as PDFs. Both native PDFs (with an embedded text layer) and scanned PDFs (image-only) can be processed, though scanned documents require AI vision rather than simple text extraction.",
+        text: "PDFs are the most common attachment type for business documents. Invoices, bank statements, [contracts](/guides/extract-data-from-contracts), purchase orders, and [tax forms](/guides/extract-data-from-tax-forms) are almost universally distributed as PDFs. Both native PDFs (with an embedded text layer) and scanned PDFs (image-only) can be processed, though scanned documents require AI vision rather than simple text extraction.",
       },
       {
         type: "heading",
@@ -4449,7 +4449,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "JPG and PNG attachments are common for scanned receipts, handwritten forms, and photos of documents taken on a phone. These are image-only by nature and require a vision model to extract any structured data. Parsli uses Google Gemini 2.5 Pro, which handles image attachments the same way it handles scanned PDFs — no separate configuration needed.",
+        text: "JPG and PNG attachments are common for scanned receipts, [handwritten forms](/guides/extract-data-from-handwritten-documents), and photos of documents taken on a phone. These are image-only by nature and require a vision model to extract any structured data. Parsli uses Google Gemini 2.5 Pro, which handles image attachments the same way it handles scanned PDFs — no separate configuration needed.",
       },
       {
         type: "heading",
@@ -4458,7 +4458,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Word documents (.docx) and Excel files (.xlsx) attached to emails can also be parsed for structured data. This is useful for purchase order templates sent by clients, timesheet submissions, or expense reports submitted as spreadsheets. The extraction schema works the same way — you define the fields, and Parsli identifies them in the file regardless of format.",
+        text: "Word documents (.docx) and [Excel files (.xlsx)](/guides/extract-data-from-excel-to-json) attached to emails can also be parsed for structured data. This is useful for purchase order templates sent by clients, timesheet submissions, or expense reports submitted as spreadsheets. The extraction schema works the same way — you define the fields, and Parsli identifies them in the file regardless of format.",
       },
       {
         type: "heading",
@@ -4529,7 +4529,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Make offers more powerful conditional logic than Zapier, making it the better choice when you need to route extracted data differently based on the attachment content — for example, sending invoices above a certain amount to a different spreadsheet or triggering an approval workflow for specific vendors. Make connects to Parsli via its REST API the same way Zapier does.",
+        text: "Make offers more powerful conditional logic than Zapier, making it the better choice when you need to route extracted data differently based on the attachment content — for example, sending invoices above a certain amount to a different spreadsheet or triggering an approval workflow for specific vendors. Learn more in our guide to [automating receipt processing with Make](/guides/automate-receipt-processing-with-make). Make connects to Parsli via its REST API the same way Zapier does.",
       },
       {
         type: "heading",
@@ -4574,7 +4574,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Finance teams that process employee expense reimbursements often receive receipt images or PDF scans by email. Parsing these attachments for merchant, date, category, and amount automates the first step of expense processing — data capture — before the approval workflow even begins. The reduction in manual entry time is significant for teams with frequent traveler reimbursements.",
+        text: "Finance teams that process employee expense reimbursements often receive receipt images or PDF scans by email. Parsing these attachments for merchant, date, category, and amount [automates the first step of expense processing](/guides/automate-receipt-processing-with-make) — data capture — before the approval workflow even begins. The reduction in manual entry time is significant for teams with frequent traveler reimbursements.",
       },
       {
         type: "paragraph",
@@ -4667,7 +4667,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "APIs are the right choice when document extraction needs to be embedded into a software application, triggered by an upstream system, or run in batch at scale without any human review step. If you are building an accounts payable product, automating a mortgage underwriting pipeline, or feeding extracted document data into an LLM, a parsing API is what connects the documents to your system.",
+        text: "APIs are the right choice when document extraction needs to be embedded into a software application, triggered by an upstream system, or run in [batch at scale](/guides/batch-process-documents-automatically) without any human review step. If you are building an accounts payable product, automating a mortgage underwriting pipeline, or feeding extracted document data into an LLM, a parsing API is what connects the documents to your system.",
       },
       {
         type: "heading",
@@ -4737,7 +4737,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Formerly known as Form Recognizer, Azure AI Document Intelligence provides pre-built models for invoices, receipts, identity documents, business cards, and tax forms, alongside a custom model training option. Its deepest advantage is integration with Microsoft 365 — extracted data can flow directly into Power Automate workflows, SharePoint lists, or Excel Online. For enterprises standardized on Microsoft infrastructure, it reduces integration friction significantly.",
+        text: "Formerly known as Form Recognizer, Azure AI Document Intelligence provides pre-built models for invoices, receipts, identity documents, business cards, and [tax forms](/guides/extract-data-from-tax-forms), alongside a custom model training option. Its deepest advantage is integration with Microsoft 365 — extracted data can flow directly into Power Automate workflows, SharePoint lists, or Excel Online. For enterprises standardized on Microsoft infrastructure, it reduces integration friction significantly.",
       },
       {
         type: "heading",
@@ -4746,7 +4746,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Parsli exposes a REST API that uses the same Google Gemini 2.5 Pro model that powers its no-code interface. The core workflow is to POST a document file to the submissions endpoint with your API key and parser ID, then either poll the result endpoint or receive extracted data via a webhook callback. The response is a JSON object containing the fields you defined in your extraction schema — no post-processing required.",
+        text: "Parsli exposes a REST API that uses the same Google Gemini 2.5 Pro model that powers its [no-code interface](/guides/extract-data-from-pdfs-without-code). The core workflow is to POST a document file to the submissions endpoint with your API key and parser ID, then either poll the result endpoint or receive extracted data via a webhook callback. The response is a [JSON object](/guides/pdf-to-json-extraction) containing the fields you defined in your extraction schema — no post-processing required.",
       },
       {
         type: "paragraph",
@@ -5075,7 +5075,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "When a single inbox receives invoices, purchase orders, receipts, and scanned paper forms, agentic extraction can process all of them through the same pipeline. Template-based systems require separate templates for each document type and often fail when an unexpected type arrives. Agentic systems identify document type contextually and extract relevant fields accordingly.",
+        text: "When a single inbox receives invoices, purchase orders, receipts, and scanned paper forms, agentic extraction can [process all of them through the same pipeline](/guides/batch-process-documents-automatically). Template-based systems require separate templates for each document type and often fail when an unexpected type arrives. Agentic systems identify document type contextually and extract relevant fields accordingly.",
       },
       {
         type: "heading",
@@ -5131,7 +5131,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Bank statements are among the most layout-inconsistent document types in common business use. Every bank uses different column arrangements, different terminology for debits and credits, and different multi-page structures. Agentic extraction processes each bank's format directly without requiring you to create and maintain a separate extraction template for each institution — a significant advantage for bookkeepers working across multiple clients.",
+        text: "Bank statements are among the most layout-inconsistent document types in common business use. Every bank uses different column arrangements, different terminology for debits and credits, and different multi-page structures. Agentic extraction processes each bank's format directly [without requiring you to create templates](/guides/extract-data-from-pdfs-without-code) for each institution — a significant advantage for bookkeepers working across multiple clients.",
       },
       {
         type: "heading",
@@ -5200,7 +5200,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "On standard business documents such as invoices and bank statements, modern agentic extraction achieves 95–99 percent field-level accuracy. Complex layouts, heavily degraded scans, or handwritten annotations may see lower accuracy. The self-correction capabilities of agentic systems — where the AI validates its output against internal consistency rules — reduce error rates compared to single-pass extraction approaches and make agentic tools particularly well-suited for high-stakes document workflows.",
+        text: "On standard business documents such as invoices and bank statements, modern agentic extraction achieves 95–99 percent field-level accuracy. Complex layouts, heavily degraded scans, or [handwritten annotations](/guides/extract-data-from-handwritten-documents) may see lower accuracy. The self-correction capabilities of agentic systems — where the AI validates its output against internal consistency rules — reduce error rates compared to single-pass extraction approaches and make agentic tools particularly well-suited for high-stakes document workflows.",
       },
       {
         type: "heading",
