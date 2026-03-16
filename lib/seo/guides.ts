@@ -2925,7 +2925,7 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "Shipping documents are the paperwork that accompanies goods in transit. The three most common types are bills of lading (BOLs), which serve as contracts between shippers and carriers; packing slips, which detail the contents of a shipment; and shipping labels, which contain tracking numbers, addresses, and handling instructions. International shipments add customs declarations, commercial invoices, and certificates of origin.",
+        text: "Shipping documents are the paperwork that accompanies goods in transit. The three most common types are [bills of lading](/guides/extract-data-from-bills-of-lading) (BOLs), which serve as contracts between shippers and carriers; packing slips, which detail the contents of a shipment; and shipping labels, which contain tracking numbers, addresses, and handling instructions. International shipments add customs declarations, commercial invoices, and certificates of origin.",
       },
       {
         type: "paragraph",
@@ -3123,7 +3123,7 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "Extracting weights, dimensions, and freight classes from BOLs lets you automatically verify carrier invoices. When the BOL says 1,240 lbs and the carrier bills for 1,500 lbs, automated extraction flags the discrepancy before you pay — recovering overcharges that manual processes routinely miss.",
+        text: "Extracting weights, dimensions, and freight classes from BOLs lets you automatically verify [freight invoices](/guides/automate-freight-invoice-processing). When the BOL says 1,240 lbs and the carrier bills for 1,500 lbs, automated extraction flags the discrepancy before you pay — recovering overcharges that manual processes routinely miss.",
       },
       {
         type: "heading",
@@ -3283,6 +3283,8 @@ const guides: GuideData[] = [
       "what-is-document-parsing",
       "automate-data-entry",
       "extract-data-from-pdf-automatically",
+      "bill-of-lading-requirements-complete-guide",
+      "freight-invoice-processing-automation",
     ],
   },
   {
@@ -8228,6 +8230,2097 @@ const guides: GuideData[] = [
       "best-invoice-ocr-software",
       "automate-invoice-data-extraction",
       "extract-data-from-pdf-automatically",
+    ],
+  },
+  {
+    slug: "extract-data-from-bills-of-lading",
+    title: "How to Extract Data from Bills of Lading Automatically",
+    h1: "How to Extract Data from Bills of Lading Automatically",
+    metaTitle: "How to Extract Data from Bills of Lading Automatically | Parsli",
+    metaDescription:
+      "Learn 3 methods to extract data from bills of lading — manual, Python/OCR, and AI-powered. Compare accuracy for faded thermal prints and handwritten BOLs.",
+    publishedAt: "2026-03-16",
+    updatedAt: "2026-03-16",
+    author: "Talal Bazerbachi",
+    authorTitle: "Founder at Parsli",
+    readTime: "9 min read",
+    category: "Document Extraction" as const,
+    imageTitle: "Extract BOL Data",
+    tldr: [
+      "**Bill of lading extraction** pulls shipper, consignee, commodity, weight, piece count, PRO number, and 17+ FMCSA-required fields from BOLs into structured data for your TMS or WMS.",
+      "**Manual BOL entry** averages 12.7 minutes per document — and error rates spike on faded thermal prints, handwritten BOLs, and multi-page documents with rider pages.",
+      "**Python + OCR** scripts work on clean digital BOLs but fail on thermal prints, handwritten fields, and the wide format variation across carriers and shippers.",
+      "**AI-powered extraction** handles faded thermal paper, handwriting, and any carrier format with 95%+ accuracy — even for BOLs that OCR engines can't read. [Try the free BOL parser →](/tools/bol-parser)",
+      "**Parsli recommendation**: Use AI extraction for any operation processing more than 20 BOLs per day. The 92% time reduction pays for itself within the first week.",
+    ],
+    content: [
+      {
+        type: "key-stat",
+        stats: [
+          { value: "12.7 min", label: "Avg manual entry per BOL" },
+          { value: "92%", label: "Time reduction with AI extraction" },
+          { value: "17+", label: "FMCSA-required fields per BOL" },
+          { value: "95%+", label: "AI accuracy on faded prints" },
+        ],
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "What is bill of lading data extraction?",
+        id: "what-is-bol-extraction",
+      },
+      {
+        type: "paragraph",
+        text: "Bill of lading data extraction is the process of pulling structured information from BOL documents — shipper name and address, consignee details, carrier information, PRO number, PO number, commodity descriptions, NMFC codes, freight class, weight, piece count, handling instructions, and delivery terms — into a format your TMS, WMS, or accounting system can process.",
+      },
+      {
+        type: "paragraph",
+        text: "A standard BOL contains 17+ fields required by FMCSA regulations, but real-world BOLs often include additional data: hazmat classifications, temperature requirements, seal numbers, trailer numbers, and special delivery instructions. Extracting all of this from a document that might be a faded thermal printout, a handwritten form, or a multi-page PDF with rider pages is where the challenge lies.",
+      },
+      {
+        type: "paragraph",
+        text: "This guide covers three approaches to extracting BOL data — from manual keying to fully automated AI pipelines — so you can choose the right method based on your daily volume, document quality, and integration requirements.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Why manual BOL extraction is painful",
+        id: "why-manual-is-painful",
+      },
+      {
+        type: "paragraph",
+        text: "Receiving docks, freight brokerages, and 3PL operations deal with BOLs from hundreds of shippers and carriers — each with their own format, layout, and level of document quality. Manual data entry creates bottlenecks at every stage of the supply chain.",
+      },
+      {
+        type: "list",
+        items: [
+          "**Extreme format variation** — Every shipper and carrier uses a different BOL template. Some are pre-printed forms with handwritten entries, others are system-generated PDFs, and some are carbon copies from multi-part forms. No two companies format their BOLs the same way.",
+          "**Faded thermal prints** — BOLs printed on thermal paper fade within weeks, especially in warehouse environments. By the time you need to reference the document, key fields may be partially or completely illegible.",
+          "**17+ fields per document** — FMCSA requires shipper, consignee, carrier, commodity description, weight, class, and handling instructions at minimum. Most BOLs contain 20-30 data points when you include PO numbers, seal numbers, and special instructions.",
+          "**Volume at receiving docks** — A busy 3PL receiving dock processes 200-500 BOLs per day. At 12.7 minutes per BOL for manual entry, that is 42-106 hours of data entry work — every single day.",
+          "**Handwritten fields** — Many BOLs include handwritten additions: piece counts adjusted at delivery, exception notes, driver signatures, and amended weights. These handwritten entries are critical for dispute resolution but nearly impossible for basic OCR.",
+        ],
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "How to extract BOL data: 3 methods compared",
+        id: "how-to-extract-bol-data",
+      },
+      {
+        type: "table",
+        headers: [
+          "Method",
+          "Speed",
+          "Accuracy",
+          "Faded Prints",
+          "Setup",
+          "Cost",
+        ],
+        rows: [
+          [
+            "Manual entry",
+            "12.7 min/BOL",
+            "85-90%",
+            "Human reads",
+            "None",
+            "$8-15/BOL (labor)",
+          ],
+          [
+            "Python + OCR",
+            "5-15 sec/BOL",
+            "60-80%",
+            "Fails often",
+            "Weeks",
+            "Free (dev time)",
+          ],
+          [
+            "Parsli AI",
+            "< 10 sec/BOL",
+            "95%+",
+            "Handles well",
+            "Minutes",
+            "Free tier available",
+          ],
+        ],
+        highlightColumn: 2,
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "Method 1: Manual data entry",
+        id: "method-1-manual",
+      },
+      {
+        type: "paragraph",
+        text: "The receiving clerk reads each BOL, identifies the relevant fields, and types them into the TMS or WMS. This is the default process at most warehouses and freight operations, and it works — slowly — for low-volume operations. The clerk's domain knowledge compensates for poor document quality: they can read faded thermal prints, interpret handwritten notes, and recognize carrier-specific formats.",
+      },
+      {
+        type: "pros-cons",
+        pros: [
+          "No technology required — works immediately",
+          "Humans can read faded prints and handwriting",
+          "Domain knowledge catches data inconsistencies",
+          "Handles any BOL format without configuration",
+        ],
+        cons: [
+          "12.7 minutes per BOL at best — creates receiving bottlenecks",
+          "85-90% accuracy — transposition errors compound downstream",
+          "Does not scale past 50-100 BOLs per day without additional staff",
+          "Key-person dependency — experienced clerks are hard to replace",
+          "No audit trail — errors discovered weeks later cannot be traced",
+        ],
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "Method 2: Python + OCR scripting",
+        id: "method-2-python-ocr",
+      },
+      {
+        type: "paragraph",
+        text: "Python scripts using Tesseract OCR or similar engines extract text from BOL images, then regex patterns or template-based logic parse the text into structured fields. This approach works on clean, digital BOLs from major carriers with consistent formats — but struggles with the real-world conditions of freight documents.",
+      },
+      {
+        type: "tool-review",
+        name: "Tesseract OCR",
+        bestFor: "Developers processing **clean, digital BOLs** from a small number of carriers with consistent formats and high print quality.",
+        features: [
+          "Open-source OCR engine with Python bindings (pytesseract)",
+          "Supports multiple languages and character sets",
+          "Can be combined with OpenCV for image preprocessing",
+          "Works well on high-contrast, cleanly printed documents",
+          "Free to use with no API costs",
+        ],
+        pros: [
+          "Free and open-source",
+          "Fast processing on clean documents",
+          "Full control over extraction logic",
+          "Can be integrated into existing Python pipelines",
+        ],
+        cons: [
+          "Accuracy drops to 40-60% on faded thermal prints",
+          "Cannot read handwritten fields",
+          "Requires separate template for every BOL format",
+          "Significant preprocessing needed for real-world document quality",
+          "Maintenance burden grows with number of carrier formats",
+        ],
+        verdict: "Tesseract works for a narrow use case: clean, digital BOLs from a few carriers. For real-world BOL processing with faded prints, handwriting, and hundreds of formats, you need a more capable solution.",
+      },
+      {
+        type: "pros-cons",
+        pros: [
+          "Fast batch processing once templates are built",
+          "Free (open-source tools)",
+          "Full control over data pipeline",
+        ],
+        cons: [
+          "Fails on faded thermal prints (40-60% accuracy)",
+          "Cannot read handwritten BOL fields",
+          "Requires a template for every carrier/shipper format",
+          "Weeks of development time per template",
+          "Breaks when carriers change their BOL format",
+        ],
+      },
+      {
+        type: "callout",
+        variant: "warning",
+        text: "OCR accuracy on thermal paper BOLs degrades rapidly. A BOL that prints at 300 DPI becomes barely readable after 2-3 weeks in a warehouse environment. If your BOLs sit in receiving files before data entry, OCR will miss critical fields that a human could still read.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "Method 3: AI-powered extraction with Parsli",
+        id: "method-3-parsli",
+      },
+      {
+        type: "tool-review",
+        name: "Parsli",
+        bestFor: "3PLs, freight brokers, and warehouse operations processing **BOLs from multiple carriers and shippers** with varying formats, faded thermal prints, and [handwritten fields](/tools/handwriting-to-text).",
+        features: [
+          "No-code schema builder — define BOL fields visually",
+          "Handles faded thermal prints and handwritten entries",
+          "Processes any carrier or shipper BOL format without templates",
+          "Extracts NMFC codes, freight class, hazmat info, and seal numbers",
+          "Export to TMS, WMS, or [Excel](/tools/pdf-to-excel) via API, webhook, or Zapier",
+        ],
+        pros: [
+          "95%+ accuracy even on faded thermal prints",
+          "Reads handwritten additions and exception notes",
+          "One schema works across all carrier and shipper formats",
+          "30 free pages/month to start",
+        ],
+        cons: [
+          "Requires internet connection (cloud-based)",
+          "Free tier limited to 30 pages/month",
+        ],
+        verdict: "For any operation processing more than 20 BOLs per day, AI extraction eliminates the receiving dock bottleneck. The ability to handle faded thermal prints and handwriting — where OCR fails — makes it the only viable automated solution for real-world BOL processing. [Try it free](/tools/bol-parser) with no sign-up.",
+      },
+      {
+        type: "paragraph",
+        text: "AI extraction understands BOL structure semantically — it knows that the block in the upper-left is typically the shipper, the block in the upper-right is the consignee, and the table in the middle contains commodity descriptions with associated weights and freight classes. This structural understanding means it works on any BOL format without per-carrier templates.",
+      },
+      {
+        type: "step",
+        number: 1,
+        title: "Create a parser and define your BOL schema",
+        description:
+          "In Parsli's no-code schema builder, add the fields you need: shipper_name, shipper_address, consignee_name, consignee_address, carrier_name, pro_number, po_number, ship_date, delivery_date, commodity_description, nmfc_code, freight_class, weight, piece_count, handling_unit, hazmat_flag, seal_number, and special_instructions. Use repeating groups for line items.",
+      },
+      {
+        type: "step",
+        number: 2,
+        title: "Upload or forward BOLs to Parsli",
+        description:
+          "Upload scanned BOLs via drag-and-drop, forward emailed BOLs directly to your Parsli inbox, or push documents via REST API from your scanning station. Parsli handles thermal prints, carbon copies, photographed documents, and multi-page BOLs with rider pages.",
+      },
+      {
+        type: "step",
+        number: 3,
+        title: "Export extracted data to your WMS or TMS",
+        description:
+          "Parsli returns structured JSON with confidence scores for every field. Push data to your WMS via [webhook](/guides/bol-data-to-wms-integration), pull via REST API, or connect through [Zapier](/integrations/zapier). Set up validation rules to flag low-confidence fields for human review before they hit your system.",
+      },
+      {
+        type: "tool-callout",
+        href: "/tools/bol-parser",
+        title: "Free BOL Parser",
+        description:
+          "Try extracting data from a bill of lading right now. Upload a BOL and see shipper, consignee, commodity, and weight extracted in seconds — no sign-up required.",
+      },
+      {
+        type: "mid-cta",
+        text: "Processing 100+ BOLs per day? See how Parsli cuts processing time by 92%.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Use cases for BOL data extraction",
+        id: "use-cases",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "1. 3PL receiving docks",
+        id: "use-case-3pl-receiving",
+      },
+      {
+        type: "paragraph",
+        text: "At a busy 3PL receiving dock, BOLs arrive with every inbound shipment — often 200-500 per day. Each BOL must be keyed into the WMS before freight can be put away. Manual entry creates a bottleneck: freight sits on the dock waiting for data entry while dock doors are occupied. AI extraction processes BOLs in under 10 seconds, enabling same-hour putaway and freeing dock doors for the next trailer.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "2. Freight brokerages",
+        id: "use-case-freight-brokers",
+      },
+      {
+        type: "paragraph",
+        text: "Freight brokers process BOLs from dozens of carriers and hundreds of shippers — each with unique formats. Extracting shipment details into the TMS enables automated tracking updates, invoice reconciliation against [carrier freight bills](/guides/automate-freight-invoice-processing), and proof-of-delivery documentation. The format variation across carriers makes AI extraction the only scalable approach.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "3. Customs compliance",
+        id: "use-case-customs",
+      },
+      {
+        type: "paragraph",
+        text: "International shipments require BOL data for [customs declarations](/guides/extract-data-from-customs-documents) — commodity descriptions, weights, shipper/consignee details, and country of origin. Extracting BOL data automatically feeds customs filing workflows, reducing the risk of delays at ports of entry caused by incomplete or incorrect manual entries on customs forms.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Best practices for BOL extraction",
+        id: "best-practices",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "1. Scan BOLs immediately at receiving",
+        id: "bp-scan-immediately",
+      },
+      {
+        type: "paragraph",
+        text: "Thermal paper BOLs fade rapidly — especially in hot warehouse environments. Scan or photograph BOLs within hours of receipt, before the thermal print degrades. A quick phone photo at the dock door preserves the document quality needed for accurate extraction. Waiting even a few days can reduce OCR accuracy by 20-30% on thermal prints.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "2. Design your schema around downstream systems",
+        id: "bp-schema-design",
+      },
+      {
+        type: "paragraph",
+        text: "Your BOL extraction schema should mirror the fields your WMS or TMS expects. Map field names to match your system's import format — if your WMS calls it 'vendor_name' instead of 'shipper_name,' use your WMS terminology in the schema. This eliminates field-mapping steps and enables direct data push via webhook or API.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "3. Use confidence scores for quality control",
+        id: "bp-confidence-scores",
+      },
+      {
+        type: "paragraph",
+        text: "Set confidence thresholds for critical fields like weight, piece count, and PO number. Route high-confidence extractions directly to your WMS, and flag low-confidence results for human review. This hybrid approach gives you the speed of automation with the accuracy safety net of human verification on uncertain fields.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Common mistakes to avoid",
+        id: "common-mistakes",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "1. Over-extracting fields you don't use",
+        id: "mistake-over-extracting",
+      },
+      {
+        type: "paragraph",
+        text: "A BOL contains 20-30+ data points, but your WMS might only need 10-12 for receiving. Define your schema with only the fields your downstream systems consume. Extracting every possible field increases processing time, adds review burden for low-confidence values, and creates data that nobody looks at. Start with your WMS required fields and add more only when specific workflows demand them.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "2. Ignoring confidence scores on critical fields",
+        id: "mistake-ignoring-confidence",
+      },
+      {
+        type: "paragraph",
+        text: "Weight and piece count errors on BOLs cause inventory discrepancies, billing disputes, and carrier claims. When AI extraction returns a weight value with 75% confidence, that field needs human verification before it enters your WMS. Ignoring confidence scores and accepting all extracted values at face value defeats the purpose of automated quality control.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "3. Not automating document intake",
+        id: "mistake-manual-intake",
+      },
+      {
+        type: "paragraph",
+        text: "The extraction itself might take 10 seconds, but if someone still has to manually scan each BOL, save it to a folder, and upload it to the extraction tool, you have only automated half the process. Set up email forwarding for emailed BOLs, API integration for scanner stations, and mobile capture apps for dock-door scanning. The intake step is often the real bottleneck, not the extraction.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "From paper BOLs to structured freight data",
+        id: "conclusion",
+      },
+      {
+        type: "paragraph",
+        text: "Bill of lading extraction transforms the receiving dock bottleneck into an automated data pipeline. When BOL data flows from document to WMS in under 10 seconds — instead of 12.7 minutes of manual keying — freight moves faster, inventory is accurate sooner, and your team focuses on exceptions instead of data entry.",
+      },
+      {
+        type: "paragraph",
+        text: "Whether you process 20 BOLs a day or 500, the right extraction approach depends on your document quality (thermal prints vs digital), format variation (single carrier vs hundreds), and integration requirements (manual export vs automated WMS push). Start with the [free BOL parser](/tools/bol-parser) to see what automated extraction looks like on your actual BOLs.",
+      },
+      { type: "cta" },
+    ],
+    faqs: [
+      {
+        question: "What data can I extract from a bill of lading?",
+        answer:
+          "You can extract shipper and consignee names and addresses, carrier information, PRO and PO numbers, ship and delivery dates, commodity descriptions, NMFC codes, freight class, weight, piece count, handling units, hazmat classifications, seal numbers, trailer numbers, and special handling instructions.",
+      },
+      {
+        question: "Can AI extraction read faded thermal paper BOLs?",
+        answer:
+          "Yes. AI-powered extraction like Parsli achieves 95%+ accuracy on faded thermal prints that cause traditional OCR engines to fail. The AI uses contextual understanding to reconstruct partially faded text based on document structure and field patterns.",
+      },
+      {
+        question: "How does BOL extraction handle handwritten fields?",
+        answer:
+          "AI extraction reads handwritten additions on BOLs — piece count corrections, exception notes, and delivery annotations. Accuracy varies by handwriting legibility, but confidence scores flag uncertain handwritten fields for human review.",
+      },
+      {
+        question: "Can I extract data from multi-page BOLs with rider pages?",
+        answer:
+          "Yes. Parsli processes multi-page documents as a single unit, extracting data from the main BOL page and any attached rider pages, continuation sheets, or supplemental documentation. All line items across pages are consolidated into a single structured output.",
+      },
+      {
+        question: "How do I send extracted BOL data to my WMS?",
+        answer:
+          "Parsli offers three integration methods: webhooks (push data to your WMS endpoint automatically), REST API (pull data on your schedule), and Zapier (connect to 5,000+ apps without code). See our guide on BOL-to-WMS integration for step-by-step setup.",
+      },
+      {
+        question: "What is the accuracy of BOL extraction compared to manual entry?",
+        answer:
+          "AI extraction achieves 95%+ accuracy on BOLs, compared to 85-90% for manual entry. The improvement comes from eliminating transposition errors, consistent field parsing, and confidence-score-based quality control that flags uncertain values for human review.",
+      },
+    ],
+    relatedTools: [
+      {
+        href: "/tools/bol-parser",
+        title: "Free BOL Parser",
+        description: "Extract text from bills of lading instantly.",
+      },
+    ],
+    relatedSolutions: ["logistics-document-automation", "document-parsing-api"],
+    relatedCompare: ["shipamax", "parseur"],
+    relatedBlog: [
+      "bill-of-lading-requirements-complete-guide",
+      "bol-errors-prevention-guide",
+      "cost-of-manual-data-entry-3pl",
+    ],
+  },
+  {
+    slug: "automate-freight-invoice-processing",
+    title: "How to Automate Freight Invoice Processing with AI",
+    h1: "How to Automate Freight Invoice Processing with AI",
+    metaTitle: "How to Automate Freight Invoice Processing with AI | Parsli",
+    metaDescription:
+      "Step-by-step guide to automating freight invoice processing. Covers carrier-specific formats, 3-way matching, and 92% time reduction for 3PLs.",
+    publishedAt: "2026-03-16",
+    updatedAt: "2026-03-16",
+    author: "Talal Bazerbachi",
+    authorTitle: "Founder at Parsli",
+    readTime: "10 min read",
+    category: "Workflow Automation" as const,
+    imageTitle: "Automate Freight Invoices",
+    tldr: [
+      "**Freight invoice processing** involves extracting carrier charges, accessorial fees, fuel surcharges, and shipment references from invoices — then matching them against BOLs and rate agreements for payment approval.",
+      "**Manual processing** costs $25-40 per document and carries a 20-30% error rate — with billing disputes taking weeks to resolve because the original data was keyed incorrectly.",
+      "**Carrier format variation** is the core challenge: every carrier uses a different invoice layout, terminology, and charge structure. FedEx Freight invoices look nothing like XPO or Old Dominion invoices.",
+      "**AI-powered automation** reads any carrier invoice format, extracts line-item charges, and enables 3-way matching against BOLs and rate confirmations — reducing per-document cost from $25-40 to under $2.",
+      "**Parsli handles** carrier-specific formats automatically — no per-carrier templates needed. [Try the free invoice parser →](/tools/invoice-parser)",
+    ],
+    content: [
+      {
+        type: "key-stat",
+        stats: [
+          { value: "20-30%", label: "Error rate in manual freight AP" },
+          { value: "$25-40", label: "Manual cost per freight invoice" },
+          { value: "< $2", label: "Automated cost per invoice" },
+          { value: "92%", label: "Time savings with AI extraction" },
+        ],
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "What is freight invoice processing?",
+        id: "what-is-freight-invoice-processing",
+      },
+      {
+        type: "paragraph",
+        text: "Freight invoice processing is the workflow of receiving carrier invoices, extracting charge data (line-haul, accessorials, fuel surcharges, detention, lumper fees), matching charges against contracted rates and original BOLs, resolving discrepancies, and approving invoices for payment. For 3PLs and shippers, this process is the financial backbone of freight operations.",
+      },
+      {
+        type: "paragraph",
+        text: "A single freight invoice can contain 10-50 line items across multiple shipments, with charges categorized differently by every carrier. The invoice references PRO numbers, BOL numbers, PO numbers, and shipment dates — all of which need to match your internal records before payment is approved. When you process hundreds of these per week from dozens of carriers, the complexity compounds rapidly.",
+      },
+      {
+        type: "paragraph",
+        text: "This guide walks through three approaches to freight invoice processing — from fully manual to AI-automated — and shows you how to set up end-to-end automation that handles carrier format variation, multi-shipment invoices, and 3-way matching.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Why manual freight invoice processing breaks down",
+        id: "why-manual-breaks-down",
+      },
+      {
+        type: "paragraph",
+        text: "Freight AP departments drown in carrier invoices that each look different, charge differently, and reference shipments differently. The manual process creates cascading problems across finance, operations, and carrier relationships.",
+      },
+      {
+        type: "list",
+        items: [
+          "**Every carrier uses a different invoice format** — FedEx Freight, XPO, Old Dominion, Saia, Estes, and regional carriers all have unique invoice layouts, charge naming conventions, and reference number formats. Your AP team must learn every carrier's format and know where to find each charge type.",
+          "**Error rates are staggering** — Studies show 20-30% of manually processed freight invoices contain errors: incorrect charge amounts, missed accessorials, wrong shipment references, or duplicate payments. Each error triggers a billing dispute that takes 2-4 weeks to resolve.",
+          "**Billing lag kills cash flow** — When invoice processing takes 5-10 days because of manual data entry backlogs, you miss early payment discounts, delay carrier payments (damaging relationships), and cannot close your books on time.",
+          "**Accessorial charges are hard to verify** — Detention, layover, lumper, inside delivery, and liftgate charges often appear as line items that don't match your rate agreement. Manual verification requires cross-referencing each charge against the original rate confirmation and BOL — a time-consuming process that AP clerks often skip.",
+          "**Multi-shipment invoices multiply complexity** — Carriers often consolidate multiple shipments on a single invoice. Each shipment has its own charges, references, and delivery details. Manual processing requires splitting the invoice into individual shipments for matching — a tedious, error-prone step.",
+        ],
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "How to automate freight invoices: 3 methods compared",
+        id: "how-to-automate",
+      },
+      {
+        type: "table",
+        headers: [
+          "Approach",
+          "Speed",
+          "Accuracy",
+          "Any Carrier",
+          "Cost/Invoice",
+          "Best For",
+        ],
+        rows: [
+          [
+            "Manual entry",
+            "15-20 min",
+            "70-80%",
+            "Yes (human reads)",
+            "$25-40",
+            "< 50 invoices/month",
+          ],
+          [
+            "Template-based OCR",
+            "30-60 sec",
+            "75-85%",
+            "No (per-carrier templates)",
+            "$3-8",
+            "Few carriers",
+          ],
+          [
+            "AI extraction (Parsli)",
+            "< 15 sec",
+            "95%+",
+            "Yes",
+            "< $2",
+            "Any carrier/volume",
+          ],
+        ],
+        highlightColumn: 2,
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "Method 1: Manual data entry",
+        id: "method-1-manual",
+      },
+      {
+        type: "paragraph",
+        text: "Your AP clerk opens each carrier invoice, identifies the carrier, finds the relevant charge fields on that carrier's unique format, and keys the data into your accounting or TMS system. For multi-shipment invoices, they repeat this for every shipment on the invoice. Then they pull up the corresponding BOL and rate confirmation to verify charges — if they have time, which they often do not.",
+      },
+      {
+        type: "pros-cons",
+        pros: [
+          "No technology investment required",
+          "Humans understand carrier-specific terminology",
+          "Can handle unusual invoice formats and handwritten adjustments",
+          "Domain knowledge catches obviously wrong charges",
+        ],
+        cons: [
+          "20-30% error rate on charge amounts and references",
+          "$25-40 per invoice in labor costs",
+          "5-10 day processing lag creates billing disputes",
+          "Verification step (3-way matching) is often skipped due to time pressure",
+          "Does not scale — doubling invoice volume requires doubling AP staff",
+        ],
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "Method 2: Template-based OCR",
+        id: "method-2-template-ocr",
+      },
+      {
+        type: "paragraph",
+        text: "Template-based OCR solutions define extraction zones for each carrier's invoice format — you tell the system that the PRO number is at coordinates (x, y), the line-haul charge is in column 3 of the charges table, and the total is at the bottom-right. This works well for your top 5 carriers but requires building and maintaining a template for every carrier you work with.",
+      },
+      {
+        type: "pros-cons",
+        pros: [
+          "Fast processing once templates are built (30-60 seconds)",
+          "Consistent extraction on known carrier formats",
+          "Lower cost per invoice than manual entry",
+        ],
+        cons: [
+          "Requires a separate template for every carrier",
+          "Templates break when carriers change their invoice layout",
+          "Cannot handle multi-format invoices from the same carrier",
+          "No intelligence — cannot interpret unfamiliar charge descriptions",
+          "Template creation takes 2-4 hours per carrier format",
+        ],
+      },
+      {
+        type: "callout",
+        variant: "note",
+        text: "Template-based solutions work if you have 5-10 carriers that account for 80% of your invoice volume. But every new carrier means another template, and carrier acquisitions and system upgrades frequently change invoice formats — triggering maintenance cycles.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "Method 3: AI-powered extraction with Parsli",
+        id: "method-3-parsli",
+      },
+      {
+        type: "tool-review",
+        name: "Parsli",
+        bestFor: "3PLs, freight brokers, and shippers processing **invoices from multiple carriers** with varying formats, multi-shipment consolidations, and complex accessorial charges.",
+        features: [
+          "No-code schema builder — define freight invoice fields visually",
+          "Handles any carrier invoice format without per-carrier templates",
+          "Extracts line-item charges including accessorials, fuel surcharges, and detention",
+          "Processes multi-shipment invoices with per-shipment charge breakdowns",
+          "Export to accounting system, [Excel](/tools/pdf-to-excel), or TMS via API or [Zapier](/integrations/zapier)",
+        ],
+        pros: [
+          "95%+ accuracy across all carrier formats",
+          "One schema works for every carrier",
+          "Understands freight-specific charge terminology",
+          "30 free pages/month to start",
+        ],
+        cons: [
+          "Requires internet connection (cloud-based)",
+          "Free tier limited to 30 pages/month",
+        ],
+        verdict: "For freight operations processing invoices from more than 5 carriers, AI extraction eliminates per-carrier templates and catches the charge discrepancies that manual processing misses. [Try it free](/tools/invoice-parser) with no sign-up.",
+      },
+      {
+        type: "paragraph",
+        text: "AI extraction understands freight invoice semantics — it knows that 'FSC' is a fuel surcharge, 'DET' is detention, and the PRO number format varies by carrier. This semantic understanding means it extracts charges correctly from any carrier's invoice without needing to be told where each field is located on the page.",
+      },
+      {
+        type: "step",
+        number: 1,
+        title: "Set up your freight invoice parser",
+        description:
+          "Create a new parser in Parsli and define your freight invoice schema: carrier_name, invoice_number, invoice_date, pro_number, bol_number, po_number, ship_date, origin, destination, weight, freight_class, line_haul_charge, fuel_surcharge, accessorial_charges (repeating group: charge_type, amount), total_charges, payment_terms, and due_date.",
+      },
+      {
+        type: "step",
+        number: 2,
+        title: "Connect carrier email forwarding",
+        description:
+          "Most carriers email invoices as PDF attachments. Set up email forwarding rules in your email system to auto-forward carrier invoices to your Parsli inbox. Alternatively, upload invoices via drag-and-drop, or push them via REST API from your document management system.",
+      },
+      {
+        type: "step",
+        number: 3,
+        title: "Define extraction schema with freight-specific fields",
+        description:
+          "Configure your schema to capture the charge structure: line-haul as the base charge, fuel surcharge as a percentage or flat amount, and accessorials as a repeating group (charge_type + amount). Add fields for discount terms (2/10 net 30) and payment due dates. Use field descriptions to help the AI distinguish between similar charge types.",
+      },
+      {
+        type: "step",
+        number: 4,
+        title: "Set up 3-way matching output",
+        description:
+          "Export extracted invoice data alongside your BOL data and rate confirmations. Use Parsli's webhook or API to push extracted charges to your TMS or accounting system, where automated matching compares invoice charges against contracted rates and original [BOL data](/guides/extract-data-from-bills-of-lading). Flag discrepancies for review before payment approval.",
+      },
+      {
+        type: "tool-callout",
+        href: "/tools/invoice-parser",
+        title: "Free Invoice Parser",
+        description:
+          "Try extracting data from a freight invoice right now. Upload a carrier invoice and see charges, references, and shipment details extracted in seconds — no sign-up required.",
+      },
+      {
+        type: "mid-cta",
+        text: "Processing freight invoices from multiple carriers? See how Parsli reduces per-invoice cost from $25 to under $2.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Use cases for freight invoice automation",
+        id: "use-cases",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "1. Accounts payable automation",
+        id: "use-case-ap-automation",
+      },
+      {
+        type: "paragraph",
+        text: "Freight AP departments process hundreds of carrier invoices weekly. Automated extraction feeds invoice data directly into your AP workflow — matching against PO numbers and BOL references, applying contracted rate validations, and routing approved invoices for payment. The 92% time reduction means your AP team focuses on exception handling and carrier negotiations instead of data entry.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "2. Freight audit and cost recovery",
+        id: "use-case-freight-audit",
+      },
+      {
+        type: "paragraph",
+        text: "Freight auditing requires comparing every charge on every invoice against your contracted rates — line-haul, accessorials, fuel surcharges, and minimum charges. With structured extracted data, automated audit rules flag overcharges instantly: a fuel surcharge at 32% when your contract says 28%, a detention charge that exceeds your agreed-upon free time, or a minimum charge applied when actual charges are higher. Companies typically recover 2-5% of freight spend through automated auditing.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "3. Carrier reconciliation and spend analysis",
+        id: "use-case-carrier-reconciliation",
+      },
+      {
+        type: "paragraph",
+        text: "With every freight invoice extracted into structured data, you build a complete carrier spend database. This enables carrier-by-carrier cost analysis, lane-level pricing comparisons, accessorial charge trending, and data-driven carrier negotiations. What used to require a freight audit consultancy can now be done in-house with your own extracted data — updated in real time with every processed invoice.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Best practices for freight invoice automation",
+        id: "best-practices",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "1. Capture accessorial charges as line items",
+        id: "bp-accessorials",
+      },
+      {
+        type: "paragraph",
+        text: "Do not extract just the total — break out accessorial charges individually. Detention, lumper, inside delivery, residential delivery, and liftgate charges are the most common sources of billing disputes. Extracting each as a separate line item enables automated comparison against your rate agreement's accessorial schedule.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "2. Match on PRO number, not just invoice number",
+        id: "bp-pro-matching",
+      },
+      {
+        type: "paragraph",
+        text: "Multi-shipment invoices contain multiple PRO numbers. Your 3-way matching should operate at the PRO/shipment level, not the invoice level. Match each PRO number on the invoice against the corresponding BOL and rate confirmation to verify charges per shipment. Invoice-level totals can mask per-shipment discrepancies.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "3. Set up automated discrepancy thresholds",
+        id: "bp-discrepancy-thresholds",
+      },
+      {
+        type: "paragraph",
+        text: "Not every charge difference is worth disputing. Set tolerance thresholds — for example, auto-approve invoices within 2% of expected charges, flag invoices 2-5% over for review, and reject invoices more than 5% over contracted rates. This prioritizes your team's review time on the largest discrepancies where recovery amounts justify the effort.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Common mistakes to avoid",
+        id: "common-mistakes",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "1. Processing invoices without rate verification",
+        id: "mistake-no-verification",
+      },
+      {
+        type: "paragraph",
+        text: "Extracting invoice data is only half the workflow. Without comparing extracted charges against your contracted rates, you are simply digitizing errors faster. Always pair extraction with automated rate comparison — even a simple spreadsheet lookup catches obvious overcharges that slip through when AP clerks process invoices under time pressure.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "2. Ignoring fuel surcharge calculations",
+        id: "mistake-fuel-surcharge",
+      },
+      {
+        type: "paragraph",
+        text: "Fuel surcharges are calculated as a percentage of line-haul charges, but the percentage varies by carrier, contract, and week (tied to the DOE diesel index). Many freight invoices apply the wrong fuel surcharge percentage. Extract the fuel surcharge as both a percentage and a dollar amount so you can verify the calculation independently.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "3. Not tracking duplicate invoices",
+        id: "mistake-duplicates",
+      },
+      {
+        type: "paragraph",
+        text: "Carriers sometimes send duplicate invoices — same PRO number, same charges, different invoice numbers. Without automated duplicate detection on PRO numbers and shipment references, you pay the same freight bill twice. Extracted structured data enables simple duplicate checks that catch re-billed shipments before payment is released.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "From invoice chaos to automated freight AP",
+        id: "conclusion",
+      },
+      {
+        type: "paragraph",
+        text: "Freight invoice automation transforms a labor-intensive, error-prone process into a streamlined data pipeline. When carrier invoices are extracted, matched, and verified automatically, your AP team shifts from data entry to exception management — and your freight spend data becomes a strategic asset for carrier negotiations and cost optimization.",
+      },
+      {
+        type: "paragraph",
+        text: "Whether you process 50 freight invoices a month or 5,000, the right automation approach depends on your carrier diversity, charge complexity, and integration requirements. Start with the [free invoice parser](/tools/invoice-parser) to see what automated extraction looks like on your actual carrier invoices.",
+      },
+      { type: "cta" },
+    ],
+    faqs: [
+      {
+        question: "What data can I extract from freight invoices?",
+        answer:
+          "You can extract carrier name, invoice number, invoice date, PRO numbers, BOL references, PO numbers, shipment dates, origin and destination, weight, freight class, line-haul charges, fuel surcharges, accessorial charges (detention, lumper, liftgate, etc.), total charges, payment terms, and due dates.",
+      },
+      {
+        question: "Can AI extraction handle multi-shipment carrier invoices?",
+        answer:
+          "Yes. Parsli processes multi-shipment invoices by extracting per-shipment line items — each with its own PRO number, charges, and shipment details. The extracted data maintains the shipment-level granularity needed for 3-way matching.",
+      },
+      {
+        question: "How accurate is freight invoice extraction compared to manual entry?",
+        answer:
+          "AI extraction achieves 95%+ accuracy on freight invoices, compared to 70-80% for manual entry. The improvement comes from eliminating transposition errors on charge amounts, consistent reference number extraction, and the ability to process any carrier format without format-specific training.",
+      },
+      {
+        question: "Can I set up 3-way matching with extracted data?",
+        answer:
+          "Yes. Extract invoice data with Parsli, then match each PRO number against your BOL data and rate confirmations using webhooks, API, or Zapier integration. Automated matching compares actual charges against contracted rates and flags discrepancies for review.",
+      },
+      {
+        question: "How does automation handle carrier-specific invoice formats?",
+        answer:
+          "AI extraction understands freight invoice structure semantically — it recognizes charge types, reference numbers, and shipment details regardless of how a specific carrier formats their invoices. No per-carrier templates are needed.",
+      },
+      {
+        question: "What is the ROI of freight invoice automation?",
+        answer:
+          "Reducing per-invoice cost from $25-40 (manual) to under $2 (automated) is the direct savings. Additional ROI comes from catching overcharges (2-5% of freight spend), eliminating duplicate payments, and capturing early payment discounts. Most operations see full ROI within 30 days.",
+      },
+    ],
+    relatedTools: [
+      {
+        href: "/tools/invoice-parser",
+        title: "Free Invoice Parser",
+        description: "Extract data from freight invoices instantly.",
+      },
+    ],
+    relatedSolutions: ["logistics-document-automation", "invoice-parsing"],
+    relatedCompare: ["shipamax", "parseur"],
+    relatedBlog: [
+      "freight-invoice-processing-automation",
+      "bol-errors-prevention-guide",
+      "cost-of-manual-data-entry-3pl",
+    ],
+  },
+  {
+    slug: "bol-data-to-wms-integration",
+    title: "How to Send BOL Data to Your WMS Automatically",
+    h1: "How to Send BOL Data to Your WMS Automatically",
+    metaTitle: "How to Send BOL Data to Your WMS Automatically | Parsli",
+    metaDescription:
+      "Connect BOL data extraction to your WMS. Step-by-step guide using webhooks, REST API, and Zapier to push shipment data from BOLs directly into your warehouse system.",
+    publishedAt: "2026-03-16",
+    updatedAt: "2026-03-16",
+    author: "Talal Bazerbachi",
+    authorTitle: "Founder at Parsli",
+    readTime: "8 min read",
+    category: "Integration Guide" as const,
+    imageTitle: "BOL to WMS Integration",
+    tldr: [
+      "**BOL-to-WMS integration** connects your [BOL extraction](/guides/extract-data-from-bills-of-lading) pipeline directly to your warehouse management system — eliminating manual data re-entry at the receiving dock.",
+      "**Three integration methods**: webhooks (real-time push), REST API (pull on your schedule), and [Zapier](/integrations/zapier) (no-code connector to 5,000+ apps including WMS platforms).",
+      "**Webhooks are fastest** — extracted BOL data hits your WMS within seconds of document processing, enabling same-hour putaway without waiting for manual keying.",
+      "**REST API gives control** — poll for results on your schedule, batch process, and integrate into existing receiving workflows with full error handling.",
+      "**Zapier is simplest** — connect Parsli to your WMS with no code. Set up in minutes, no developer required. [Try the free BOL parser →](/tools/bol-parser)",
+    ],
+    content: [
+      {
+        type: "key-stat",
+        stats: [
+          { value: "3", label: "Integration methods available" },
+          { value: "< 10s", label: "End-to-end extraction + push" },
+          { value: "Zero", label: "Manual entry required" },
+          { value: "Any WMS", label: "Compatible systems" },
+        ],
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "What does this integration do?",
+        id: "what-does-this-do",
+      },
+      {
+        type: "paragraph",
+        text: "BOL-to-WMS integration is the second half of the document automation pipeline. The first half — [extracting data from bills of lading](/guides/extract-data-from-bills-of-lading) — converts paper or PDF BOLs into structured data. This integration step takes that structured data (shipper, consignee, PO number, commodity, weight, piece count) and pushes it directly into your WMS as an inbound receipt, ASN, or receiving record.",
+      },
+      {
+        type: "paragraph",
+        text: "Without this integration, your team extracts BOL data into a spreadsheet or JSON file — then manually copies it into the WMS. That manual step reintroduces the same errors and delays that automation was supposed to eliminate. A complete pipeline goes from scanned BOL to WMS record without anyone touching a keyboard.",
+      },
+      {
+        type: "paragraph",
+        text: "This guide covers three methods to connect BOL extraction to your WMS, from real-time webhooks to no-code Zapier workflows, so you can choose the approach that matches your technical resources and WMS platform.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Why manual WMS data entry is broken",
+        id: "why-manual-is-broken",
+      },
+      {
+        type: "paragraph",
+        text: "Even when BOL data is extracted automatically, many operations still rely on manual WMS entry — copying extracted data from one screen into another. This manual handoff creates predictable problems.",
+      },
+      {
+        type: "list",
+        items: [
+          "**Receiving delays** — Freight sits on the dock while data is manually entered into the WMS. Every minute of dock occupancy costs money and blocks the next inbound shipment from being unloaded.",
+          "**Transcription errors** — Copying data between systems introduces the same transposition and omission errors that extraction was supposed to eliminate. A PO number entered as '78432' instead of '78342' breaks downstream matching.",
+          "**Bottleneck at peak volume** — During peak receiving periods, the data entry queue grows faster than clerks can process it. Freight stacks up, dock doors are occupied, and putaway falls behind.",
+          "**No real-time inventory visibility** — Until BOL data is in the WMS, the warehouse does not know what freight is on the dock. Inventory counts are delayed, allocation decisions are made on stale data, and customer service cannot confirm receipt.",
+        ],
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "3 integration methods compared",
+        id: "methods-compared",
+      },
+      {
+        type: "table",
+        headers: [
+          "Method",
+          "Speed",
+          "Setup",
+          "Developer Needed",
+          "Best For",
+        ],
+        rows: [
+          [
+            "Webhooks",
+            "Real-time (< 2s)",
+            "30-60 min",
+            "Yes",
+            "Real-time receiving automation",
+          ],
+          [
+            "REST API",
+            "On your schedule",
+            "1-2 hours",
+            "Yes",
+            "Batch processing, custom workflows",
+          ],
+          [
+            "Zapier",
+            "Near real-time (1-5 min)",
+            "10-15 min",
+            "No",
+            "No-code teams, quick setup",
+          ],
+        ],
+        highlightColumn: 1,
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "Method 1: Webhooks (real-time push)",
+        id: "method-1-webhooks",
+      },
+      {
+        type: "paragraph",
+        text: "Webhooks push extracted BOL data to your WMS endpoint the moment processing completes. You configure a URL in Parsli, and every time a BOL is extracted, the structured JSON payload is sent to that URL via HTTP POST. Your WMS (or a middleware layer) receives the data and creates the inbound record automatically.",
+      },
+      {
+        type: "step",
+        number: 1,
+        title: "Set up a webhook endpoint in your WMS",
+        description:
+          "Most modern WMS platforms expose a REST API for creating inbound receipts or ASNs. Identify the endpoint URL and authentication method (API key, OAuth, basic auth). If your WMS does not have a direct API, set up a lightweight middleware (Node.js, Python Flask) that receives the webhook and translates the payload into your WMS's import format.",
+      },
+      {
+        type: "step",
+        number: 2,
+        title: "Configure the webhook URL in Parsli",
+        description:
+          "In your Parsli parser settings, add the webhook URL and any required authentication headers. Parsli will send a JSON payload containing all extracted fields with confidence scores to this URL every time a BOL is processed.",
+      },
+      {
+        type: "step",
+        number: 3,
+        title: "Map extracted fields to WMS fields",
+        description:
+          "Ensure your BOL extraction schema field names match your WMS's expected field names. If your WMS expects 'vendor_name' but Parsli extracts 'shipper_name,' either rename the field in your Parsli schema or add a mapping step in your middleware. The fewer translation steps, the fewer points of failure.",
+      },
+      {
+        type: "step",
+        number: 4,
+        title: "Test with a sample BOL",
+        description:
+          "Upload a test BOL to Parsli and verify the webhook fires, your endpoint receives the payload, and the WMS creates the inbound record with correct field values. Check that special characters, long commodity descriptions, and multi-line-item BOLs are handled correctly.",
+      },
+      {
+        type: "callout",
+        variant: "tip",
+        text: "Set up webhook retry logic. If your WMS endpoint is temporarily unavailable, Parsli retries failed webhooks automatically. But also build a dead-letter queue on your side to catch any payloads that fail after retries — you do not want to lose BOL data because of a momentary WMS outage.",
+      },
+      {
+        type: "pros-cons",
+        pros: [
+          "Real-time data push — BOL data in WMS within seconds",
+          "No polling or scheduled jobs required",
+          "Scales to any volume automatically",
+          "Simple architecture with one connection point",
+        ],
+        cons: [
+          "Requires developer setup for the receiving endpoint",
+          "Need error handling for failed deliveries",
+          "WMS must accept inbound API calls",
+        ],
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "Method 2: REST API (pull on demand)",
+        id: "method-2-rest-api",
+      },
+      {
+        type: "paragraph",
+        text: "Parsli's REST API lets you pull extracted BOL data on your schedule. Your WMS or integration layer calls the API to retrieve processed documents, then creates inbound records. This approach gives you full control over timing, batching, and error handling — ideal for operations that process BOLs in scheduled receiving windows rather than real-time.",
+      },
+      {
+        type: "step",
+        number: 1,
+        title: "Generate an API key in Parsli",
+        description:
+          "Navigate to your parser's API settings and generate an API key. This key authenticates all API requests. Store it securely — treat it like a password.",
+      },
+      {
+        type: "step",
+        number: 2,
+        title: "Build your polling or batch retrieval script",
+        description:
+          "Write a script (Python, Node.js, or your WMS's scripting language) that calls the Parsli API to retrieve recently processed BOLs. Filter by status (completed), date range, or document ID. The API returns structured JSON with all extracted fields and confidence scores.",
+      },
+      {
+        type: "step",
+        number: 3,
+        title: "Transform and load into WMS",
+        description:
+          "Map the extracted data to your WMS's import format. Create inbound receipts, ASNs, or receiving records for each BOL. Handle multi-line-item BOLs by iterating through the extracted line items and creating corresponding WMS line items.",
+      },
+      {
+        type: "pros-cons",
+        pros: [
+          "Full control over retrieval timing and batching",
+          "Can add custom transformation logic",
+          "Works with any WMS that accepts data imports",
+          "Easier error handling — you control the retry logic",
+        ],
+        cons: [
+          "Not real-time — data available only when you poll",
+          "Requires developer to build and maintain the integration",
+          "Polling frequency trade-off between latency and API calls",
+        ],
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "Method 3: Zapier (no-code connector)",
+        id: "method-3-zapier",
+      },
+      {
+        type: "paragraph",
+        text: "For teams without developers, [Zapier](/integrations/zapier) connects Parsli to your WMS with no code. When Parsli finishes extracting a BOL, a Zapier trigger fires and sends the data to your WMS (or any of 5,000+ connected apps). Setup takes 10-15 minutes — no API keys, no webhook endpoints, no scripting.",
+      },
+      {
+        type: "step",
+        number: 1,
+        title: "Connect Parsli to Zapier",
+        description:
+          "In Zapier, search for Parsli and connect your account. Select 'New Document Processed' as the trigger event. Zapier will listen for completed BOL extractions.",
+      },
+      {
+        type: "step",
+        number: 2,
+        title: "Map fields to your WMS action",
+        description:
+          "Select your WMS as the action app (many WMS platforms have Zapier integrations). Map Parsli's extracted fields — shipper_name, po_number, weight, piece_count — to the corresponding WMS fields. Zapier's interface makes field mapping visual and code-free.",
+      },
+      {
+        type: "step",
+        number: 3,
+        title: "Test and activate",
+        description:
+          "Run a test with a sample BOL to verify data flows correctly from Parsli through Zapier into your WMS. Check field values, formatting, and that the WMS record is created properly. Once verified, activate the Zap for production use.",
+      },
+      {
+        type: "pros-cons",
+        pros: [
+          "No developer required — visual setup in minutes",
+          "Works with 5,000+ apps beyond just WMS",
+          "Easy to modify field mappings without code changes",
+          "Built-in error notifications and retry logic",
+        ],
+        cons: [
+          "Slight delay (1-5 minutes) compared to webhooks",
+          "Zapier subscription cost for high-volume operations",
+          "Limited transformation capabilities for complex data",
+        ],
+      },
+      {
+        type: "tool-callout",
+        href: "/tools/bol-parser",
+        title: "Free BOL Parser",
+        description:
+          "Start by extracting data from a BOL — then connect the output to your WMS using any of these three methods. Try it with no sign-up.",
+      },
+      {
+        type: "mid-cta",
+        text: "Ready to eliminate manual WMS data entry? Start with 30 free pages/month and connect to your WMS in minutes.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Use cases for BOL-to-WMS integration",
+        id: "use-cases",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "1. Receiving automation",
+        id: "use-case-receiving",
+      },
+      {
+        type: "paragraph",
+        text: "When a trailer arrives at the dock, the receiving team scans or photographs the BOL. Within seconds, Parsli extracts the data and pushes it to the WMS via webhook. The WMS creates the inbound receipt before the freight is even off the truck — enabling the putaway crew to start immediately with location assignments, rather than waiting for manual data entry that used to take 12+ minutes per BOL.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "2. Inventory updates",
+        id: "use-case-inventory",
+      },
+      {
+        type: "paragraph",
+        text: "Extracted BOL data includes piece count, weight, and commodity details that update your WMS inventory in real time. The moment a BOL is processed, available inventory reflects the new inbound freight — enabling sales teams to sell against incoming stock and customer service to provide accurate availability information without waiting for physical counts.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "3. Shipment tracking and visibility",
+        id: "use-case-tracking",
+      },
+      {
+        type: "paragraph",
+        text: "BOL data pushed to the WMS creates a digital record that links to downstream events: putaway confirmation, pick allocation, and outbound shipment. This end-to-end visibility — from BOL receipt to final delivery — enables exception-based management where you only intervene when something deviates from the expected flow.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Best practices for BOL-WMS integration",
+        id: "best-practices",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "1. Use schema field names that match your WMS",
+        id: "bp-schema-naming",
+      },
+      {
+        type: "paragraph",
+        text: "Name your Parsli extraction fields to match your WMS's import fields exactly. If your WMS expects 'vendor_id' instead of 'shipper_name,' use 'vendor_id' in your Parsli schema. This eliminates the need for field-mapping middleware and reduces integration complexity — data flows directly from extraction to WMS without translation.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "2. Handle confidence scores at the integration layer",
+        id: "bp-confidence-handling",
+      },
+      {
+        type: "paragraph",
+        text: "Parsli returns confidence scores for every extracted field. Build logic into your integration that routes high-confidence extractions directly to the WMS and flags low-confidence results for human review. A weight field with 60% confidence should not automatically update your inventory — it should trigger an alert for the receiving clerk to verify physically.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "3. Build error handling and alerting",
+        id: "bp-error-handling",
+      },
+      {
+        type: "paragraph",
+        text: "Integration failures happen — WMS outages, network issues, invalid data formats. Your integration should retry failed deliveries, log errors for review, and alert your team when BOL data fails to reach the WMS. A missed BOL in the WMS means freight sits on the dock without a receiving record, causing downstream putaway and inventory problems.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Common mistakes to avoid",
+        id: "common-mistakes",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "1. Not validating data before WMS entry",
+        id: "mistake-no-validation",
+      },
+      {
+        type: "paragraph",
+        text: "Pushing raw extracted data into your WMS without validation can create bad records — invalid PO numbers, unreasonable weights, or missing required fields. Add validation checks at the integration layer: verify PO numbers exist in your system, weight falls within expected ranges, and all required WMS fields are populated before creating the record.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "2. Ignoring duplicate document handling",
+        id: "mistake-duplicates",
+      },
+      {
+        type: "paragraph",
+        text: "The same BOL might be scanned twice, forwarded by email and also uploaded manually, or reprocessed after an edit. Your integration needs idempotency — the ability to receive the same BOL data multiple times without creating duplicate WMS records. Use PRO numbers or document IDs as unique identifiers and check for existing records before creating new ones.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "3. Not monitoring the pipeline end-to-end",
+        id: "mistake-no-monitoring",
+      },
+      {
+        type: "paragraph",
+        text: "A working integration can silently fail — webhook endpoints go down, API keys expire, Zapier automations get paused. Set up monitoring that alerts you when the pipeline stops: if no BOLs have been processed in the last 4 hours during business days, something is wrong. Proactive monitoring prevents the scenario where you discover at end-of-day that no inbound freight was recorded in the WMS.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "From dock to database in seconds",
+        id: "conclusion",
+      },
+      {
+        type: "paragraph",
+        text: "BOL-to-WMS integration closes the loop on receiving automation. When [BOL extraction](/guides/extract-data-from-bills-of-lading) feeds directly into your WMS, the receiving dock operates at the speed of the scanning device — not the speed of a data entry clerk. Freight moves from dock to putaway location in minutes instead of hours.",
+      },
+      {
+        type: "paragraph",
+        text: "Choose webhooks for real-time speed, REST API for batch control, or Zapier for no-code simplicity. All three methods start with the same foundation: accurate BOL extraction with Parsli. [Try the free BOL parser](/tools/bol-parser) to see extraction quality before building your integration.",
+      },
+      { type: "cta" },
+    ],
+    faqs: [
+      {
+        question: "Which WMS platforms does this integration work with?",
+        answer:
+          "Parsli's webhook and REST API output works with any WMS that accepts inbound data via API — including Manhattan, Blue Yonder, SAP EWM, Oracle WMS, Infor, 3PL Central, and custom-built systems. Zapier connects to WMS platforms with Zapier integrations.",
+      },
+      {
+        question: "How fast does data reach the WMS after scanning a BOL?",
+        answer:
+          "With webhooks, the total time from scanning a BOL to WMS record creation is typically under 10 seconds — including document upload, AI extraction, and webhook delivery. REST API timing depends on your polling frequency, and Zapier typically takes 1-5 minutes.",
+      },
+      {
+        question: "What happens if the WMS is temporarily down?",
+        answer:
+          "Parsli retries failed webhook deliveries automatically. For additional resilience, build a queue or dead-letter mechanism on your side to capture payloads during outages and replay them when the WMS recovers.",
+      },
+      {
+        question: "Do I need a developer for this integration?",
+        answer:
+          "Zapier requires no developer — setup takes 10-15 minutes with visual field mapping. Webhooks and REST API integrations require a developer familiar with your WMS's API for initial setup, but once configured they run autonomously.",
+      },
+      {
+        question: "Can I send data to multiple systems, not just the WMS?",
+        answer:
+          "Yes. You can configure multiple webhooks to push the same extracted data to your WMS, TMS, and accounting system simultaneously. Zapier also supports multi-step automations that route data to several destinations from a single extraction event.",
+      },
+    ],
+    relatedTools: [
+      {
+        href: "/tools/bol-parser",
+        title: "Free BOL Parser",
+        description: "Extract data from bills of lading for WMS integration.",
+      },
+    ],
+    relatedSolutions: ["logistics-document-automation", "document-parsing-api"],
+    relatedCompare: ["shipamax"],
+    relatedBlog: [
+      "bill-of-lading-requirements-complete-guide",
+      "freight-invoice-processing-automation",
+    ],
+  },
+  {
+    slug: "extract-data-from-customs-documents",
+    title: "How to Extract Data from Customs Documents Automatically",
+    h1: "How to Extract Data from Customs Documents Automatically",
+    metaTitle: "How to Extract Data from Customs Documents Automatically | Parsli",
+    metaDescription:
+      "Extract HS codes, declared values, and origin data from customs declarations and commercial invoices automatically with AI. Multi-language support included.",
+    publishedAt: "2026-03-16",
+    updatedAt: "2026-03-16",
+    author: "Talal Bazerbachi",
+    authorTitle: "Founder at Parsli",
+    readTime: "8 min read",
+    category: "Document Extraction" as const,
+    imageTitle: "Extract Customs Data",
+    tldr: [
+      "**Customs document extraction** pulls HS codes, declared values, country of origin, consignee details, and regulatory fields from customs declarations, commercial invoices, packing lists, and certificates of origin into structured data.",
+      "**30+ document types** are involved in international trade — customs entries, commercial invoices, packing lists, certificates of origin, ISF filings, and more. Each has unique fields and formatting requirements.",
+      "**Multi-language challenge** — customs documents arrive in the language of the exporting country. A commercial invoice from Germany is in German, a packing list from China is in Chinese. Manual extraction requires multilingual staff or translation services.",
+      "**HS code complexity** — Harmonized System codes are 6-10 digits with country-specific extensions. Extracting the wrong code triggers incorrect duty rates, delayed clearance, or penalties. AI extraction reads codes accurately from any document format.",
+      "**Parsli handles** multi-language customs documents with 95%+ accuracy — no per-language configuration needed. [Try the free PDF parser →](/tools/pdf-to-text)",
+    ],
+    content: [
+      {
+        type: "key-stat",
+        stats: [
+          { value: "6-10 digit", label: "HS code complexity" },
+          { value: "30+", label: "Customs document types" },
+          { value: "Multi-language", label: "Document support" },
+          { value: "95%+", label: "AI extraction accuracy" },
+        ],
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "What are customs documents?",
+        id: "what-are-customs-documents",
+      },
+      {
+        type: "paragraph",
+        text: "Customs documents are the paperwork required for goods to cross international borders. They include customs declarations (entry summaries), commercial invoices, packing lists, certificates of origin, bills of lading, ISF (Importer Security Filing) data, and country-specific forms like the US CBP Form 7501. Each document contains critical data — HS codes, declared values, quantities, weights, country of origin — that determines duty rates, compliance status, and clearance speed.",
+      },
+      {
+        type: "paragraph",
+        text: "For customs brokers and import/export businesses, these documents arrive in a constant stream — often in the language of the exporting country — and must be processed accurately under tight regulatory deadlines. A single HS code error can trigger incorrect duty assessment, cargo holds, or penalty notices from customs authorities.",
+      },
+      {
+        type: "paragraph",
+        text: "This guide covers three approaches to extracting data from customs documents, from manual processing to AI-powered automation, with a focus on the unique challenges of multi-language documents, HS code accuracy, and regulatory compliance requirements.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Why manual customs document processing fails",
+        id: "why-manual-fails",
+      },
+      {
+        type: "paragraph",
+        text: "Customs brokerage operations handle hundreds of shipments daily, each with multiple documents in multiple languages. Manual data extraction creates compliance risks and processing bottlenecks that directly impact clearance times.",
+      },
+      {
+        type: "list",
+        items: [
+          "**HS code complexity** — The Harmonized System uses 6-digit international codes with 2-4 digit country-specific extensions. Misreading a single digit changes the duty rate entirely — HS 8471.30 (laptops) carries a different duty than 8471.41 (desktop computers). Manual transcription of 10-digit codes from poorly printed documents is inherently error-prone.",
+          "**Multi-language documents** — A shipment from Japan arrives with a commercial invoice in Japanese, a packing list in Japanese, and a certificate of origin with mixed Japanese and English fields. Your broker needs to extract declared values, descriptions, and HS codes from documents they may not be able to read without translation assistance.",
+          "**Regulatory deadlines** — ISF filings must be submitted 24 hours before vessel departure. Customs entries must be filed within 15 days of arrival. Processing delays caused by manual data extraction directly threaten compliance deadlines, risking holds, penalties, and demurrage charges.",
+          "**Volume at ports of entry** — A mid-size customs brokerage processes 200-500 entries per day. Each entry involves 3-5 documents (commercial invoice, packing list, BOL, certificate of origin, entry summary). That is 600-2,500 documents per day requiring data extraction.",
+          "**Document format variation** — Every exporter and every country uses different document formats. A commercial invoice from a German manufacturer looks nothing like one from a Chinese factory. There is no standard layout for customs documents across countries.",
+        ],
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "How to extract customs data: 3 methods compared",
+        id: "how-to-extract",
+      },
+      {
+        type: "table",
+        headers: [
+          "Method",
+          "Speed",
+          "Accuracy",
+          "Multi-Language",
+          "Setup",
+          "Cost",
+        ],
+        rows: [
+          [
+            "Manual entry",
+            "15-25 min/doc",
+            "80-90%",
+            "Requires bilingual staff",
+            "None",
+            "$15-30/doc (labor)",
+          ],
+          [
+            "Template OCR",
+            "30-60 sec",
+            "70-80%",
+            "Limited",
+            "Per-format templates",
+            "$3-10/doc",
+          ],
+          [
+            "AI extraction (Parsli)",
+            "< 15 sec",
+            "95%+",
+            "Built-in",
+            "Minutes",
+            "Free tier available",
+          ],
+        ],
+        highlightColumn: 2,
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "Method 1: Manual data entry",
+        id: "method-1-manual",
+      },
+      {
+        type: "paragraph",
+        text: "Customs brokers and entry writers manually read each document — commercial invoices, packing lists, certificates of origin — and key the relevant data into their brokerage software. For foreign-language documents, they rely on bilingual staff, translation services, or their own language skills to interpret field values. This process works for experienced brokers with low volume, but every additional shipment adds 15-25 minutes of data entry per document set.",
+      },
+      {
+        type: "pros-cons",
+        pros: [
+          "No technology investment",
+          "Experienced brokers catch classification errors",
+          "Human judgment on ambiguous descriptions",
+          "Works with any document format or language (if staff are multilingual)",
+        ],
+        cons: [
+          "15-25 minutes per document — creates clearance delays",
+          "HS code transcription errors trigger duty assessment problems",
+          "Requires bilingual staff for foreign-language documents",
+          "Does not scale past 50-100 entries per day per person",
+          "Key-person risk — multilingual expertise is hard to replace",
+        ],
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "Method 2: Template-based OCR",
+        id: "method-2-template-ocr",
+      },
+      {
+        type: "paragraph",
+        text: "Template OCR defines extraction zones for specific document formats — you train the system on a German manufacturer's commercial invoice layout, then it extracts from future invoices with that same layout. This works for repeat exporters with consistent document formats but breaks on new suppliers, different countries, and documents in unfamiliar languages.",
+      },
+      {
+        type: "pros-cons",
+        pros: [
+          "Fast processing on trained templates",
+          "Consistent extraction for repeat suppliers",
+          "Lower per-document cost than manual entry",
+        ],
+        cons: [
+          "Requires a template for every exporter's document format",
+          "Poor multi-language support — cannot interpret foreign field labels",
+          "HS code accuracy suffers on poorly printed documents",
+          "New suppliers require new templates (2-4 hours each)",
+          "Does not understand document semantics — just reads coordinate positions",
+        ],
+      },
+      {
+        type: "callout",
+        variant: "warning",
+        text: "Template-based OCR cannot reliably extract HS codes from customs documents. HS codes are dense numeric sequences where a single digit error changes the classification entirely. Without semantic understanding of the code structure, OCR produces digit-level errors that cause incorrect duty assessments.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "Method 3: AI-powered extraction with Parsli",
+        id: "method-3-parsli",
+      },
+      {
+        type: "tool-review",
+        name: "Parsli",
+        bestFor: "Customs brokers and import/export businesses processing **documents in multiple languages** from diverse exporters worldwide, with HS code extraction accuracy as a critical requirement.",
+        features: [
+          "No-code schema builder — define customs document fields visually",
+          "Multi-language document support — reads Chinese, Japanese, German, Spanish, and more",
+          "High-accuracy HS code extraction with digit-level validation",
+          "Handles commercial invoices, packing lists, certificates of origin, and entry summaries",
+          "Export to brokerage software, [Excel](/tools/pdf-to-excel), or compliance systems via API",
+        ],
+        pros: [
+          "95%+ accuracy on HS codes, declared values, and origin data",
+          "Reads documents in any language without per-language configuration",
+          "One schema works across all exporter formats",
+          "30 free pages/month to start",
+        ],
+        cons: [
+          "Requires internet connection (cloud-based)",
+          "Free tier limited to 30 pages/month",
+        ],
+        verdict: "For customs operations processing documents from international suppliers in multiple languages, AI extraction is the only method that combines multi-language reading, HS code accuracy, and format-agnostic processing. [Try it free](/tools/pdf-to-text) with no sign-up.",
+      },
+      {
+        type: "paragraph",
+        text: "AI extraction understands customs document semantics across languages — it recognizes that 'Warenwert' on a German invoice is the declared value, '原産地' on a Japanese certificate is the country of origin, and '税则号列' on a Chinese packing list is the HS code. This semantic understanding transcends template-based approaches that only work with documents in languages they were trained on.",
+      },
+      {
+        type: "step",
+        number: 1,
+        title: "Create a customs document parser",
+        description:
+          "In Parsli's no-code schema builder, create a parser for your customs document type. Define fields: hs_code, commodity_description, declared_value, currency, country_of_origin, manufacturer, consignee, quantity, unit_of_measure, gross_weight, net_weight, and any country-specific fields your brokerage software requires.",
+      },
+      {
+        type: "step",
+        number: 2,
+        title: "Define HS code and declared value fields",
+        description:
+          "Configure HS code fields to capture the full 10-digit code (6-digit international + country extension). Add field descriptions like 'Harmonized System tariff code, 6-10 digits' to help the AI distinguish HS codes from other numeric fields. Set declared value fields to capture both the amount and currency.",
+      },
+      {
+        type: "step",
+        number: 3,
+        title: "Upload customs documents in any language",
+        description:
+          "Upload commercial invoices, packing lists, certificates of origin, and entry summaries via drag-and-drop, email forwarding, or API. Parsli automatically detects the document language and extracts fields in any language — no configuration needed for specific languages.",
+      },
+      {
+        type: "step",
+        number: 4,
+        title: "Export to your customs brokerage system",
+        description:
+          "Push extracted data to your brokerage software via webhook, REST API, or [Zapier](/integrations/zapier). Map extracted fields to your system's entry form fields. Use confidence scores to flag uncertain HS codes for classification review before filing — catching potential misclassifications before they reach customs authorities.",
+      },
+      {
+        type: "tool-callout",
+        href: "/tools/pdf-to-text",
+        title: "Free PDF Parser",
+        description:
+          "Try extracting data from a customs document right now. Upload a commercial invoice or customs declaration and see HS codes, values, and origin data extracted in seconds.",
+      },
+      {
+        type: "mid-cta",
+        text: "Processing customs documents in multiple languages? Parsli extracts HS codes, declared values, and origin data from any format — 30 free pages/month.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Use cases for customs document extraction",
+        id: "use-cases",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "1. Customs brokerage operations",
+        id: "use-case-brokerage",
+      },
+      {
+        type: "paragraph",
+        text: "Customs brokers process entry documentation for hundreds of importers. Each entry requires extracting data from 3-5 documents — commercial invoice, packing list, [bill of lading](/guides/extract-data-from-bills-of-lading), certificate of origin, and sometimes additional certificates or permits. AI extraction reduces per-entry processing from 30-45 minutes of manual data entry to under 2 minutes, enabling brokers to handle higher volumes without proportional staff increases.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "2. Foreign-Trade Zone (FTZ) operations",
+        id: "use-case-ftz",
+      },
+      {
+        type: "paragraph",
+        text: "FTZ operations at facilities like Rickenbacker Inland Port require detailed customs documentation for every item entering and leaving the zone. HS codes determine duty treatment — whether goods are admitted under zone status or privileged foreign status. Accurate extraction of HS codes and declared values is critical for zone inventory management and duty optimization strategies.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "3. Import/export compliance",
+        id: "use-case-compliance",
+      },
+      {
+        type: "paragraph",
+        text: "Trade compliance teams screen customs documents against denied party lists, validate HS codes against product classifications, and verify declared values against transfer pricing agreements. Structured extracted data enables automated compliance screening — flagging potential violations before goods clear customs rather than discovering issues during a post-entry audit.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Best practices for customs document extraction",
+        id: "best-practices",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "1. Validate HS codes against your classification database",
+        id: "bp-validate-hs",
+      },
+      {
+        type: "paragraph",
+        text: "After extraction, cross-reference HS codes against your internal classification database or the HTS (Harmonized Tariff Schedule). Flag codes that do not match previously classified products from the same exporter. A code change might be legitimate (product revision) or an extraction error — either way, it needs review before filing.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "2. Extract both original-language and translated descriptions",
+        id: "bp-dual-language",
+      },
+      {
+        type: "paragraph",
+        text: "For foreign-language documents, extract the commodity description in both the original language and English translation. The original-language description is the legal record, while the English translation supports classification review and compliance screening. AI extraction can provide both without separate translation steps.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "3. Capture document relationships",
+        id: "bp-document-relationships",
+      },
+      {
+        type: "paragraph",
+        text: "Customs entries reference multiple documents — the commercial invoice number, packing list number, BOL number, and certificate of origin number. Extract these reference numbers from every document so you can link related documents programmatically. When a CBP query references an entry, you need to quickly pull all associated documents — cross-references make this instant instead of manual.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Common mistakes to avoid",
+        id: "common-mistakes",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "1. Using generic OCR for HS codes",
+        id: "mistake-generic-ocr",
+      },
+      {
+        type: "paragraph",
+        text: "Generic OCR treats HS codes as random number strings and frequently confuses similar digits (0 vs O, 1 vs l, 6 vs 8). A single digit error in an HS code changes the classification entirely — 9503.00 (toys) vs 9504.00 (video games) carry different duty rates and compliance requirements. Use AI extraction that understands HS code structure and validates against the HTS.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "2. Ignoring currency on declared values",
+        id: "mistake-currency",
+      },
+      {
+        type: "paragraph",
+        text: "A declared value of '10,000' is meaningless without the currency — USD, EUR, JPY, and CNY produce vastly different duty assessments. Always extract the currency code alongside declared values. Foreign-language invoices may express currency in local notation (¥, €, ¥) or text (元, Euro, 円). AI extraction recognizes currency indicators in any language.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "3. Not tracking extraction confidence for compliance-critical fields",
+        id: "mistake-no-confidence",
+      },
+      {
+        type: "paragraph",
+        text: "Filing a customs entry with an incorrect HS code or declared value can trigger penalties, liquidated damages, or cargo holds. Use confidence scores to route uncertain fields through your compliance team before filing. A 70% confidence HS code extraction needs human classification review — the cost of a 5-minute review is trivial compared to a CBP penalty notice.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "From multilingual paperwork to structured trade data",
+        id: "conclusion",
+      },
+      {
+        type: "paragraph",
+        text: "Customs document extraction transforms the multilingual, multi-format challenge of international trade documentation into a streamlined data pipeline. When HS codes, declared values, and origin data flow automatically from exporter documents into your brokerage system, you file faster, classify more accurately, and focus your compliance expertise on the complex cases that require human judgment.",
+      },
+      {
+        type: "paragraph",
+        text: "Whether you process 10 entries a day or 500, the right extraction approach depends on your language diversity, document volume, and compliance requirements. Start with the [free PDF parser](/tools/pdf-to-text) to see what automated extraction looks like on your actual customs documents.",
+      },
+      { type: "cta" },
+    ],
+    faqs: [
+      {
+        question: "What customs documents can I extract data from?",
+        answer:
+          "You can extract data from customs declarations (entry summaries), commercial invoices, packing lists, certificates of origin, bills of lading, ISF filings, export declarations, AES filings, and country-specific customs forms. Parsli handles any document format in any language.",
+      },
+      {
+        question: "How accurate is HS code extraction?",
+        answer:
+          "AI extraction achieves 95%+ accuracy on HS codes, significantly better than generic OCR (70-80%). The AI understands HS code structure — 6-digit international codes with country-specific extensions — and validates digit patterns against known code formats. Confidence scores flag uncertain codes for classification review.",
+      },
+      {
+        question: "Can extraction handle documents in Chinese, Japanese, or Arabic?",
+        answer:
+          "Yes. Parsli's AI extraction reads documents in any language — including Chinese, Japanese, Korean, Arabic, German, Spanish, French, and dozens more. No per-language configuration is needed. The AI identifies the language automatically and extracts fields in the original language with optional English translation.",
+      },
+      {
+        question: "How does extraction help with customs compliance?",
+        answer:
+          "Structured extracted data enables automated compliance screening: cross-referencing declared values against transfer pricing agreements, validating HS codes against your classification database, and screening parties against denied party lists. This catches potential violations before filing rather than during post-entry audits.",
+      },
+      {
+        question: "Can I extract data from certificates of origin?",
+        answer:
+          "Yes. Certificates of origin contain country of origin, manufacturer details, HS codes, and product descriptions. Parsli extracts these fields from any certificate format — including USMCA certificates, EUR.1 forms, and generic certificates of origin from any country.",
+      },
+    ],
+    relatedTools: [
+      {
+        href: "/tools/pdf-to-text",
+        title: "PDF to Text",
+        description: "Extract text from customs document PDFs.",
+      },
+    ],
+    relatedSolutions: ["logistics-document-automation"],
+    relatedCompare: ["shipamax"],
+    relatedBlog: [
+      "ohio-freight-regulations-2026",
+      "bill-of-lading-requirements-complete-guide",
+    ],
+  },
+  {
+    slug: "extract-data-from-delivery-notes",
+    title: "How to Extract Data from Delivery Notes & Proof of Delivery",
+    h1: "How to Extract Data from Delivery Notes & Proof of Delivery",
+    metaTitle: "How to Extract Data from Delivery Notes & Proof of Delivery | Parsli",
+    metaDescription:
+      "Extract recipient, delivery date, signature status, and exception notes from delivery notes and PODs automatically. Digitize proof of delivery for your records.",
+    publishedAt: "2026-03-16",
+    updatedAt: "2026-03-16",
+    author: "Talal Bazerbachi",
+    authorTitle: "Founder at Parsli",
+    readTime: "7 min read",
+    category: "Document Extraction" as const,
+    imageTitle: "Extract Delivery Note Data",
+    tldr: [
+      "**Delivery note and POD extraction** pulls recipient name, delivery date and time, signature status, item counts, exception notes, and driver comments from proof-of-delivery documents into structured data for your TMS, claims system, or customer records.",
+      "**90% of PODs are still paper-based** — carbon copies, thermal printouts, or handwritten driver notes that sit in filing cabinets. When a delivery dispute arises weeks later, finding and reading the original POD is a time-consuming hunt.",
+      "**Handwriting is the core challenge** — drivers write recipient names, note exceptions ('2 cartons damaged'), sign for deliveries, and record timestamps by hand. Traditional OCR cannot reliably read handwritten delivery notes.",
+      "**AI-powered extraction** reads handwritten PODs, captures signature presence, and extracts exception notes that are critical for claims processing and dispute resolution.",
+      "**Digitize your POD archive** — extract data from existing paper PODs to build a searchable digital record. [Try the free image-to-text tool →](/tools/image-to-text)",
+    ],
+    content: [
+      {
+        type: "key-stat",
+        stats: [
+          { value: "5+", label: "Key fields per POD" },
+          { value: "90%", label: "PODs still paper-based" },
+          { value: "< 10s", label: "AI extraction time per POD" },
+          { value: "Any format", label: "Paper, photo, or digital" },
+        ],
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "What are delivery notes and proof of delivery?",
+        id: "what-are-delivery-notes",
+      },
+      {
+        type: "paragraph",
+        text: "Delivery notes and proof-of-delivery (POD) documents confirm that goods were delivered to the intended recipient. They typically contain the recipient's name, delivery date and time, delivered items with quantities, signature (physical or electronic), and any exception notes — damage, shortages, refused items, or access issues. PODs serve as the legal proof that delivery occurred and form the basis for billing, claims, and dispute resolution.",
+      },
+      {
+        type: "paragraph",
+        text: "In practice, PODs come in many forms: pre-printed delivery receipts signed by the recipient, handwritten notes on carbon copy forms, thermal printouts from mobile devices, photographs of signed documents, and increasingly, electronic PODs captured on tablets or phones. Each format presents different extraction challenges, but the common thread is that critical information — especially exception notes and signatures — is typically handwritten.",
+      },
+      {
+        type: "paragraph",
+        text: "This guide covers three approaches to extracting data from delivery notes and PODs — from manual filing to AI-powered digitization — so you can build a searchable POD archive that supports faster dispute resolution, automated billing confirmation, and complete delivery records.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Why manual POD processing fails",
+        id: "why-manual-fails",
+      },
+      {
+        type: "paragraph",
+        text: "Most delivery operations still handle PODs as paper documents — collected by drivers, returned to the office in batches, and filed in physical folders organized by date or customer. This paper-based process creates predictable problems when delivery information is needed.",
+      },
+      {
+        type: "list",
+        items: [
+          "**Paper-based reality** — Despite electronic alternatives, 90% of PODs in LTL, last-mile, and white-glove delivery operations are still paper-based. Drivers carry pre-printed forms, get signatures on carbon copies, and return stacks of PODs at end-of-day. Digital transformation has not reached the delivery dock.",
+          "**Lost documents** — Paper PODs get lost, damaged by weather, smudged in transit, or misfiled. When a customer disputes a delivery 30 days later, the POD that proves delivery occurred may be in a filing cabinet, in the driver's truck, or gone entirely.",
+          "**Delay in dispute resolution** — A customer claims they received 8 cartons instead of 10. Finding the POD, reading the handwritten piece count, and verifying the exception notes takes hours of searching. Meanwhile, the customer is waiting, the carrier claim deadline is approaching, and nobody can confirm what actually happened at delivery.",
+          "**Handwriting legibility** — Driver handwriting varies from clear printing to completely illegible scrawl. Recipient names, exception notes, and timestamps are handwritten under time pressure at the delivery point. When you need to read these notes weeks later, deciphering them is often impossible — and the driver who wrote them may not remember the delivery.",
+        ],
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "How to extract POD data: 3 methods compared",
+        id: "how-to-extract",
+      },
+      {
+        type: "table",
+        headers: [
+          "Method",
+          "Speed",
+          "Accuracy",
+          "Handwriting",
+          "Setup",
+          "Cost",
+        ],
+        rows: [
+          [
+            "Manual filing + lookup",
+            "10-30 min to find",
+            "Human reads",
+            "Human reads",
+            "None",
+            "Labor cost per lookup",
+          ],
+          [
+            "Template OCR",
+            "15-30 sec",
+            "60-75%",
+            "Fails",
+            "Per-format templates",
+            "$2-5/doc",
+          ],
+          [
+            "AI extraction (Parsli)",
+            "< 10 sec",
+            "90%+",
+            "Reads well",
+            "Minutes",
+            "Free tier available",
+          ],
+        ],
+        highlightColumn: 2,
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "Method 1: Manual filing and lookup",
+        id: "method-1-manual",
+      },
+      {
+        type: "paragraph",
+        text: "Drivers return paper PODs at end of day. Someone sorts them by date or customer, files them in folders, and when a POD is needed for dispute resolution or billing confirmation, someone searches through the files to find it. The data on the POD is never extracted — it stays on paper, accessible only to someone physically looking at the document.",
+      },
+      {
+        type: "pros-cons",
+        pros: [
+          "No technology required",
+          "Original document preserved",
+          "Humans can read handwriting (usually)",
+          "Works for very low volume (under 20 deliveries/day)",
+        ],
+        cons: [
+          "10-30 minutes to find a specific POD",
+          "Paper documents get lost, damaged, or misfiled",
+          "No searchable database — cannot query across deliveries",
+          "No data extraction — cannot analyze delivery patterns or exceptions",
+          "Physical storage costs grow indefinitely",
+        ],
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "Method 2: Template-based OCR",
+        id: "method-2-template-ocr",
+      },
+      {
+        type: "paragraph",
+        text: "Template OCR scans PODs and extracts text from defined zones on the form — the recipient name is in box A, the date is in box B, the signature is in box C. This works for your own pre-printed POD forms where the layout is consistent, but it fails on handwritten entries, carrier-specific formats, and any POD that does not match your template.",
+      },
+      {
+        type: "pros-cons",
+        pros: [
+          "Fast processing on known form layouts",
+          "Consistent extraction for printed fields",
+          "Creates a basic digital archive",
+        ],
+        cons: [
+          "Cannot read handwritten text — the most critical POD data",
+          "Requires a template for every POD format",
+          "Fails on photographed or skewed documents",
+          "Cannot detect signature presence vs absence",
+          "Exception notes (always handwritten) are not extracted",
+        ],
+      },
+      {
+        type: "callout",
+        variant: "note",
+        text: "The most important data on a POD is almost always handwritten: the recipient's printed name, the exception notes ('2 cartons damaged, refused'), and the delivery timestamp. Template OCR extracts the printed fields but misses the handwritten data that actually matters for disputes and claims.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "Method 3: AI-powered extraction with Parsli",
+        id: "method-3-parsli",
+      },
+      {
+        type: "tool-review",
+        name: "Parsli",
+        bestFor: "Delivery operations, 3PLs, and carriers needing to **digitize paper PODs** with [handwritten entries](/tools/handwriting-to-text), capture exception notes, and build searchable delivery records.",
+        features: [
+          "No-code schema builder — define POD fields visually",
+          "Reads handwritten recipient names, exception notes, and timestamps",
+          "Detects signature presence on delivery forms",
+          "Handles photographed, scanned, and digitally captured PODs",
+          "Export to TMS, claims system, or [Excel](/tools/pdf-to-excel) via API or Zapier",
+        ],
+        pros: [
+          "Reads handwritten POD data that OCR cannot",
+          "One schema works across all POD formats",
+          "Captures exception notes critical for claims",
+          "30 free pages/month to start",
+        ],
+        cons: [
+          "Requires internet connection (cloud-based)",
+          "Free tier limited to 30 pages/month",
+          "Extremely illegible handwriting may still require human review",
+        ],
+        verdict: "For any delivery operation processing more than 20 PODs per day, AI extraction is the only viable way to digitize handwritten delivery data. The ability to extract exception notes and verify signature presence — where OCR fails entirely — makes it essential for claims processing and dispute resolution. [Try it free](/tools/image-to-text) with no sign-up.",
+      },
+      {
+        type: "paragraph",
+        text: "AI extraction understands POD structure semantically — it knows that the handwritten text next to 'Received by' is the recipient's name, the scrawl in the 'Exceptions' box is a damage note, and the mark in the signature area is (or is not) a valid signature. This understanding works across any POD format — your own pre-printed forms, carrier-specific formats, or even informal handwritten receipts.",
+      },
+      {
+        type: "step",
+        number: 1,
+        title: "Create a POD parser and define your schema",
+        description:
+          "In Parsli's no-code schema builder, define the fields you need: recipient_name, delivery_date, delivery_time, delivery_address, po_number, items_delivered (repeating group: item_description, quantity), signature_present (boolean), exception_notes, driver_name, and any custom fields your TMS requires. Use field descriptions to help the AI interpret handwritten entries.",
+      },
+      {
+        type: "step",
+        number: 2,
+        title: "Scan or photograph delivery notes",
+        description:
+          "Have drivers photograph PODs with their phones at the point of delivery, or scan returned paper PODs at end-of-day. Upload to Parsli via the mobile-friendly web interface, email forwarding, or API integration with your driver app. Parsli handles photos taken at angles, in poor lighting, and of crumpled or folded documents.",
+      },
+      {
+        type: "step",
+        number: 3,
+        title: "Review extracted data and exception flags",
+        description:
+          "Parsli returns structured data with confidence scores. Pay special attention to exception_notes fields — these contain the handwritten damage notes, shortage counts, and refusal reasons that drive claims processing. Route PODs with exceptions to your claims team automatically based on the extracted exception_notes content.",
+      },
+      {
+        type: "step",
+        number: 4,
+        title: "Export to your TMS or records system",
+        description:
+          "Push extracted POD data to your TMS via [webhook](/guides/bol-data-to-wms-integration), REST API, or [Zapier](/integrations/zapier). Link POD records to the original shipment using PO numbers or BOL references extracted from both documents. Build a searchable archive where any delivery can be found in seconds instead of minutes.",
+      },
+      {
+        type: "tool-callout",
+        href: "/tools/image-to-text",
+        title: "Free Image to Text",
+        description:
+          "Try extracting data from a delivery note photo right now. Upload a picture of a signed POD and see recipient name, date, and exception notes extracted — no sign-up required.",
+      },
+      {
+        type: "mid-cta",
+        text: "Still filing paper PODs in cabinets? Digitize your delivery records with AI that reads handwriting — 30 free pages/month.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Use cases for POD data extraction",
+        id: "use-cases",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "1. Proof of delivery records",
+        id: "use-case-pod-records",
+      },
+      {
+        type: "paragraph",
+        text: "Building a searchable digital archive of PODs transforms delivery confirmation from a paper-hunting exercise into an instant lookup. When a customer asks for proof that their order was delivered, you search by PO number or delivery date and pull the complete POD record — recipient name, delivery time, signature status, and any exceptions — in seconds instead of the 10-30 minutes it takes to find a paper document.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "2. Delivery dispute resolution",
+        id: "use-case-disputes",
+      },
+      {
+        type: "paragraph",
+        text: "Delivery disputes hinge on what the POD says — was the delivery signed for, were exceptions noted, how many pieces were received. When POD data is extracted and searchable, your claims team resolves disputes with evidence instead of guesswork. Exception notes extracted from handwritten PODs ('2 cartons wet, refused') provide the documentation needed to assign liability and process claims quickly.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "3. Customer service and delivery tracking",
+        id: "use-case-customer-service",
+      },
+      {
+        type: "paragraph",
+        text: "Customer service teams field 'where is my delivery' calls constantly. With extracted POD data in your system, agents can confirm delivery details — recipient name, time, signature — without requesting a copy from the driver or warehouse. Extracted data also enables automated delivery confirmation emails to customers, triggered when the POD is processed.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Best practices for POD extraction",
+        id: "best-practices",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "1. Capture PODs at the point of delivery",
+        id: "bp-capture-at-delivery",
+      },
+      {
+        type: "paragraph",
+        text: "Do not wait until end-of-day to scan PODs. Have drivers photograph signed PODs immediately after delivery using their phone or a driver app. This eliminates the risk of lost documents, captures the POD at maximum legibility (before it is folded, crumpled, or faded), and enables near-real-time delivery confirmation in your systems.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "2. Always extract exception notes",
+        id: "bp-exception-notes",
+      },
+      {
+        type: "paragraph",
+        text: "Exception notes are the most valuable data on a POD for claims and disputes — yet they are the easiest to overlook because they are handwritten and inconsistent. Include an exception_notes field in every POD schema. Even 'no exceptions' is valuable data. When a dispute arises, the presence or absence of noted exceptions on the POD is often the deciding factor.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "3. Link PODs to shipment records via reference numbers",
+        id: "bp-link-records",
+      },
+      {
+        type: "paragraph",
+        text: "Extract PO numbers, BOL numbers, or shipment references from PODs and use them to link delivery records to the original shipment in your TMS. This creates end-to-end traceability: from [BOL at pickup](/guides/extract-data-from-bills-of-lading) to POD at delivery. When a claim references a shipment number, you can pull both the BOL and POD instantly.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Common mistakes to avoid",
+        id: "common-mistakes",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "1. Ignoring signature verification",
+        id: "mistake-signature",
+      },
+      {
+        type: "paragraph",
+        text: "A POD without a signature is not proof of delivery — it is proof that the driver was there. Extract signature_present as a boolean field and flag unsigned PODs for follow-up. In delivery disputes, the absence of a signature often means the difference between the shipper bearing the loss and the carrier bearing it. Automated signature detection catches unsigned PODs before they are filed.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "2. Only extracting printed fields",
+        id: "mistake-printed-only",
+      },
+      {
+        type: "paragraph",
+        text: "Pre-printed POD fields — delivery address, PO number, item list — are important for record-keeping, but the handwritten data is what matters for disputes. If your extraction only captures printed text and skips the handwritten recipient name, exception notes, and timestamps, you are digitizing the easy data and losing the critical data. Use AI extraction that reads handwriting, not just print.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "3. Delaying POD digitization",
+        id: "mistake-delaying",
+      },
+      {
+        type: "paragraph",
+        text: "Every day a paper POD sits undigitized is a day it could be lost, damaged, or faded beyond readability. Thermal paper PODs begin fading immediately. Carbon copies smudge in storage. And when a dispute arises 60 days after delivery, a POD that was perfectly legible at delivery may now be unreadable. Digitize PODs the same day they are returned — or better yet, capture them at the point of delivery.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "From paper PODs to searchable delivery records",
+        id: "conclusion",
+      },
+      {
+        type: "paragraph",
+        text: "Delivery note extraction transforms a paper filing system into a digital delivery database. When every POD is extracted, indexed, and searchable, delivery disputes are resolved in minutes instead of days, claims are processed with evidence instead of assumptions, and customer service can confirm deliveries instantly instead of promising callbacks.",
+      },
+      {
+        type: "paragraph",
+        text: "Whether you handle 20 deliveries a day or 2,000, the gap between paper PODs and digital records is a liability — lost documents, unreadable handwriting, and delayed dispute resolution cost more than the extraction itself. Start with the [free image-to-text tool](/tools/image-to-text) or [handwriting-to-text tool](/tools/handwriting-to-text) to see what AI extraction looks like on your actual delivery notes.",
+      },
+      { type: "cta" },
+    ],
+    faqs: [
+      {
+        question: "What data can I extract from delivery notes and PODs?",
+        answer:
+          "You can extract recipient name, delivery date and time, delivery address, PO or reference numbers, delivered item descriptions and quantities, signature presence (signed or unsigned), exception notes (damage, shortages, refusals), driver name, and any handwritten annotations on the document.",
+      },
+      {
+        question: "Can AI extraction read handwritten PODs?",
+        answer:
+          "Yes. AI-powered extraction reads handwritten text on PODs — recipient names, exception notes, timestamps, and delivery comments. Accuracy depends on handwriting legibility, but confidence scores flag uncertain text for human review. This is a major advantage over template OCR, which cannot read handwriting at all.",
+      },
+      {
+        question: "How does extraction handle photographed delivery notes?",
+        answer:
+          "Parsli processes photos taken with phones or tablets — even at slight angles, in variable lighting, or of crumpled documents. The AI corrects for skew and perspective before extracting text. For best results, ensure the entire POD is visible in the photo with reasonable lighting.",
+      },
+      {
+        question: "Can I detect whether a POD was signed?",
+        answer:
+          "Yes. Include a signature_present field in your schema, and AI extraction will detect whether a signature mark exists in the signature area of the POD. This enables automated flagging of unsigned deliveries for follow-up.",
+      },
+      {
+        question: "How do I digitize an existing archive of paper PODs?",
+        answer:
+          "Scan your paper PODs in batches using a document scanner, then upload the scanned images to Parsli via drag-and-drop or API. Parsli extracts data from each POD, creating a searchable digital archive. For large archives, use the API for batch processing.",
+      },
+    ],
+    relatedTools: [
+      {
+        href: "/tools/image-to-text",
+        title: "Image to Text",
+        description: "Extract text from delivery note photos.",
+      },
+      {
+        href: "/tools/handwriting-to-text",
+        title: "Handwriting to Text",
+        description: "Read handwritten POD entries and exception notes.",
+      },
+    ],
+    relatedSolutions: ["logistics-document-automation"],
+    relatedCompare: ["shipamax"],
+    relatedBlog: [
+      "columbus-logistics-hub-3pl-guide",
+      "cost-of-manual-data-entry-3pl",
     ],
   },
 

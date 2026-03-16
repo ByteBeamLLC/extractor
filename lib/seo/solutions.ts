@@ -758,6 +758,160 @@ console.log(data.fields);
     ],
     ctaPainPoint: "building document parsing infrastructure",
   },
+  {
+    slug: "logistics-document-automation",
+    keyword: "logistics document automation",
+    metaTitle: "Automate Logistics Document Processing with AI | Parsli",
+    metaDescription: "Automate BOL, freight invoice, and shipping document processing. AI extracts data from any carrier format and pushes to your WMS/TMS. 92% time reduction. Start free.",
+    h1: "Automate Logistics Document Processing",
+    h1Accent: "From Loading Dock to Database",
+    subtitle: "Stop hiring more clerks to keep up with paperwork. Parsli's AI extracts structured data from bills of lading, freight invoices, packing lists, and shipping documents — any carrier, any format.",
+    comparisonHeadline: "End the manual data entry bottleneck",
+    painPoints: [
+      "Manually keying BOL data into your WMS — 12+ minutes per document",
+      "Different format for every carrier — UPS, FedEx, XPO, ODFL all look different",
+      "Faded thermal dock prints that traditional OCR can't read",
+      "3-7 day billing lag because freight invoices sit in a manual processing queue",
+      "Scaling means hiring more data entry clerks — not a sustainable model",
+    ],
+    solutions: [
+      "AI reads any carrier's BOL or invoice format without templates",
+      "Handles faded thermal prints, carbon copies, and handwritten annotations",
+      "Process 300+ documents per day — no additional headcount needed",
+      "Extracted data flows to your WMS, TMS, or ERP in seconds via API",
+      "92% time reduction — from 12.7 minutes to under 1 minute per document",
+    ],
+    saveLine: "Save 60+ clerk-hours per day on logistics document processing.",
+    calloutBox: {
+      title: "Works with Dock-Quality Documents",
+      description: "Google Gemini 2.5 Pro reads faded thermal BOL prints, low-contrast warehouse scans, and even handwritten notes — documents that break traditional OCR. No pre-processing or image cleanup required.",
+    },
+    supportedTypes: [
+      { emoji: "\u{1F4CB}", name: "Bills of Lading" },
+      { emoji: "\u{1F9FE}", name: "Freight Invoices" },
+      { emoji: "\u{1F4E6}", name: "Packing Lists" },
+      { emoji: "\u{1F6C3}", name: "Customs Forms" },
+      { emoji: "\u{1F4EC}", name: "Delivery Notes" },
+    ],
+    howItWorks: [
+      {
+        step: "1",
+        title: "Forward Documents via Email or API",
+        description: "Forward BOLs and freight invoices from your inbox, scan them at the dock, or send via REST API. Parsli ingests from any source.",
+      },
+      {
+        step: "2",
+        title: "AI Extracts Data Per Your Schema",
+        description: "Define the fields you need — shipper, consignee, weight, freight class, PRO number, charges — and the AI extracts them from any format.",
+      },
+      {
+        step: "3",
+        title: "Data Flows to Your WMS/TMS",
+        description: "Extracted data pushes to your warehouse management system, TMS, ERP, or Google Sheets automatically via webhooks, Zapier, or REST API.",
+      },
+    ],
+    benefits: [
+      {
+        title: "Any Carrier Format",
+        description: "UPS, FedEx, XPO, ODFL, Estes, R+L, Saia — the AI adapts to any carrier's document layout without carrier-specific templates or configuration.",
+      },
+      {
+        title: "Dock-Quality OCR",
+        description: "Google Gemini 2.5 Pro reads faded thermal prints, crooked scans, and carbon copies that traditional OCR engines can't process. No image pre-processing needed.",
+      },
+      {
+        title: "WMS/TMS Integration",
+        description: "Push extracted data directly to your existing systems via REST API, webhooks, or [Zapier](/guides/parse-email-attachments-with-zapier). No middleware required.",
+      },
+      {
+        title: "Freight Audit Trail",
+        description: "Every extraction includes confidence scores and original document links. Build automated 3-way matching between BOLs, POs, and invoices for freight audit.",
+      },
+    ],
+    seoSections: [
+      {
+        heading: "Why Logistics Document Processing Needs Automation",
+        content: "A mid-size 3PL processes 300-500 shipping documents daily — bills of lading, freight invoices, packing lists, customs forms, and delivery notes. At 12+ minutes per document for manual data entry, that's 60-100 clerk-hours per day just typing data from paper into screens.\n\nThe problem isn't just speed. [20-30% of freight invoices contain errors](/blog/bol-errors-prevention-guide) when processed manually — wrong freight class, incorrect weight, missed surcharges. Each error triggers a billing dispute, delay, or financial loss. And the talent pool for data entry clerks in logistics hubs like Columbus is getting tighter every year.\n\nAI-powered document automation eliminates this bottleneck. Instead of clerks manually reading and typing, the AI reads the document, extracts structured data per your schema, and pushes it directly to your WMS or TMS. Processing time drops from 12.7 minutes to under 1 minute — a [92% reduction](/blog/cost-of-manual-data-entry-3pl) with dramatically fewer errors.",
+      },
+      {
+        heading: "What Logistics Documents Can Be Automated?",
+        content: "Parsli handles the full spectrum of logistics paperwork. [Bills of lading](/document-types/bills-of-lading) — extract shipper, consignee, description of goods, weight, freight class, NMFC code, PRO number, and special instructions from any BOL format. [Freight invoices](/document-types/freight-invoices) — extract carrier name, PRO number, origin/destination, weight, class, rates, surcharges, accessorial charges, and totals.\n\nBeyond BOLs and freight invoices, Parsli processes packing lists (item descriptions, quantities, weights, dimensions), customs forms (HS codes, declared values, country of origin), and delivery notes (recipient, delivery date, signature confirmation, exceptions). Each document type uses a custom schema — you define exactly which fields to extract.",
+      },
+      {
+        heading: "From Loading Dock to Database in Seconds",
+        content: "Here's what the workflow looks like in practice. A driver hands over a BOL at your receiving dock. Your warehouse associate scans it with a phone or desk scanner. The scan hits Parsli via email forwarding or API webhook. Within seconds, the AI extracts shipper name, consignee, weight, piece count, freight class, and PRO number. That data appears in your WMS immediately — no clerk involvement, no manual keying, no delay.\n\nFor freight invoices, the flow is similar. Carrier invoices arrive via email. Parsli's Gmail integration auto-processes attachments from carrier email addresses. Extracted data — rates, surcharges, totals — flows to your accounting system for automated 3-way matching against BOLs and POs. Discrepancies get flagged; clean matches get auto-approved.",
+      },
+    ],
+    faq: [
+      {
+        question: "Can Parsli handle different BOL formats from different carriers?",
+        answer: "Yes. Parsli's AI adapts to any document layout without templates. Whether it's a UPS, FedEx, XPO, ODFL, or custom carrier BOL, the AI reads the document and extracts the fields you defined in your schema.",
+      },
+      {
+        question: "Does it work with faded thermal BOL prints?",
+        answer: "Yes. Parsli uses Google Gemini 2.5 Pro which reads faded thermal prints, low-contrast scans, and carbon copies significantly better than traditional OCR. No image pre-processing required.",
+      },
+      {
+        question: "Can I integrate with my WMS or TMS?",
+        answer: "Yes. Use the REST API or webhooks to push extracted data directly to any WMS, TMS, or ERP system. Parsli also integrates with Zapier (5,000+ apps), Make, and Google Sheets.",
+      },
+      {
+        question: "How many documents can Parsli process per day?",
+        answer: "There's no daily processing limit beyond your plan's monthly page quota. Most logistics operations process 300-500+ documents per day on Growth or Pro plans without issues.",
+      },
+      {
+        question: "What about customs and international shipping documents?",
+        answer: "Parsli processes customs declarations, commercial invoices, certificates of origin, and other international trade documents. The AI supports documents in multiple languages.",
+      },
+      {
+        question: "How accurate is the extraction?",
+        answer: "95%+ accuracy on standard logistics documents. Each extraction includes per-field confidence scores so you can auto-approve high-confidence results and route exceptions for human review.",
+      },
+    ],
+    codeExample: {
+      title: "Extract BOL Data via API",
+      language: "javascript",
+      code: `const response = await fetch('https://api.parsli.co/v1/extract', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    parser_id: 'your_bol_parser_id',
+    file_url: 'https://example.com/bol-document.pdf',
+  }),
+});
+
+const data = await response.json();
+// {
+//   "shipper_name": "ABC Manufacturing Co.",
+//   "consignee_name": "XYZ Distribution LLC",
+//   "weight": "12,450 lbs",
+//   "freight_class": "85",
+//   "pro_number": "PRO-2026-004817",
+//   "description_of_goods": "Industrial components, NMFC 156400",
+//   "pieces": 24,
+//   "special_instructions": "Dock delivery, no appointment needed"
+// }`,
+    },
+    adCopyVariants: [
+      "Stop keying BOL data by hand. Parsli AI extracts from any carrier format.",
+      "From loading dock to WMS in seconds. Automate 3PL document processing.",
+      "92% faster logistics document processing. No templates, no training.",
+    ],
+    relatedKeywords: [
+      "logistics document automation",
+      "automate bill of lading processing",
+      "freight invoice automation",
+      "3PL document processing",
+      "shipping document OCR",
+      "WMS data entry automation",
+      "BOL data extraction",
+      "freight document parsing",
+    ],
+    ctaPainPoint: "Still keying BOL data into your WMS by hand?",
+  },
 ]
 
 export function getAllSolutions(): SolutionPage[] {

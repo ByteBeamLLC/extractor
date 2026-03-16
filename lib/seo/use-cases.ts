@@ -601,6 +601,114 @@ export const useCases: UseCaseData[] = [
       },
     ],
   },
+  {
+    slug: "bill-of-lading-parsing",
+    title: "Bill of Lading Parsing",
+    metaTitle: "AI Bill of Lading Parsing - Extract BOL Data Automatically | Parsli",
+    metaDescription: "Extract shipper, consignee, weight, freight class, and PRO numbers from any bill of lading format automatically with AI. Handles straight, order, and master BOLs.",
+    h1: "AI-Powered Bill of Lading Parsing",
+    heroDescription: "Stop manually keying BOL data into your WMS. Parsli extracts shipper names, consignee details, freight class, weight, PRO numbers, and all 17 FMCSA-mandated fields from any [bill of lading format](/blog/bill-of-lading-requirements-complete-guide) — straight, order, through, or master.",
+    painPoints: [
+      {
+        title: "Non-Standardized BOL Formats",
+        description: "Every shipper and carrier uses a different BOL layout. Your team wastes time figuring out where data is on each form before they can even start entering it.",
+      },
+      {
+        title: "Faded & Low-Quality Scans",
+        description: "Dock-printed thermal BOLs fade quickly, and warehouse scans are often crooked or low-contrast. Traditional OCR chokes on these documents.",
+      },
+      {
+        title: "Manual Entry Bottleneck at 300+ BOLs/Day",
+        description: "A mid-size 3PL processes 300+ BOLs daily. At 12+ minutes per document, that's 60+ clerk-hours per day just on BOL data entry. Learn why this [costs far more than you think](/blog/cost-of-manual-data-entry-3pl).",
+      },
+    ],
+    features: [
+      {
+        title: "Extract All 17 FMCSA Fields",
+        description: "Parsli extracts every field required by 49 CFR 375.505 — shipper, consignee, description of goods, weight, piece count, freight class, NMFC code, PRO number, and more.",
+      },
+      {
+        title: "Handle Any BOL Format",
+        description: "Straight BOLs, order BOLs, through BOLs, master BOLs, ocean BOLs — Parsli reads them all without template configuration. Integrate via the [document parsing API](/solutions/document-parsing-api) for full automation.",
+      },
+      {
+        title: "Read Faded Scans & Handwriting",
+        description: "Google Gemini 2.5 Pro reads dock-quality thermal prints, faded carbon copies, and handwritten annotations that traditional OCR cannot handle.",
+      },
+      {
+        title: "Push to WMS/TMS via API & Webhooks",
+        description: "Extracted BOL data flows directly to your WMS, TMS, or ERP via REST API, webhooks, [Zapier](/guides/parse-email-attachments-with-zapier), or Google Sheets — no manual re-entry.",
+      },
+    ],
+    faqs: [
+      {
+        question: "Can Parsli handle BOLs from different carriers?",
+        answer: "Yes. Parsli's AI adapts to any BOL layout without templates. Whether it's a UPS, FedEx, XPO, ODFL, or custom carrier BOL, the AI reads the document structure and extracts the fields you defined.",
+      },
+      {
+        question: "What about faded thermal BOL prints?",
+        answer: "Parsli uses Google Gemini 2.5 Pro which handles low-quality scans, faded thermal prints, and even handwritten annotations significantly better than traditional OCR engines.",
+      },
+      {
+        question: "Can I process BOLs received via email?",
+        answer: "Yes. Connect Gmail to auto-process BOL attachments from specific senders, or forward BOLs to a Parsli webhook for instant extraction. See our guide on freight invoice processing automation.",
+      },
+    ],
+  },
+  {
+    slug: "freight-invoice-processing",
+    title: "Freight Invoice Processing",
+    metaTitle: "Automated Freight Invoice Processing - Extract Carrier Invoice Data | Parsli",
+    metaDescription: "Automate freight invoice processing with AI. Extract carrier names, PRO numbers, rates, surcharges, and accessorial charges from any carrier format. 92% time reduction.",
+    h1: "Automated Freight Invoice Processing",
+    heroDescription: "Every carrier sends invoices in a different format. Parsli's AI extracts carrier names, PRO numbers, base rates, fuel surcharges, accessorial charges, and totals from any freight invoice — [eliminating the 20-30% error rate](/blog/bol-errors-prevention-guide) of manual auditing.",
+    painPoints: [
+      {
+        title: "Every Carrier Has a Different Format",
+        description: "UPS, FedEx, XPO, ODFL, Estes — each carrier invoices differently. Your AP team memorizes dozens of layouts or wastes time hunting for fields on every invoice.",
+      },
+      {
+        title: "Error-Prone Manual Auditing",
+        description: "20-30% of freight invoices contain errors. Manual auditing misses overcharges, duplicate charges, and rate discrepancies that add up to thousands per month.",
+      },
+      {
+        title: "Billing Delays Hurt Cash Flow",
+        description: "Manual freight invoice processing creates a 3-7 day lag between receiving an invoice and entering it into your accounting system. Automate the process to [cut costs dramatically](/blog/cost-of-manual-data-entry-3pl).",
+      },
+    ],
+    features: [
+      {
+        title: "Freight-Specific Field Extraction",
+        description: "Extract carrier name, PRO number, origin/destination, weight, class, base rate, fuel surcharge, accessorial charges, and total — fields specific to freight invoices.",
+      },
+      {
+        title: "3-Way Matching (BOL/PO/Invoice)",
+        description: "Cross-reference extracted freight invoice data against BOLs and purchase orders to catch billing errors before payment. Pair with [BOL parsing](/use-cases/bill-of-lading-parsing) for end-to-end automation.",
+      },
+      {
+        title: "Batch Carrier Invoice Processing",
+        description: "Process hundreds of carrier invoices per day. Forward invoices via email or upload in bulk — Parsli handles any volume without additional headcount.",
+      },
+      {
+        title: "Audit Trail & Confidence Scores",
+        description: "Every extraction includes confidence scores per field. Flag low-confidence extractions for human review while auto-approving high-confidence results.",
+      },
+    ],
+    faqs: [
+      {
+        question: "Which carrier invoice formats does Parsli support?",
+        answer: "Parsli works with any carrier invoice format — UPS, FedEx, XPO, ODFL, Estes, R+L Carriers, Saia, and more. The AI adapts to any layout without carrier-specific templates.",
+      },
+      {
+        question: "Can Parsli catch freight billing errors?",
+        answer: "Parsli extracts all line items and charges accurately, enabling automated 3-way matching between BOLs, POs, and invoices. This catches overcharges, duplicate charges, and rate discrepancies.",
+      },
+      {
+        question: "How fast is freight invoice processing with Parsli?",
+        answer: "Most freight invoices are processed in under 10 seconds. Compared to 12+ minutes of manual processing, that's a 92% time reduction. Process 300+ invoices per day without additional staff.",
+      },
+    ],
+  },
 ]
 
 export function getUseCaseBySlug(slug: string): UseCaseData | undefined {

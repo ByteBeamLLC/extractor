@@ -126,6 +126,12 @@ const categories = [
           "Extract data from invoices — vendor info, line items, totals, and payment details.",
       },
       {
+        slug: "bol-parser",
+        title: "BOL Parser",
+        description:
+          "Extract data from bills of lading — shipper, consignee, weight, freight class, and PRO numbers.",
+      },
+      {
         slug: "receipt-scanner",
         title: "Receipt Scanner",
         description:
@@ -160,7 +166,7 @@ const categories = [
 ]
 
 export const metadata: Metadata = {
-  title: "22 Free Document Tools — PDF, OCR, Data Conversion & More | Parsli",
+  title: "23 Free Document Tools — PDF, OCR, Data Conversion & More | Parsli",
   description:
     "Free online tools for PDF merging, splitting, OCR text extraction, data conversion, and document parsing. No signup required. 100% browser-based and private.",
   keywords: [
@@ -181,7 +187,7 @@ export const metadata: Metadata = {
     canonical: "https://parsli.co/tools",
   },
   openGraph: {
-    title: "22 Free Document Tools — PDF, OCR & More",
+    title: "23 Free Document Tools — PDF, OCR & More",
     description:
       "Free online tools for PDF processing, OCR text extraction, data conversion, and document parsing. No signup required.",
     url: "https://parsli.co/tools",
@@ -196,7 +202,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "22 Free Document Tools — PDF, OCR & More",
+    title: "23 Free Document Tools — PDF, OCR & More",
     description:
       "Free online tools for PDF processing, OCR, data conversion, and document parsing.",
     images: ["https://parsli.co/parsli-og.png"],
@@ -216,7 +222,7 @@ export default function ToolsPage() {
             Free Document Parsing Tools
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            22 free tools for PDF processing, OCR text extraction, data
+            23 free tools for PDF processing, OCR text extraction, data
             conversion, and document parsing. No signup required — everything
             runs in your browser.
           </p>

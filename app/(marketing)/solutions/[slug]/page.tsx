@@ -94,6 +94,18 @@ const solutionRelatedLinks: Record<
     { href: "/compare/textract", label: "Parsli vs Amazon Textract" },
     { href: "/compare/google-document-ai", label: "Parsli vs Google Document AI" },
     { href: "/docs#api", label: "API Documentation" },
+    { href: "/solutions/logistics-document-automation", label: "Logistics Document Automation" },
+  ],
+  "logistics-document-automation": [
+    { href: "/tools/bol-parser", label: "Free BOL Parser" },
+    { href: "/tools/invoice-parser", label: "Free Invoice Parser" },
+    { href: "/use-cases/bill-of-lading-parsing", label: "Bill of Lading Parsing" },
+    { href: "/use-cases/freight-invoice-processing", label: "Freight Invoice Processing" },
+    { href: "/blog/bill-of-lading-requirements-complete-guide", label: "BOL Requirements Guide" },
+    { href: "/blog/cost-of-manual-data-entry-3pl", label: "Cost of Manual Data Entry for 3PLs" },
+    { href: "/blog/freight-invoice-processing-automation", label: "Freight Invoice Automation Guide" },
+    { href: "/compare/shipamax", label: "Parsli vs Shipamax" },
+    { href: "/columbus", label: "Parsli for Columbus 3PLs" },
   ],
 }
 

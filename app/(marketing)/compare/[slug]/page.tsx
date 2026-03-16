@@ -42,6 +42,8 @@ const compareToBlog: Record<string, string[]> = {
   "pulse-ai": ["document-parsing-api", "agentic-document-extraction"],
   "cradl-ai": ["automate-data-entry", "best-invoice-ocr-software"],
   airparser: ["best-email-parser-tools", "automate-data-entry"],
+  shipamax: ["bill-of-lading-requirements-complete-guide", "cost-of-manual-data-entry-3pl", "freight-invoice-processing-automation"],
+  "v7-labs": ["extract-data-from-pdf-automatically", "document-parsing-api", "what-is-document-parsing"],
 }
 
 /* Map comparison slugs to related solutions */
@@ -72,6 +74,8 @@ const compareToSolutions: Record<string, string[]> = {
   "pulse-ai": ["document-parsing-api"],
   "cradl-ai": ["no-code-document-parser", "invoice-parsing"],
   airparser: ["no-code-document-parser"],
+  shipamax: ["logistics-document-automation", "document-parsing-api"],
+  "v7-labs": ["no-code-document-parser", "document-parsing-api"],
 }
 
 function getRelatedBlogPosts(slug: string) {

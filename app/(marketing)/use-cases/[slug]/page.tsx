@@ -31,6 +31,7 @@ const useCaseTools: Record<string, { href: string; title: string; description: s
     { href: "/tools/invoice-parser", title: "Free Invoice Parser", description: "Extract data from invoices automatically in your browser." },
     { href: "/tools/bank-statement-parser", title: "Free Bank Statement Parser", description: "Extract transactions and balances from bank statements." },
     { href: "/tools/ai-summarizer", title: "Free AI Document Summarizer", description: "Summarize key information from any document instantly." },
+    { href: "/tools/bol-parser", title: "Free BOL Parser", description: "Extract text from bills of lading instantly in your browser." },
   ],
   "intelligent-document-processing": [
     { href: "/tools/ai-summarizer", title: "Free AI Document Summarizer", description: "Extract and summarize key information from any document." },
@@ -53,6 +54,14 @@ const useCaseTools: Record<string, { href: string; title: string; description: s
   "pdf-to-json": [
     { href: "/tools/pdf-to-excel", title: "Free PDF to Excel Converter", description: "Extract PDF table data into spreadsheet format." },
     { href: "/tools/excel-to-json", title: "Free Excel to JSON Converter", description: "Convert spreadsheets to structured JSON format." },
+  ],
+  "bill-of-lading-parsing": [
+    { href: "/tools/bol-parser", title: "Free BOL Parser", description: "Extract text from bills of lading instantly in your browser." },
+    { href: "/tools/pdf-to-text", title: "Free PDF to Text Extractor", description: "Extract text content from BOL PDF documents." },
+  ],
+  "freight-invoice-processing": [
+    { href: "/tools/invoice-parser", title: "Free Invoice Parser", description: "Extract text from freight invoices instantly." },
+    { href: "/tools/pdf-to-excel", title: "Free PDF to Excel Converter", description: "Convert freight invoice PDFs to Excel spreadsheets." },
   ],
 }
 

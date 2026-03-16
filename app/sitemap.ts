@@ -157,6 +157,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     {
+      url: `${BASE_URL}/tools/bol-parser`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
       url: `${BASE_URL}/tools/receipt-scanner`,
       lastModified: now,
       changeFrequency: "monthly",
@@ -220,6 +226,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${BASE_URL}/guides`,
       lastModified: now,
       changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE_URL}/columbus`,
+      lastModified: now,
+      changeFrequency: "monthly",
       priority: 0.8,
     },
     {

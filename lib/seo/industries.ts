@@ -80,14 +80,14 @@ export const industries: IndustryData[] = [
       "Extract data from bills of lading, packing lists, and shipping documents automatically. AI document parsing for logistics operations. Start free.",
     h1: "Document Parsing for Logistics & Shipping",
     heroDescription:
-      "Automate data extraction from shipping documents, bills of lading, customs forms, and packing lists. Keep your supply chain data flowing without manual entry.",
+      "Automate data extraction from shipping documents, [bills of lading](/document-types/bills-of-lading), customs forms, and packing lists. Keep your supply chain data flowing without manual entry. See how [3PLs are cutting document processing costs by 92%](/blog/cost-of-manual-data-entry-3pl).",
     painPoints: [
       { title: "Paper-Heavy Supply Chains", description: "Logistics operations generate massive volumes of shipping documents that need data extracted." },
       { title: "Customs Delays", description: "Manual processing of customs and trade documents slows down cross-border shipments." },
       { title: "Tracking Data Gaps", description: "Key shipment data locked in PDFs creates visibility gaps across the supply chain." },
     ],
     useCases: [
-      { title: "Bill of Lading Parsing", description: "Extract shipper, consignee, cargo details, and shipping terms from BOL documents. See our guide on [extracting data from shipping documents](/guides/extract-data-from-shipping-documents)." },
+      { title: "Bill of Lading Parsing", description: "Extract shipper, consignee, cargo details, and shipping terms from BOL documents. Try our [free BOL parser](/tools/bol-parser) or see the full [BOL parsing use case](/use-cases/bill-of-lading-parsing). See our guide on [extracting data from shipping documents](/guides/extract-data-from-shipping-documents)." },
       { title: "Packing List Extraction", description: "Pull item descriptions, quantities, weights, and dimensions from packing lists." },
       { title: "Customs Document Processing", description: "Extract HS codes, values, and origin data from customs declarations and commercial invoices. Combine with [batch document processing](/guides/batch-process-documents-automatically) for high-volume operations." },
       { title: "Delivery Note Digitization", description: "Convert delivery receipts and POD documents into structured tracking data." },
@@ -97,9 +97,9 @@ export const industries: IndustryData[] = [
       { question: "Does it handle table data in packing lists?", answer: "Yes. Use the table field type to extract multi-row item lists with all columns preserved." },
       { question: "Can I automate document intake from email?", answer: "Yes. Connect Gmail to auto-process shipping documents from specific senders as they arrive." },
     ],
-    relatedUseCases: ["email-parsing", "pdf-data-extraction", "document-automation"],
-    relatedDocumentTypes: ["pdfs", "forms", "invoices"],
-    relatedSolutions: ["document-parsing-api"],
+    relatedUseCases: ["email-parsing", "pdf-data-extraction", "document-automation", "bill-of-lading-parsing", "freight-invoice-processing"],
+    relatedDocumentTypes: ["pdfs", "forms", "invoices", "bills-of-lading", "freight-invoices"],
+    relatedSolutions: ["document-parsing-api", "logistics-document-automation"],
   },
   {
     slug: "healthcare",

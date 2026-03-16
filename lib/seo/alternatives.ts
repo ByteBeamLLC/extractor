@@ -343,6 +343,11 @@ export const alternatives: AlternativeData[] = [
         description:
           "Parsli's visual schema builder lets anyone define extraction fields with names, types, and plain English instructions. No templates to configure, no zones to draw, no rules to write. It's the fastest way to go from 'I need this data' to 'I have this data.' Learn how to [extract data from PDFs without code](/guides/extract-data-from-pdfs-without-code).",
       },
+      {
+        title: "Logistics document automation",
+        description:
+          "Parseur has limited logistics-specific capabilities. Parsli offers dedicated [bill of lading parsing](/use-cases/bill-of-lading-parsing), [freight invoice processing](/use-cases/freight-invoice-processing), and a complete [logistics document automation solution](/solutions/logistics-document-automation) with support for faded thermal dock prints and WMS/TMS integration.",
+      },
     ],
     relatedAlternatives: ["docparser", "nanonets", "parsio", "docsumo"],
   },
@@ -3882,6 +3887,372 @@ export const alternatives: AlternativeData[] = [
       { title: "Focused on What Businesses Need", description: "Most businesses need to extract specific data points from documents and route them to existing tools. Parsli is purpose-built for this workflow — from [invoice processing for small business](/guides/automate-invoice-processing-for-small-business) to [extracting data from contracts](/guides/extract-data-from-contracts). Unstructured.io is purpose-built for AI/ML data preparation — a fundamentally different need." },
     ],
     relatedAlternatives: ["llamaparse", "reducto", "base64ai", "textract"],
+  },
+  {
+    slug: "shipamax",
+    competitor: "Shipamax",
+    publishedAt: "2026-03-16",
+    updatedAt: "2026-03-16",
+    readTime: "8 min read",
+    metaTitle: "Less Expensive Shipamax Alternative for 2026 | Parsli",
+    metaDescription: "Looking for a Shipamax alternative? Parsli offers AI-powered logistics document extraction without enterprise-only pricing. Same BOL and freight invoice automation, self-service pricing.",
+    h1: "The Shipamax Alternative Without Enterprise-Only Pricing",
+    heroSubtitle: "Shipamax targets enterprise freight forwarders with custom implementations and opaque pricing. Parsli offers the same AI-powered logistics document extraction with transparent, self-service plans starting free.",
+    attackAngle: "cost",
+    differentiators: [
+      ...universalDifferentiators,
+      {
+        title: "Self-service logistics automation",
+        description: "Start automating BOL and freight invoice processing in minutes — no sales calls, no implementation timeline, no enterprise minimum. Sign up, define your schema, and start extracting.",
+      },
+    ],
+    comparisonCategories: [
+      {
+        category: "Pricing & Accessibility",
+        rows: [
+          {
+            feature: "Free plan",
+            parsli: "Perpetual free plan with 30 pages/month. No credit card required.",
+            competitor: "No free plan. Enterprise-only pricing requires sales call.",
+            parsliWins: true,
+          },
+          {
+            feature: "Self-service signup",
+            parsli: "Sign up and start extracting in minutes. No sales process.",
+            competitor: "Requires demo call and custom implementation. Multi-week onboarding.",
+            parsliWins: true,
+          },
+          {
+            feature: "Transparent pricing",
+            parsli: "Published pricing from $0 to $349/month. All features included at every tier.",
+            competitor: "No published pricing. Custom quotes only. Typically $1,000+/month.",
+            parsliWins: true,
+          },
+          {
+            feature: "Contract requirements",
+            parsli: "Month-to-month. Cancel anytime. No annual commitment required.",
+            competitor: "Annual contracts typical. Enterprise agreements required.",
+            parsliWins: true,
+          },
+        ],
+      },
+      {
+        category: "Logistics Document Processing",
+        rows: [
+          {
+            feature: "Bill of lading extraction",
+            parsli: "Extract all 17 FMCSA fields from any BOL format. Handles straight, order, through, and master BOLs.",
+            competitor: "Strong BOL extraction with pre-built logistics models. Optimized for freight forwarding workflows.",
+            parsliWins: false,
+          },
+          {
+            feature: "Freight invoice processing",
+            parsli: "Extract carrier names, PRO numbers, rates, surcharges, and accessorials from any carrier format.",
+            competitor: "Freight invoice extraction with carrier-specific optimizations. Strong for high-volume freight forwarders.",
+            parsliWins: false,
+          },
+          {
+            feature: "Customs documents",
+            parsli: "Extract HS codes, declared values, and origin data from customs declarations. Multi-language support.",
+            competitor: "Customs document processing with trade compliance focus. Strong for international freight forwarding.",
+            parsliWins: false,
+          },
+          {
+            feature: "Document format flexibility",
+            parsli: "Any document type — BOLs, invoices, packing lists, receipts, forms, contracts, and more. Not limited to logistics.",
+            competitor: "Focused exclusively on logistics and trade documents. Limited utility outside freight forwarding.",
+            parsliWins: true,
+          },
+        ],
+      },
+      {
+        category: "Technology & Integration",
+        rows: [
+          {
+            feature: "AI model",
+            parsli: "Google Gemini 2.5 Pro — latest multimodal AI. Handles faded prints, handwriting, and complex layouts.",
+            competitor: "Proprietary ML models trained on logistics documents. Strong but less flexible for non-standard formats.",
+            parsliWins: true,
+          },
+          {
+            feature: "Setup time",
+            parsli: "Minutes. Define schema with visual builder, upload a document, get results.",
+            competitor: "Weeks to months. Requires implementation team, data mapping, and system integration.",
+            parsliWins: true,
+          },
+          {
+            feature: "API access",
+            parsli: "REST API included on all plans, including free. Webhooks, Zapier, Make, Google Sheets.",
+            competitor: "API available but requires enterprise agreement. Integration support included.",
+            parsliWins: true,
+          },
+          {
+            feature: "WMS/TMS integration",
+            parsli: "Connect to any WMS/TMS via REST API, webhooks, or Zapier. You control the integration.",
+            competitor: "Pre-built integrations with major TMS platforms. Dedicated integration support.",
+            parsliWins: false,
+          },
+        ],
+      },
+      {
+        category: "Scale & Support",
+        rows: [
+          {
+            feature: "Volume capacity",
+            parsli: "Up to 15,000 pages/month on published plans. Custom volumes available.",
+            competitor: "Enterprise-scale volumes. Designed for freight forwarders processing 10,000+ documents/month.",
+            parsliWins: false,
+          },
+          {
+            feature: "Support model",
+            parsli: "Documentation, guides, and email support. Priority support on higher tiers.",
+            competitor: "Dedicated customer success manager. Implementation support. Enterprise SLAs.",
+            parsliWins: false,
+          },
+          {
+            feature: "Onboarding",
+            parsli: "Self-service. Visual schema builder with instant results. No training needed.",
+            competitor: "Guided onboarding with dedicated team. Customized to your workflow.",
+            parsliWins: true,
+          },
+        ],
+      },
+    ],
+    faqs: [
+      {
+        question: "How does Parsli compare to Shipamax for BOL processing?",
+        answer: "Both Parsli and Shipamax extract data from bills of lading effectively. Shipamax has deeper pre-built logistics workflows and TMS integrations, while Parsli offers faster setup, transparent pricing, and flexibility to process any document type — not just logistics documents.",
+      },
+      {
+        question: "Is Parsli accurate enough for freight document processing?",
+        answer: "Yes. Parsli uses Google Gemini 2.5 Pro, which achieves 95%+ accuracy on logistics documents including faded thermal BOL prints. Per-field confidence scores let you auto-approve high-confidence extractions and route exceptions for review.",
+      },
+      {
+        question: "Can I switch from Shipamax to Parsli?",
+        answer: "Yes. Most teams can set up a Parsli parser for BOLs or freight invoices in under 30 minutes. Define your extraction schema, test with a few documents, then switch your document intake to Parsli. No long migration process.",
+      },
+      ...universalFaqs,
+    ],
+    chooseParsli: universalChooseParsli,
+    chooseCompetitor: [
+      "You're an enterprise freight forwarder processing 10,000+ logistics documents monthly",
+      "You need pre-built TMS integrations with dedicated integration support",
+      "You want a dedicated customer success manager and enterprise SLAs",
+      "You exclusively process logistics/trade documents and want a purpose-built platform",
+      "You need guided implementation with a dedicated onboarding team",
+    ],
+    keyTakeaways: [
+      "Shipamax is purpose-built for enterprise freight forwarders with deep logistics workflows and TMS integrations",
+      "Parsli offers the same AI-powered document extraction with transparent, self-service pricing starting free",
+      "For mid-size 3PLs and logistics companies, Parsli delivers comparable BOL and freight invoice extraction at a fraction of the cost",
+      "Parsli's flexibility extends beyond logistics — process any document type with the same platform",
+    ],
+    deepDiveReasons: [
+      {
+        title: "Self-service vs enterprise-only",
+        description: "Shipamax requires a sales call, demo, and multi-week implementation. Parsli lets you sign up, define a BOL extraction schema, and process your first document in minutes. No sales process, no implementation timeline.",
+      },
+      {
+        title: "Transparent pricing vs custom quotes",
+        description: "Parsli publishes all pricing — from free to $349/month. Shipamax provides custom enterprise quotes only, typically starting at $1,000+/month with annual commitments. You know exactly what you'll pay with Parsli before signing up.",
+      },
+      {
+        title: "Flexibility beyond logistics",
+        description: "Shipamax focuses exclusively on logistics and trade documents. If your 3PL also processes vendor invoices, customs forms, or other business documents, you'd need a separate tool. Parsli handles any document type with one platform.",
+      },
+      {
+        title: "AI model advantage",
+        description: "Parsli uses Google Gemini 2.5 Pro — the latest multimodal AI model — which handles faded thermal prints, handwritten annotations, and non-standard layouts. Shipamax uses proprietary models that may struggle with edge cases outside their training data.",
+      },
+      {
+        title: "Faster time to value",
+        description: "With Parsli, most teams automate their first document workflow within a day. Shipamax implementations typically take weeks to months. For mid-size 3PLs that need results now, Parsli's speed matters.",
+      },
+    ],
+    relatedAlternatives: ["parseur", "v7-labs", "textract", "google-document-ai"],
+  },
+  {
+    slug: "v7-labs",
+    competitor: "V7 Labs",
+    publishedAt: "2026-03-16",
+    updatedAt: "2026-03-16",
+    readTime: "8 min read",
+    metaTitle: "Easier V7 Labs Alternative for 2026 | Parsli",
+    metaDescription: "Looking for a V7 Labs alternative? Parsli extracts data from documents with AI — no training data, no model management, no ML expertise needed. Works out of the box.",
+    h1: "The V7 Labs Alternative That Works Without Training Data",
+    heroSubtitle: "V7 Labs is a powerful ML platform for teams that want to train custom document models. Parsli is for teams that just want structured data from their documents — no training, no annotations, no ML expertise.",
+    attackAngle: "ease",
+    differentiators: [
+      ...universalDifferentiators,
+      {
+        title: "Zero training data required",
+        description: "Parsli uses Google Gemini 2.5 Pro out of the box. No dataset collection, no annotation, no model training, no ML infrastructure. Upload a document and get structured data in seconds.",
+      },
+    ],
+    comparisonCategories: [
+      {
+        category: "Setup & Getting Started",
+        rows: [
+          {
+            feature: "Time to first extraction",
+            parsli: "Minutes. Define fields with plain English descriptions, upload a document, get results.",
+            competitor: "Weeks to months. Collect training data, annotate documents, train model, validate, deploy.",
+            parsliWins: true,
+          },
+          {
+            feature: "Training data required",
+            parsli: "None. AI works with zero training examples. Define your schema and extract immediately.",
+            competitor: "50-500+ annotated documents per document type. More training data = better accuracy.",
+            parsliWins: true,
+          },
+          {
+            feature: "ML expertise needed",
+            parsli: "None. Visual schema builder with plain English field descriptions. Anyone can set it up.",
+            competitor: "Significant. Understanding of model architectures, training pipelines, hyperparameters, and evaluation metrics.",
+            parsliWins: true,
+          },
+          {
+            feature: "Schema changes",
+            parsli: "Instant. Add or modify fields in the visual builder. No retraining needed.",
+            competitor: "Requires re-annotation and model retraining. Schema changes mean new training cycles.",
+            parsliWins: true,
+          },
+        ],
+      },
+      {
+        category: "Document Processing",
+        rows: [
+          {
+            feature: "Accuracy on standard documents",
+            parsli: "95%+ on most document types. Powered by Google Gemini 2.5 Pro multimodal AI.",
+            competitor: "Can achieve 97%+ with sufficient training data and fine-tuning. Custom models optimized per document type.",
+            parsliWins: false,
+          },
+          {
+            feature: "New document types",
+            parsli: "Create a new parser in minutes. No training data needed for any document type.",
+            competitor: "Each new document type requires a new training dataset, annotation, and model training cycle.",
+            parsliWins: true,
+          },
+          {
+            feature: "Edge cases and variants",
+            parsli: "Gemini 2.5 Pro generalizes well to format variations, faded scans, and handwriting without additional training.",
+            competitor: "Edge cases require additional training data. Model may fail on formats not seen during training.",
+            parsliWins: true,
+          },
+          {
+            feature: "Scanned/low-quality documents",
+            parsli: "Built-in multimodal AI reads faded thermal prints, handwriting, and poor-quality scans.",
+            competitor: "Can be trained for specific quality issues, but requires quality-specific training data.",
+            parsliWins: true,
+          },
+        ],
+      },
+      {
+        category: "Platform & Operations",
+        rows: [
+          {
+            feature: "Infrastructure management",
+            parsli: "Fully managed SaaS. No GPUs, no model serving, no infrastructure to manage.",
+            competitor: "Cloud-hosted, but requires model management, version control, and monitoring.",
+            parsliWins: true,
+          },
+          {
+            feature: "Model customization",
+            parsli: "Schema-based customization. Define fields and the AI adapts. No code or training.",
+            competitor: "Deep customization with custom model architectures, training pipelines, and evaluation.",
+            parsliWins: false,
+          },
+          {
+            feature: "Integrations",
+            parsli: "REST API, webhooks, Google Sheets, Zapier, Make. All included on every plan.",
+            competitor: "API available. Focus on model deployment rather than end-to-end workflow integrations.",
+            parsliWins: true,
+          },
+          {
+            feature: "Pricing model",
+            parsli: "Per-page pricing from free to $349/month. Transparent, published plans.",
+            competitor: "Custom pricing based on usage, compute, and model complexity. Typically $500+/month.",
+            parsliWins: true,
+          },
+        ],
+      },
+      {
+        category: "Best For",
+        rows: [
+          {
+            feature: "Operations teams",
+            parsli: "Ideal. No-code setup, visual schema builder, instant results. Designed for non-technical users.",
+            competitor: "Requires technical team for setup and model management. Not designed for non-technical users.",
+            parsliWins: true,
+          },
+          {
+            feature: "ML/AI teams",
+            parsli: "Works well but offers less customization for teams that want to control model behavior.",
+            competitor: "Ideal. Full control over model architecture, training data, and evaluation. Purpose-built for ML workflows.",
+            parsliWins: false,
+          },
+          {
+            feature: "High-accuracy niche use cases",
+            parsli: "95%+ accuracy covers most use cases. Per-field confidence scores handle edge cases.",
+            competitor: "Can achieve 97-99% accuracy on narrow, well-defined document types with sufficient training data.",
+            parsliWins: false,
+          },
+        ],
+      },
+    ],
+    faqs: [
+      {
+        question: "How does Parsli achieve good accuracy without training data?",
+        answer: "Parsli uses Google Gemini 2.5 Pro, a frontier multimodal AI model. Instead of training a custom model, you describe your fields in plain English and the AI understands document context, layout, and semantics to extract accurately. This eliminates the need for training data entirely.",
+      },
+      {
+        question: "Is Parsli accurate enough compared to a custom-trained V7 model?",
+        answer: "For most document processing use cases, yes. Parsli achieves 95%+ accuracy on standard documents. V7's custom models can achieve 97-99% on narrow use cases with extensive training, but the marginal accuracy gain requires weeks of setup and ongoing model maintenance.",
+      },
+      {
+        question: "Can I switch from V7 Labs to Parsli?",
+        answer: "Yes. Since Parsli requires no training data, you can set up a new parser in minutes. Define your extraction schema, test with a few documents, and compare results against your V7 model output. Most teams find Parsli's accuracy sufficient and the setup dramatically easier.",
+      },
+      ...universalFaqs,
+    ],
+    chooseParsli: universalChooseParsli,
+    chooseCompetitor: [
+      "You have an ML team that wants full control over model architecture and training",
+      "You need 97%+ accuracy on a narrow, well-defined document type and have training data",
+      "You're building a document AI product (not just consuming extraction results)",
+      "You want to invest in custom model development as a long-term competitive advantage",
+      "Your use case requires specialized model architectures beyond general-purpose extraction",
+    ],
+    keyTakeaways: [
+      "V7 Labs is a powerful ML platform for teams that want to build and train custom document AI models",
+      "Parsli offers instant AI extraction without any training data, model management, or ML expertise",
+      "For operations teams that need structured data from documents, Parsli is dramatically faster to set up and use",
+      "V7's custom models can achieve marginally higher accuracy on narrow use cases, but require weeks of setup and ongoing maintenance",
+    ],
+    deepDiveReasons: [
+      {
+        title: "Zero training data vs. extensive annotation",
+        description: "V7 Labs requires you to collect and annotate 50-500+ documents per type before your model works. Parsli works immediately — define your fields, upload a document, get results. This matters when you're processing new document types regularly.",
+      },
+      {
+        title: "No ML expertise required",
+        description: "V7 Labs assumes you have data scientists who understand model architectures, hyperparameters, and evaluation metrics. Parsli's visual schema builder is designed for operations teams — anyone who can describe what they need in English can set it up.",
+      },
+      {
+        title: "Instant schema changes",
+        description: "With V7, adding a new field to your extraction means re-annotating training data and retraining your model. With Parsli, add a new field in the visual builder and it works on the next document. No retraining, no delay.",
+      },
+      {
+        title: "No infrastructure management",
+        description: "V7 Labs requires model versioning, GPU compute management, and deployment pipelines. Parsli is fully managed — no infrastructure to set up, monitor, or scale. You focus on your documents, not your ML stack.",
+      },
+      {
+        title: "Cost predictability",
+        description: "V7's pricing depends on compute, model complexity, and usage — making costs hard to predict. Parsli's per-page pricing is simple and transparent: you know exactly what you'll pay before signing up.",
+      },
+    ],
+    relatedAlternatives: ["shipamax", "google-document-ai", "textract", "nanonets"],
   },
 ]
 

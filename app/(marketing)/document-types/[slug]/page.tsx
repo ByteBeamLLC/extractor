@@ -57,6 +57,16 @@ const documentTypeTools: Record<string, { href: string; title: string; descripti
     { href: "/tools/pdf-to-text", title: "PDF to Text", description: "Extract text from PDF forms." },
     { href: "/tools/handwriting-to-text", title: "Handwriting to Text", description: "Convert handwritten form entries into digital text." },
   ],
+  "bills-of-lading": [
+    { href: "/tools/bol-parser", title: "BOL Parser", description: "Extract text from bills of lading instantly." },
+    { href: "/tools/pdf-to-text", title: "PDF to Text", description: "Extract text from BOL PDF documents." },
+    { href: "/tools/image-to-text", title: "Image to Text (OCR)", description: "Extract text from scanned or photographed BOLs." },
+  ],
+  "freight-invoices": [
+    { href: "/tools/invoice-parser", title: "Invoice Parser", description: "Extract text from freight invoices." },
+    { href: "/tools/pdf-to-excel", title: "PDF to Excel", description: "Convert freight invoice PDFs to spreadsheets." },
+    { href: "/tools/pdf-to-text", title: "PDF to Text", description: "Extract text from freight invoice PDFs." },
+  ],
 }
 import { getUseCaseBySlug } from "@/lib/seo/use-cases"
 import { getIndustryBySlug } from "@/lib/seo/industries"

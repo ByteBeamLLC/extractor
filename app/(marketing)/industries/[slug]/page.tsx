@@ -28,7 +28,8 @@ const industryTools: Record<string, { href: string; title: string; description: 
     { href: "/tools/pdf-merger", title: "PDF Merger", description: "Combine multiple property documents into one PDF." },
   ],
   logistics: [
-    { href: "/tools/invoice-parser", title: "Invoice Parser", description: "Extract data from shipping invoices and bills of lading." },
+    { href: "/tools/bol-parser", title: "BOL Parser", description: "Extract text from bills of lading instantly." },
+    { href: "/tools/invoice-parser", title: "Invoice Parser", description: "Extract data from shipping invoices and freight invoices." },
     { href: "/tools/pdf-to-excel", title: "PDF to Excel", description: "Convert logistics PDF reports to spreadsheets." },
     { href: "/tools/pdf-to-text", title: "PDF to Text", description: "Extract text from shipping documents and manifests." },
   ],
