@@ -77,7 +77,7 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
       .from("profiles")
       .select("tour_completed")
       .eq("id", session.user.id)
-      .single()
+      .maybeSingle()
       .then(({ data }) => {
         const completed = data?.tour_completed ?? false
         setTourCompleted(completed)
@@ -156,12 +156,11 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem(TOUR_STORAGE_KEY, "true")
     } catch {}
 
-    // Persist to Supabase
+    // Persist to Supabase (upsert in case profile row doesn't exist yet)
     if (session?.user?.id) {
       supabase
         .from("profiles")
-        .update({ tour_completed: true })
-        .eq("id", session.user.id)
+        .upsert({ id: session.user.id, tour_completed: true }, { onConflict: "id" })
         .then(() => {})
     }
   }, [session?.user?.id, supabase])
