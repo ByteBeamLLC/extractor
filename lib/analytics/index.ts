@@ -23,6 +23,7 @@ export function initAnalytics() {
     mp.default.init(token, {
       track_pageview: true,
       persistence: "cookie",
+      api_host: "/mp",
     })
     mixpanelInitialized = true
   })

@@ -5,6 +5,7 @@ import { runExtraction } from "@/lib/extraction/runExtraction"
 import { deliverToIntegrations } from "@/lib/extractor/integrations/orchestrator"
 import { checkCredits, deductCredits } from "@/lib/extractor/billing/credits"
 import type { SchemaField } from "@/lib/schema"
+import { trackServerEvent } from "@/lib/analytics/server"
 
 export const runtime = "nodejs"
 
@@ -117,6 +118,18 @@ export async function POST(request: NextRequest) {
       { file_name: fileData.name ?? "api-upload", mime_type: fileData.type ?? "", source_type: "api", page_count: 1 },
       supabase as any
     ).catch((err) => console.error("[extractor] Integration delivery failed:", err))
+  }
+
+  // Track first_value server-side (survives ad blockers)
+  if (docId && result.success && (parser.document_count ?? 0) === 0) {
+    trackServerEvent("first_value", {
+      distinct_id: auth.userId!,
+      user_id: auth.userId!,
+      parser_id: parser.id,
+      document_id: docId,
+      source_type: "api",
+      is_first_extraction: true,
+    })
   }
 
   // Update parser stats

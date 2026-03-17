@@ -4,6 +4,7 @@ import { runExtraction } from "@/lib/extraction/runExtraction"
 import type { SchemaField } from "@/lib/schema"
 import { deliverToIntegrations } from "@/lib/extractor/integrations/orchestrator"
 import { checkCredits, deductCredits } from "@/lib/extractor/billing/credits"
+import { trackServerEvent } from "@/lib/analytics/server"
 
 export const runtime = "nodejs"
 
@@ -159,6 +160,18 @@ export async function POST(
       last_processed_at: new Date().toISOString(),
     } as any)
     .eq("id", p.id)
+
+  // Track first_value server-side (survives ad blockers)
+  if (docId && extractionResult.success && (p.document_count ?? 0) === 0) {
+    trackServerEvent("first_value", {
+      distinct_id: user.id,
+      user_id: user.id,
+      parser_id: p.id,
+      document_id: docId,
+      source_type: sourceType,
+      is_first_extraction: true,
+    })
+  }
 
   // Deliver to integrations (fire-and-forget)
   if (docId) {
