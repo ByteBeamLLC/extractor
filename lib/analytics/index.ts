@@ -22,7 +22,7 @@ export function initAnalytics() {
   import("mixpanel-browser").then((mp) => {
     mp.default.init(token, {
       track_pageview: true,
-      persistence: "localStorage+cookie",
+      persistence: "cookie",
     })
     mixpanelInitialized = true
   })
