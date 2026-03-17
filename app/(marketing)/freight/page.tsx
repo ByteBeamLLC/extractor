@@ -27,16 +27,16 @@ import { breadcrumbJsonLd, faqJsonLd } from "@/lib/seo/json-ld"
 
 export const metadata: Metadata = {
   title:
-    "AI Freight Document Automation for 3PLs & Brokers | Parsli",
+    "Freight Invoice Automation for 3PLs & Freight Brokers | Parsli",
   description:
-    "Automate freight invoice and bill of lading processing. Extract data from any carrier format in seconds — no templates, no manual entry. 30 free pages/month.",
+    "Automate freight invoice processing and bill of lading data extraction. Works with FedEx, XPO, ODFL, Estes, Saia, DHL — any carrier format. Freight audit and 3-way matching included. 30 free pages/month.",
   alternates: {
     canonical: "https://parsli.co/freight",
   },
   openGraph: {
-    title: "AI Freight Document Automation for 3PLs & Brokers | Parsli",
+    title: "Freight Invoice Automation for 3PLs & Freight Brokers | Parsli",
     description:
-      "Automate freight invoice and bill of lading processing. Extract data from any carrier format in seconds — no templates, no manual entry. 30 free pages/month.",
+      "Automate freight invoice processing and bill of lading data extraction. Works with FedEx, XPO, ODFL, Estes, Saia, DHL — any carrier format. Freight audit and 3-way matching included. 30 free pages/month.",
     url: "https://parsli.co/freight",
   },
 }
@@ -50,17 +50,19 @@ const stats = [
 
 const painPoints = [
   "Manually keying BOL data into your WMS — 12+ minutes per document",
-  "Different format for every carrier — UPS, FedEx, XPO, ODFL all look different",
+  "Every carrier uses a different invoice format — FedEx, XPO, ODFL, Estes, Saia, DHL all look different",
   "Faded thermal dock prints that traditional OCR can't read",
   "3-7 day billing lag because freight invoices sit in a manual processing queue",
-  "20-30% error rate on manually processed freight invoices",
+  "20-30% error rate means overcharges, duplicate payments, and billing disputes",
+  "No automated freight audit — accessorial charges and fuel surcharges go unverified",
 ]
 
 const solutions = [
-  "AI reads any carrier's BOL or invoice format without templates",
+  "AI reads any carrier's BOL or invoice format — FedEx, UPS, XPO, DHL, Estes, Saia, and 100+ more",
   "Handles faded thermal prints, carbon copies, and handwritten annotations",
+  "Automated freight invoice audit — flag overcharges, duplicate invoices, and surcharge discrepancies",
+  "Extracted data flows to your WMS, TMS, or ERP in seconds via API or webhook",
   "Process 300+ documents per day — no additional headcount needed",
-  "Extracted data flows to your WMS, TMS, or ERP in seconds via API",
   "92% time reduction — from 12.7 minutes to under 1 minute per document",
 ]
 
@@ -96,9 +98,14 @@ const howItWorks = [
 
 const benefits = [
   {
-    title: "Any Carrier Format",
+    title: "Every Carrier Format — Automatically",
     description:
-      "UPS, FedEx, XPO, ODFL, Estes, R+L, Saia — the AI adapts to any carrier\u2019s document layout without carrier-specific templates or configuration.",
+      "FedEx Freight, UPS, XPO, ODFL, Estes, R+L, Saia, DHL, ABF, Dayton — the AI adapts to any carrier\u2019s invoice and BOL layout without per-carrier templates or configuration.",
+  },
+  {
+    title: "Freight Invoice Auditing Built In",
+    description:
+      "Automated 3-way matching between freight invoices, BOLs, and rate confirmations. Flag overcharges, duplicate invoices, and fuel surcharge discrepancies before payment. Companies recover 2-5% of freight spend through automated auditing.",
   },
   {
     title: "Dock-Quality OCR",
@@ -106,14 +113,19 @@ const benefits = [
       "Google Gemini 2.5 Pro reads faded thermal prints, crooked scans, and carbon copies that traditional OCR engines can\u2019t process. No image pre-processing needed.",
   },
   {
-    title: "WMS/TMS Integration",
+    title: "WMS/TMS Integration via API & EDI",
     description:
-      "Push extracted data directly to your existing systems via REST API, webhooks, or Zapier. No middleware required.",
+      "Push extracted data directly to your WMS, TMS, ERP, or accounting system via REST API, webhooks, Zapier, or Google Sheets. Supports EDI-compatible JSON output for freight invoice workflows.",
+  },
+  {
+    title: "Built for Freight Brokers",
+    description:
+      "Whether you\u2019re a freight broker processing carrier invoices, a 3PL managing dock receipts, or a shipper auditing freight bills — Parsli handles your document volume without adding headcount.",
   },
   {
     title: "Freight Audit Trail",
     description:
-      "Every extraction includes confidence scores and original document links. Build automated 3-way matching between BOLs, POs, and invoices for freight audit.",
+      "Every extraction includes confidence scores and links to original documents. Build a complete carrier spend database for rate negotiations and cost analysis.",
   },
 ]
 
@@ -207,6 +219,26 @@ const faqs = [
     answer:
       "Carrier name, invoice number, PRO number, BOL number, origin/destination, weight, freight class, line-haul charges, fuel surcharges, accessorial charges (detention, lumper, liftgate), total charges, payment terms, and due dates. You define the schema — Parsli extracts exactly the fields you need.",
   },
+  {
+    question: "What is the difference between a freight invoice and a bill of lading?",
+    answer:
+      "A bill of lading (BOL) is a shipping document that details what is being shipped, who is shipping it, and where it is going. A freight invoice is the carrier's bill for transporting the shipment — it references the BOL and lists charges (line-haul, fuel surcharge, accessorials). Parsli extracts data from both document types and can match them for freight audit and 3-way verification.",
+  },
+  {
+    question: "What is freight invoice auditing?",
+    answer:
+      "Freight invoice auditing is the process of verifying carrier charges against contracted rates, BOL details, and delivery records before approving payment. It catches overcharges, duplicate invoices, incorrect surcharges, and billing errors. Parsli automates this by extracting structured data from every invoice, enabling automated comparison against your rate agreements — companies typically recover 2-5% of freight spend through auditing.",
+  },
+  {
+    question: "Does Parsli work with FedEx, UPS, and DHL freight invoices?",
+    answer:
+      "Yes. Parsli processes freight invoices from FedEx Freight, UPS Freight, DHL, XPO, Old Dominion (ODFL), Estes, Saia, ABF, Dayton, R+L Carriers, and any other carrier. The AI understands carrier-specific invoice formats without needing per-carrier templates — upload an invoice from any carrier and data is extracted automatically.",
+  },
+  {
+    question: "Can freight brokers use Parsli for invoice processing?",
+    answer:
+      "Yes. Freight brokers use Parsli to automate carrier invoice processing, extract charges for billing reconciliation, and match PRO numbers across invoices and BOLs. Set up email forwarding to auto-process carrier invoices as they arrive in your inbox. The freight invoice template pre-configures all common fields (carrier, PRO, charges, surcharges) so you can start extracting immediately.",
+  },
 ]
 
 const logos = [
@@ -246,15 +278,16 @@ export default function FreightLandingPage() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary mb-6">
-                For Freight Brokers & 3PLs
+                For Freight Brokers, 3PLs & Carriers
               </div>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.08] mb-6">
-                Automate Freight Document Processing
+                Freight Invoice Automation That Just Works
               </h1>
               <p className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-xl">
                 Stop spending 2-4 hours/day on manual data entry. Parsli
-                extracts structured data from BOLs, freight invoices, and
-                packing lists — any carrier, any format, in seconds.
+                automates freight invoice processing and BOL data extraction
+                for FedEx, XPO, ODFL, Estes, Saia, DHL — any carrier, any
+                format, in seconds.
               </p>
               <div className="flex flex-col sm:flex-row items-start gap-4">
                 <AuthButton className="text-base px-8 h-13" showArrow href="/dashboard?template=freight-invoice">
@@ -331,7 +364,7 @@ export default function FreightLandingPage() {
             Why Parsli?
           </p>
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
-            End the manual data entry bottleneck
+            End the freight invoice processing bottleneck
           </h2>
 
           <div className="grid md:grid-cols-2 gap-6">
@@ -736,9 +769,9 @@ const data = await response.json();
             Features
           </p>
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
-            Built for freight operations
+            Built for freight invoice automation
           </h2>
-          <div className="grid sm:grid-cols-2 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {benefits.map((benefit, i) => {
               const Icon = benefitIcons[i % benefitIcons.length]
               return (
