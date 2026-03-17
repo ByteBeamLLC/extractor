@@ -68,6 +68,7 @@ const supportedDocs = [
   { emoji: "\u{1F4CB}", name: "Bills of Lading" },
   { emoji: "\u{1F9FE}", name: "Freight Invoices" },
   { emoji: "\u{1F4E6}", name: "Packing Lists" },
+  { emoji: "\u{1F4C4}", name: "Commercial Invoices" },
   { emoji: "\u{1F6C3}", name: "Customs Forms" },
   { emoji: "\u{1F4EC}", name: "Delivery Notes" },
 ]
@@ -256,7 +257,7 @@ export default function FreightLandingPage() {
                 packing lists — any carrier, any format, in seconds.
               </p>
               <div className="flex flex-col sm:flex-row items-start gap-4">
-                <AuthButton className="text-base px-8 h-13" showArrow>
+                <AuthButton className="text-base px-8 h-13" showArrow href="/dashboard?template=freight-invoice">
                   Start Free — 30 Pages/Month
                 </AuthButton>
                 <Link
@@ -468,7 +469,7 @@ export default function FreightLandingPage() {
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
             Every freight document format supported
           </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
             {supportedDocs.map((type) => (
               <div
                 key={type.name}
@@ -786,7 +787,7 @@ const data = await response.json();
       {/* ═══════ Mid-page CTA ═══════ */}
       <section className="py-12 sm:py-16">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 text-center">
-          <AuthButton className="text-base px-8 h-12" showArrow>
+          <AuthButton className="text-base px-8 h-12" showArrow href="/dashboard?template=freight-invoice">
             Start Free — 30 Pages/Month
           </AuthButton>
           <p className="mt-3 text-sm text-muted-foreground">

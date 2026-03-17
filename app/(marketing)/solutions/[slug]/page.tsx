@@ -35,6 +35,10 @@ const templateMap: Record<string, { templateId: string; ctaLabel: string }> = {
     templateId: "bank-statement-extraction",
     ctaLabel: "Start Extracting Statements Free",
   },
+  "logistics-document-automation": {
+    templateId: "freight-invoice",
+    ctaLabel: "Start Parsing Freight Docs Free",
+  },
 }
 
 /* Map each solution slug to related use cases, blog posts, and other links */
