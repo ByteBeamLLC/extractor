@@ -1400,6 +1400,7 @@ export type Database = {
           full_name: string | null
           id: string
           stripe_customer_id: string | null
+          tour_completed: boolean
           updated_at: string
         }
         Insert: {
@@ -1409,6 +1410,7 @@ export type Database = {
           full_name?: string | null
           id: string
           stripe_customer_id?: string | null
+          tour_completed?: boolean
           updated_at?: string
         }
         Update: {
@@ -1418,6 +1420,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           stripe_customer_id?: string | null
+          tour_completed?: boolean
           updated_at?: string
         }
         Relationships: []

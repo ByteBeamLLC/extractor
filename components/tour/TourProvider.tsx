@@ -6,9 +6,11 @@ import {
   useContext,
   useEffect,
   useState,
+  useRef,
 } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { useActiveParser } from "@/components/extractor/parser-context"
+import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
 import { trackEvent } from "@/lib/analytics"
 import { PARSER_TOUR_STEPS, type TourStepConfig } from "@/lib/tour/steps"
 
@@ -46,12 +48,46 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   const { parser } = useActiveParser()
+  const session = useSession()
+  const supabase = useSupabaseClient()
 
   const [isActive, setIsActive] = useState(false)
   const [stepIndex, setStepIndex] = useState(0)
+  const [tourCompleted, setTourCompleted] = useState<boolean | null>(null)
+  const fetchedRef = useRef(false)
 
   const steps = PARSER_TOUR_STEPS
   const currentStep = isActive ? (steps[stepIndex] ?? null) : null
+
+  // Fetch tour_completed from Supabase on mount (once per session)
+  useEffect(() => {
+    if (!session?.user?.id || fetchedRef.current) return
+    fetchedRef.current = true
+
+    // Check localStorage first for instant response
+    try {
+      if (localStorage.getItem(TOUR_STORAGE_KEY) === "true") {
+        setTourCompleted(true)
+        return
+      }
+    } catch {}
+
+    // Then check server
+    supabase
+      .from("profiles")
+      .select("tour_completed")
+      .eq("id", session.user.id)
+      .single()
+      .then(({ data }) => {
+        const completed = data?.tour_completed ?? false
+        setTourCompleted(completed)
+        if (completed) {
+          try {
+            localStorage.setItem(TOUR_STORAGE_KEY, "true")
+          } catch {}
+        }
+      })
+  }, [session?.user?.id, supabase])
 
   const resolveStepPath = useCallback(
     (step: TourStepConfig) => {
@@ -90,12 +126,14 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
   }, [pathname, isActive, steps, stepIndex, resolveStepPath])
 
   const hasCompletedTour = useCallback(() => {
+    // Use server-fetched state if available, fall back to localStorage
+    if (tourCompleted !== null) return tourCompleted
     try {
       return localStorage.getItem(TOUR_STORAGE_KEY) === "true"
     } catch {
       return false
     }
-  }, [])
+  }, [tourCompleted])
 
   const startTour = useCallback(() => {
     setStepIndex(0)
@@ -111,10 +149,22 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
   const completeTour = useCallback(() => {
     setIsActive(false)
     setStepIndex(0)
+    setTourCompleted(true)
+
+    // Persist to localStorage
     try {
       localStorage.setItem(TOUR_STORAGE_KEY, "true")
     } catch {}
-  }, [])
+
+    // Persist to Supabase
+    if (session?.user?.id) {
+      supabase
+        .from("profiles")
+        .update({ tour_completed: true })
+        .eq("id", session.user.id)
+        .then(() => {})
+    }
+  }, [session?.user?.id, supabase])
 
   const nextStep = useCallback(() => {
     if (stepIndex < steps.length - 1) {
