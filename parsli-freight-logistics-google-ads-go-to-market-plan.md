@@ -520,11 +520,15 @@ A dedicated landing page for freight/logistics is required. It should feature:
 
 ### Purpose
 
-Evaluated two additional verticals — **Bank Statement Processing** and **Financial Services (AP/Accounting)** — to determine whether the $1,000/month budget should remain on freight or shift to a higher-volume vertical.
+Evaluated **Financial Services** as a combined vertical — including bank statement processing, AP/accounting automation, and tax/income document extraction — to determine whether the $1,000/month budget should remain on freight or shift to financial services.
 
-### C.1 Bank Statement Processing (US)
+### C.1 Financial Services — Combined Keyword Research (US)
 
 **Source:** Google Keyword Planner, United States, March 2025–February 2026.
+
+Financial services document extraction spans three sub-segments: (A) bank statement processing, (B) AP/invoice automation, and (C) tax & income documents. All keywords below target people searching for structured data extraction from financial documents.
+
+#### A. Bank Statement Processing
 
 | Keyword | Volume | 3-mo Trend | YoY | Competition (idx) | CPC Low | CPC High |
 |---|---|---|---|---|---|---|
@@ -543,13 +547,9 @@ Evaluated two additional verticals — **Bank Statement Processing** and **Finan
 | bank statement parser | 50 | 0% | 0% | Medium (52) | $6.69 | $28.38 |
 | bank statement OCR | 50 | 0% | -90% | Medium (59) | $3.71 | $17.39 |
 
-**Total volume: ~8,000+/month. 5 keywords surging +900%. CPCs $1.63–$6.69 (low end).**
+**Sub-segment volume: ~8,000+/mo. 5 keywords surging +900%. CPCs $1.63–$6.69.**
 
-**Assessment:** Strongest volume of any vertical tested. Multiple surging keywords. Low competition. Cheap CPCs. However, "bank statement converter" searchers may be consumers (not businesses), which lowers conversion quality for a B2B SaaS product. Best used for free tool SEO traffic → upsell pipeline, not direct paid ads.
-
-### C.2 Financial Services — AP/Accounting Document Extraction (US)
-
-**Source:** Google Keyword Planner, United States, March 2025–February 2026.
+#### B. AP/Invoice Automation
 
 | Keyword | Volume | 3-mo Trend | YoY | Competition (idx) | CPC Low | CPC High |
 |---|---|---|---|---|---|---|
@@ -561,18 +561,36 @@ Evaluated two additional verticals — **Bank Statement Processing** and **Finan
 | bookkeeping automation software | 50 | 0% | 0% | Low (17) | $11.96 | $44.46 |
 | receipt OCR software | 50 | 0% | -90% | Low (7) | $6.41 | $15.94 |
 | expense report automation | 50 | 0% | 0% | Low (16) | $24.59 | $98.82 |
+
+**Sub-segment volume: ~11,700/mo. CPCs $6.41–$207.03 (expensive). Dominated by enterprise competitors (Bill.com, Tipalti, Stampli).**
+
+#### C. Tax & Income Documents
+
+| Keyword | Volume | 3-mo Trend | YoY | Competition (idx) | CPC Low | CPC High |
+|---|---|---|---|---|---|---|
 | extract data from receipts | 50 | **+∞** | 0% | Medium (43) | — | — |
 | financial data extraction | 50 | 0% | -90% | Low (5) | — | — |
 | credit card statement parser | 50 | 0% | **+∞** | Low (14) | — | — |
 | extract data from financial statements | 50 | 0% | 0% | Low (0) | — | — |
-| 099 extraction software | — | — | — | — | — | — |
+| 1099 extraction software | — | — | — | — | — | — |
 | paystub parser | — | — | — | — | — | — |
 | W2 extraction software | — | — | — | — | — | — |
 | tax document OCR | — | — | — | — | — | — |
 
-**Total volume: ~11,850/month. CPCs $11.96–$207.03 (extremely expensive).**
+**Sub-segment volume: ~200/mo. Most keywords return zero data. Too niche for paid ads.**
 
-**Google Keyword Planner Forecast ($900/month budget, US-wide, Maximize Conversions):**
+#### Financial Services Combined Totals
+
+| Metric | Value |
+|---|---|
+| **Total keyword volume (all sub-segments)** | **~19,900/mo** |
+| Bank statement processing | 8,000+ (cheapest CPCs, mixed buyer intent) |
+| AP/invoice automation | 11,700 (expensive CPCs, enterprise competitors) |
+| Tax & income docs | ~200 (too niche) |
+| **Keywords with search data** | 28 |
+| **Keywords surging (+900% or +∞)** | 8 |
+
+**Google Keyword Planner Forecast (AP/accounting keywords only, $900/month budget, US-wide, Maximize Conversions):**
 
 | Metric | Value |
 |---|---|
@@ -584,41 +602,51 @@ Evaluated two additional verticals — **Bank Statement Processing** and **Finan
 | Estimated Conversions | 15/mo (at 6.3%) |
 | Estimated CPA | $59 |
 
-**Assessment:** High volume but CPCs are 5–50x more expensive than freight. The top keywords (accounts payable automation, AP automation software) compete with Bill.com ($3.8B revenue), Tipalti, Stampli, MineralTree, and Rillion — all with massive ad budgets. $1K/month is insufficient to compete. "Paystub parser," "W2 extraction software," and "tax document OCR" returned zero search volume — too niche.
+### C.2 Head-to-Head: Freight vs Financial Services
 
-### C.3 Vertical Comparison Summary
+| Metric | Freight/Logistics (Chicago) | Financial Services (US) |
+|---|---|---|
+| **Total keyword volume** | 1,700+/mo | **19,900/mo** |
+| **Actionable volume for $1K budget** | **1,700+** (all affordable) | ~8,000 (bank statements only; AP too expensive) |
+| **Surging keywords (+900%)** | 3 | **8** |
+| **CPC range** | **$1–5** | $1.63–$207 (bimodal: bank stmts cheap, AP expensive) |
+| **Competition index** | **0 (zero in Chicago)** | Low–Medium (bank stmts) / Enterprise-dominated (AP) |
+| **Est. clicks for $1K** | ~280 (Chicago DMA) | ~400+ (bank stmts US) or ~50 (AP keywords) |
+| **Competitor ad presence** | **None** | Low (bank stmts) / High (AP: Bill.com, Tipalti, Stampli) |
+| **Buyer intent quality** | **High** — 3PLs/brokers buying software | **Mixed** — consumers (bank stmts) + enterprises (AP) |
+| **Landing page ready** | **Yes** (/freight + /lp/freight-invoice) | Partial (free tools only, no dedicated LP) |
+| **Parser templates ready** | **Yes** (3 freight templates) | Yes (invoice + bank statement templates) |
+| **Free tools published** | Yes (BOL parser, invoice parser) | **Yes** (bank-statement-parser, bank-statement-to-excel, bank-statement-to-csv) |
+| **Content/SEO assets** | 4 guides, 2 use cases, 4 blog posts | 1 solution page, 1 template |
+| **Niche ownership** | **First mover — no competitor targets freight** | Crowded — Parseur, Docparser, Bill.com all active |
 
-| Metric | Freight (Chicago) | Bank Statements (US) | Financial Services AP (US) |
-|---|---|---|---|
-| Total keyword volume | 1,700+/mo | **8,000+/mo** | 11,850/mo |
-| Surging keywords (+900%) | 3 | **5** | 1 |
-| CPC range (low) | **$1–5** | $1.63–$6.69 | $11.96–$207 |
-| Competition index | **0 (zero)** | Low (10–52) | Low–Medium (9–43) |
-| Est. clicks for $1K | ~280 | ~400+ | ~243 |
-| Competitor ad presence | **None** | Low | High (Bill.com, Tipalti, etc.) |
-| Buyer intent quality | **High** (3PLs, brokers) | Mixed (consumers + businesses) | High (AP managers, CFOs) |
-| Landing page ready | **Yes** (/freight + /lp/freight-invoice) | No (tools only) | No |
-| Parser templates ready | **Yes** (3 freight templates) | Yes (1 template) | Yes (invoice, bank statement) |
+### C.3 Decision: Freight for Paid Ads, Financial Services for Organic SEO
 
-### C.4 Decision: Freight Remains the Best $1K Vertical
+**Freight remains the #1 paid ads vertical for $1K/month because:**
 
-**Freight wins for $1K/month because:**
-
-1. **Zero competition** — No advertiser is bidding on freight invoice keywords in Chicago. CPC = minimum bid ($1–3).
-2. **Highest buyer intent** — Freight brokers searching "freight invoice software" are ready to buy. Bank statement searchers may be consumers.
-3. **Everything is built** — Landing page, ad LP, parser templates, conversion tracking, campaign draft all ready.
+1. **Zero competition** — No advertiser bids on freight keywords in Chicago. CPC = minimum bid ($1–3).
+2. **Highest buyer intent** — Freight brokers searching "freight invoice software" are ready to buy. Bank statement searchers are often consumers.
+3. **Everything is built** — Landing page, ad LP, parser templates, conversion tracking, campaign draft all ready to launch.
 4. **Clear differentiation** — No competitor (Docparser, Parseur, Shipamax) runs freight-specific ads.
+5. **Geographic focus** — Chicago DMA targeting concentrates spend on the #1 US freight hub.
 
-**Bank Statements → Phase 2 (organic SEO, not paid ads):**
-- Free tools already published (/tools/bank-statement-to-excel, /tools/bank-statement-to-csv, /tools/bank-statement-parser)
-- Target organic traffic from 8,000+/mo keyword volume
-- Convert free tool users → Parsli AI upsell → paid customers
-- No ad spend needed — SEO captures the demand
+**Financial Services → Organic SEO strategy (no ad spend):**
 
-**Financial Services AP → Phase 4+ ($5K+ budget):**
-- CPCs too expensive for $1K budget
-- Requires dedicated landing page, templates, and competitive positioning against Bill.com/Tipalti
-- Viable only after freight campaign proves ROI and budget scales to $5K+/month
+The financial services vertical has 11x more total keyword volume than freight, but the economics don't work for paid ads at $1K/month:
+- Bank statement keywords (8,000/mo) are cheap but attract consumers, not B2B buyers
+- AP automation keywords (11,700/mo) have enterprise CPCs ($21–$207) and established competitors
+
+Instead, Parsli captures financial services demand through:
+- **Free tools** already published: /tools/bank-statement-to-excel (targeting 500/mo), /tools/bank-statement-to-csv (targeting 500/mo +900%), /tools/bank-statement-parser (targeting 50/mo)
+- **Organic SEO** from 8,000+/mo bank statement keywords → free tool traffic → Parsli AI upsell → paid customers
+- **Existing templates**: invoice parser + bank statement parser already in product
+- No ad spend required — SEO captures the demand at $0 cost
+
+**Financial Services Paid Ads → Phase 4+ ($5K+ monthly budget):**
+- Target AP automation keywords when budget scales to absorb $20+ CPCs
+- Requires dedicated financial services landing page and ad LP
+- Competitive positioning against Bill.com/Tipalti needed
+- Viable only after freight campaign proves unit economics
 
 ### C.5 Additional Research: Keyword Tool Long-Tail Analysis
 
