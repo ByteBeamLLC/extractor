@@ -478,6 +478,8 @@ const guides: GuideData[] = [
       "best-invoice-ocr-software",
       "automate-invoice-data-extraction",
       "automate-data-entry",
+      "ocr-invoice-processing",
+      "ai-invoice-processing",
     ],
   },
   {
@@ -728,7 +730,12 @@ const guides: GuideData[] = [
     ],
     relatedSolutions: ["bank-statement-extraction", "pdf-to-excel"],
     relatedCompare: ["docparser", "parseur", "nanonets"],
-    relatedBlog: ["extract-bank-statement-data-pdf", "extract-data-pdf-to-excel"],
+    relatedBlog: [
+      "extract-bank-statement-data-pdf",
+      "extract-data-pdf-to-excel",
+      "what-is-a-bank-statement",
+      "bank-statement-reconciliation",
+    ],
   },
   {
     slug: "convert-receipts-to-spreadsheet",
@@ -927,7 +934,11 @@ const guides: GuideData[] = [
     ],
     relatedSolutions: ["invoice-parsing", "no-code-document-parser"],
     relatedCompare: ["parseur", "nanonets", "docsumo"],
-    relatedBlog: ["automate-data-entry", "best-invoice-ocr-software"],
+    relatedBlog: [
+      "automate-data-entry",
+      "best-invoice-ocr-software",
+      "receipt-ocr-guide",
+    ],
   },
   {
     slug: "extract-tables-from-pdf",

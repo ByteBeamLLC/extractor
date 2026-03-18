@@ -1,3 +1,9 @@
+import { bankStatementBlogPosts } from "./blog-posts-bank-statements"
+import { financialBlogPosts } from "./blog-posts-financial"
+import { alternativesBlogPosts } from "./blog-posts-alternatives"
+import { statisticsBlogPosts } from "./blog-posts-statistics"
+import { nicheBlogPosts } from "./blog-posts-niche"
+
 export type ContentBlock =
   | { type: "paragraph"; text: string }
   | { type: "heading"; level: 2 | 3; text: string }
@@ -45,7 +51,7 @@ export const blogPosts: BlogPost[] = [
       "For one-off simple tables, manual copy-paste or Adobe Acrobat may suffice; for recurring or complex extractions, use AI or Python libraries",
       "No-code AI platforms like Parsli offer the best balance of ease-of-use and accuracy for non-technical users",
     ],
-    relatedSlugs: ["best-invoice-ocr-software", "freight-invoice-processing-automation"],
+    relatedSlugs: ["best-invoice-ocr-software", "freight-invoice-processing-automation", "ocr-invoice-processing"],
     content: [
       {
         type: "paragraph",
@@ -357,7 +363,7 @@ export const blogPosts: BlogPost[] = [
       "Nanonets is powerful but starts at $499/month; Parsli starts at $27/month with similar AI capabilities",
       "No tool is 100% accurate — plan for a human review step, especially during initial setup",
     ],
-    relatedSlugs: ["extract-data-pdf-to-excel", "freight-invoice-processing-automation"],
+    relatedSlugs: ["extract-data-pdf-to-excel", "freight-invoice-processing-automation", "ai-invoice-processing"],
     content: [
       {
         type: "paragraph",
@@ -1393,7 +1399,7 @@ export const blogPosts: BlogPost[] = [
         headline: "Stop copying data out of documents manually."
       }
     ],
-    relatedSlugs: ["what-is-document-parsing", "extract-data-pdf-to-excel", "best-invoice-ocr-software", "cost-of-manual-data-entry-3pl"]
+    relatedSlugs: ["what-is-document-parsing", "extract-data-pdf-to-excel", "best-invoice-ocr-software", "cost-of-manual-data-entry-3pl", "data-entry-statistics"]
   },
 
   {
@@ -9375,7 +9381,7 @@ export const blogPosts: BlogPost[] = [
       headline: "Extract credit card transactions automatically — no templates, no training."
     }
   ],
-  relatedSlugs: ["extract-bank-statement-data-pdf", "automate-data-entry"]
+  relatedSlugs: ["extract-bank-statement-data-pdf", "automate-data-entry", "what-is-a-bank-statement", "bank-statement-reconciliation"]
 },
 {
   slug: "bank-statement-to-excel-automation-guide",
@@ -9651,7 +9657,7 @@ export const blogPosts: BlogPost[] = [
       headline: "Convert bank statements to Excel in seconds — not hours."
     }
   ],
-  relatedSlugs: ["extract-bank-statement-data-pdf", "extract-data-pdf-to-excel"]
+  relatedSlugs: ["extract-bank-statement-data-pdf", "extract-data-pdf-to-excel", "best-bank-statement-analyzer", "how-to-read-bank-statement"]
 },
 {
   slug: "aml-document-processing-small-financial-firms",
@@ -9929,7 +9935,7 @@ export const blogPosts: BlogPost[] = [
       headline: "Extract compliance document data in seconds — not hours."
     }
   ],
-  relatedSlugs: ["what-is-intelligent-document-processing", "true-cost-manual-data-entry-2026"]
+  relatedSlugs: ["what-is-intelligent-document-processing", "true-cost-manual-data-entry-2026", "detect-fraudulent-documents", "verify-bank-statements"]
 },
   {
   slug: "best-tax-document-extraction-tools-2026",
@@ -10270,14 +10276,23 @@ export const blogPosts: BlogPost[] = [
 },
 ]
 
+const allBlogPosts: BlogPost[] = [
+  ...blogPosts,
+  ...bankStatementBlogPosts,
+  ...financialBlogPosts,
+  ...alternativesBlogPosts,
+  ...statisticsBlogPosts,
+  ...nicheBlogPosts,
+]
+
 export function getAllBlogPosts(): BlogPost[] {
-  return blogPosts
+  return allBlogPosts
 }
 
 export function getBlogPostBySlug(slug: string): BlogPost | undefined {
-  return blogPosts.find((post) => post.slug === slug)
+  return allBlogPosts.find((post) => post.slug === slug)
 }
 
 export function getAllBlogSlugs(): string[] {
-  return blogPosts.map((post) => post.slug)
+  return allBlogPosts.map((post) => post.slug)
 }
