@@ -2,7 +2,16 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2 } from "lucide-react"
+import {
+  Loader2,
+  FileText,
+  Receipt,
+  Landmark,
+  Truck,
+  ScrollText,
+  Package,
+  Plus,
+} from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -17,6 +26,16 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
 import { generateInboundEmail } from "@/lib/extractor/inbound-email"
+import { parserTemplates, type ParserTemplate } from "@/lib/parser-templates"
+import { cn } from "@/lib/utils"
+
+const templateIcons: Record<string, React.ElementType> = {
+  "invoice-parsing": Receipt,
+  "bank-statement-extraction": Landmark,
+  "freight-invoice": Truck,
+  "bill-of-lading": ScrollText,
+  "commercial-invoice": Package,
+}
 
 interface CreateParserDialogProps {
   open: boolean
@@ -29,12 +48,14 @@ export function CreateParserDialog({ open, onOpenChange, onCreated }: CreatePars
   const session = useSession()
   const supabase = useSupabaseClient()
 
+  const [selectedTemplate, setSelectedTemplate] = useState<ParserTemplate | null>(null)
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const resetForm = () => {
+    setSelectedTemplate(null)
     setName("")
     setDescription("")
     setError(null)
@@ -43,6 +64,17 @@ export function CreateParserDialog({ open, onOpenChange, onCreated }: CreatePars
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) resetForm()
     onOpenChange(newOpen)
+  }
+
+  const handleSelectTemplate = (template: ParserTemplate | null) => {
+    setSelectedTemplate(template)
+    if (template) {
+      setName(template.name)
+      setDescription(template.description)
+    } else {
+      setName("")
+      setDescription("")
+    }
   }
 
   const handleCreate = async () => {
@@ -55,13 +87,15 @@ export function CreateParserDialog({ open, onOpenChange, onCreated }: CreatePars
       // Generate a unique webhook token
       const webhookToken = crypto.randomUUID().replace(/-/g, "")
 
+      const fields = selectedTemplate ? selectedTemplate.buildFields() : []
+
       const { data, error: insertError } = await supabase
         .from("parsers")
         .insert({
           user_id: session.user.id,
           name: name.trim(),
           description: description.trim() || null,
-          fields: [],
+          fields,
           extraction_mode: "ai",
           inbound_email: generateInboundEmail(name),
           inbound_webhook_token: webhookToken,
@@ -72,7 +106,11 @@ export function CreateParserDialog({ open, onOpenChange, onCreated }: CreatePars
       if (insertError) throw insertError
 
       onCreated()
-      router.push(`/parsers/${data.id}`)
+      router.push(
+        selectedTemplate
+          ? `/parsers/${data.id}?onboarding=true`
+          : `/parsers/${data.id}`
+      )
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create parser")
     } finally {
@@ -82,15 +120,60 @@ export function CreateParserDialog({ open, onOpenChange, onCreated }: CreatePars
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Create Parser</DialogTitle>
           <DialogDescription>
-            Give your parser a name, then define the fields you want to extract.
+            Start from a template or create a blank parser.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
+          {/* Template grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {/* Blank parser option */}
+            <button
+              type="button"
+              onClick={() => handleSelectTemplate(null)}
+              className={cn(
+                "flex flex-col items-center gap-2 rounded-lg border p-3 text-center text-sm transition-colors hover:bg-muted/50",
+                selectedTemplate === null
+                  ? "border-primary bg-primary/5 ring-1 ring-primary"
+                  : "border-border"
+              )}
+            >
+              <Plus className="h-5 w-5 text-muted-foreground" />
+              <span className="font-medium">Blank Parser</span>
+              <span className="text-xs text-muted-foreground leading-tight">
+                Start from scratch
+              </span>
+            </button>
+
+            {parserTemplates.map((template) => {
+              const Icon = templateIcons[template.id] || FileText
+              const isSelected = selectedTemplate?.id === template.id
+              return (
+                <button
+                  key={template.id}
+                  type="button"
+                  onClick={() => handleSelectTemplate(template)}
+                  className={cn(
+                    "flex flex-col items-center gap-2 rounded-lg border p-3 text-center text-sm transition-colors hover:bg-muted/50",
+                    isSelected
+                      ? "border-primary bg-primary/5 ring-1 ring-primary"
+                      : "border-border"
+                  )}
+                >
+                  <Icon className="h-5 w-5 text-muted-foreground" />
+                  <span className="font-medium">{template.name}</span>
+                  <span className="text-xs text-muted-foreground leading-tight line-clamp-2">
+                    {template.description}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="parser-name">Name</Label>
             <Input
@@ -98,7 +181,6 @@ export function CreateParserDialog({ open, onOpenChange, onCreated }: CreatePars
               placeholder="e.g. Invoice Parser, Lead Extractor"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              autoFocus
             />
           </div>
           <div className="space-y-2">
