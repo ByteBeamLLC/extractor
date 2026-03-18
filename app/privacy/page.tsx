@@ -3,6 +3,9 @@ import type { Metadata } from "next"
 export const metadata: Metadata = {
   title: "Privacy Policy — Parsli",
   description: "How Parsli collects, uses, and protects your personal data.",
+  alternates: {
+    canonical: "https://parsli.co/privacy",
+  },
 }
 
 export default function PrivacyPolicyPage() {

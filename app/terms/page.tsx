@@ -3,6 +3,9 @@ import type { Metadata } from "next"
 export const metadata: Metadata = {
   title: "Terms of Service — Parsli",
   description: "Terms and conditions for using the Parsli document extraction service.",
+  alternates: {
+    canonical: "https://parsli.co/terms",
+  },
 }
 
 export default function TermsOfServicePage() {

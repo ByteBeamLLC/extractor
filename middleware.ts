@@ -43,14 +43,21 @@ function isMarketingDomain(host: string): boolean {
 }
 
 export async function middleware(request: NextRequest) {
+  const host = request.headers.get("host") || ""
+  const pathname = request.nextUrl.pathname
+
+  // ─── www → non-www redirect (fixes "alternate page with proper canonical" in GSC) ───
+  if (host.startsWith("www.")) {
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://parsli.co"
+    const url = new URL(pathname + request.nextUrl.search, siteUrl)
+    return NextResponse.redirect(url, 301)
+  }
+
   const res = NextResponse.next()
   const supabase = createMiddlewareClient({ req: request, res })
   const {
     data: { session },
   } = await supabase.auth.getSession()
-
-  const pathname = request.nextUrl.pathname
-  const host = request.headers.get("host") || ""
 
   const isApp = isAppSubdomain(host)
   const isMarketing = isMarketingDomain(host)
