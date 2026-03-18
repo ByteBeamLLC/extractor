@@ -100,6 +100,91 @@ const blogToSolutions: Record<string, string[]> = {
     "document-parsing-api",
     "invoice-parsing",
   ],
+  "true-cost-manual-data-entry-2026": [
+    "no-code-document-parser",
+    "invoice-data-extraction",
+    "document-parsing-api",
+  ],
+  "what-is-intelligent-document-processing": [
+    "no-code-document-parser",
+    "document-parsing-api",
+    "invoice-data-extraction",
+  ],
+  "ocr-vs-ai-document-extraction": [
+    "no-code-document-parser",
+    "pdf-to-excel",
+    "document-parsing-api",
+  ],
+  "contract-data-extraction-small-business": [
+    "no-code-document-parser",
+    "document-parsing-api",
+    "pdf-to-excel",
+  ],
+  "kyc-document-extraction-automation": [
+    "no-code-document-parser",
+    "document-parsing-api",
+    "bank-statement-extraction",
+  ],
+  "receipt-extraction-accountants-bulk-processing": [
+    "invoice-data-extraction",
+    "no-code-document-parser",
+    "pdf-to-excel",
+  ],
+  "brokerage-statement-extraction-financial-advisors": [
+    "bank-statement-extraction",
+    "pdf-to-excel",
+    "no-code-document-parser",
+  ],
+  "extract-k1-data-from-pdf": [
+    "pdf-to-excel",
+    "no-code-document-parser",
+    "document-parsing-api",
+  ],
+  "credit-card-statement-parsing-expense-reporting": [
+    "bank-statement-extraction",
+    "pdf-to-excel",
+    "invoice-data-extraction",
+  ],
+  "bank-statement-to-excel-automation-guide": [
+    "bank-statement-extraction",
+    "pdf-to-excel",
+    "no-code-document-parser",
+  ],
+  "aml-document-processing-small-financial-firms": [
+    "bank-statement-extraction",
+    "no-code-document-parser",
+    "document-parsing-api",
+  ],
+  "best-tax-document-extraction-tools-2026": [
+    "invoice-data-extraction",
+    "pdf-to-excel",
+    "no-code-document-parser",
+  ],
+  "bill-of-lading-requirements-complete-guide": [
+    "logistics-document-automation",
+    "no-code-document-parser",
+    "document-parsing-api",
+  ],
+  "bol-errors-prevention-guide": [
+    "logistics-document-automation",
+    "no-code-document-parser",
+    "document-parsing-api",
+  ],
+  "columbus-logistics-hub-3pl-guide": [
+    "logistics-document-automation",
+    "no-code-document-parser",
+    "invoice-data-extraction",
+  ],
+  "cost-of-manual-data-entry-3pl": [
+    "logistics-document-automation",
+    "no-code-document-parser",
+    "invoice-data-extraction",
+  ],
+  "ohio-freight-regulations-2026": [
+    "logistics-document-automation",
+    "no-code-document-parser",
+    "document-parsing-api",
+  ],
 }
 
 /* Map blog slugs to related free tools */
@@ -126,7 +211,7 @@ const blogToTools: Record<string, { href: string; title: string; description: st
   "best-pdf-parser-tools": [
     { href: "/tools/pdf-to-excel", title: "Free PDF to Excel Converter", description: "Convert PDF tables to Excel — runs entirely in your browser." },
     { href: "/tools/pdf-to-text", title: "Free PDF to Text Extractor", description: "Extract all text content from PDF files instantly." },
-    { href: "/tools/pdf-table-extractor", title: "Free PDF Table Extractor", description: "Extract tables from PDF documents into structured data." },
+    { href: "/tools/pdf-to-json", title: "Free PDF to JSON Converter", description: "Convert PDF documents to structured JSON data." },
   ],
   "parseur-alternatives": [
     { href: "/tools/invoice-parser", title: "Free Invoice Parser", description: "Try Parsli's free invoice parser — no sign-up required." },
@@ -166,8 +251,94 @@ const blogToTools: Record<string, { href: string; title: string; description: st
     { href: "/tools/invoice-parser", title: "Free Invoice Parser", description: "Test document parsing free before integrating the API." },
   ],
   "agentic-document-extraction": [
-    { href: "/tools/ai-summarizer", title: "Free AI Document Summarizer", description: "See AI document analysis in action — free in your browser." },
+    { href: "/tools/pdf-to-json", title: "Free PDF to JSON Converter", description: "Convert PDF documents to structured JSON data instantly." },
     { href: "/tools/invoice-parser", title: "Free Invoice Parser", description: "Try AI-powered extraction on invoices instantly." },
+    { href: "/tools/pdf-to-text", title: "Free PDF to Text Extractor", description: "Extract text from any PDF using AI — no sign-up required." },
+  ],
+  "true-cost-manual-data-entry-2026": [
+    { href: "/tools/invoice-parser", title: "Free Invoice Parser", description: "Stop manual data entry — extract invoice data automatically." },
+    { href: "/tools/pdf-to-excel", title: "Free PDF to Excel Converter", description: "Convert PDF tables to Excel instantly. No manual typing." },
+    { href: "/tools/receipt-scanner", title: "Free Receipt Scanner", description: "Scan receipts and extract data without manual entry." },
+  ],
+  "what-is-intelligent-document-processing": [
+    { href: "/tools/pdf-to-json", title: "Free PDF to JSON Converter", description: "See intelligent document processing in action — convert PDFs to structured JSON." },
+    { href: "/tools/invoice-parser", title: "Free Invoice Parser", description: "Try AI-powered document processing on invoices instantly." },
+    { href: "/tools/pdf-to-text", title: "Free PDF to Text Extractor", description: "Extract text from PDFs using intelligent processing." },
+  ],
+  "ocr-vs-ai-document-extraction": [
+    { href: "/tools/pdf-to-text", title: "Free PDF to Text Extractor", description: "Go beyond OCR — extract text from PDFs with AI accuracy." },
+    { href: "/tools/image-to-text", title: "Free Image to Text Converter", description: "Compare OCR vs AI extraction on your own images." },
+    { href: "/tools/pdf-to-excel", title: "Free PDF to Excel Converter", description: "AI-powered PDF to Excel — more accurate than traditional OCR." },
+  ],
+  "contract-data-extraction-small-business": [
+    { href: "/tools/pdf-to-json", title: "Free PDF to JSON Converter", description: "Extract structured data from contracts instantly." },
+    { href: "/tools/pdf-to-text", title: "Free PDF to Text Extractor", description: "Pull text from contract PDFs — no sign-up required." },
+    { href: "/tools/pdf-to-excel", title: "Free PDF to Excel Converter", description: "Convert contract data to Excel for easy analysis." },
+  ],
+  "kyc-document-extraction-automation": [
+    { href: "/tools/pdf-to-json", title: "Free PDF to JSON Converter", description: "Extract KYC data from identity documents into structured JSON." },
+    { href: "/tools/image-to-text", title: "Free Image to Text Converter", description: "Extract text from ID scans and KYC documents instantly." },
+    { href: "/tools/bank-statement-parser", title: "Free Bank Statement Parser", description: "Parse bank statements as part of your KYC verification workflow." },
+  ],
+  "receipt-extraction-accountants-bulk-processing": [
+    { href: "/tools/receipt-scanner", title: "Free Receipt Scanner", description: "Scan and extract data from receipts in bulk — no sign-up required." },
+    { href: "/tools/invoice-parser", title: "Free Invoice Parser", description: "Extract vendor, amounts, and line items from invoices automatically." },
+    { href: "/tools/pdf-to-excel", title: "Free PDF to Excel Converter", description: "Convert receipt PDFs to Excel for accounting workflows." },
+  ],
+  "brokerage-statement-extraction-financial-advisors": [
+    { href: "/tools/bank-statement-parser", title: "Free Bank Statement Parser", description: "Extract holdings and transactions from brokerage statements." },
+    { href: "/tools/pdf-to-excel", title: "Free PDF to Excel Converter", description: "Convert brokerage statement PDFs to Excel instantly." },
+    { href: "/tools/bank-statement-to-excel", title: "Free Bank Statement to Excel", description: "Export statement data to Excel for portfolio analysis." },
+  ],
+  "extract-k1-data-from-pdf": [
+    { href: "/tools/pdf-to-excel", title: "Free PDF to Excel Converter", description: "Convert K-1 tax form PDFs to Excel spreadsheets instantly." },
+    { href: "/tools/pdf-to-json", title: "Free PDF to JSON Converter", description: "Extract structured K-1 data into JSON format." },
+    { href: "/tools/pdf-to-text", title: "Free PDF to Text Extractor", description: "Pull all text from K-1 PDFs — no sign-up required." },
+  ],
+  "credit-card-statement-parsing-expense-reporting": [
+    { href: "/tools/bank-statement-parser", title: "Free Bank Statement Parser", description: "Parse credit card statements and extract transactions automatically." },
+    { href: "/tools/bank-statement-to-csv", title: "Free Bank Statement to CSV", description: "Convert credit card statements to CSV for expense reports." },
+    { href: "/tools/bank-statement-to-excel", title: "Free Bank Statement to Excel", description: "Export credit card transactions to Excel instantly." },
+  ],
+  "bank-statement-to-excel-automation-guide": [
+    { href: "/tools/bank-statement-to-excel", title: "Free Bank Statement to Excel", description: "Convert bank statements to Excel instantly — no sign-up required." },
+    { href: "/tools/bank-statement-parser", title: "Free Bank Statement Parser", description: "Extract transactions and balances from bank statement PDFs." },
+    { href: "/tools/bank-statement-to-csv", title: "Free Bank Statement to CSV", description: "Export bank statement data to CSV format." },
+  ],
+  "aml-document-processing-small-financial-firms": [
+    { href: "/tools/bank-statement-parser", title: "Free Bank Statement Parser", description: "Parse bank statements for AML compliance checks." },
+    { href: "/tools/bank-statement-to-excel", title: "Free Bank Statement to Excel", description: "Convert financial documents to Excel for AML review." },
+    { href: "/tools/pdf-to-json", title: "Free PDF to JSON Converter", description: "Extract structured data from compliance documents." },
+  ],
+  "best-tax-document-extraction-tools-2026": [
+    { href: "/tools/pdf-to-excel", title: "Free PDF to Excel Converter", description: "Convert tax documents to Excel — try it before choosing a tool." },
+    { href: "/tools/invoice-parser", title: "Free Invoice Parser", description: "Extract tax-relevant data from invoices automatically." },
+    { href: "/tools/receipt-scanner", title: "Free Receipt Scanner", description: "Scan tax receipts and extract deductible amounts." },
+  ],
+  "bill-of-lading-requirements-complete-guide": [
+    { href: "/tools/bol-parser", title: "Free BOL Parser", description: "Extract shipper, consignee, and cargo details from bills of lading." },
+    { href: "/tools/pdf-to-json", title: "Free PDF to JSON Converter", description: "Convert BOL documents to structured JSON data." },
+    { href: "/tools/pdf-to-excel", title: "Free PDF to Excel Converter", description: "Convert bills of lading to Excel for easy record-keeping." },
+  ],
+  "bol-errors-prevention-guide": [
+    { href: "/tools/bol-parser", title: "Free BOL Parser", description: "Catch BOL errors automatically — extract and validate BOL data." },
+    { href: "/tools/pdf-to-json", title: "Free PDF to JSON Converter", description: "Parse BOL documents into structured data to spot discrepancies." },
+    { href: "/tools/pdf-to-text", title: "Free PDF to Text Extractor", description: "Extract text from BOL documents for quick review." },
+  ],
+  "columbus-logistics-hub-3pl-guide": [
+    { href: "/tools/bol-parser", title: "Free BOL Parser", description: "Parse bills of lading for Columbus-area freight operations." },
+    { href: "/tools/invoice-parser", title: "Free Invoice Parser", description: "Extract data from freight invoices automatically." },
+    { href: "/tools/pdf-to-excel", title: "Free PDF to Excel Converter", description: "Convert logistics documents to Excel spreadsheets." },
+  ],
+  "cost-of-manual-data-entry-3pl": [
+    { href: "/tools/bol-parser", title: "Free BOL Parser", description: "Eliminate manual BOL data entry — extract data automatically." },
+    { href: "/tools/invoice-parser", title: "Free Invoice Parser", description: "Stop typing invoice data — let AI extract it for you." },
+    { href: "/tools/pdf-to-excel", title: "Free PDF to Excel Converter", description: "Convert 3PL documents to Excel without manual entry." },
+  ],
+  "ohio-freight-regulations-2026": [
+    { href: "/tools/bol-parser", title: "Free BOL Parser", description: "Parse bills of lading for Ohio freight compliance." },
+    { href: "/tools/pdf-to-json", title: "Free PDF to JSON Converter", description: "Extract regulatory document data into structured JSON." },
+    { href: "/tools/pdf-to-text", title: "Free PDF to Text Extractor", description: "Extract text from freight regulation documents." },
   ],
 }
 
@@ -177,7 +348,6 @@ const blogToCompare: Record<string, string[]> = {
   "nanonets-alternatives": ["nanonets", "parseur", "docparser", "docsumo"],
   "mailparser-alternatives": ["mailparser", "parseur", "parsio", "docparser"],
   "best-invoice-ocr-software": ["nanonets", "docparser", "rossum", "docsumo"],
-  "best-pdf-parser-tools": ["docparser", "parseur", "nanonets", "textract"],
   "best-email-parser-tools": ["parseur", "mailparser", "parsio"],
   "extract-data-pdf-to-excel": ["docparser", "parseur", "textract"],
   "what-is-document-parsing": ["nanonets", "docsumo", "textract"],
@@ -188,7 +358,25 @@ const blogToCompare: Record<string, string[]> = {
   "parse-emails-to-google-sheets": ["parseur", "mailparser", "parsio"],
   "email-attachments-to-spreadsheet": ["mailparser", "parseur", "parsio"],
   "document-parsing-api": ["textract", "google-document-ai", "azure-document-intelligence"],
-  "agentic-document-extraction": ["nanonets", "docsumo", "google-document-ai"],
+  "agentic-document-extraction": ["nanonets", "docsumo", "sensible", "unstract"],
+  "best-pdf-parser-tools": ["docparser", "parseur", "nanonets", "abbyy"],
+  "true-cost-manual-data-entry-2026": ["nanonets", "docparser", "parseur", "rossum"],
+  "what-is-intelligent-document-processing": ["nanonets", "abbyy", "rossum", "docsumo"],
+  "ocr-vs-ai-document-extraction": ["abbyy", "nanonets", "mindee", "veryfi"],
+  "contract-data-extraction-small-business": ["docsumo", "nanonets", "sensible", "affinda"],
+  "kyc-document-extraction-automation": ["mindee", "veryfi", "nanonets", "klippa"],
+  "receipt-extraction-accountants-bulk-processing": ["veryfi", "klippa", "nanonets", "docsumo"],
+  "brokerage-statement-extraction-financial-advisors": ["docuclipper", "nanonets", "sensible", "docparser"],
+  "extract-k1-data-from-pdf": ["docuclipper", "nanonets", "sensible", "docparser"],
+  "credit-card-statement-parsing-expense-reporting": ["docuclipper", "veryfi", "nanonets", "klippa"],
+  "bank-statement-to-excel-automation-guide": ["docuclipper", "docparser", "nanonets", "parseur"],
+  "aml-document-processing-small-financial-firms": ["mindee", "nanonets", "klippa", "sensible"],
+  "best-tax-document-extraction-tools-2026": ["nanonets", "docsumo", "veryfi", "abbyy"],
+  "bill-of-lading-requirements-complete-guide": ["shipamax", "nanonets", "docparser", "extend-ai"],
+  "bol-errors-prevention-guide": ["shipamax", "nanonets", "extend-ai", "docparser"],
+  "columbus-logistics-hub-3pl-guide": ["shipamax", "nanonets", "extend-ai", "matil"],
+  "cost-of-manual-data-entry-3pl": ["shipamax", "nanonets", "parseur", "docparser"],
+  "ohio-freight-regulations-2026": ["shipamax", "nanonets", "extend-ai", "docparser"],
 }
 
 function getRelatedComparisons(blogSlug: string) {

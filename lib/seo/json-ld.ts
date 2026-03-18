@@ -6,6 +6,8 @@ export function organizationJsonLd() {
     "@type": "Organization",
     name: "Parsli",
     url: BASE_URL,
+    description:
+      "AI-powered document data extraction platform. Extract structured data from PDFs, invoices, emails, and images automatically.",
     logo: {
       "@type": "ImageObject",
       url: `${BASE_URL}/parsli-icon.png`,
@@ -17,6 +19,7 @@ export function organizationJsonLd() {
       email: "support@parsli.co",
       contactType: "customer service",
     },
+    sameAs: ["https://www.linkedin.com/company/parsli"],
   }
 }
 
@@ -52,34 +55,39 @@ export function softwareApplicationJsonLd() {
         name: "Free",
         price: "0",
         priceCurrency: "USD",
+        description: "30 pages per month, up to 3 parsers",
       },
       {
         "@type": "Offer",
         name: "Starter",
-        price: "27",
+        price: "33",
         priceCurrency: "USD",
         priceValidUntil: "2027-12-31",
+        description: "100 pages per month, up to 10 parsers",
       },
       {
         "@type": "Offer",
         name: "Growth",
-        price: "49",
+        price: "59",
         priceCurrency: "USD",
         priceValidUntil: "2027-12-31",
+        description: "500 pages per month, up to 25 parsers",
       },
       {
         "@type": "Offer",
         name: "Pro",
-        price: "79",
+        price: "99",
         priceCurrency: "USD",
         priceValidUntil: "2027-12-31",
+        description: "2,000 pages per month, up to 100 parsers",
       },
       {
         "@type": "Offer",
         name: "Business",
-        price: "279",
+        price: "349",
         priceCurrency: "USD",
         priceValidUntil: "2027-12-31",
+        description: "10,000 pages per month, unlimited parsers",
       },
     ],
     featureList: [
@@ -200,5 +208,30 @@ export function solutionPageJsonLd(solution: {
       description: "Free tier with 30 pages/month",
       url: `${BASE_URL}/pricing`,
     },
+  }
+}
+
+export function productJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: "Parsli",
+    url: BASE_URL,
+    description:
+      "AI-powered document data extraction platform. Extract structured data from PDFs, invoices, emails, and images automatically with a no-code interface.",
+    image: `${BASE_URL}/parsli-og.png`,
+    brand: {
+      "@type": "Organization",
+      name: "Parsli",
+    },
+    offers: {
+      "@type": "AggregateOffer",
+      lowPrice: "0",
+      highPrice: "349",
+      priceCurrency: "USD",
+      offerCount: 5,
+      url: `${BASE_URL}/pricing`,
+    },
+    category: "Document Processing Software",
   }
 }

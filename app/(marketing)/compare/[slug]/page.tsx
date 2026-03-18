@@ -44,6 +44,11 @@ const compareToBlog: Record<string, string[]> = {
   airparser: ["best-email-parser-tools", "automate-data-entry"],
   shipamax: ["bill-of-lading-requirements-complete-guide", "cost-of-manual-data-entry-3pl", "freight-invoice-processing-automation"],
   "v7-labs": ["extract-data-from-pdf-automatically", "document-parsing-api", "what-is-document-parsing"],
+  "extend-ai": ["agentic-document-extraction", "what-is-intelligent-document-processing", "ocr-vs-ai-document-extraction"],
+  unstract: ["agentic-document-extraction", "ocr-vs-ai-document-extraction", "extract-data-from-pdf-automatically"],
+  affinda: ["what-is-intelligent-document-processing", "ocr-vs-ai-document-extraction", "automate-data-entry"],
+  matil: ["extract-data-from-pdf-automatically", "ocr-vs-ai-document-extraction", "true-cost-manual-data-entry-2026"],
+  docuclipper: ["bank-statement-to-excel-automation-guide", "best-tax-document-extraction-tools-2026", "ocr-vs-ai-document-extraction"],
 }
 
 /* Map comparison slugs to related solutions */
@@ -76,6 +81,11 @@ const compareToSolutions: Record<string, string[]> = {
   airparser: ["no-code-document-parser"],
   shipamax: ["logistics-document-automation", "document-parsing-api"],
   "v7-labs": ["no-code-document-parser", "document-parsing-api"],
+  "extend-ai": ["document-parsing-api", "invoice-data-extraction", "no-code-document-parser"],
+  unstract: ["document-parsing-api", "pdf-to-excel", "no-code-document-parser"],
+  affinda: ["invoice-data-extraction", "document-parsing-api", "no-code-document-parser"],
+  matil: ["document-parsing-api", "pdf-to-excel", "email-data-extraction"],
+  docuclipper: ["bank-statement-extraction", "pdf-to-excel", "no-code-document-parser"],
 }
 
 function getRelatedBlogPosts(slug: string) {

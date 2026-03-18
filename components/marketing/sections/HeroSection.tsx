@@ -44,7 +44,8 @@ export function HeroSection() {
 
             <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-8">
               Turn PDFs, invoices, emails, and images into structured fields.
-              Set up in under 2 minutes.
+              Reduce manual entry time by up to 70% and cut processing costs
+              from $15 to under $3 per document. Set up in under 2 minutes.
             </p>
 
             {/* CTA */}
@@ -101,6 +102,7 @@ export function HeroSection() {
                 alt={logo.alt}
                 width={140}
                 height={40}
+                priority
                 className={`${logo.h} w-auto object-contain opacity-70 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-200`}
               />
             ))}

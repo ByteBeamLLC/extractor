@@ -17,9 +17,17 @@ export function CTASection() {
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
             Start Extracting Data in Minutes
           </h2>
-          <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-8">
-            Join thousands of businesses automating document processing with AI.
-            No credit card required. 30 free pages every month.
+          <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-4">
+            Companies using document automation see an average{" "}
+            <strong className="text-foreground">248% ROI over three years</strong>{" "}
+            with payback in under six months{" "}
+            <span className="text-xs text-muted-foreground/70">
+              (<cite>Forrester TEI, 2023</cite>)
+            </span>
+            . Start free — no credit card required.
+          </p>
+          <p className="text-sm text-muted-foreground max-w-lg mx-auto mb-8">
+            30 free pages every month. Set up in under 2 minutes.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button size="lg" className="text-base px-8 h-12" asChild>

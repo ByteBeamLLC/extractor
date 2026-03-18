@@ -69,8 +69,12 @@ export function FeaturesSection() {
           Everything You Need to Automate Document Processing
         </h2>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          From AI extraction to integrations, Parsli handles the entire document
-          processing pipeline so you don&apos;t have to.
+          Organizations using intelligent document processing cut processing
+          time by 50–70% and reduce costs by up to 80%{" "}
+          <span className="text-xs text-muted-foreground/70">
+            (<cite>Forrester TEI Studies</cite>)
+          </span>
+          . Parsli handles the entire pipeline so you don&apos;t have to.
         </p>
       </div>
 
@@ -90,6 +94,19 @@ export function FeaturesSection() {
           </div>
         ))}
       </div>
+
+      {/* Industry stat callout */}
+      <aside className="mt-12 rounded-lg border-l-4 border-primary bg-primary/5 px-6 py-5 max-w-2xl mx-auto">
+        <p className="text-sm text-foreground/80">
+          The intelligent document processing market was valued at{" "}
+          <strong>$2.30 billion in 2024</strong> and is projected to reach{" "}
+          <strong>$12.35 billion by 2030</strong>, growing at a{" "}
+          <strong>33.1% CAGR</strong>.{" "}
+          <span className="text-xs text-muted-foreground/70">
+            (<cite>Grand View Research, 2024</cite>)
+          </span>
+        </p>
+      </aside>
     </SectionWrapper>
   )
 }

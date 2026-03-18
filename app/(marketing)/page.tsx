@@ -16,6 +16,7 @@ import {
   organizationJsonLd,
   websiteJsonLd,
   softwareApplicationJsonLd,
+  productJsonLd,
   faqJsonLd,
 } from "@/lib/seo/json-ld"
 
@@ -62,6 +63,7 @@ export default function LandingPage() {
       <JsonLd data={organizationJsonLd()} />
       <JsonLd data={websiteJsonLd()} />
       <JsonLd data={softwareApplicationJsonLd()} />
+      <JsonLd data={productJsonLd()} />
       <JsonLd
         data={faqJsonLd(
           faqItems.map((item) => ({

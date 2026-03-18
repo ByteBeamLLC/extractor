@@ -72,7 +72,7 @@ const guides: GuideData[] = [
     metaDescription:
       "Learn 3 methods to extract line items from invoices — manual, Python, and AI-powered. Compare accuracy, speed, and cost for each approach.",
     publishedAt: "2026-03-15",
-    updatedAt: "2026-03-15",
+    updatedAt: "2026-01-10",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "8 min read",
@@ -489,7 +489,7 @@ const guides: GuideData[] = [
     metaDescription:
       "Learn how to extract transactions, balances, and account details from bank statement PDFs. Compare manual, Python, and AI methods.",
     publishedAt: "2026-03-17",
-    updatedAt: "2026-03-17",
+    updatedAt: "2026-01-18",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "7 min read",
@@ -738,7 +738,7 @@ const guides: GuideData[] = [
     metaDescription:
       "Learn how to convert paper and digital receipts into structured spreadsheet data. Compare scanning apps, OCR tools, and AI extraction.",
     publishedAt: "2026-03-19",
-    updatedAt: "2026-03-19",
+    updatedAt: "2026-01-25",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "6 min read",
@@ -937,7 +937,7 @@ const guides: GuideData[] = [
     metaDescription:
       "Learn how to extract tables from PDFs using copy-paste, Python, and AI tools. Compare methods for accuracy, speed, and scanned PDF support.",
     publishedAt: "2026-03-21",
-    updatedAt: "2026-03-21",
+    updatedAt: "2026-02-01",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "7 min read",
@@ -1130,7 +1130,7 @@ const guides: GuideData[] = [
     metaDescription:
       "Learn how to automatically extract data from email attachments — invoices, receipts, reports — and route it to spreadsheets or your ERP.",
     publishedAt: "2026-03-23",
-    updatedAt: "2026-03-23",
+    updatedAt: "2026-02-06",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "6 min read",
@@ -1290,7 +1290,7 @@ const guides: GuideData[] = [
     metaDescription:
       "Learn how to extract PO numbers, line items, and vendor details from purchase orders automatically. Compare manual vs automated methods.",
     publishedAt: "2026-03-25",
-    updatedAt: "2026-03-25",
+    updatedAt: "2026-02-10",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "6 min read",
@@ -1443,7 +1443,7 @@ const guides: GuideData[] = [
     metaDescription:
       "Set up an automated pipeline that extracts invoice data and pushes it directly to Google Sheets. Step-by-step guide with Parsli integration.",
     publishedAt: "2026-03-27",
-    updatedAt: "2026-03-27",
+    updatedAt: "2026-02-13",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "7 min read",
@@ -1587,7 +1587,7 @@ const guides: GuideData[] = [
     metaDescription:
       "Learn how OCR and AI extraction work together to pull structured data from scanned PDFs, photographed documents, and faxes.",
     publishedAt: "2026-03-29",
-    updatedAt: "2026-03-29",
+    updatedAt: "2026-02-17",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "7 min read",
@@ -1762,7 +1762,7 @@ const guides: GuideData[] = [
     metaDescription:
       "Automate PDF to Google Sheets data flow. Extract tables, forms, and structured data from PDFs and push to Sheets automatically.",
     publishedAt: "2026-03-31",
-    updatedAt: "2026-03-31",
+    updatedAt: "2026-02-20",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "6 min read",
@@ -1902,7 +1902,7 @@ const guides: GuideData[] = [
     metaDescription:
       "Learn how to extract vendor names, addresses, tax IDs, and contact details from invoices automatically for AP and vendor management.",
     publishedAt: "2026-04-02",
-    updatedAt: "2026-04-02",
+    updatedAt: "2026-02-24",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "5 min read",
@@ -2058,7 +2058,7 @@ const guides: GuideData[] = [
     metaDescription:
       "Learn how to extract parties, dates, clauses, and payment terms from contracts. Compare manual, Python, and AI-powered extraction methods.",
     publishedAt: "2026-03-20",
-    updatedAt: "2026-03-20",
+    updatedAt: "2026-02-26",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "9 min read",
@@ -2469,7 +2469,7 @@ const guides: GuideData[] = [
     metaDescription:
       "Learn how to extract patient info, diagnosis codes, and medications from medical records. HIPAA-compliant methods compared step by step.",
     publishedAt: "2026-03-20",
-    updatedAt: "2026-03-20",
+    updatedAt: "2026-02-28",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "10 min read",
@@ -2882,7 +2882,7 @@ const guides: GuideData[] = [
     metaDescription:
       "Learn how to extract tracking numbers, weights, origins, and customs info from BOLs, packing slips, and shipping labels. 3 methods compared.",
     publishedAt: "2026-03-20",
-    updatedAt: "2026-03-20",
+    updatedAt: "2026-03-01",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "8 min read",
@@ -3295,7 +3295,7 @@ const guides: GuideData[] = [
     metaDescription:
       "Learn how to extract claim numbers, policy details, incident dates, and amounts from insurance claim forms. Compare 3 extraction methods.",
     publishedAt: "2026-03-20",
-    updatedAt: "2026-03-20",
+    updatedAt: "2026-03-03",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "9 min read",
@@ -3703,7 +3703,7 @@ const guides: GuideData[] = [
     metaDescription:
       "Learn how to extract vendor names, amounts, and line items from invoice PDFs and send structured data to QuickBooks Online via Zapier, Make, or API.",
     publishedAt: "2026-03-20",
-    updatedAt: "2026-03-20",
+    updatedAt: "2026-03-04",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "9 min read",
@@ -4117,7 +4117,7 @@ const guides: GuideData[] = [
     metaDescription:
       "Set up a Zapier automation that parses incoming email attachments — invoices, receipts, POs — and routes extracted data to spreadsheets, CRMs, or ERPs.",
     publishedAt: "2026-03-20",
-    updatedAt: "2026-03-20",
+    updatedAt: "2026-03-05",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "9 min read",
@@ -4531,7 +4531,7 @@ const guides: GuideData[] = [
     metaDescription:
       "Build a Make scenario that watches for receipts via email or upload, extracts data with Parsli, and pushes to expense tracking tools or Google Sheets.",
     publishedAt: "2026-03-20",
-    updatedAt: "2026-03-20",
+    updatedAt: "2026-03-06",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "9 min read",
@@ -4945,7 +4945,7 @@ const guides: GuideData[] = [
     metaDescription:
       "Learn how non-technical users can extract structured data from PDFs using no-code tools. Compare manual, template-based, and AI-powered approaches.",
     publishedAt: "2026-03-20",
-    updatedAt: "2026-03-20",
+    updatedAt: "2026-03-07",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "8 min read",
@@ -5352,7 +5352,7 @@ const guides: GuideData[] = [
     metaDescription:
       "End-to-end guide for small business owners to automate invoice processing — from receiving invoices via email to exporting data to accounting software.",
     publishedAt: "2026-03-20",
-    updatedAt: "2026-03-20",
+    updatedAt: "2026-03-08",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "10 min read",
@@ -5768,7 +5768,7 @@ const guides: GuideData[] = [
     metaDescription:
       "Learn how to extract structured data from handwritten forms, notes, and documents using AI-powered handwriting recognition. Compare ICR, OCR, and AI methods.",
     publishedAt: "2026-03-20",
-    updatedAt: "2026-03-20",
+    updatedAt: "2026-03-09",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "9 min read",
@@ -6180,7 +6180,7 @@ const guides: GuideData[] = [
     metaDescription:
       "Learn how to extract structured JSON data from PDFs for APIs, databases, and apps. Compare manual, Python, and AI-powered conversion methods step by step.",
     publishedAt: "2026-03-20",
-    updatedAt: "2026-03-20",
+    updatedAt: "2026-03-10",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "8 min read",
@@ -6591,7 +6591,7 @@ const guides: GuideData[] = [
     metaDescription:
       "Learn how to convert Excel files to clean JSON for APIs, databases, and web apps. Compare manual, scripting, and AI-powered conversion methods.",
     publishedAt: "2026-03-20",
-    updatedAt: "2026-03-20",
+    updatedAt: "2026-03-10",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "8 min read",
@@ -6997,7 +6997,7 @@ const guides: GuideData[] = [
     metaDescription:
       "Learn how to set up automated batch document processing pipelines. Compare email ingestion, API uploads, and bulk processing for hundreds of documents.",
     publishedAt: "2026-03-20",
-    updatedAt: "2026-03-20",
+    updatedAt: "2026-03-11",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "9 min read",
@@ -7410,7 +7410,7 @@ const guides: GuideData[] = [
     metaDescription:
       "Learn how to extract employer info, income, and withholdings from W-2s, 1099s, and other tax forms. Compare manual, Python, and AI methods.",
     publishedAt: "2026-03-20",
-    updatedAt: "2026-03-20",
+    updatedAt: "2026-03-11",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "8 min read",
@@ -7825,7 +7825,7 @@ const guides: GuideData[] = [
     metaDescription:
       "Learn how to extract account numbers, usage, charges, and billing periods from utility bills. Compare manual, Python, and AI methods.",
     publishedAt: "2026-03-20",
-    updatedAt: "2026-03-20",
+    updatedAt: "2026-03-12",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "7 min read",
@@ -8240,7 +8240,7 @@ const guides: GuideData[] = [
     metaDescription:
       "Learn 3 methods to extract data from bills of lading — manual, Python/OCR, and AI-powered. Compare accuracy for faded thermal prints and handwritten BOLs.",
     publishedAt: "2026-03-16",
-    updatedAt: "2026-03-16",
+    updatedAt: "2026-03-12",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "9 min read",
@@ -8671,7 +8671,7 @@ const guides: GuideData[] = [
     metaDescription:
       "Step-by-step guide to automating freight invoice processing. Covers carrier-specific formats, 3-way matching, and 92% time reduction for 3PLs.",
     publishedAt: "2026-03-16",
-    updatedAt: "2026-03-16",
+    updatedAt: "2026-03-13",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "10 min read",
@@ -9083,7 +9083,7 @@ const guides: GuideData[] = [
     metaDescription:
       "Connect BOL data extraction to your WMS. Step-by-step guide using webhooks, REST API, and Zapier to push shipment data from BOLs directly into your warehouse system.",
     publishedAt: "2026-03-16",
-    updatedAt: "2026-03-16",
+    updatedAt: "2026-03-13",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "8 min read",
@@ -9514,7 +9514,7 @@ const guides: GuideData[] = [
     metaDescription:
       "Extract HS codes, declared values, and origin data from customs declarations and commercial invoices automatically with AI. Multi-language support included.",
     publishedAt: "2026-03-16",
-    updatedAt: "2026-03-16",
+    updatedAt: "2026-03-14",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "8 min read",
@@ -9920,7 +9920,7 @@ const guides: GuideData[] = [
     metaDescription:
       "Extract recipient, delivery date, signature status, and exception notes from delivery notes and PODs automatically. Digitize proof of delivery for your records.",
     publishedAt: "2026-03-16",
-    updatedAt: "2026-03-16",
+    updatedAt: "2026-03-14",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "7 min read",

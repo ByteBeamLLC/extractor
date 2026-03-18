@@ -234,7 +234,7 @@ export default function ToolsPage() {
             Free Document Parsing Tools
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            23 free tools for PDF processing, OCR text extraction, data
+            25 free tools for PDF processing, OCR text extraction, data
             conversion, and document parsing. No signup required — everything
             runs in your browser.
           </p>
