@@ -289,7 +289,21 @@ export default function BankStatementParserPage() {
       <section className="pb-10 sm:pb-12">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <p className="text-sm text-muted-foreground text-center leading-relaxed">
-            Processing invoices or receipts?{" "}
+            Need your statement as a spreadsheet? Try{" "}
+            <Link
+              href="/tools/bank-statement-to-excel"
+              className="text-primary hover:underline underline-offset-4"
+            >
+              Bank Statement to Excel
+            </Link>{" "}
+            or{" "}
+            <Link
+              href="/tools/bank-statement-to-csv"
+              className="text-primary hover:underline underline-offset-4"
+            >
+              Bank Statement to CSV
+            </Link>
+            . Processing invoices?{" "}
             <Link
               href="/tools/invoice-parser"
               className="text-primary hover:underline underline-offset-4"
@@ -303,14 +317,7 @@ export default function BankStatementParserPage() {
             >
               Receipt Scanner
             </Link>{" "}
-            are built for that. Or try the{" "}
-            <Link
-              href="/tools/pdf-to-excel"
-              className="text-primary hover:underline underline-offset-4"
-            >
-              PDF to Excel Converter
-            </Link>{" "}
-            to get statement data in a spreadsheet.
+            are built for that.
           </p>
         </div>
       </section>

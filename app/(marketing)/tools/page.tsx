@@ -144,6 +144,18 @@ const categories = [
           "Extract transactions, balances, and account details from bank statements.",
       },
       {
+        slug: "bank-statement-to-excel",
+        title: "Bank Statement to Excel",
+        description:
+          "Convert bank statement PDFs to Excel spreadsheets. Preserves transaction tables, dates, and amounts.",
+      },
+      {
+        slug: "bank-statement-to-csv",
+        title: "Bank Statement to CSV",
+        description:
+          "Convert bank statement PDFs to CSV format for import into accounting software like QuickBooks, Xero, or Wave.",
+      },
+      {
         slug: "resume-parser",
         title: "Resume Parser",
         description:
@@ -166,7 +178,7 @@ const categories = [
 ]
 
 export const metadata: Metadata = {
-  title: "23 Free Document Tools — PDF, OCR, Data Conversion & More | Parsli",
+  title: "25 Free Document Tools — PDF, OCR, Data Conversion & More | Parsli",
   description:
     "Free online tools for PDF merging, splitting, OCR text extraction, data conversion, and document parsing. No signup required. 100% browser-based and private.",
   keywords: [
@@ -187,7 +199,7 @@ export const metadata: Metadata = {
     canonical: "https://parsli.co/tools",
   },
   openGraph: {
-    title: "23 Free Document Tools — PDF, OCR & More",
+    title: "25 Free Document Tools — PDF, OCR & More",
     description:
       "Free online tools for PDF processing, OCR text extraction, data conversion, and document parsing. No signup required.",
     url: "https://parsli.co/tools",
@@ -202,7 +214,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "23 Free Document Tools — PDF, OCR & More",
+    title: "25 Free Document Tools — PDF, OCR & More",
     description:
       "Free online tools for PDF processing, OCR, data conversion, and document parsing.",
     images: ["https://parsli.co/parsli-og.png"],

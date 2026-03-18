@@ -5,7 +5,6 @@ import {
   Zap,
   UserX,
   Upload,
-  FileSpreadsheet,
   Download,
   ArrowRight,
   Sparkles,
@@ -16,11 +15,11 @@ import {
   Smartphone,
   Tablet,
   Users,
-  GraduationCap,
   Building2,
   BarChart3,
   Lightbulb,
   Star,
+  Database,
 } from "lucide-react"
 import { PdfToExcelTool } from "@/components/tools/PdfToExcelTool"
 import { AuthButton } from "@/components/marketing/shared/AuthButton"
@@ -29,29 +28,29 @@ import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld"
 
 export const metadata: Metadata = {
-  title: "PDF to Excel Converter — Free, Instant, No Sign-Up | Parsli",
+  title: "Bank Statement to CSV Converter — Free, Instant, No Sign-Up | Parsli",
   description:
-    "Convert PDF tables to Excel (.xlsx) instantly in your browser. Free, no sign-up, no file uploads to servers. Your data stays private. Works with invoices, bank statements, reports, and more.",
+    "Convert bank statement PDFs to CSV format instantly in your browser. Free, no sign-up, no file uploads. Download as Excel (.xlsx) and save as CSV. Works with statements from any bank for QuickBooks, Xero, and accounting imports.",
   keywords: [
-    "pdf to excel converter",
-    "pdf to excel free",
-    "convert pdf to excel",
-    "pdf to xlsx",
-    "pdf table to excel",
-    "pdf to spreadsheet",
-    "extract table from pdf",
-    "pdf to excel online free",
-    "pdf to excel no sign up",
-    "pdf converter free",
+    "bank statement to csv",
+    "convert bank statement to csv",
+    "bank statement pdf to csv",
+    "bank statement csv converter",
+    "bank statement csv",
+    "bank statement to csv free",
+    "convert bank statement pdf to csv",
+    "bank statement csv download",
+    "bank statement to quickbooks csv",
+    "bank statement converter csv",
   ],
   alternates: {
-    canonical: "https://parsli.co/tools/pdf-to-excel",
+    canonical: "https://parsli.co/tools/bank-statement-to-csv",
   },
   openGraph: {
-    title: "PDF to Excel Converter — Free, Instant, No Sign-Up",
+    title: "Bank Statement to CSV Converter — Free, Instant, No Sign-Up",
     description:
-      "Convert PDF tables to Excel instantly in your browser. Free forever, no sign-up required, your data never leaves your device.",
-    url: "https://parsli.co/tools/pdf-to-excel",
+      "Convert bank statement PDFs to CSV-compatible format instantly in your browser. Free forever, no sign-up required, your data never leaves your device.",
+    url: "https://parsli.co/tools/bank-statement-to-csv",
   },
 }
 
@@ -60,113 +59,114 @@ const features = [
     icon: Shield,
     title: "Private & secure",
     description:
-      "Your PDF is processed entirely in your browser. Files never leave your device.",
+      "Your bank statement is processed entirely in your browser. Financial data never leaves your device — no cloud uploads, ever.",
   },
   {
     icon: UserX,
     title: "No sign-up required",
     description:
-      "Use it instantly in your browser. No account, no email, no nonsense.",
+      "Use it instantly. No account, no email, no credit card. Upload your statement and download the file.",
   },
   {
     icon: Zap,
     title: "Free & unlimited",
     description:
-      "No limits, no watermarks, no paywalls. Convert as many PDFs as you want.",
+      "No limits, no watermarks, no paywalls. Convert as many bank statements as you need, completely free.",
   },
 ]
 
 const steps = [
   {
     icon: Upload,
-    title: "Upload your PDF",
-    description: "Drag and drop your PDF or click to browse. Up to 50 MB.",
+    title: "Upload your bank statement",
+    description:
+      "Drag and drop your bank statement PDF or click to browse. Works with statements from any bank.",
   },
   {
     icon: Table,
-    title: "Auto-detect tables",
+    title: "Auto-detect transactions",
     description:
-      "The tool detects rows and columns from your PDF layout automatically.",
+      "The tool detects table rows and columns from your statement — dates, descriptions, debits, credits, and balances.",
   },
   {
     icon: Download,
-    title: "Download Excel",
+    title: "Download and save as CSV",
     description:
-      "Preview the data, then download as a clean .xlsx file. That's it.",
+      "Download as .xlsx, then save as CSV from Excel or Google Sheets. Or use the data directly — .xlsx works everywhere CSV does.",
   },
 ]
 
 const personas = [
   {
     icon: BarChart3,
-    title: "Accountants & Finance Teams",
+    title: "Accountants & Bookkeepers",
     description:
-      "Extract data from invoices, bank statements, and financial reports without manual entry.",
+      "Convert client bank statements to CSV for bulk import into QuickBooks, Xero, FreshBooks, or Wave accounting software.",
   },
   {
     icon: Users,
     title: "Small Business Owners",
     description:
-      "Quickly convert supplier invoices and receipts into spreadsheets for bookkeeping.",
+      "Get bank transaction data in CSV format for expense tracking, tax prep, and import into budgeting tools.",
   },
   {
-    icon: GraduationCap,
-    title: "Students & Researchers",
+    icon: Database,
+    title: "Developers & Data Analysts",
     description:
-      "Pull data tables from academic papers and reports into Excel for analysis.",
+      "Extract bank statement data into a flat file format for analysis in Python, R, SQL databases, or custom scripts.",
   },
   {
     icon: Building2,
-    title: "Operations & Admin",
+    title: "Finance Teams & Controllers",
     description:
-      "Convert PDF reports, price lists, and catalogs into editable spreadsheets.",
+      "Convert statements to CSV for automated reconciliation workflows, ERP imports, and financial system integrations.",
   },
 ]
 
 const faqs = [
   {
-    q: "Is this tool really free?",
-    a: "Yes, completely free with no limits. There are no hidden charges, no watermarks, and no sign-up required. We built this as a free utility for the community.",
+    q: "Is this bank statement to CSV converter really free?",
+    a: "Yes, completely free with no limits. There are no hidden charges, no watermarks, and no sign-up required. Convert as many bank statements as you need.",
   },
   {
-    q: "Do you store or upload my PDF files?",
-    a: "No. Your PDF is processed entirely in your browser using JavaScript. The file never leaves your device and is never sent to any server. Your data stays 100% private.",
+    q: "Do you store or upload my bank statements?",
+    a: "No. Your bank statement PDF is processed entirely in your browser using JavaScript. The file never leaves your device and is never sent to any server. Your financial data stays 100% private.",
   },
   {
-    q: "What types of PDFs work best?",
-    a: "This tool works best with PDFs that contain text-based tables — invoices, bank statements, financial reports, data exports, and similar structured documents. It extracts the text positions and reconstructs the table layout.",
+    q: "Does this tool export directly to CSV?",
+    a: "This tool exports to .xlsx (Excel) format, which you can then save as CSV. In Excel: File > Save As > CSV. In Google Sheets: File > Download > Comma-separated values (.csv). The .xlsx format also works directly with QuickBooks, Xero, and most accounting software.",
   },
   {
-    q: "Does this work with scanned PDFs or images?",
-    a: "No. This tool extracts text that's embedded in the PDF. Scanned documents (images of text) require OCR, which this tool doesn't include. For scanned PDFs, try Parsli's AI-powered extraction which handles images, scans, and complex layouts.",
+    q: "Which banks' statements work with this tool?",
+    a: "This tool works with PDF statements from any bank — Chase, Bank of America, Wells Fargo, Citi, Capital One, HSBC, Barclays, and any other bank worldwide. If your bank provides PDF statements with embedded text, this tool will convert them.",
   },
   {
-    q: "What if the table layout doesn't look right?",
-    a: "Simple, well-structured tables convert accurately. But complex PDF layouts — merged cells, multi-column pages, nested tables, or inconsistent spacing — can be challenging for rule-based extraction. For complex documents, Parsli's AI extraction understands document context and handles these cases automatically.",
+    q: "Can I import the CSV into QuickBooks or Xero?",
+    a: "Yes. Once you have the CSV file, you can import it into QuickBooks (Banking > Upload transactions), Xero (Bank accounts > Import a statement), or any other accounting software that accepts CSV bank statement imports. You may need to map columns to match your software's expected format.",
   },
   {
-    q: "Can I convert multiple pages?",
-    a: "Yes. Multi-page PDFs are supported. If all pages have the same table structure, they're combined into one sheet. If pages have different layouts, each page becomes a separate Excel sheet.",
+    q: "What if my bank statement is a scanned document?",
+    a: "This tool works best with text-based PDF statements downloaded directly from your online banking portal. Scanned paper statements (images of text) require OCR, which this tool doesn't include. For scanned statements, try Parsli's AI-powered extraction which handles images and complex layouts.",
   },
   {
-    q: "What's the difference between this and Parsli?",
-    a: "This free tool does simple table extraction from text-based PDFs. Parsli is a full AI-powered document extraction platform — it handles scanned documents, complex layouts, images, and lets you define custom schemas for exactly what data to extract. It also connects to Google Sheets, Zapier, Make, and 5,000+ apps automatically.",
+    q: "How do I download my bank statement as a PDF?",
+    a: "Log in to your bank's online portal or mobile app. Navigate to Statements or Documents, select the month you need, and click Download or Save as PDF. Most banks keep 12-24 months of statements available. Downloaded PDFs have embedded text that converts cleanly.",
   },
   {
-    q: "What file size limit is there?",
-    a: "Up to 50 MB. Since everything runs in your browser, very large files may take longer to process depending on your device.",
+    q: "What CSV format does this produce?",
+    a: "The tool extracts table data from your bank statement into structured rows and columns. After saving as CSV, you get a standard comma-separated file that any spreadsheet, database, or programming language can read. Column headers depend on your bank's statement format.",
   },
   {
-    q: "How do I convert a PDF to Excel without installing software?",
-    a: "Just open this page, drag and drop your PDF file, and click Download. The conversion happens entirely in your browser — no software to install, no account to create, and no files uploaded to any server. It works on any device with a modern browser.",
+    q: "What's the difference between this tool and Parsli AI?",
+    a: "This free tool does rule-based table extraction from text-based PDF statements. Parsli AI uses Google's Gemini to understand bank statement layouts intelligently — it extracts structured transaction data, categorizes expenses automatically, and exports directly to CSV, Google Sheets, QuickBooks, or any app via Zapier.",
   },
   {
-    q: "Can I convert a PDF to Excel on my phone?",
-    a: "Yes. This tool works on iPhone, iPad, and Android devices. Open the page in your mobile browser, upload your PDF, and download the Excel file directly to your device.",
+    q: "Can I use this on my phone?",
+    a: "Yes. This tool works on iPhone, iPad, and Android devices. Open the page in your mobile browser, upload your bank statement PDF, and download the file directly to your device.",
   },
 ]
 
-export default function PdfToExcelToolPage() {
+export default function BankStatementToCsvPage() {
   return (
     <>
       <JsonLd
@@ -174,8 +174,8 @@ export default function PdfToExcelToolPage() {
           { name: "Home", url: "https://parsli.co" },
           { name: "Tools", url: "https://parsli.co/tools" },
           {
-            name: "PDF to Excel Converter",
-            url: "https://parsli.co/tools/pdf-to-excel",
+            name: "Bank Statement to CSV",
+            url: "https://parsli.co/tools/bank-statement-to-csv",
           },
         ])}
       />
@@ -183,9 +183,9 @@ export default function PdfToExcelToolPage() {
         data={{
           "@context": "https://schema.org",
           "@type": "SoftwareApplication",
-          name: "Parsli PDF to Excel Converter",
+          name: "Parsli Bank Statement to CSV Converter",
           description:
-            "Free browser-based tool to convert PDF tables to Excel spreadsheets. No sign-up required.",
+            "Free browser-based tool to convert bank statement PDFs to CSV-compatible spreadsheet format. No sign-up required, no data uploaded to servers.",
           applicationCategory: "UtilitiesApplication",
           operatingSystem: "Web Browser",
           offers: {
@@ -218,12 +218,12 @@ export default function PdfToExcelToolPage() {
 
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 text-center">
           <div className="inline-flex items-center gap-2 rounded-full border bg-card px-4 py-1.5 text-sm text-muted-foreground mb-6">
-            <FileSpreadsheet className="h-4 w-4 text-primary" />
-            PDF to Excel Converter
+            <Database className="h-4 w-4 text-primary" />
+            Bank Statement to CSV
           </div>
 
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-[1.1] mb-4">
-            Convert PDF to Excel
+            Convert Bank Statements to CSV
           </h1>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-3">
             Free, instant, no sign-up
@@ -245,7 +245,7 @@ export default function PdfToExcelToolPage() {
 
           <p className="mt-6 text-xs text-muted-foreground">
             100% client-side processing &middot; No data sent to any server
-            &middot; Unlimited conversions
+            &middot; Download as .xlsx, then save as CSV
           </p>
         </div>
       </section>
@@ -259,19 +259,20 @@ export default function PdfToExcelToolPage() {
             </div>
             <div className="flex-1">
               <h2 className="font-semibold text-lg mb-1">
-                Want to extract PDF data via API?
+                Need to export bank statement data directly to CSV or Google Sheets?
               </h2>
               <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-                Integrate AI-powered document extraction into your workflow.
-                Build automations, batch-process hundreds of documents, and get
-                structured JSON output with custom schemas.
+                Parsli AI extracts structured transactions — dates, amounts,
+                balances, categories — and exports directly to CSV, Google
+                Sheets, or your accounting software. No manual conversion steps
+                needed.
               </p>
               <div className="flex items-center gap-4">
                 <Link
-                  href="/solutions/document-parsing-api"
+                  href="/solutions/bank-statement-extraction"
                   className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline underline-offset-4"
                 >
-                  Explore API
+                  Explore AI Bank Statement Extraction
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
                 <Link
@@ -290,47 +291,26 @@ export default function PdfToExcelToolPage() {
       <section className="pb-10 sm:pb-12">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <p className="text-sm text-muted-foreground text-center leading-relaxed">
-            Converting bank statements? Try our dedicated{" "}
+            Prefer Excel format?{" "}
             <Link
               href="/tools/bank-statement-to-excel"
               className="text-primary hover:underline underline-offset-4"
             >
               Bank Statement to Excel
-            </Link>{" "}
-            and{" "}
+            </Link>
+            . Want to extract raw text?{" "}
             <Link
-              href="/tools/bank-statement-to-csv"
+              href="/tools/bank-statement-parser"
               className="text-primary hover:underline underline-offset-4"
             >
-              Bank Statement to CSV
-            </Link>{" "}
-            tools. Processing invoices or bank statements at scale?{" "}
+              Bank Statement Parser
+            </Link>
+            . Or convert any PDF:{" "}
             <Link
-              href="/solutions/invoice-parsing"
+              href="/tools/pdf-to-excel"
               className="text-primary hover:underline underline-offset-4"
             >
-              Invoice Parsing
-            </Link>{" "}
-            and{" "}
-            <Link
-              href="/solutions/bank-statement-extraction"
-              className="text-primary hover:underline underline-offset-4"
-            >
-              Bank Statement Extraction
-            </Link>{" "}
-            are built for that. Or see how Parsli compares to{" "}
-            <Link
-              href="/compare/docparser"
-              className="text-primary hover:underline underline-offset-4"
-            >
-              Docparser
-            </Link>{" "}
-            and{" "}
-            <Link
-              href="/compare/nanonets"
-              className="text-primary hover:underline underline-offset-4"
-            >
-              Nanonets
+              PDF to Excel Converter
             </Link>
             .
           </p>
@@ -341,7 +321,7 @@ export default function PdfToExcelToolPage() {
       <section className="py-16 sm:py-20 bg-muted/30">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
-            Why use this PDF to Excel converter
+            Why use this bank statement to CSV converter
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
             {features.map((f) => (
@@ -391,16 +371,19 @@ export default function PdfToExcelToolPage() {
           {/* Important notes callout */}
           <div className="mt-8 rounded-lg border-l-4 border-primary bg-primary/5 px-6 py-4 max-w-2xl mx-auto">
             <p className="text-sm text-muted-foreground leading-relaxed">
-              <span className="font-medium text-foreground">Note:</span> This
-              tool works best with text-based PDFs that have clear table
-              structures. Scanned documents and images require OCR — try{" "}
+              <span className="font-medium text-foreground">How to get CSV:</span>{" "}
+              This tool downloads an .xlsx file. To convert to CSV: open in
+              Excel and use <span className="font-medium text-foreground">File &gt; Save As &gt; CSV</span>,
+              or open in Google Sheets and use{" "}
+              <span className="font-medium text-foreground">File &gt; Download &gt; CSV</span>.
+              For direct CSV export, try{" "}
               <Link
-                href="/solutions/pdf-to-excel"
+                href="/solutions/bank-statement-extraction"
                 className="text-primary hover:underline underline-offset-4"
               >
                 Parsli AI
-              </Link>{" "}
-              for those.
+              </Link>
+              .
             </p>
           </div>
         </div>
@@ -409,7 +392,6 @@ export default function PdfToExcelToolPage() {
       {/* ═══════ 6. Educational Content ═══════ */}
       <section className="py-16 sm:py-20 bg-muted/30">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          {/* What this tool handles vs Parsli AI */}
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
             What this tool handles
           </h2>
@@ -422,23 +404,23 @@ export default function PdfToExcelToolPage() {
               <ul className="space-y-3 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <span className="text-green-600 mt-0.5">&#10003;</span>
-                  Invoices with line item tables
+                  Monthly checking and savings statements
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-600 mt-0.5">&#10003;</span>
-                  Bank and financial statements
+                  Credit card statements with tabular data
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-600 mt-0.5">&#10003;</span>
-                  Data exports and reports
+                  Business account statements for accounting imports
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-600 mt-0.5">&#10003;</span>
-                  Price lists and product catalogs
+                  Statements downloaded from any online banking portal
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-600 mt-0.5">&#10003;</span>
-                  Simple, well-structured table layouts
+                  Any PDF with structured transaction tables
                 </li>
               </ul>
             </div>
@@ -450,23 +432,23 @@ export default function PdfToExcelToolPage() {
               <ul className="space-y-3 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
-                  Scanned documents and images (OCR)
+                  Direct CSV export without manual conversion steps
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
-                  Complex multi-column layouts
+                  Scanned or photographed paper statements
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
-                  Custom data extraction schemas
+                  Automatic transaction categorization for bookkeeping
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
-                  Automated workflows (Sheets, Zapier, API)
+                  QuickBooks, Xero, and FreshBooks compatible CSV format
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
-                  Batch processing hundreds of documents
+                  Batch processing and API for automated workflows
                 </li>
               </ul>
             </div>
@@ -477,48 +459,54 @@ export default function PdfToExcelToolPage() {
             <div className="flex items-center gap-2 mb-6">
               <Lightbulb className="h-5 w-5 text-primary" />
               <h3 className="text-xl font-bold">
-                Tips for better PDF to Excel conversion
+                Tips for converting bank statements to CSV
               </h3>
             </div>
             <div className="space-y-6">
               <div>
                 <h4 className="font-semibold mb-2">
-                  Use text-based PDFs, not scanned images
+                  Download statements from online banking first
                 </h4>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  If you can select and copy text in your PDF, this tool will work
-                  well. If the PDF is a scanned image, you&apos;ll need OCR — try
-                  Parsli AI for that.
+                  Log in to your bank&apos;s website or app and download your
+                  statement as a PDF. These digital PDFs have embedded text that
+                  extracts perfectly. Scanned paper statements produce lower
+                  quality results because they&apos;re images, not text.
                 </p>
               </div>
               <div>
                 <h4 className="font-semibold mb-2">
-                  Clean table structure converts best
+                  Check if your bank already offers CSV downloads
                 </h4>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  PDFs with clear, grid-like tables — consistent columns, uniform
-                  row heights, no merged cells — produce the most accurate
-                  results.
+                  Some banks let you download transactions directly as CSV from
+                  their portal — look for &quot;Export&quot; or &quot;Download
+                  transactions&quot; options. If your bank only provides PDF
+                  statements, this tool bridges that gap.
                 </p>
               </div>
               <div>
                 <h4 className="font-semibold mb-2">
-                  Check for special characters and currencies
+                  Saving .xlsx as CSV in one step
                 </h4>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  The tool auto-detects numbers, currencies ($, €, £), and
-                  percentages. If your PDF uses unusual formatting, double-check
-                  the Excel output.
+                  After downloading the .xlsx file: in Excel, press Ctrl+Shift+S
+                  (or Cmd+Shift+S on Mac), select &quot;CSV (Comma
+                  delimited)&quot; as the format, and save. In Google Sheets,
+                  open the file and use File &gt; Download &gt; Comma-separated
+                  values (.csv).
                 </p>
               </div>
               <div>
                 <h4 className="font-semibold mb-2">
-                  Multi-page documents are supported
+                  Map CSV columns for your accounting software
                 </h4>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Pages with the same table structure are combined into one sheet.
-                  Different layouts get separate sheets — check all tabs in your
-                  downloaded file.
+                  QuickBooks and Xero expect specific column orders (date,
+                  description, amount). After converting, you may need to
+                  rearrange columns in your spreadsheet before importing. Parsli
+                  AI can export in your software&apos;s expected format
+                  automatically.
                 </p>
               </div>
             </div>
@@ -572,44 +560,46 @@ export default function PdfToExcelToolPage() {
       <section className="py-16 sm:py-20 bg-muted/30 border-t">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-xl sm:text-2xl font-bold mb-4">
-            How to Convert PDF to Excel for Free
+            How to Convert Bank Statements to CSV for Free
           </h2>
           <p className="text-muted-foreground leading-relaxed mb-4">
-            Converting PDF files to Excel spreadsheets is one of the most common
-            document tasks for businesses and individuals. Whether you need to
-            extract financial data from bank statements, pull line items from
-            invoices, or convert reports into editable spreadsheets, a reliable
-            PDF to Excel converter saves hours of manual data entry.
+            CSV (comma-separated values) is the universal format for importing
+            financial data into accounting software, databases, and analytics
+            tools. Whether you need to import bank transactions into QuickBooks,
+            load statement data into a SQL database, or analyze spending in
+            Python or R, converting your bank statement PDF to CSV is the first
+            step.
           </p>
           <p className="text-muted-foreground leading-relaxed mb-4">
-            Most online converters require you to upload your files to their
-            servers, create an account, or pay for a subscription. This tool is
-            different — it runs entirely in your browser using JavaScript. Your
-            PDF is processed on your own device and never sent anywhere. It&apos;s
-            completely free, with no limits on the number of conversions.
+            The challenge is that banks typically provide statements as PDFs —
+            great for reading and printing, but not for data processing. Most
+            online converters require you to upload sensitive financial documents
+            to their servers. This tool is different: it processes your bank
+            statement entirely in your browser. Your PDF never leaves your
+            device.
           </p>
 
           <h2 className="text-xl sm:text-2xl font-bold mt-10 mb-4">
-            When Do You Need AI-Powered PDF Extraction?
+            When Do You Need AI-Powered Bank Statement to CSV Conversion?
           </h2>
           <p className="text-muted-foreground leading-relaxed mb-4">
-            This free converter handles text-based PDFs with clear table
-            structures. But real-world documents are often more complex —
-            scanned papers, inconsistent layouts, merged cells, or data spread
-            across multiple sections. That&apos;s where AI-powered extraction
-            comes in.
+            This free tool extracts tables from text-based PDF bank statements.
+            But if you need clean, categorized transaction data in a specific
+            CSV format for your accounting software — or you&apos;re processing
+            dozens of statements from different banks — you need AI that
+            understands statement layouts.
           </p>
           <p className="text-muted-foreground leading-relaxed mb-4">
-            Parsli uses Google&apos;s Gemini AI to understand the full context of
-            your documents. You define a schema — the exact fields you want
-            extracted — and the AI pulls structured data from any document type,
-            including scanned images, handwritten forms, and complex layouts.
-            The extracted data flows automatically to Google Sheets, Zapier,
-            Make, webhooks, or your own API.
+            Parsli uses Google&apos;s Gemini AI to intelligently parse bank
+            statements from any bank. It extracts structured transaction data —
+            dates, descriptions, amounts, running balances — and categorizes
+            each transaction (payroll, rent, utilities, etc.). The data exports
+            directly to CSV in the format your accounting software expects,
+            or flows to Google Sheets, Zapier, and Make automatically.
           </p>
 
           <h2 className="text-xl sm:text-2xl font-bold mt-10 mb-4">
-            PDF to Excel: Free Tool vs AI Extraction
+            Free Tool vs Parsli AI for Bank Statement CSV
           </h2>
           <div className="border rounded-lg overflow-hidden mb-6">
             <table className="w-full text-sm">
@@ -628,13 +618,14 @@ export default function PdfToExcelToolPage() {
               </thead>
               <tbody>
                 {[
-                  ["Text-based PDFs", "Yes", "Yes"],
-                  ["Scanned PDFs / images", "No", "Yes"],
-                  ["Custom extraction schema", "No", "Yes"],
-                  ["Complex layouts", "Basic", "Advanced"],
-                  ["Automated workflows", "No", "Yes"],
+                  ["Text-based PDF statements", "Yes", "Yes"],
+                  ["Scanned / image statements", "No", "Yes"],
+                  ["Direct CSV export", "Via Save As", "Native CSV download"],
+                  ["QuickBooks / Xero format", "Manual column mapping", "Auto-formatted"],
+                  ["Transaction categorization", "No", "Yes"],
+                  ["Any bank format", "Common layouts", "All formats (AI-powered)"],
+                  ["Batch processing", "One at a time", "Hundreds via API"],
                   ["Google Sheets integration", "No", "Yes"],
-                  ["API access", "No", "Yes"],
                   ["Price", "Free", "Free tier + paid plans"],
                 ].map(([feature, free, ai]) => (
                   <tr key={feature} className="border-t">
@@ -694,12 +685,13 @@ export default function PdfToExcelToolPage() {
             <Sparkles className="h-7 w-7" />
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold mb-4">
-            Stop re-keying data from PDFs manually.
+            Stop copying bank transactions by hand.
           </h2>
           <p className="text-muted-foreground max-w-xl mx-auto mb-8 leading-relaxed">
-            Parsli extracts structured data from any document — PDFs, images,
-            scans, emails. Define custom schemas and automate with integrations.
-            Free forever up to 30 pages/month.
+            Parsli extracts structured transaction data from any bank statement
+            and exports directly to CSV, Google Sheets, or your accounting
+            software. Categorize expenses automatically. Free forever up to 30
+            pages/month.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <AuthButton className="text-base px-8 h-12" showArrow>
@@ -727,12 +719,12 @@ export default function PdfToExcelToolPage() {
           <h2 className="text-lg font-semibold mb-6">Related Resources</h2>
           <div className="flex flex-wrap gap-3">
             {[
-              { href: "/solutions/pdf-to-excel", label: "PDF to Excel Solution" },
-              { href: "/use-cases/pdf-to-excel", label: "PDF to Excel Use Case" },
-              { href: "/use-cases/pdf-data-extraction", label: "PDF Data Extraction" },
-              { href: "/blog/extract-data-pdf-to-excel", label: "How to Extract PDF Data" },
-              { href: "/solutions/invoice-parsing", label: "Invoice Parsing" },
-              { href: "/solutions/bank-statement-extraction", label: "Bank Statement Extraction" },
+              { href: "/tools/bank-statement-to-excel", label: "Bank Statement to Excel" },
+              { href: "/tools/bank-statement-parser", label: "Bank Statement Parser" },
+              { href: "/tools/pdf-to-excel", label: "PDF to Excel Converter" },
+              { href: "/solutions/bank-statement-extraction", label: "AI Bank Statement Extraction" },
+              { href: "/tools/csv-to-excel", label: "CSV to Excel Converter" },
+              { href: "/tools/excel-to-csv", label: "Excel to CSV Converter" },
               { href: "/docs", label: "Documentation" },
               { href: "/pricing", label: "Pricing" },
             ].map((link) => (
