@@ -1,3 +1,5 @@
+import { convertedGuides } from "./guides-from-blog"
+
 export type GuideCategory =
   | "Document Extraction"
   | "Workflow Automation"
@@ -10338,14 +10340,16 @@ const guides: GuideData[] = [
 ]
 
 
+const allGuides = [...guides, ...convertedGuides]
+
 export function getAllGuides(): GuideData[] {
-  return guides
+  return allGuides
 }
 
 export function getGuideBySlug(slug: string): GuideData | undefined {
-  return guides.find((g) => g.slug === slug)
+  return allGuides.find((g) => g.slug === slug)
 }
 
 export function getAllGuideSlugs(): string[] {
-  return guides.map((g) => g.slug)
+  return allGuides.map((g) => g.slug)
 }
