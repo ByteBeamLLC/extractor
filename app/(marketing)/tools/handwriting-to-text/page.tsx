@@ -1,7 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import {
-  Shield,
   Zap,
   UserX,
   Upload,
@@ -29,9 +28,9 @@ import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld"
 
 export const metadata: Metadata = {
-  title: "Handwriting to Text Converter — Free OCR, No Sign-Up | Parsli",
+  title: "Handwriting to Text Converter — Free AI-Powered, No Sign-Up | Parsli",
   description:
-    "Convert handwritten notes to digital text instantly using OCR in your browser. Free, no sign-up, no file uploads to servers. Upload a photo of your handwriting and extract text.",
+    "Convert handwritten notes to digital text instantly using AI-powered recognition. Free, no sign-up required. Upload a photo of your handwriting and extract text with Gemini AI.",
   keywords: [
     "handwriting to text",
     "handwriting to text converter",
@@ -48,19 +47,19 @@ export const metadata: Metadata = {
     canonical: "https://parsli.co/tools/handwriting-to-text",
   },
   openGraph: {
-    title: "Handwriting to Text Converter — Free OCR, No Sign-Up",
+    title: "Handwriting to Text Converter — Free AI-Powered, No Sign-Up",
     description:
-      "Convert handwritten notes to digital text instantly using OCR. Free forever, no sign-up required, your data never leaves your device.",
+      "Convert handwritten notes to digital text instantly using Gemini AI. Free forever, no sign-up required.",
     url: "https://parsli.co/tools/handwriting-to-text",
   },
 }
 
 const features = [
   {
-    icon: Shield,
-    title: "Private & secure",
+    icon: Sparkles,
+    title: "AI-powered accuracy",
     description:
-      "Your image is processed entirely in your browser. Files never leave your device.",
+      "Powered by Google Gemini AI for superior handwriting recognition, including cursive and messy notes.",
   },
   {
     icon: UserX,
@@ -85,9 +84,9 @@ const steps = [
   },
   {
     icon: ScanText,
-    title: "OCR recognizes text",
+    title: "AI recognizes text",
     description:
-      "The tool uses optical character recognition to detect and convert your handwriting to digital text.",
+      "Google Gemini AI analyzes your image and accurately converts handwriting to digital text.",
   },
   {
     icon: Download,
@@ -130,16 +129,16 @@ const faqs = [
     a: "Yes, completely free with no limits. There are no hidden charges, no watermarks, and no sign-up required. We built this as a free utility for the community.",
   },
   {
-    q: "Do you store or upload my images?",
-    a: "No. Your image is processed entirely in your browser using JavaScript and Tesseract.js. The file never leaves your device and is never sent to any server. Your data stays 100% private.",
+    q: "Do you store my images?",
+    a: "No. Your image is sent securely to Google Gemini for processing and is never stored, logged, or used for training. It is discarded immediately after extraction.",
   },
   {
     q: "How accurate is handwriting recognition?",
-    a: "Accuracy depends heavily on handwriting clarity. Neat, well-spaced print handwriting works best. Cursive, messy, or very small handwriting may produce lower accuracy. For best results, use a clear photo with good lighting.",
+    a: "Very accurate. This tool uses Google Gemini AI, which excels at reading both print and cursive handwriting. For best results, use a clear photo with good lighting and dark ink on white paper.",
   },
   {
     q: "What languages does it support?",
-    a: "12 languages: English, Arabic, French, German, Spanish, Italian, Portuguese, Russian, Chinese (Simplified & Traditional), Japanese, and Korean. Select the language before uploading your image.",
+    a: "Gemini AI supports 100+ languages and automatically detects the language in your image. No manual language selection needed.",
   },
   {
     q: "What image formats are supported?",
@@ -147,7 +146,7 @@ const faqs = [
   },
   {
     q: "Does this work with cursive handwriting?",
-    a: "It can recognize some cursive handwriting, but accuracy is lower compared to print handwriting. The clearer and more separated the letters are, the better the recognition. For difficult handwriting, Parsli's AI-powered extraction offers significantly better accuracy.",
+    a: "Yes. Gemini AI handles cursive handwriting significantly better than traditional OCR. It understands context and can interpret connected letters, making it effective for most cursive styles.",
   },
   {
     q: "What tips improve handwriting recognition?",
@@ -155,7 +154,7 @@ const faqs = [
   },
   {
     q: "What's the difference between this and Parsli?",
-    a: "This free tool does basic OCR-based handwriting recognition. Parsli is a full AI-powered document extraction platform using Google's Gemini AI — it handles messy handwriting, complex forms, and lets you define custom schemas for what data to extract. It also connects to Google Sheets, Zapier, Make, and 5,000+ apps.",
+    a: "This free tool converts handwriting to plain text. Parsli goes further — it lets you define custom schemas to extract specific fields, process documents in bulk, and automate workflows via Google Sheets, Zapier, Make, webhooks, and API.",
   },
   {
     q: "Can I convert handwritten notes from a notebook?",
@@ -186,7 +185,7 @@ export default function HandwritingToTextToolPage() {
           "@type": "SoftwareApplication",
           name: "Parsli Handwriting to Text Converter",
           description:
-            "Free browser-based tool to convert handwritten notes to digital text using OCR. No sign-up required.",
+            "Free AI-powered tool to convert handwritten notes to digital text using Google Gemini. No sign-up required.",
           applicationCategory: "UtilitiesApplication",
           operatingSystem: "Web Browser",
           offers: {
@@ -227,7 +226,7 @@ export default function HandwritingToTextToolPage() {
             Convert Handwriting to Text
           </h1>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-3">
-            Free OCR &mdash; instant, no sign-up
+            AI-powered &mdash; instant, no sign-up
           </p>
 
           {/* Social proof */}
@@ -245,8 +244,8 @@ export default function HandwritingToTextToolPage() {
           <HandwritingToTextTool />
 
           <p className="mt-6 text-xs text-muted-foreground">
-            100% client-side processing &middot; No data sent to any server
-            &middot; Unlimited conversions
+            Powered by Google Gemini AI &middot; No sign-up required
+            &middot; Free conversions
           </p>
         </div>
       </section>
@@ -260,12 +259,12 @@ export default function HandwritingToTextToolPage() {
             </div>
             <div className="flex-1">
               <h2 className="font-semibold text-lg mb-1">
-                Need AI-powered handwriting recognition?
+                Need structured data extraction?
               </h2>
               <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-                Parsli&apos;s AI extraction handles messy handwriting, complex
-                forms, and multi-field documents. Define custom schemas and
-                automate your workflow.
+                Parsli goes beyond plain text — define custom schemas to extract
+                specific fields, process documents in bulk, and automate
+                workflows with integrations.
               </p>
               <div className="flex items-center gap-4">
                 <Link
@@ -378,16 +377,16 @@ export default function HandwritingToTextToolPage() {
           {/* Note callout */}
           <div className="mt-8 rounded-lg border-l-4 border-primary bg-primary/5 px-6 py-4 max-w-2xl mx-auto">
             <p className="text-sm text-muted-foreground leading-relaxed">
-              <span className="font-medium text-foreground">Note:</span> This
-              tool works best with neat, well-spaced print handwriting. For
-              cursive, messy, or complex handwritten documents, try{" "}
+              <span className="font-medium text-foreground">Tip:</span> This
+              tool extracts plain text. Need to extract specific fields like
+              names, dates, or amounts from handwritten forms?{" "}
               <Link
                 href="/solutions/ai-ocr"
                 className="text-primary hover:underline underline-offset-4"
               >
-                Parsli AI
+                Try Parsli
               </Link>{" "}
-              for significantly better accuracy.
+              for structured data extraction with custom schemas.
             </p>
           </div>
         </div>
@@ -408,11 +407,11 @@ export default function HandwritingToTextToolPage() {
               <ul className="space-y-3 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <span className="text-green-600 mt-0.5">&#10003;</span>
-                  Clear print handwriting on white paper
+                  Print and cursive handwriting
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-600 mt-0.5">&#10003;</span>
-                  Well-lit photos of notes and lists
+                  Photos of notes, lists, and journals
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-600 mt-0.5">&#10003;</span>
@@ -420,27 +419,23 @@ export default function HandwritingToTextToolPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-600 mt-0.5">&#10003;</span>
-                  Block letters and separated characters
+                  Messy or fast handwriting
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-600 mt-0.5">&#10003;</span>
-                  High-contrast handwritten text
+                  100+ languages, auto-detected
                 </li>
               </ul>
             </div>
             <div className="rounded-xl border bg-card p-6">
               <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-primary" />
-                For these, try Parsli AI
+                Need more? Try Parsli
               </h3>
               <ul className="space-y-3 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
-                  Cursive and messy handwriting
-                </li>
-                <li className="flex items-start gap-2">
-                  <ArrowRight className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
-                  Handwritten forms with specific fields
+                  Extract specific fields from handwritten forms
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
@@ -452,7 +447,11 @@ export default function HandwritingToTextToolPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
-                  Batch processing stacks of handwritten documents
+                  Batch processing stacks of documents
+                </li>
+                <li className="flex items-start gap-2">
+                  <ArrowRight className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
+                  PDFs, emails, invoices, and more
                 </li>
               </ul>
             </div>
@@ -569,32 +568,30 @@ export default function HandwritingToTextToolPage() {
             converter saves hours of manual retyping.
           </p>
           <p className="text-muted-foreground leading-relaxed mb-4">
-            Most handwriting recognition tools require app installations, cloud
-            uploads, or paid subscriptions. This tool is different &mdash; it
-            runs entirely in your browser using Tesseract.js OCR. Your image is
-            processed on your own device and never sent anywhere. It&apos;s
-            completely free, with no limits.
+            Most handwriting recognition tools require app installations or
+            paid subscriptions. This tool is different &mdash; it uses
+            Google&apos;s Gemini AI for accurate recognition of both print and
+            cursive handwriting. Just upload a photo, and the AI extracts your
+            text in seconds. It&apos;s completely free, with no sign-up required.
           </p>
 
           <h2 className="text-xl sm:text-2xl font-bold mt-10 mb-4">
-            When Do You Need AI-Powered Handwriting Recognition?
+            When Do You Need Structured Data Extraction?
           </h2>
           <p className="text-muted-foreground leading-relaxed mb-4">
-            This free tool handles clear print handwriting reasonably well. But
-            real-world handwriting is often messy, cursive, or mixed with
-            printed text on forms. That&apos;s where AI-powered recognition
-            comes in.
+            This free tool converts handwriting to plain text. But if you need
+            to extract specific fields — names, dates, amounts, addresses —
+            from handwritten forms, that&apos;s where Parsli comes in.
           </p>
           <p className="text-muted-foreground leading-relaxed mb-4">
-            Parsli uses Google&apos;s Gemini AI to understand the full context
-            of your documents. It can read difficult handwriting, extract
-            specific fields from handwritten forms, and process stacks of
-            documents automatically. The extracted data flows to Google Sheets,
-            Zapier, Make, webhooks, or your own API.
+            Parsli lets you define custom schemas for exactly what data to
+            extract. It processes stacks of documents automatically and sends
+            the extracted data to Google Sheets, Zapier, Make, webhooks, or
+            your own API.
           </p>
 
           <h2 className="text-xl sm:text-2xl font-bold mt-10 mb-4">
-            Handwriting Recognition: Free OCR vs AI Extraction
+            Free Tool vs Parsli Platform
           </h2>
           <div className="border rounded-lg overflow-hidden mb-6">
             <table className="w-full text-sm">
@@ -604,7 +601,7 @@ export default function HandwritingToTextToolPage() {
                     Feature
                   </th>
                   <th className="text-left px-4 py-2.5 font-semibold">
-                    Free OCR Tool
+                    Free Tool
                   </th>
                   <th className="text-left px-4 py-2.5 font-semibold">
                     Parsli AI
@@ -613,11 +610,11 @@ export default function HandwritingToTextToolPage() {
               </thead>
               <tbody>
                 {[
-                  ["Print handwriting", "Good", "Excellent"],
-                  ["Cursive handwriting", "Basic", "Advanced"],
+                  ["Handwriting recognition", "AI-powered", "AI-powered"],
+                  ["Output format", "Plain text", "Structured JSON"],
                   ["Form field extraction", "No", "Yes"],
                   ["Custom extraction schema", "No", "Yes"],
-                  ["Multi-language support", "12 languages", "50+ languages"],
+                  ["Batch processing", "No", "Yes"],
                   ["Automated workflows", "No", "Yes"],
                   ["API access", "No", "Yes"],
                   ["Price", "Free", "Free tier + paid plans"],
