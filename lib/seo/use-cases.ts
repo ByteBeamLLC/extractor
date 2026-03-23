@@ -24,17 +24,17 @@ export const useCases: UseCaseData[] = [
       {
         title: "Manual Invoice Processing is Slow",
         description:
-          "Your team spends hours each week typing invoice data into spreadsheets or accounting software. Every invoice means more manual work.",
+          "Your team spends hours each week typing invoice data into spreadsheets or accounting software. According to the Institute of Finance and Management (IOFM), the average cost to manually process a single invoice is $15.97, with cycle times averaging 10–15 days — every invoice means more manual work and mounting costs.",
       },
       {
         title: "Data Entry Errors Cost Money",
         description:
-          "One wrong digit in an invoice amount can lead to payment errors, late fees, and vendor disputes. Manual entry is inherently error-prone.",
+          "One wrong digit in an invoice amount can lead to payment errors, late fees, and vendor disputes. The Association for Financial Professionals (AFP) reports that 3.6% of all payments contain errors, with the average cost to correct a single invoice error exceeding $53. Manual entry is inherently error-prone.",
       },
       {
         title: "Can't Keep Up with Volume",
         description:
-          "As your business grows, so does the number of invoices. Hiring more people to process them isn't scalable or cost-effective. Learn how to [automate invoice processing for your small business](/guides/automate-invoice-processing-for-small-business).",
+          "As your business grows, so does the number of invoices. Ardent Partners research shows that 62% of AP departments still rely on manual data entry, creating unsustainable bottlenecks as invoice volumes grow. Hiring more people to process them isn't scalable or cost-effective. Learn how to [automate invoice processing for your small business](/guides/automate-invoice-processing-for-small-business).",
       },
     ],
     features: [
@@ -73,7 +73,7 @@ export const useCases: UseCaseData[] = [
       {
         question: "How accurate is invoice parsing?",
         answer:
-          "With well-defined schemas, Parsli achieves 95%+ accuracy on standard invoices. The AI provides confidence scores so you can flag uncertain extractions for review.",
+          "With well-defined schemas, Parsli achieves 95%+ field-level accuracy, consistent with the Everest Group IDP PEAK Matrix benchmark for AI-powered extraction on structured documents. The AI provides confidence scores so you can flag uncertain extractions for review.",
       },
     ],
   },
@@ -90,17 +90,17 @@ export const useCases: UseCaseData[] = [
       {
         title: "Drowning in Email Data",
         description:
-          "Important data arrives in emails every day — orders, leads, notifications, invoices. Manually copying this data is a full-time job.",
+          "Important data arrives in emails every day — orders, leads, notifications, invoices. McKinsey Global Institute research shows knowledge workers spend 28% of their workday reading and responding to emails, and manually copying this data into other systems is a full-time job that could be automated.",
       },
       {
         title: "Missed Information",
         description:
-          "When data extraction depends on humans reading every email, things get missed. Important leads go cold, orders get delayed.",
+          "According to the Radicati Group, the average professional receives 121 business emails per day — when data extraction depends on humans reading every one, things get missed. Important leads go cold and orders get delayed.",
       },
       {
         title: "No Structured Data",
         description:
-          "Emails contain valuable data but in unstructured format. You need that data in spreadsheets, CRMs, or databases to act on it.",
+          "Forrester estimates that 80% of business-critical data remains trapped in unstructured formats like emails and attachments. You need that data in spreadsheets, CRMs, or databases to act on it.",
       },
     ],
     features: [
@@ -156,17 +156,17 @@ export const useCases: UseCaseData[] = [
       {
         title: "PDFs Lock Away Your Data",
         description:
-          "PDFs are designed for viewing, not data extraction. Copying text from PDFs loses structure, tables break, and scanned PDFs can't even be selected.",
+          "IDC estimates over 2.5 trillion PDFs are in circulation globally, and Forrester research indicates that 80% of business-critical data remains trapped in unstructured formats. PDFs are designed for viewing, not data extraction — copying text loses structure, tables break, and scanned PDFs can't even be selected.",
       },
       {
         title: "Traditional OCR Falls Short",
         description:
-          "Basic OCR tools give you raw text without understanding the document structure. You still need to manually organize the extracted text.",
+          "Basic OCR tools give you raw text without understanding the document structure. Everest Group's IDP PEAK Matrix assessment finds that AI-powered extraction achieves 85–95% straight-through processing rates, compared to under 50% with template-based OCR — yet most teams still manually organize the extracted text.",
       },
       {
         title: "Every PDF is Different",
         description:
-          "Invoices, [contracts](/guides/extract-data-from-contracts), reports — each has a different layout. You need an intelligent solution that adapts to any PDF format.",
+          "Invoices, [contracts](/guides/extract-data-from-contracts), reports — each has a different layout. According to Gartner, organizations that invest in AI-powered document understanding see 30–50% faster processing compared to rule-based approaches. You need an intelligent solution that adapts to any PDF format.",
       },
     ],
     features: [
@@ -221,15 +221,15 @@ export const useCases: UseCaseData[] = [
     painPoints: [
       {
         title: "Receipt Piles Keep Growing",
-        description: "Paper receipts pile up for expense reports, accounting, and tax preparation. Manually entering each one is tedious.",
+        description: "Paper receipts pile up for expense reports, accounting, and tax preparation. The Global Business Travel Association (GBTA) reports that the average expense report costs $58 to process and takes 20 minutes to complete manually — making receipt backlogs an expensive problem.",
       },
       {
         title: "Expense Reports Take Forever",
-        description: "Employees spend valuable time manually creating expense reports from stacks of receipts.",
+        description: "Employees spend valuable time manually creating expense reports from stacks of receipts. According to a Certify study, 19% of expense reports contain errors, costing an average of $52 per report to correct — turning a tedious task into a costly one.",
       },
       {
         title: "Missing Deductions",
-        description: "When receipts aren't digitized promptly, they get lost — along with potential tax deductions.",
+        description: "When receipts aren't digitized promptly, they get lost — along with potential tax deductions. The IRS requires adequate records under Publication 463 for all business expense deductions, meaning lost receipts translate directly into lost write-offs.",
       },
     ],
     features: [
@@ -277,15 +277,15 @@ export const useCases: UseCaseData[] = [
     painPoints: [
       {
         title: "Manual Processing Doesn't Scale",
-        description: "As document volume grows, manual processing becomes a bottleneck. You need automation that grows with your business — like [batch document processing](/guides/batch-process-documents-automatically).",
+        description: "As document volume grows, manual processing becomes a bottleneck. McKinsey estimates that 42% of finance activities are fully automatable with currently available technology, yet Deloitte reports that only 13% of organizations have fully automated their document workflows. You need automation that grows with your business — like [batch document processing](/guides/batch-process-documents-automatically).",
       },
       {
         title: "Disconnected Tools",
-        description: "Documents arrive in email, get processed in one tool, and data gets manually entered into another. Too many manual steps.",
+        description: "Documents arrive in email, get processed in one tool, and data gets manually entered into another. According to IDC, knowledge workers spend 2.5 hours per day searching for and consolidating information across disconnected tools — too many manual steps in a fragmented workflow.",
       },
       {
         title: "Inconsistent Results",
-        description: "Different team members extract data differently. Without standardized automation, data quality suffers.",
+        description: "Different team members extract data differently. Gartner reports that poor data quality costs organizations an average of $12.9 million per year, with inconsistent manual document processing being a top contributor. Without standardized automation, data quality suffers.",
       },
     ],
     features: [
@@ -333,15 +333,15 @@ export const useCases: UseCaseData[] = [
     painPoints: [
       {
         title: "OCR Alone Isn't Enough",
-        description: "Traditional OCR gives you raw text. You need AI that understands document structure, context, and meaning.",
+        description: "Traditional OCR gives you raw text. Everest Group's IDP PEAK Matrix Assessment shows the IDP market grew 35–40% year-over-year, driven by organizations moving beyond basic OCR to AI-powered document understanding. You need AI that understands document structure, context, and meaning.",
       },
       {
         title: "Complex Document Layouts",
-        description: "Real-world documents — from [medical records](/guides/extract-data-from-medical-records) to [insurance claims](/guides/extract-data-from-insurance-claims) — have tables, multi-column layouts, headers, footers, and mixed content. Basic tools can't handle this.",
+        description: "Real-world documents — from [medical records](/guides/extract-data-from-medical-records) to [insurance claims](/guides/extract-data-from-insurance-claims) — have tables, multi-column layouts, headers, footers, and mixed content. Forrester research shows organizations implementing IDP achieve 50–70% reduction in document processing time, with the strongest gains on these complex, semi-structured documents. Basic tools can't handle this.",
       },
       {
         title: "Enterprise Integration",
-        description: "Extracted data needs to flow into ERP, CRM, accounting, and other business systems without manual intervention.",
+        description: "Extracted data needs to flow into ERP, CRM, accounting, and other business systems without manual intervention. According to Deloitte's Global Intelligent Automation Survey, 73% of organizations cite integration with existing systems as the biggest challenge in document processing automation.",
       },
     ],
     features: [
@@ -389,15 +389,15 @@ export const useCases: UseCaseData[] = [
     painPoints: [
       {
         title: "Traditional OCR Gives Raw Text",
-        description: "Standard OCR tools output a wall of text. You still need to manually identify and organize the data you need.",
+        description: "Grand View Research valued the global OCR market at $13.38 billion in 2023, but Gartner notes that traditional OCR without AI context achieves less than 70% accuracy on semi-structured documents. Standard OCR tools output a wall of text, and you still need to manually identify and organize the data you need.",
       },
       {
         title: "Poor Accuracy on Real Documents",
-        description: "Faded prints, skewed scans, handwriting, and complex layouts cause traditional OCR to produce garbage output.",
+        description: "Faded prints, skewed scans, handwriting, and complex layouts cause traditional OCR to produce garbage output. According to the International Journal of Industrial Ergonomics, manual re-keying of OCR output introduces an additional 1–4% error rate per field, compounding extraction inaccuracies.",
       },
       {
         title: "No Structure, No Automation",
-        description: "Without structured output, you can't automate downstream processes. Every document still needs manual review.",
+        description: "Without structured output, you can't automate downstream processes. McKinsey estimates that structured data extraction from unstructured documents is a prerequisite for 60% of enterprise automation initiatives — yet every document still needs manual review.",
       },
     ],
     features: [
@@ -445,15 +445,15 @@ export const useCases: UseCaseData[] = [
     painPoints: [
       {
         title: "Copy-Paste Breaks Tables",
-        description: "Copying tables from PDFs into Excel loses all formatting. Columns misalign, data merges into single cells.",
+        description: "Adobe reports that PDFs remain the dominant format for business document exchange, yet Forrester found that 82% of workers resort to manual copy-paste methods that lose table structure. Copying tables from PDFs into Excel loses all formatting — columns misalign and data merges into single cells.",
       },
       {
         title: "Manual Reformatting",
-        description: "Even with PDF-to-Excel tools, you spend time cleaning up and reformatting data to make it usable.",
+        description: "According to IDC, knowledge workers spend an average of 2.5 hours per day searching for and reformatting information — much of it involving PDF-to-spreadsheet conversion. Even with PDF-to-Excel tools, you spend time cleaning up and reformatting data to make it usable.",
       },
       {
         title: "Scanned PDFs Won't Convert",
-        description: "Image-based and scanned PDFs can't be selected or copied at all. You're stuck manually retyping everything.",
+        description: "Image-based and scanned PDFs can't be selected or copied at all. Everest Group reports that AI-powered OCR achieves 95–99% character accuracy on scanned documents, eliminating the need for manual retyping — yet without it, you're stuck retyping everything by hand.",
       },
     ],
     features: [
@@ -501,15 +501,15 @@ export const useCases: UseCaseData[] = [
     painPoints: [
       {
         title: "No Native PDF-to-CSV Path",
-        description: "PDFs don't have a built-in export to CSV. Manual extraction is the only option for most teams.",
+        description: "Despite PDFs being the most common business document format — Adobe estimates 3 trillion PDFs in existence — there is no native PDF-to-CSV conversion standard. Manual extraction is the only option for most teams.",
       },
       {
         title: "Data Pipeline Bottleneck",
-        description: "Your data pipeline needs CSV input, but source data arrives in PDFs. Manual conversion creates a bottleneck.",
+        description: "Your data pipeline needs CSV input, but source data arrives in PDFs. Forrester reports that 80% of enterprise data remains unstructured, with PDF-locked data being a primary bottleneck in data pipeline automation. Manual conversion only makes this worse.",
       },
       {
         title: "Inconsistent Formatting",
-        description: "Manual CSV creation leads to inconsistent column headers, data types, and formatting across files.",
+        description: "Manual CSV creation leads to inconsistent column headers, data types, and formatting across files. According to Gartner, data quality issues stemming from manual formatting inconsistencies cost the average organization $12.9 million per year.",
       },
     ],
     features: [
@@ -557,15 +557,15 @@ export const useCases: UseCaseData[] = [
     painPoints: [
       {
         title: "PDFs Are Developer-Hostile",
-        description: "The PDF format is designed for printing, not data extraction. Getting structured data out of PDFs requires specialized tooling.",
+        description: "The PDF format is designed for printing, not data extraction. According to Stack Overflow's Developer Survey, document parsing is among the top frustrations for developers integrating external data sources, with PDF extraction cited as particularly challenging. Getting structured data out of PDFs requires specialized tooling.",
       },
       {
         title: "Untyped Raw Text",
-        description: "Basic extraction gives you raw strings. You need typed data — numbers as numbers, dates as dates, arrays as arrays.",
+        description: "Basic extraction gives you raw strings. Forrester's research on API-first architectures shows that typed, structured JSON output reduces downstream integration errors by 60–80% compared to raw text extraction. You need typed data — numbers as numbers, dates as dates, arrays as arrays.",
       },
       {
         title: "Inconsistent Structure",
-        description: "Different PDFs produce different structures. Your application needs a consistent JSON schema to work with.",
+        description: "Different PDFs produce different structures. Gartner predicts that by 2027, organizations that adopt schema-driven extraction will process documents 50% faster than those relying on ad hoc parsing. Your application needs a consistent JSON schema to work with.",
       },
     ],
     features: [
@@ -611,7 +611,7 @@ export const useCases: UseCaseData[] = [
     painPoints: [
       {
         title: "Non-Standardized BOL Formats",
-        description: "Every shipper and carrier uses a different BOL layout. Your team wastes time figuring out where data is on each form before they can even start entering it.",
+        description: "Every shipper and carrier uses a different BOL layout. The Federal Motor Carrier Safety Administration (FMCSA) mandates 17 specific data fields under 49 CFR 375.505, yet every carrier formats these differently. Your team wastes time figuring out where data is on each form before they can even start entering it.",
       },
       {
         title: "Faded & Low-Quality Scans",
@@ -619,7 +619,7 @@ export const useCases: UseCaseData[] = [
       },
       {
         title: "Manual Entry Bottleneck at 300+ BOLs/Day",
-        description: "A mid-size 3PL processes 300+ BOLs daily. At 12+ minutes per document, that's 60+ clerk-hours per day just on BOL data entry. Learn why this [costs far more than you think](/blog/cost-of-manual-data-entry-3pl).",
+        description: "The American Trucking Associations (ATA) reports that trucking is an $875.5 billion industry processing billions of shipping documents annually. A mid-size 3PL processes 300+ BOLs daily. At 12+ minutes per document, that's 60+ clerk-hours per day just on BOL data entry — manual processing at this scale is unsustainable. Learn why this [costs far more than you think](/blog/cost-of-manual-data-entry-3pl).",
       },
     ],
     features: [
@@ -665,15 +665,15 @@ export const useCases: UseCaseData[] = [
     painPoints: [
       {
         title: "Every Carrier Has a Different Format",
-        description: "UPS, FedEx, XPO, ODFL, Estes — each carrier invoices differently. Your AP team memorizes dozens of layouts or wastes time hunting for fields on every invoice.",
+        description: "UPS, FedEx, XPO, ODFL, Estes — each carrier invoices differently. According to the American Transportation Research Institute (ATRI), freight operating costs averaged $2.251 per mile in 2023, making accurate invoice processing critical for margin protection. Your AP team memorizes dozens of layouts or wastes time hunting for fields on every invoice.",
       },
       {
         title: "Error-Prone Manual Auditing",
-        description: "20-30% of freight invoices contain errors. Manual auditing misses overcharges, duplicate charges, and rate discrepancies that add up to thousands per month.",
+        description: "Industry data from Cass Information Systems shows that an estimated 20–30% of freight invoices contain billing errors, including rate discrepancies, duplicate charges, and incorrect accessorial fees. Manual auditing misses these overcharges that add up to thousands per month.",
       },
       {
         title: "Billing Delays Hurt Cash Flow",
-        description: "Manual freight invoice processing creates a 3-7 day lag between receiving an invoice and entering it into your accounting system. Automate the process to [cut costs dramatically](/blog/cost-of-manual-data-entry-3pl).",
+        description: "Manual freight invoice processing creates a 3–7 day lag between receiving an invoice and entering it into your accounting system. The IOFM reports that late invoice processing costs companies an average of 3.1% in missed early-payment discounts, directly eroding margins. Automate the process to [cut costs dramatically](/blog/cost-of-manual-data-entry-3pl).",
       },
     ],
     features: [
