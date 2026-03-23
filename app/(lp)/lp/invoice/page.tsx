@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { HeroExtraction } from "@/components/marketing/sections/HeroExtraction"
 import {
   ArrowRight,
   Check,
@@ -128,44 +129,55 @@ export default function InvoiceLP() {
   return (
     <>
       {/* Hero */}
-      <section className="relative pt-24 pb-16 sm:pt-32 sm:pb-20">
+      <section className="relative pt-24 pb-16 sm:pt-28 sm:pb-20">
         <div className="absolute inset-0 -z-10">
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-primary/5 rounded-full blur-3xl" />
+          <div className="absolute top-1/4 left-1/4 w-[600px] h-[400px] bg-primary/5 rounded-full blur-3xl" />
+          <div className="absolute top-20 right-0 w-[400px] h-[400px] bg-secondary/5 rounded-full blur-3xl" />
         </div>
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border bg-card px-4 py-1.5 text-sm text-muted-foreground mb-6">
-            <Zap className="h-4 w-4 text-primary" />
-            95%+ accuracy &middot; Any vendor format &middot; Under 15 seconds
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-10 items-center">
+            {/* Left: Copy */}
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border bg-card px-4 py-1.5 text-sm text-muted-foreground mb-6">
+                <Zap className="h-4 w-4 text-primary" />
+                95%+ accuracy &middot; Any vendor format &middot; Under 15 seconds
+              </div>
+
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.1] mb-6">
+                AI Invoice Data Extraction{" "}
+                <span className="text-primary">That Just Works</span>
+              </h1>
+
+              <p className="text-lg text-muted-foreground max-w-xl mb-8">
+                Stop building templates for every vendor. Parsli AI extracts vendor
+                info, line items, totals, and dates from any invoice format —
+                scanned, digital, or handwritten. No rules to configure.
+              </p>
+
+              <div className="flex flex-col sm:flex-row items-start gap-4 mb-4">
+                <AuthButton className="text-base px-8 h-12" showArrow href="/dashboard?template=invoice-parsing">
+                  Start Free — 30 Pages/Month
+                </AuthButton>
+                <Link
+                  href="/tools/invoice-parser"
+                  className="inline-flex items-center gap-2 h-12 text-base font-medium text-primary hover:underline"
+                >
+                  Or try the free tool first
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+
+              <p className="text-sm text-muted-foreground">
+                No credit card &middot; No sales call &middot; Processing in under 5
+                minutes
+              </p>
+            </div>
+
+            {/* Right: Interactive extraction demo */}
+            <div className="hidden lg:block">
+              <HeroExtraction />
+            </div>
           </div>
-
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.1] mb-6">
-            AI Invoice Data Extraction{" "}
-            <span className="text-primary">That Just Works</span>
-          </h1>
-
-          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-            Stop building templates for every vendor. Parsli AI extracts vendor
-            info, line items, totals, and dates from any invoice format —
-            scanned, digital, or handwritten. No rules to configure.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4">
-            <AuthButton className="text-base px-8 h-12 w-full sm:w-auto" showArrow href="/dashboard?template=invoice-parsing">
-              Start Free — 30 Pages/Month
-            </AuthButton>
-            <Link
-              href="/tools/invoice-parser"
-              className="inline-flex items-center gap-2 text-base font-medium text-primary hover:underline"
-            >
-              Or try the free tool first
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-
-          <p className="text-sm text-muted-foreground">
-            No credit card &middot; No sales call &middot; Processing in under 5
-            minutes
-          </p>
         </div>
       </section>
 
