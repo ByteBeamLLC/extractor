@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { generateText } from "@/lib/openrouter"
+import { trackServerEvent } from "@/lib/analytics/server"
 
 const MODEL = "google/gemini-3-flash-preview"
 
@@ -12,6 +13,12 @@ Rules:
 - If the image contains no handwritten text, respond with exactly: [NO_TEXT_FOUND]`
 
 export async function POST(req: NextRequest) {
+  const startTime = Date.now()
+  // Use IP + user-agent hash as anonymous distinct_id for free tool users
+  const ip = req.headers.get("x-forwarded-for") ?? "unknown"
+  const ua = req.headers.get("user-agent") ?? "unknown"
+  const distinctId = `hwt_${Buffer.from(`${ip}:${ua}`).toString("base64url").slice(0, 24)}`
+
   try {
     const { image, mimeType } = await req.json()
 
@@ -46,14 +53,43 @@ export async function POST(req: NextRequest) {
     })
 
     const text = result.text.trim()
+    const durationMs = Date.now() - startTime
 
     if (text === "[NO_TEXT_FOUND]") {
+      trackServerEvent("hwt_server_extraction", {
+        distinct_id: distinctId,
+        file_type: mimeType,
+        success: false,
+        word_count: 0,
+        duration_ms: durationMs,
+        error_type: "no_text",
+      })
       return NextResponse.json({ text: "", error: "no_text" })
     }
+
+    const wordCount = text.split(/\s+/).filter(Boolean).length
+
+    trackServerEvent("hwt_server_extraction", {
+      distinct_id: distinctId,
+      file_type: mimeType,
+      success: true,
+      word_count: wordCount,
+      duration_ms: durationMs,
+    })
 
     return NextResponse.json({ text })
   } catch (error) {
     console.error("Handwriting extraction error:", error)
+
+    trackServerEvent("hwt_server_extraction", {
+      distinct_id: distinctId,
+      file_type: "unknown",
+      success: false,
+      word_count: 0,
+      duration_ms: Date.now() - startTime,
+      error_type: "server_error",
+    })
+
     return NextResponse.json(
       { error: "Failed to extract text from image" },
       { status: 500 }

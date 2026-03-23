@@ -2,6 +2,8 @@
 
 import { useState, useCallback, useRef } from "react"
 import Image from "next/image"
+import { trackEvent } from "@/lib/analytics"
+import { getIdentity, incrementToolUses } from "@/lib/analytics/identity"
 import {
   Upload,
   Download,
@@ -83,14 +85,22 @@ export function HandwritingToTextTool() {
   const [fileName, setFileName] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [extractionSource, setExtractionSource] = useState<"upload" | "sample">("upload")
+  const [extractionFileType, setExtractionFileType] = useState<string>("image/jpeg")
+  const extractionStartRef = useRef<number>(0)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const callApi = useCallback(
-    async (base64: string, mimeType: string, name: string) => {
+    async (base64: string, mimeType: string, name: string, source: "upload" | "sample") => {
       setFileName(name)
       setStatus("processing")
       setError(null)
       setExtractedText("")
+      setExtractionSource(source)
+      setExtractionFileType(mimeType)
+      extractionStartRef.current = Date.now()
+
+      trackEvent("hwt_extraction_start", { source, file_type: mimeType })
 
       try {
         const res = await fetch("/api/tools/handwriting-to-text", {
@@ -106,6 +116,11 @@ export function HandwritingToTextTool() {
         const data = await res.json()
 
         if (data.error === "no_text" || !data.text?.trim()) {
+          trackEvent("hwt_extraction_error", {
+            source,
+            error_type: "no_text",
+            file_type: mimeType,
+          })
           setError(
             "No handwritten text found in this image. Try a clearer photo with good lighting and dark ink on white paper."
           )
@@ -113,10 +128,25 @@ export function HandwritingToTextTool() {
           return
         }
 
+        const wordCount = data.text.split(/\s+/).filter(Boolean).length
+        const lifetimeUses = incrementToolUses()
+        trackEvent("hwt_extraction_success", {
+          source,
+          word_count: wordCount,
+          duration_ms: Date.now() - extractionStartRef.current,
+          file_type: mimeType,
+          lifetime_tool_uses: lifetimeUses,
+        })
+
         setExtractedText(data.text)
         setStatus("done")
       } catch (e) {
         console.error("Handwriting extraction error:", e)
+        trackEvent("hwt_extraction_error", {
+          source,
+          error_type: "server_error",
+          file_type: mimeType,
+        })
         setError(
           "Failed to extract text from this image. Please try again with a clearer photo."
         )
@@ -127,8 +157,13 @@ export function HandwritingToTextTool() {
   )
 
   const processFile = useCallback(
-    async (file: File) => {
+    async (file: File, inputSource: "upload" | "drag_drop" = "upload") => {
       if (!ACCEPTED_TYPES.includes(file.type)) {
+        trackEvent("hwt_extraction_error", {
+          source: "upload",
+          error_type: "invalid_file",
+          file_type: file.type || "unknown",
+        })
         setError(
           "Please upload an image file (JPG, PNG, GIF, BMP, or WebP)."
         )
@@ -137,27 +172,39 @@ export function HandwritingToTextTool() {
       }
 
       if (file.size > 20 * 1024 * 1024) {
+        trackEvent("hwt_extraction_error", {
+          source: "upload",
+          error_type: "file_too_large",
+          file_type: file.type,
+        })
         setError("File too large. Maximum size is 20 MB.")
         setStatus("error")
         return
       }
+
+      trackEvent("hwt_upload", {
+        file_type: file.type,
+        file_size_kb: Math.round(file.size / 1024),
+        source: inputSource,
+      })
 
       // Show preview
       const url = URL.createObjectURL(file)
       setPreviewUrl(url)
 
       const base64 = await fileToBase64(file)
-      await callApi(base64, file.type, file.name)
+      await callApi(base64, file.type, file.name, "upload")
     },
     [callApi]
   )
 
   const handleSample = useCallback(
     async (sample: (typeof SAMPLES)[0]) => {
+      trackEvent("hwt_sample_click", { sample_label: sample.label })
       setPreviewUrl(sample.src)
       try {
         const { base64, mimeType } = await fetchImageAsBase64(sample.src)
-        await callApi(base64, mimeType, sample.label)
+        await callApi(base64, mimeType, sample.label, "sample")
       } catch {
         setError("Failed to load sample image. Please try uploading your own.")
         setStatus("error")
@@ -169,10 +216,16 @@ export function HandwritingToTextTool() {
   const handleCopy = useCallback(async () => {
     await navigator.clipboard.writeText(extractedText)
     setCopied(true)
+    trackEvent("hwt_copy", {
+      word_count: extractedText.split(/\s+/).filter(Boolean).length,
+    })
     setTimeout(() => setCopied(false), 2000)
   }, [extractedText])
 
   const handleDownload = useCallback(() => {
+    trackEvent("hwt_download", {
+      word_count: extractedText.split(/\s+/).filter(Boolean).length,
+    })
     const blob = new Blob([extractedText], { type: "text/plain" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
@@ -189,7 +242,7 @@ export function HandwritingToTextTool() {
       e.preventDefault()
       setDragOver(false)
       const file = e.dataTransfer.files[0]
-      if (file) processFile(file)
+      if (file) processFile(file, "drag_drop")
     },
     [processFile]
   )
@@ -203,6 +256,7 @@ export function HandwritingToTextTool() {
   )
 
   const reset = useCallback(() => {
+    trackEvent("hwt_reset", { had_result: status === "done" })
     setStatus("idle")
     setExtractedText("")
     setError(null)
@@ -210,7 +264,7 @@ export function HandwritingToTextTool() {
     setCopied(false)
     setPreviewUrl(null)
     if (inputRef.current) inputRef.current.value = ""
-  }, [])
+  }, [status])
 
   return (
     <div className="w-full max-w-2xl mx-auto">

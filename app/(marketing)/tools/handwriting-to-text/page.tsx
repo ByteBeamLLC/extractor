@@ -26,6 +26,7 @@ import {
   BookOpen,
 } from "lucide-react"
 import { HandwritingToTextTool } from "@/components/tools/HandwritingToTextTool"
+import { ToolPageTracker } from "@/components/tools/ToolPageTracker"
 import { AuthButton } from "@/components/marketing/shared/AuthButton"
 import { Button } from "@/components/ui/button"
 import {
@@ -274,6 +275,8 @@ export default function HandwritingToTextToolPage() {
           totalTime: "PT30S",
         }}
       />
+
+      <ToolPageTracker toolName="handwriting-to-text" />
 
       {/* 1. Hero + Tool */}
       <section className="relative pt-24 sm:pt-28 pb-16">
