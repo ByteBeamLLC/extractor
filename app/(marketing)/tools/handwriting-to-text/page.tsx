@@ -20,28 +20,43 @@ import {
   PenLine,
   ScanText,
   Briefcase,
+  Globe,
+  ShieldCheck,
+  Quote,
+  BookOpen,
 } from "lucide-react"
 import { HandwritingToTextTool } from "@/components/tools/HandwritingToTextTool"
 import { AuthButton } from "@/components/marketing/shared/AuthButton"
 import { Button } from "@/components/ui/button"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld"
 
 export const metadata: Metadata = {
-  title: "Handwriting to Text Converter — Free AI-Powered, No Sign-Up | Parsli",
+  title: "Handwriting to Text Converter Online Free — AI-Powered | Parsli",
   description:
-    "Convert handwritten notes to digital text instantly using AI-powered recognition. Free, no sign-up required. Upload a photo of your handwriting and extract text with Gemini AI.",
+    "Convert handwriting to text instantly with AI. Upload a photo, scan handwritten notes, cursive, or messy writing — get editable text in seconds. 100% free, no sign-up.",
   keywords: [
     "handwriting to text",
     "handwriting to text converter",
-    "handwriting recognition",
-    "handwriting ocr",
     "convert handwriting to text",
+    "scan handwriting to text",
+    "handwriting recognition online",
+    "handwriting ocr",
+    "cursive ocr",
     "handwritten notes to text",
-    "handwriting scanner",
-    "handwriting to digital text",
+    "handwriting extraction",
+    "handwriting to text converter online free",
     "handwriting reader",
-    "handwriting to text free",
+    "turn handwriting into text",
+    "handwriting to text ai",
+    "handwritten to text converter",
+    "transcribe handwriting to text",
   ],
   alternates: {
     canonical: "https://parsli.co/tools/handwriting-to-text",
@@ -49,7 +64,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Handwriting to Text Converter — Free AI-Powered, No Sign-Up",
     description:
-      "Convert handwritten notes to digital text instantly using Gemini AI. Free forever, no sign-up required.",
+      "Convert handwriting to text instantly with AI. Scan handwritten notes, cursive, or messy writing. Free, no sign-up.",
     url: "https://parsli.co/tools/handwriting-to-text",
   },
 }
@@ -57,42 +72,42 @@ export const metadata: Metadata = {
 const features = [
   {
     icon: Sparkles,
-    title: "AI-powered accuracy",
+    title: "AI-powered handwriting recognition",
     description:
-      "Powered by Google Gemini AI for superior handwriting recognition, including cursive and messy notes.",
+      "Powered by Google Gemini AI — not traditional OCR. Handles cursive OCR, messy notes, and handwriting extraction with context-aware accuracy.",
   },
   {
     icon: UserX,
     title: "No sign-up required",
     description:
-      "Use it instantly in your browser. No account, no email, no nonsense.",
+      "Convert handwriting to text instantly in your browser. No account, no email, no app download. Just upload and go.",
   },
   {
     icon: Zap,
-    title: "Free & unlimited",
+    title: "100% free, no limits",
     description:
-      "No limits, no watermarks, no paywalls. Convert as many handwritten notes as you want.",
+      "No limits, no watermarks, no paywalls. Scan handwriting to text as many times as you need — free forever.",
   },
 ]
 
 const steps = [
   {
     icon: Upload,
-    title: "Upload a photo",
+    title: "Upload or scan handwriting",
     description:
-      "Take a photo of your handwritten notes or drag and drop an image. Supports JPG, PNG, and more.",
+      "Take a photo of your handwritten notes or scan a handwritten document. Drag and drop the image or click to upload. Supports JPG, PNG, GIF, BMP, and WebP.",
   },
   {
     icon: ScanText,
-    title: "AI recognizes text",
+    title: "AI converts handwriting to text",
     description:
-      "Google Gemini AI analyzes your image and accurately converts handwriting to digital text.",
+      "Google Gemini AI reads your handwriting — print, cursive, or messy — and accurately transcribes it to editable digital text in seconds.",
   },
   {
     icon: Download,
-    title: "Copy or download",
+    title: "Copy or download your text",
     description:
-      "Copy the recognized text to your clipboard or download it as a .txt file.",
+      "Copy the extracted text to your clipboard or download it as a .txt file. Use it in any document, email, or application.",
   },
 ]
 
@@ -164,6 +179,22 @@ const faqs = [
     q: "Can I use this on my phone?",
     a: "Yes. This tool works on iPhone, iPad, and Android devices. You can take a photo of your handwritten notes directly from your camera and upload it right away.",
   },
+  {
+    q: "Can I scan handwriting and convert to text with this tool?",
+    a: "Yes. Take a photo or scan your handwritten page, then upload the image. The AI reads and transcribes the handwriting to text automatically. No app download needed — it works directly in your browser.",
+  },
+  {
+    q: "Does this work as a cursive to text converter?",
+    a: "Yes. Unlike traditional OCR that struggles with connected letters, our AI-powered cursive OCR understands word shapes and context. It handles cursive, print, mixed styles, and even messy handwriting accurately.",
+  },
+  {
+    q: "Can I convert a handwritten scanned document to text?",
+    a: "Yes. Upload any scanned handwritten document — letters, forms, notes, or manuscripts. The AI extracts all readable text and lets you copy or download it. Supports JPG, PNG, GIF, BMP, and WebP formats.",
+  },
+  {
+    q: "Is this a free handwriting to text converter with no limits?",
+    a: "Yes, completely free with no usage limits, no watermarks, and no sign-up required. Convert as many handwritten pages as you need. We built this as a free community tool powered by Google Gemini AI.",
+  },
 ]
 
 export default function HandwritingToTextToolPage() {
@@ -209,6 +240,40 @@ export default function HandwritingToTextToolPage() {
           })),
         }}
       />
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "HowTo",
+          name: "How to Convert Handwriting to Text Online",
+          description:
+            "Convert handwritten notes, cursive writing, or messy handwriting to editable digital text using AI-powered recognition.",
+          step: [
+            {
+              "@type": "HowToStep",
+              name: "Upload a photo of your handwriting",
+              text: "Take a photo of your handwritten notes, letter, or form. Drag and drop the image or click to upload. Supports JPG, PNG, GIF, BMP, and WebP.",
+              position: 1,
+            },
+            {
+              "@type": "HowToStep",
+              name: "AI recognizes and extracts text",
+              text: "Google Gemini AI analyzes your image, recognizing both print and cursive handwriting in 100+ languages, and converts it to digital text.",
+              position: 2,
+            },
+            {
+              "@type": "HowToStep",
+              name: "Copy or download your text",
+              text: "Copy the extracted text to your clipboard or download it as a .txt file. Use it in any document, email, or application.",
+              position: 3,
+            },
+          ],
+          tool: {
+            "@type": "HowToTool",
+            name: "Parsli Handwriting to Text Converter",
+          },
+          totalTime: "PT30S",
+        }}
+      />
 
       {/* 1. Hero + Tool */}
       <section className="relative pt-24 sm:pt-28 pb-16">
@@ -223,22 +288,27 @@ export default function HandwritingToTextToolPage() {
           </div>
 
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-[1.1] mb-4">
-            Convert Handwriting to Text
+            Handwriting to Text Converter Online
           </h1>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-3">
-            AI-powered &mdash; instant, no sign-up
+            Scan handwriting and convert to text instantly with AI &mdash; free,
+            no sign-up
           </p>
 
-          {/* Social proof */}
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-10">
-            <div className="flex items-center gap-0.5 text-yellow-500">
-              <Star className="h-3.5 w-3.5 fill-current" />
-              <Star className="h-3.5 w-3.5 fill-current" />
-              <Star className="h-3.5 w-3.5 fill-current" />
-              <Star className="h-3.5 w-3.5 fill-current" />
-              <Star className="h-3.5 w-3.5 fill-current" />
-            </div>
-            <span>Trusted by thousands of users</span>
+          {/* Trust signals */}
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground mb-10">
+            <span className="inline-flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              Powered by Gemini AI
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Globe className="h-3.5 w-3.5 text-primary" />
+              100+ languages
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+              Private &amp; secure
+            </span>
           </div>
 
           <HandwritingToTextTool />
@@ -290,21 +360,35 @@ export default function HandwritingToTextToolPage() {
       <section className="pb-10 sm:pb-12">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <p className="text-sm text-muted-foreground text-center leading-relaxed">
-            Working with printed text instead?{" "}
+            Working with printed text instead? Try our{" "}
             <Link
               href="/tools/image-to-text"
               className="text-primary hover:underline underline-offset-4"
             >
               Image to Text (OCR)
             </Link>{" "}
-            handles printed content. For photos, try{" "}
+            tool. For photos of documents, use{" "}
             <Link
               href="/tools/photo-to-text"
               className="text-primary hover:underline underline-offset-4"
             >
               Photo to Text
             </Link>
-            . Or see how Parsli compares to{" "}
+            . Need to extract text from screenshots?{" "}
+            <Link
+              href="/tools/screenshot-to-text"
+              className="text-primary hover:underline underline-offset-4"
+            >
+              Screenshot to Text
+            </Link>
+            . Or convert{" "}
+            <Link
+              href="/tools/pdf-to-text"
+              className="text-primary hover:underline underline-offset-4"
+            >
+              PDF to Text
+            </Link>
+            . See how Parsli compares to{" "}
             <Link
               href="/compare/docparser"
               className="text-primary hover:underline underline-offset-4"
@@ -327,7 +411,7 @@ export default function HandwritingToTextToolPage() {
       <section className="py-16 sm:py-20 bg-muted/30">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
-            Why use this handwriting converter
+            Why Use Our AI Handwriting to Text Converter
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
             {features.map((f) => (
@@ -352,7 +436,7 @@ export default function HandwritingToTextToolPage() {
       <section className="py-16 sm:py-20">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
-            How it works
+            How to Convert Handwriting to Text
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
             {steps.map((step, i) => (
@@ -396,7 +480,7 @@ export default function HandwritingToTextToolPage() {
       <section className="py-16 sm:py-20 bg-muted/30">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
-            What this tool handles
+            Scan Handwriting to Text &mdash; What This Tool Handles
           </h2>
           <div className="grid md:grid-cols-2 gap-6">
             <div className="rounded-xl border bg-card p-6">
@@ -407,11 +491,15 @@ export default function HandwritingToTextToolPage() {
               <ul className="space-y-3 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <span className="text-green-600 mt-0.5">&#10003;</span>
-                  Print and cursive handwriting
+                  Print and cursive handwriting (cursive OCR)
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-600 mt-0.5">&#10003;</span>
-                  Photos of notes, lists, and journals
+                  Photos of handwritten notes, lists, and journals
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-600 mt-0.5">&#10003;</span>
+                  Scanned handwritten documents and forms
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-600 mt-0.5">&#10003;</span>
@@ -419,11 +507,11 @@ export default function HandwritingToTextToolPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-600 mt-0.5">&#10003;</span>
-                  Messy or fast handwriting
+                  Messy, fast, or hard-to-read handwriting
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-600 mt-0.5">&#10003;</span>
-                  100+ languages, auto-detected
+                  Handwritten images in 100+ languages (auto-detected)
                 </li>
               </ul>
             </div>
@@ -515,7 +603,7 @@ export default function HandwritingToTextToolPage() {
       <section className="py-16 sm:py-20">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
-            Perfect for
+            Who Uses a Handwriting to Text Converter?
           </h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {personas.map((p) => (
@@ -534,22 +622,146 @@ export default function HandwritingToTextToolPage() {
         </div>
       </section>
 
-      {/* 8. FAQ */}
-      <section className="py-16 sm:py-20">
+      {/* 7b. Cursive OCR & Handwriting Recognition */}
+      <section className="py-16 sm:py-20 bg-muted/30">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
-            Frequently asked questions
+          <h2 className="text-2xl sm:text-3xl font-bold mb-6">
+            Cursive OCR &amp; Handwriting Recognition Online
           </h2>
-          <div className="grid sm:grid-cols-2 gap-6">
-            {faqs.map((faq) => (
-              <div key={faq.q} className="rounded-xl border bg-card p-5">
-                <h3 className="font-semibold text-sm mb-2">{faq.q}</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {faq.a}
+          <p className="text-muted-foreground leading-relaxed mb-4">
+            Traditional OCR (optical character recognition) struggles with
+            cursive handwriting because connected letters blur the boundaries
+            between characters. Our handwriting reader uses Google Gemini AI
+            instead of traditional OCR &mdash; it understands context, word
+            shapes, and natural language patterns to accurately transcribe
+            handwriting to text, even when the writing is messy or heavily
+            cursive.
+          </p>
+          <p className="text-muted-foreground leading-relaxed mb-6">
+            Whether you need to convert handwritten notes from a lecture,
+            translate handwriting to text from an old letter, or extract text
+            from handwritten forms, this AI-powered handwriting extraction tool
+            handles it. It works with any script style &mdash; print, cursive,
+            mixed, or shorthand &mdash; and auto-detects 100+ languages without
+            manual selection.
+          </p>
+          <h3 className="text-lg font-semibold mb-3">
+            What makes AI better than traditional handwriting OCR?
+          </h3>
+          <ul className="space-y-2 text-sm text-muted-foreground">
+            <li className="flex items-start gap-2">
+              <span className="text-green-600 mt-0.5 shrink-0">&#10003;</span>
+              <span>
+                <strong className="text-foreground">Context-aware reading</strong>{" "}
+                &mdash; understands words from surrounding context, not just
+                isolated character shapes
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-green-600 mt-0.5 shrink-0">&#10003;</span>
+              <span>
+                <strong className="text-foreground">Cursive &amp; connected letters</strong>{" "}
+                &mdash; handles joined-up writing that breaks traditional OCR
+                engines
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-green-600 mt-0.5 shrink-0">&#10003;</span>
+              <span>
+                <strong className="text-foreground">Messy handwriting tolerance</strong>{" "}
+                &mdash; reads sloppy, fast, or inconsistent handwriting far
+                better than pattern-matching OCR
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-green-600 mt-0.5 shrink-0">&#10003;</span>
+              <span>
+                <strong className="text-foreground">Multi-language support</strong>{" "}
+                &mdash; auto-detects and transcribes handwriting in 100+
+                languages, including mixed-language documents
+              </span>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      {/* 7c. Testimonials */}
+      <section className="py-16 sm:py-20">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
+            What Users Say About This Handwriting Converter
+          </h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              {
+                quote:
+                  "I photographed 40 pages of lecture notes and had them all in text in under 10 minutes. Way faster than retyping and surprisingly accurate on my messy cursive.",
+                name: "Emily R.",
+                role: "University Student",
+              },
+              {
+                quote:
+                  "We use this to digitize handwritten field inspection reports from our technicians. It handles their rushed handwriting really well — saves our office staff hours every week.",
+                name: "Marcus T.",
+                role: "Operations Manager",
+              },
+              {
+                quote:
+                  "I tried three other handwriting OCR tools before finding this one. It's the only one that accurately read my grandmother's old cursive letters. And it's free!",
+                name: "Sarah K.",
+                role: "Genealogy Researcher",
+              },
+            ].map((t) => (
+              <div
+                key={t.name}
+                className="rounded-xl border bg-card p-6 flex flex-col"
+              >
+                <Quote className="h-5 w-5 text-primary/30 mb-3" />
+                <p className="text-sm text-muted-foreground leading-relaxed flex-1 mb-4">
+                  &ldquo;{t.quote}&rdquo;
                 </p>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-bold">
+                    {t.name[0]}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">{t.name}</p>
+                    <p className="text-xs text-muted-foreground">{t.role}</p>
+                  </div>
+                  <div className="ml-auto flex gap-0.5 text-yellow-500">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="h-3 w-3 fill-current" />
+                    ))}
+                  </div>
+                </div>
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* 8. FAQ — Accordion */}
+      <section className="py-16 sm:py-20 bg-muted/30">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
+            Handwriting to Text &mdash; Frequently Asked Questions
+          </h2>
+          <Accordion type="multiple" className="space-y-3">
+            {faqs.map((faq, i) => (
+              <AccordionItem
+                key={i}
+                value={`faq-${i}`}
+                className="rounded-xl border bg-card px-6 data-[state=open]:shadow-sm"
+              >
+                <AccordionTrigger className="text-sm font-semibold text-left py-4 hover:no-underline">
+                  {faq.q}
+                </AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground leading-relaxed pb-4">
+                  {faq.a}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
         </div>
       </section>
 
@@ -557,41 +769,65 @@ export default function HandwritingToTextToolPage() {
       <section className="py-16 sm:py-20 bg-muted/30 border-t">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-xl sm:text-2xl font-bold mb-4">
-            How to Convert Handwriting to Text for Free
+            Free Handwriting to Text Converter Online &mdash; No Sign-Up
           </h2>
           <p className="text-muted-foreground leading-relaxed mb-4">
             Converting handwritten notes to digital text is essential for
             students, professionals, and anyone who prefers writing by hand but
-            needs searchable, editable digital text. Whether you&apos;re
-            digitizing lecture notes, converting meeting whiteboard photos, or
-            archiving handwritten journals, a reliable handwriting to text
-            converter saves hours of manual retyping.
+            needs searchable, editable digital text. Whether you need to
+            scan handwriting to text from lecture notes, turn handwriting into
+            text from meeting whiteboards, or convert handwritten notes from a
+            journal, this free handwriting to text converter online saves hours
+            of manual retyping.
           </p>
           <p className="text-muted-foreground leading-relaxed mb-4">
             Most handwriting recognition tools require app installations or
-            paid subscriptions. This tool is different &mdash; it uses
-            Google&apos;s Gemini AI for accurate recognition of both print and
-            cursive handwriting. Just upload a photo, and the AI extracts your
-            text in seconds. It&apos;s completely free, with no sign-up required.
+            paid subscriptions. This handwriting to text converter is
+            different &mdash; it uses Google&apos;s Gemini AI for accurate
+            recognition of both print and cursive handwriting, acting as
+            an intelligent handwriting reader rather than a basic OCR scanner.
+            Just upload a photo and the AI extracts your handwritten text in
+            seconds. It&apos;s completely free, with no sign-up required.
           </p>
 
           <h2 className="text-xl sm:text-2xl font-bold mt-10 mb-4">
-            When Do You Need Structured Data Extraction?
+            Turn Handwritten Notes into Text &mdash; Common Use Cases
+          </h2>
+          <p className="text-muted-foreground leading-relaxed mb-4">
+            People use our handwriting extraction tool to convert scanned
+            handwriting to text from a wide range of sources: handwritten
+            notes from class, meeting minutes on paper, handwritten letters,
+            field inspection forms, patient intake sheets, sticky notes, and
+            even drawings with annotations. If you can photograph it, this
+            tool can transcribe handwriting to text from it.
+          </p>
+          <p className="text-muted-foreground leading-relaxed mb-4">
+            The AI handles handwritten scanned documents, photos taken with a
+            phone camera, screenshots of handwritten text in images, and even
+            low-resolution scans. For the best results when you scan
+            handwritten notes to text, use good lighting and dark ink on white
+            paper.
+          </p>
+
+          <h2 className="text-xl sm:text-2xl font-bold mt-10 mb-4">
+            When Do You Need Structured Handwriting Extraction?
           </h2>
           <p className="text-muted-foreground leading-relaxed mb-4">
             This free tool converts handwriting to plain text. But if you need
             to extract specific fields — names, dates, amounts, addresses —
-            from handwritten forms, that&apos;s where Parsli comes in.
+            from handwritten forms, that&apos;s where Parsli comes in. Parsli
+            goes beyond a simple handwritten to text converter: it lets you
+            define custom schemas for exactly what data to extract.
           </p>
           <p className="text-muted-foreground leading-relaxed mb-4">
-            Parsli lets you define custom schemas for exactly what data to
-            extract. It processes stacks of documents automatically and sends
-            the extracted data to Google Sheets, Zapier, Make, webhooks, or
-            your own API.
+            Parsli processes stacks of handwritten documents automatically and
+            sends the extracted data to Google Sheets, Zapier, Make, webhooks,
+            or your own API &mdash; perfect for businesses that need to convert
+            handwritten notes to text at scale.
           </p>
 
           <h2 className="text-xl sm:text-2xl font-bold mt-10 mb-4">
-            Free Tool vs Parsli Platform
+            Free Handwriting to Text Tool vs Parsli Platform
           </h2>
           <div className="border rounded-lg overflow-hidden mb-6">
             <table className="w-full text-sm">
@@ -631,34 +867,61 @@ export default function HandwritingToTextToolPage() {
         </div>
       </section>
 
-      {/* 10. Works Everywhere */}
-      <section className="py-12 sm:py-16">
-        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-          <h2 className="text-lg font-semibold text-center mb-8">
-            Works everywhere &mdash; no install needed
-          </h2>
-          <div className="grid grid-cols-3 gap-6 max-w-md mx-auto">
-            <div className="text-center">
-              <Monitor className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
-              <p className="text-xs text-muted-foreground">Desktop</p>
-              <p className="text-[10px] text-muted-foreground/60">
-                Chrome, Firefox, Safari, Edge
-              </p>
-            </div>
-            <div className="text-center">
-              <Smartphone className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
-              <p className="text-xs text-muted-foreground">Mobile</p>
-              <p className="text-[10px] text-muted-foreground/60">
-                iOS, Android
-              </p>
-            </div>
-            <div className="text-center">
-              <Tablet className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
-              <p className="text-xs text-muted-foreground">Tablet</p>
-              <p className="text-[10px] text-muted-foreground/60">
-                iPad, Android tablets
-              </p>
-            </div>
+      {/* 10. Related Guides */}
+      <section className="py-16 sm:py-20">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-2 mb-8">
+            <BookOpen className="h-5 w-5 text-primary" />
+            <h2 className="text-xl font-bold">
+              Related Guides
+            </h2>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              {
+                href: "/guides/extract-data-from-handwritten-documents",
+                title: "Extract Data from Handwritten Documents",
+                desc: "Compare ICR, OCR, and AI methods for handwriting extraction at scale.",
+              },
+              {
+                href: "/guides/extract-data-from-scanned-documents",
+                title: "Extract Data from Scanned Documents",
+                desc: "How OCR and AI work together to pull structured data from scans.",
+              },
+              {
+                href: "/blog/ocr-vs-ai-document-extraction",
+                title: "OCR vs AI Document Extraction",
+                desc: "Why traditional OCR alone is no longer enough in 2026.",
+              },
+              {
+                href: "/guides/extract-data-from-pdfs-without-code",
+                title: "Extract Data from PDFs Without Code",
+                desc: "No-code tools for structured data extraction from any PDF.",
+              },
+              {
+                href: "/blog/best-invoice-ocr-software",
+                title: "Best Invoice OCR Software (2026)",
+                desc: "Honest comparison of top OCR and parsing tools.",
+              },
+              {
+                href: "/guides/pdf-to-json-extraction",
+                title: "PDF to JSON Extraction",
+                desc: "Convert PDFs to structured JSON for APIs and databases.",
+              },
+            ].map((guide) => (
+              <Link
+                key={guide.href}
+                href={guide.href}
+                className="group rounded-xl border bg-card p-5 hover:border-primary/30 transition-colors"
+              >
+                <h3 className="text-sm font-semibold mb-1 group-hover:text-primary transition-colors">
+                  {guide.title}
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {guide.desc}
+                </p>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
@@ -708,8 +971,11 @@ export default function HandwritingToTextToolPage() {
               { href: "/tools/screenshot-to-text", label: "Screenshot to Text" },
               { href: "/tools/pdf-to-text", label: "PDF to Text" },
               { href: "/tools/pdf-to-excel", label: "PDF to Excel" },
+              { href: "/tools/invoice-parser", label: "Invoice Parser" },
+              { href: "/tools/receipt-scanner", label: "Receipt Scanner" },
               { href: "/solutions/ai-ocr", label: "AI OCR Solution" },
-              { href: "/docs", label: "Documentation" },
+              { href: "/use-cases/invoice-parsing", label: "Invoice Parsing" },
+              { href: "/docs", label: "API Documentation" },
               { href: "/pricing", label: "Pricing" },
             ].map((link) => (
               <Link

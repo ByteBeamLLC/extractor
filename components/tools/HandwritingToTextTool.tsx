@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback, useRef } from "react"
+import Image from "next/image"
 import {
   Upload,
   Download,
@@ -26,6 +27,24 @@ const ACCEPTED_TYPES = [
 
 type Status = "idle" | "processing" | "done" | "error"
 
+const SAMPLES = [
+  {
+    label: "Cursive Letter",
+    src: "/samples/handwriting-cursive.jpg",
+    mimeType: "image/jpeg",
+  },
+  {
+    label: "Student Notes",
+    src: "/samples/handwriting-notes.jpg",
+    mimeType: "image/jpeg",
+  },
+  {
+    label: "Sticky Note",
+    src: "/samples/handwriting-sticky.jpg",
+    mimeType: "image/jpeg",
+  },
+]
+
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -39,6 +58,23 @@ function fileToBase64(file: File): Promise<string> {
   })
 }
 
+async function fetchImageAsBase64(
+  src: string
+): Promise<{ base64: string; mimeType: string }> {
+  const res = await fetch(src)
+  const blob = await res.blob()
+  const mimeType = blob.type || "image/jpeg"
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result as string
+      resolve({ base64: result.split(",")[1], mimeType })
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
+}
+
 export function HandwritingToTextTool() {
   const [status, setStatus] = useState<Status>("idle")
   const [extractedText, setExtractedText] = useState<string>("")
@@ -46,59 +82,89 @@ export function HandwritingToTextTool() {
   const [dragOver, setDragOver] = useState(false)
   const [fileName, setFileName] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const processFile = useCallback(async (file: File) => {
-    if (!ACCEPTED_TYPES.includes(file.type)) {
-      setError("Please upload an image file (JPG, PNG, GIF, BMP, or WebP).")
-      setStatus("error")
-      return
-    }
+  const callApi = useCallback(
+    async (base64: string, mimeType: string, name: string) => {
+      setFileName(name)
+      setStatus("processing")
+      setError(null)
+      setExtractedText("")
 
-    if (file.size > 20 * 1024 * 1024) {
-      setError("File too large. Maximum size is 20 MB.")
-      setStatus("error")
-      return
-    }
+      try {
+        const res = await fetch("/api/tools/handwriting-to-text", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: base64, mimeType }),
+        })
 
-    setFileName(file.name)
-    setStatus("processing")
-    setError(null)
-    setExtractedText("")
+        if (!res.ok) {
+          throw new Error(`Server error: ${res.status}`)
+        }
 
-    try {
-      const base64 = await fileToBase64(file)
+        const data = await res.json()
 
-      const res = await fetch("/api/tools/handwriting-to-text", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: base64, mimeType: file.type }),
-      })
+        if (data.error === "no_text" || !data.text?.trim()) {
+          setError(
+            "No handwritten text found in this image. Try a clearer photo with good lighting and dark ink on white paper."
+          )
+          setStatus("error")
+          return
+        }
 
-      if (!res.ok) {
-        throw new Error(`Server error: ${res.status}`)
-      }
-
-      const data = await res.json()
-
-      if (data.error === "no_text" || !data.text?.trim()) {
+        setExtractedText(data.text)
+        setStatus("done")
+      } catch (e) {
+        console.error("Handwriting extraction error:", e)
         setError(
-          "No handwritten text found in this image. Try a clearer photo with good lighting and dark ink on white paper."
+          "Failed to extract text from this image. Please try again with a clearer photo."
+        )
+        setStatus("error")
+      }
+    },
+    []
+  )
+
+  const processFile = useCallback(
+    async (file: File) => {
+      if (!ACCEPTED_TYPES.includes(file.type)) {
+        setError(
+          "Please upload an image file (JPG, PNG, GIF, BMP, or WebP)."
         )
         setStatus("error")
         return
       }
 
-      setExtractedText(data.text)
-      setStatus("done")
-    } catch (e) {
-      console.error("Handwriting extraction error:", e)
-      setError(
-        "Failed to extract text from this image. Please try again with a clearer photo."
-      )
-      setStatus("error")
-    }
-  }, [])
+      if (file.size > 20 * 1024 * 1024) {
+        setError("File too large. Maximum size is 20 MB.")
+        setStatus("error")
+        return
+      }
+
+      // Show preview
+      const url = URL.createObjectURL(file)
+      setPreviewUrl(url)
+
+      const base64 = await fileToBase64(file)
+      await callApi(base64, file.type, file.name)
+    },
+    [callApi]
+  )
+
+  const handleSample = useCallback(
+    async (sample: (typeof SAMPLES)[0]) => {
+      setPreviewUrl(sample.src)
+      try {
+        const { base64, mimeType } = await fetchImageAsBase64(sample.src)
+        await callApi(base64, mimeType, sample.label)
+      } catch {
+        setError("Failed to load sample image. Please try uploading your own.")
+        setStatus("error")
+      }
+    },
+    [callApi]
+  )
 
   const handleCopy = useCallback(async () => {
     await navigator.clipboard.writeText(extractedText)
@@ -142,6 +208,7 @@ export function HandwritingToTextTool() {
     setError(null)
     setFileName(null)
     setCopied(false)
+    setPreviewUrl(null)
     if (inputRef.current) inputRef.current.value = ""
   }, [])
 
@@ -149,58 +216,109 @@ export function HandwritingToTextTool() {
     <div className="w-full max-w-2xl mx-auto">
       {/* Drop zone / Upload area */}
       {status === "idle" && (
-        <label
-          className={cn(
-            "relative block rounded-2xl border-2 border-dashed transition-all duration-200 cursor-pointer",
-            "bg-card hover:bg-muted/50 hover:border-primary/40",
-            dragOver
-              ? "border-primary bg-primary/5 scale-[1.01]"
-              : "border-border"
-          )}
-          onDragOver={(e) => {
-            e.preventDefault()
-            setDragOver(true)
-          }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={handleDrop}
-        >
-          <div className="flex flex-col items-center justify-center py-14 px-6">
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
-              <Upload className="h-7 w-7 text-primary" />
+        <>
+          <label
+            className={cn(
+              "relative block rounded-2xl border-2 border-dashed transition-all duration-200 cursor-pointer",
+              "bg-card hover:bg-muted/50 hover:border-primary/40",
+              dragOver
+                ? "border-primary bg-primary/5 scale-[1.01]"
+                : "border-border"
+            )}
+            onDragOver={(e) => {
+              e.preventDefault()
+              setDragOver(true)
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+          >
+            <div className="flex flex-col items-center justify-center py-14 px-6">
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
+                <Upload className="h-7 w-7 text-primary" />
+              </div>
+              <p className="text-lg font-semibold mb-1">
+                Drop your handwritten note here or click to browse
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Photo of handwritten text &mdash; JPG, PNG, GIF, BMP, or WebP
+                up to 20 MB
+              </p>
             </div>
-            <p className="text-lg font-semibold mb-1">
-              Drop your handwritten note here or click to browse
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,image/jpeg,image/png,image/gif,image/bmp,image/webp"
+              className="sr-only"
+              onChange={handleFileChange}
+            />
+          </label>
+
+          {/* Try a Sample */}
+          <div className="mt-4">
+            <p className="text-xs text-muted-foreground text-center mb-3">
+              No image handy? Try a sample:
             </p>
-            <p className="text-sm text-muted-foreground">
-              Photo of handwritten text &mdash; JPG, PNG, GIF, BMP, or WebP up
-              to 20 MB
-            </p>
+            <div className="flex items-center justify-center gap-3">
+              {SAMPLES.map((sample) => (
+                <button
+                  key={sample.label}
+                  onClick={() => handleSample(sample)}
+                  className="group flex flex-col items-center gap-1.5 rounded-lg border bg-card px-3 py-2.5 hover:border-primary/40 hover:bg-muted/50 transition-all"
+                >
+                  <div className="w-12 h-12 rounded-md overflow-hidden bg-muted/50 border">
+                    <Image
+                      src={sample.src}
+                      alt={sample.label}
+                      width={48}
+                      height={48}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <span className="text-[11px] text-muted-foreground group-hover:text-foreground transition-colors">
+                    {sample.label}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
-          <input
-            ref={inputRef}
-            type="file"
-            accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,image/jpeg,image/png,image/gif,image/bmp,image/webp"
-            className="sr-only"
-            onChange={handleFileChange}
-          />
-        </label>
+        </>
       )}
 
       {/* Processing state */}
       {status === "processing" && (
-        <div className="rounded-2xl border bg-card p-10 text-center">
-          <Loader2 className="h-10 w-10 text-primary animate-spin mx-auto mb-4" />
-          <p className="font-semibold text-lg mb-1">
-            Recognizing handwriting with AI...
-          </p>
-          <p className="text-sm text-muted-foreground">{fileName}</p>
-          <p className="text-xs text-muted-foreground mt-3">
-            Powered by Gemini &mdash; typically takes a few seconds
-          </p>
+        <div className="rounded-2xl border bg-card overflow-hidden">
+          {previewUrl && (
+            <div className="px-6 pt-6 flex justify-center">
+              <div className="relative w-full max-w-xs h-40 rounded-lg overflow-hidden border bg-muted/30">
+                <Image
+                  src={previewUrl}
+                  alt="Processing handwriting"
+                  fill
+                  className="object-contain"
+                  unoptimized={previewUrl.startsWith("blob:")}
+                />
+                <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
+                  <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                </div>
+              </div>
+            </div>
+          )}
+          <div className="p-6 text-center">
+            {!previewUrl && (
+              <Loader2 className="h-10 w-10 text-primary animate-spin mx-auto mb-4" />
+            )}
+            <p className="font-semibold text-lg mb-1">
+              Recognizing handwriting with AI...
+            </p>
+            <p className="text-sm text-muted-foreground">{fileName}</p>
+            <p className="text-xs text-muted-foreground mt-3">
+              Powered by Gemini &mdash; typically takes a few seconds
+            </p>
+          </div>
         </div>
       )}
 
-      {/* Success state */}
+      {/* Success state — before/after layout */}
       {status === "done" && (
         <div className="rounded-2xl border bg-card overflow-hidden">
           {/* Header */}
@@ -223,14 +341,46 @@ export function HandwritingToTextTool() {
             </button>
           </div>
 
-          {/* Extracted text */}
-          <div className="px-6 py-4">
-            <textarea
-              readOnly
-              value={extractedText}
-              className="w-full h-64 rounded-lg border bg-muted/30 p-4 text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
+          {/* Before / After */}
+          {previewUrl && (
+            <div className="grid sm:grid-cols-2 gap-px bg-border">
+              <div className="bg-card p-4">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
+                  Original
+                </p>
+                <div className="relative w-full h-48 rounded-lg overflow-hidden border bg-muted/30">
+                  <Image
+                    src={previewUrl}
+                    alt="Original handwriting"
+                    fill
+                    className="object-contain"
+                    unoptimized={previewUrl.startsWith("blob:")}
+                  />
+                </div>
+              </div>
+              <div className="bg-card p-4">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
+                  Extracted Text
+                </p>
+                <textarea
+                  readOnly
+                  value={extractedText}
+                  className="w-full h-48 rounded-lg border bg-muted/30 p-3 text-sm font-mono resize-none focus:outline-none"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Fallback: text only (no preview) */}
+          {!previewUrl && (
+            <div className="px-6 py-4">
+              <textarea
+                readOnly
+                value={extractedText}
+                className="w-full h-64 rounded-lg border bg-muted/30 p-4 text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+          )}
 
           {/* Actions */}
           <div className="px-6 py-4 border-t flex flex-col sm:flex-row gap-3">

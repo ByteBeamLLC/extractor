@@ -11,274 +11,265 @@ import { getAllGuides } from "@/lib/seo/guides"
 const BASE_URL = "https://parsli.co"
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const now = new Date()
+  // Use a fixed date for static/rarely-changing pages so Google trusts lastModified signals.
+  // Update this date when you make meaningful content changes to static pages.
+  const staticDate = new Date("2026-03-19")
 
   const staticPages: MetadataRoute.Sitemap = [
     {
       url: BASE_URL,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "weekly",
       priority: 1.0,
     },
     {
       url: `${BASE_URL}/pricing`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.9,
     },
     {
       url: `${BASE_URL}/docs`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "weekly",
       priority: 0.8,
     },
     {
       url: `${BASE_URL}/blog`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "weekly",
       priority: 0.8,
     },
     {
       url: `${BASE_URL}/compare`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "weekly",
       priority: 0.8,
     },
     {
       url: `${BASE_URL}/tools`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "weekly",
       priority: 0.8,
     },
     {
       url: `${BASE_URL}/tools/pdf-to-excel`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     // PDF Utility Tools
     {
       url: `${BASE_URL}/tools/pdf-merger`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${BASE_URL}/tools/pdf-splitter`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${BASE_URL}/tools/pdf-compressor`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${BASE_URL}/tools/pdf-page-remover`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${BASE_URL}/tools/pdf-rotate`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${BASE_URL}/tools/image-to-pdf`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     // OCR & Text Extraction Tools
     {
       url: `${BASE_URL}/tools/image-to-text`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${BASE_URL}/tools/pdf-to-text`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${BASE_URL}/tools/handwriting-to-text`,
-      lastModified: now,
-      changeFrequency: "monthly",
-      priority: 0.8,
+      lastModified: new Date("2026-03-23"),
+      changeFrequency: "weekly",
+      priority: 0.9,
     },
     {
       url: `${BASE_URL}/tools/screenshot-to-text`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${BASE_URL}/tools/photo-to-text`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     // Data Conversion Tools
     {
       url: `${BASE_URL}/tools/excel-to-json`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${BASE_URL}/tools/json-to-excel`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${BASE_URL}/tools/excel-to-csv`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${BASE_URL}/tools/csv-to-excel`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     // AI Extraction Tools
     {
       url: `${BASE_URL}/tools/invoice-parser`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${BASE_URL}/tools/bol-parser`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${BASE_URL}/tools/receipt-scanner`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${BASE_URL}/tools/bank-statement-parser`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${BASE_URL}/tools/bank-statement-to-excel`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${BASE_URL}/tools/bank-statement-to-csv`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${BASE_URL}/tools/resume-parser`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${BASE_URL}/tools/pdf-table-extractor`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${BASE_URL}/tools/ai-summarizer`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${BASE_URL}/use-cases`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.7,
     },
     {
       url: `${BASE_URL}/solutions`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${BASE_URL}/integrations`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.7,
     },
     {
       url: `${BASE_URL}/industries`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.7,
     },
     {
       url: `${BASE_URL}/document-types`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.7,
     },
     {
       url: `${BASE_URL}/guides`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "weekly",
       priority: 0.8,
     },
     {
       url: `${BASE_URL}/columbus`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${BASE_URL}/freight`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "weekly",
       priority: 0.9,
     },
     {
-      url: `${BASE_URL}/lp/freight-invoice`,
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 0.8,
-    },
-    {
       url: `${BASE_URL}/lp/columbus-3pl`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "weekly",
       priority: 0.8,
     },
-    {
-      url: `${BASE_URL}/lp/bol-automation`,
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 0.8,
-    },
+    // Note: /lp/freight-invoice and /lp/bol-automation excluded — they have noindex tags
     {
       url: `${BASE_URL}/privacy`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
       url: `${BASE_URL}/terms`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "yearly",
       priority: 0.3,
     },
@@ -287,7 +278,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const solutionPages: MetadataRoute.Sitemap = getAllSolutionSlugs().map(
     (slug) => ({
       url: `${BASE_URL}/solutions/${slug}`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "weekly" as const,
       priority: 0.9,
     })
@@ -304,7 +295,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const useCasePages: MetadataRoute.Sitemap = getAllUseCaseSlugs().map(
     (slug) => ({
       url: `${BASE_URL}/use-cases/${slug}`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly" as const,
       priority: 0.7,
     })
@@ -313,7 +304,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const integrationPages: MetadataRoute.Sitemap = getAllIntegrationSlugs().map(
     (slug) => ({
       url: `${BASE_URL}/integrations/${slug}`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly" as const,
       priority: 0.6,
     })
@@ -322,7 +313,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const comparePages: MetadataRoute.Sitemap = getAllAlternativeSlugs().map(
     (slug) => ({
       url: `${BASE_URL}/compare/${slug}`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly" as const,
       priority: 0.8,
     })
@@ -331,7 +322,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const industryPages: MetadataRoute.Sitemap = getAllIndustrySlugs().map(
     (slug) => ({
       url: `${BASE_URL}/industries/${slug}`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly" as const,
       priority: 0.7,
     })
@@ -340,7 +331,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const documentTypePages: MetadataRoute.Sitemap =
     getAllDocumentTypeSlugs().map((slug) => ({
       url: `${BASE_URL}/document-types/${slug}`,
-      lastModified: now,
+      lastModified: staticDate,
       changeFrequency: "monthly" as const,
       priority: 0.7,
     }))
