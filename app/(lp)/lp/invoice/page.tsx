@@ -158,13 +158,6 @@ export default function InvoiceLP() {
                 <AuthButton className="text-base px-8 h-12" showArrow href="/dashboard?template=invoice-parsing">
                   Start Free — 30 Pages/Month
                 </AuthButton>
-                <Link
-                  href="/tools/invoice-parser"
-                  className="inline-flex items-center gap-2 h-12 text-base font-medium text-primary hover:underline"
-                >
-                  Or try the free tool first
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
               </div>
 
               <p className="text-sm text-muted-foreground">
