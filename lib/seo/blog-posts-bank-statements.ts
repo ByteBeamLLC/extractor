@@ -3,12 +3,14 @@ import { BlogPost } from "./blog-posts"
 export const bankStatementBlogPosts: BlogPost[] = [
   {
     slug: "what-is-a-bank-statement",
-    title: "What Is a Bank Statement? A Complete Guide to Understanding Your Financial Records",
-    metaTitle: "What Is a Bank Statement? Complete Guide (2026)",
+    title:
+      "What Is a Bank Statement & How to Get One: Complete Guide (2026)",
+    metaTitle:
+      "What Is a Bank Statement & How to Get One (2026 Guide)",
     metaDescription:
-      "Learn what a bank statement is, what information it contains, why it matters for taxes, loans, and audits, and how to extract data from bank statements automatically.",
+      "A bank statement summarizes all account activity for a period. Learn what it includes, how to get bank statements (online, branch, mail), and how to extract data from them automatically.",
     publishedAt: "2026-01-22",
-    updatedAt: "2026-01-28",
+    updatedAt: "2026-03-23",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "9 min read",
@@ -60,6 +62,28 @@ export const bankStatementBlogPosts: BlogPost[] = [
       {
         type: "paragraph",
         text: "The Consumer Financial Protection Bureau (CFPB) requires banks to provide clear, accurate statements under Regulation E (Electronic Fund Transfer Act) and Regulation DD (Truth in Savings Act). These regulations ensure that consumers can understand their account activity and dispute errors within 60 days.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "How to Get a Bank Statement",
+      },
+      {
+        type: "paragraph",
+        text: "There are four ways to obtain a bank statement, depending on your bank and how far back you need to go:",
+      },
+      {
+        type: "list",
+        items: [
+          "**Online banking (fastest)** — Log into your bank's website or mobile app, navigate to Statements or Documents, and download the PDF for any available period. Most banks retain 7-10 years of statements online. This is the fastest method and produces the highest-quality digital PDF for data extraction.",
+          "**Mobile app** — Most major banks (Chase, Bank of America, Wells Fargo, Citi) allow statement downloads directly from their mobile apps under Account → Statements. The PDF is identical to the web version.",
+          "**In-branch request** — Visit your local branch with a valid photo ID. Banks can print statements on the spot for recent periods or order archived statements for older periods. Some banks charge $5-10 per statement for archived requests (FDIC regulations allow reasonable fees for historical statements).",
+          "**Mail or phone request** — Call your bank's customer service line or submit a written request. Banks are required to provide statements under Regulation E. Paper statements typically arrive within 5-10 business days. For legal proceedings, request certified copies — these carry the bank's official seal and are admissible as evidence.",
+        ],
+      },
+      {
+        type: "callout",
+        text: "**For businesses and professionals:** If you need bank statements from clients — for loan underwriting, tax preparation, bookkeeping, or forensic analysis — request the PDF version rather than paper. Digital PDFs are more accurate for data extraction and retain metadata that helps verify authenticity. See our guide on [verifying bank statements](/guides/verify-bank-statements) for fraud detection best practices.",
       },
       {
         type: "heading",

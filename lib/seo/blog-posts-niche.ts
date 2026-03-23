@@ -423,12 +423,14 @@ export const nicheBlogPosts: BlogPost[] = [
   },
   {
     slug: "ocr-vs-idp",
-    title: "OCR vs IDP: Key Differences, Pros, Cons, and When to Use Each",
-    metaTitle: "OCR vs IDP: Differences & Which to Choose (2026)",
+    title:
+      "OCR vs IDP: Key Differences Explained with Comparison Table (2026)",
+    metaTitle:
+      "OCR vs IDP: Key Differences Explained (2026 Guide)",
     metaDescription:
-      "Understand the key differences between OCR and Intelligent Document Processing (IDP). Learn when traditional OCR is sufficient and when you need the full capabilities of IDP.",
+      "OCR reads characters from images; IDP extracts structured data using AI. Compare accuracy, use cases, and costs — with Gartner's IDP definition and when each is sufficient.",
     publishedAt: "2026-03-01",
-    updatedAt: "2026-03-06",
+    updatedAt: "2026-03-23",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "9 min read",

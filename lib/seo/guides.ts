@@ -944,13 +944,15 @@ const guides: GuideData[] = [
   },
   {
     slug: "extract-tables-from-pdf",
-    title: "How to Extract Tables from Any PDF Document",
-    h1: "How to Extract Tables from Any PDF Document",
-    metaTitle: "How to Extract Tables from Any PDF Document | Parsli",
+    title:
+      "How to Extract Tables from PDF: 3 Methods (Copy, Python, AI)",
+    h1: "How to Extract Tables from PDF: 3 Methods Compared",
+    metaTitle:
+      "How to Extract Tables from PDF: Copy, Python & AI Methods (2026)",
     metaDescription:
-      "Learn how to extract tables from PDFs using copy-paste, Python, and AI tools. Compare methods for accuracy, speed, and scanned PDF support.",
+      "Extract tables from any PDF — digital or scanned. Compare copy-paste, Python (pdfplumber, camelot, tabula), and AI extraction for accuracy, speed, and ease of use.",
     publishedAt: "2026-03-21",
-    updatedAt: "2026-02-01",
+    updatedAt: "2026-03-23",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "7 min read",
@@ -1594,13 +1596,15 @@ const guides: GuideData[] = [
   },
   {
     slug: "extract-data-from-scanned-documents",
-    title: "How to Extract Data from Scanned Documents (OCR)",
-    h1: "How to Extract Data from Scanned Documents (OCR)",
-    metaTitle: "How to Extract Data from Scanned Documents (OCR) | Parsli",
+    title:
+      "How to Extract Data from Scanned Documents & PDFs (OCR + AI)",
+    h1: "How to Extract Data from Scanned Documents & PDFs",
+    metaTitle:
+      "Extract Data from Scanned Documents & PDFs: OCR + AI Methods (2026)",
     metaDescription:
-      "Learn how OCR and AI extraction work together to pull structured data from scanned PDFs, photographed documents, and faxes.",
+      "Extract structured data from scanned PDFs, photographed documents, and faxes. Compare 3 methods: OCR + manual, OCR + Python, and AI-powered extraction with 95%+ accuracy.",
     publishedAt: "2026-03-29",
-    updatedAt: "2026-02-17",
+    updatedAt: "2026-03-23",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "7 min read",
@@ -1768,14 +1772,15 @@ const guides: GuideData[] = [
   },
   {
     slug: "pdf-to-google-sheets-automation",
-    title: "How to Send PDF Data to Google Sheets Automatically",
-    h1: "How to Send PDF Data to Google Sheets Automatically",
+    title:
+      "How to Import PDF Data to Google Sheets Automatically (2026)",
+    h1: "How to Import PDF Data to Google Sheets Automatically",
     metaTitle:
-      "How to Send PDF Data to Google Sheets Automatically | Parsli",
+      "Import PDF Data to Google Sheets Automatically (2026 Guide)",
     metaDescription:
-      "Automate PDF to Google Sheets data flow. Extract tables, forms, and structured data from PDFs and push to Sheets automatically.",
+      "Import data from PDFs to Google Sheets automatically — invoices, bank statements, reports, and tables. 3 methods compared: Google Drive, Zapier/Make, and native AI integration.",
     publishedAt: "2026-03-31",
-    updatedAt: "2026-02-20",
+    updatedAt: "2026-03-23",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "6 min read",
@@ -1856,6 +1861,20 @@ const guides: GuideData[] = [
         text: "The Parsli-to-Sheets integration replaced a Zapier workflow that cost us $50/month and broke every time the PDF format changed. Direct integration is simpler and more reliable.",
         author: "Bookkeeper",
         role: "Freelance, 30+ clients",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "How to import PDF invoices to Google Sheets",
+        id: "pdf-invoice-to-google-sheets",
+      },
+      {
+        type: "paragraph",
+        text: "PDF invoices are the most common use case for PDF-to-Sheets automation. Here's how to set it up with Parsli in 3 steps: (1) Create a parser with an invoice schema — define fields for vendor name, invoice number, date, line items, subtotal, tax, and total. (2) Connect Google Sheets from the Export tab — select your spreadsheet and map fields to columns. (3) Upload invoice PDFs or forward them via email — extracted data appears as new rows automatically. Each invoice becomes one row with every field in its own column.",
+      },
+      {
+        type: "paragraph",
+        text: "This works for any invoice format — vendor invoices, utility bills, service invoices, recurring subscriptions. Parsli's AI reads the document semantically, so it handles different invoice layouts without templates or configuration. Whether you process 10 invoices or 1,000 per month, the same setup scales automatically.",
       },
       {
         type: "heading",
@@ -4124,23 +4143,25 @@ const guides: GuideData[] = [
   },
   {
     slug: "parse-email-attachments-with-zapier",
-    title: "How to Parse Email Attachments with Zapier and Parsli",
-    h1: "How to Parse Email Attachments with Zapier and Parsli",
-    metaTitle: "Parse Email Attachments with Zapier & Parsli | Parsli",
+    title:
+      "How to Parse Email Attachments Automatically: Zapier, API & No-Code",
+    h1: "How to Parse Email Attachments Automatically",
+    metaTitle:
+      "How to Parse Email Attachments: Zapier, API & No-Code Methods (2026)",
     metaDescription:
-      "Set up a Zapier automation that parses incoming email attachments — invoices, receipts, POs — and routes extracted data to spreadsheets, CRMs, or ERPs.",
+      "Parse invoices, receipts, and POs from email attachments automatically. Compare 3 methods — Zapier automation, REST API integration, and no-code email forwarding — with setup guides.",
     publishedAt: "2026-03-20",
-    updatedAt: "2026-03-05",
+    updatedAt: "2026-03-23",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "9 min read",
     category: "Integration Guide" as const,
     imageTitle: "Parse Email Attachments with Zapier",
     tldr: [
-      "**Email attachments** — invoices, receipts, POs — contain data your systems need, but getting it there manually is painfully slow.",
-      "**Zapier connects your inbox to Parsli** — triggering extraction every time a new attachment arrives, with zero manual intervention.",
-      "**Extracted data routes anywhere** — Google Sheets, QuickBooks, Salesforce, HubSpot, Airtable, or any app Zapier supports.",
-      "**No code required** — the entire pipeline is built with Zapier's visual editor and Parsli's no-code schema builder.",
+      "**Email attachments** — invoices, receipts, POs — contain data your systems need, but getting it there manually takes 11 minutes per attachment on average.",
+      "**Three methods compared**: no-code email forwarding (simplest), Zapier automation (most flexible), and REST API integration (most powerful for developers).",
+      "**Extracted data routes anywhere** — Google Sheets, QuickBooks, Salesforce, HubSpot, Airtable, or any app via Zapier, Make, or webhooks.",
+      "**No code required** for the first two methods — built with visual editors and Parsli's no-code schema builder.",
       "**Process attachments 24/7** — even when your team is offline. [Try the free invoice parser →](/tools/invoice-parser)",
     ],
     content: [
@@ -4154,7 +4175,7 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "This guide shows you how to build that automation using Zapier and Parsli. You'll learn three approaches — from basic [email forwarding](/guides/parse-email-attachments-automatically) to fully automated Zapier workflows — and walk away with a working pipeline that handles your specific document types.",
+        text: "This guide covers three methods for parsing email attachments automatically — no-code email forwarding, Zapier workflow automation, and REST API integration for developers. Each method handles invoices, receipts, POs, and any other document type your inbox receives.",
       },
       {
         type: "key-stat",
@@ -4463,12 +4484,46 @@ const guides: GuideData[] = [
         id: "conclusion",
       },
       {
-        type: "paragraph",
-        text: "Email attachment parsing with Zapier and Parsli transforms your inbox from a manual processing bottleneck into an automated data pipeline. Documents are extracted, validated, and routed to your systems within seconds of arrival — 24/7, without anyone downloading or opening a single file.",
+        type: "heading",
+        level: 2,
+        text: "Method 3: Email parser API — for developers",
+        id: "method-api",
       },
       {
         type: "paragraph",
-        text: "Start by testing extraction quality with the [free invoice parser](/tools/invoice-parser), then build your first Zapier workflow. Most teams have a working email-to-spreadsheet pipeline running in under 20 minutes. As your needs grow, add more destination apps, confidence-based routing, and document-type branching to handle any workflow.",
+        text: "If you need full programmatic control over email attachment parsing, Parsli's REST API lets you submit documents and receive structured JSON responses directly in your application code. This is ideal for teams building custom integrations, processing high volumes, or embedding extraction into existing software.",
+      },
+      {
+        type: "paragraph",
+        text: "The API workflow: your application receives an email (via IMAP, Gmail API, or a webhook from your email provider), extracts the attachment, sends it to Parsli's /extract endpoint with your API key, and receives structured JSON with all extracted fields and per-field confidence scores. You then route the data wherever it needs to go — your database, ERP, CRM, or any internal system.",
+      },
+      {
+        type: "list",
+        items: [
+          "**Authentication**: API key in the request header (available on all paid plans)",
+          "**Input**: POST multipart/form-data with the document file",
+          "**Output**: JSON with extracted fields, values, and confidence scores",
+          "**Rate limits**: Based on your plan's page allocation",
+          "**Documentation**: Full API reference with code examples in Python, JavaScript, and cURL at [parsli.co/integrations/api](/integrations/api)",
+        ],
+      },
+      {
+        type: "paragraph",
+        text: "The API approach gives you the most flexibility — custom error handling, retry logic, batch processing, and integration with any programming language or framework. For teams already managing email ingestion pipelines, adding Parsli's API is typically a few hours of development work.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Which email parsing method should you choose?",
+        id: "which-method",
+      },
+      {
+        type: "paragraph",
+        text: "**Email forwarding** (Method 1) is the simplest — set up in 5 minutes, no code, works with any email provider. Best for teams that want zero-complexity automation. **Zapier workflows** (Method 2) add routing flexibility — multi-step automations that connect to 5,000+ apps. Best for teams using multiple SaaS tools. **REST API** (Method 3) gives full programmatic control — ideal for developers building custom pipelines or processing at high volume.",
+      },
+      {
+        type: "paragraph",
+        text: "Start with email forwarding to validate extraction quality with the [free invoice parser](/tools/invoice-parser), then upgrade to Zapier or API as your needs grow. Most teams have a working email-to-spreadsheet pipeline running in under 20 minutes.",
       },
       { type: "cta" },
     ],
@@ -4538,23 +4593,25 @@ const guides: GuideData[] = [
   },
   {
     slug: "automate-receipt-processing-with-make",
-    title: "How to Automate Receipt Processing with Make (Integromat)",
-    h1: "How to Automate Receipt Processing with Make (Integromat)",
-    metaTitle: "Automate Receipt Processing with Make & Parsli | Parsli",
+    title:
+      "How to Automate Receipt Processing: 3 Methods Compared (2026)",
+    h1: "How to Automate Receipt Processing",
+    metaTitle:
+      "How to Automate Receipt Processing: 3 Methods Compared (2026)",
     metaDescription:
-      "Build a Make scenario that watches for receipts via email or upload, extracts data with Parsli, and pushes to expense tracking tools or Google Sheets.",
+      "Stop processing receipts manually. Compare 3 receipt automation methods — dedicated apps, Make/Zapier workflows, and AI extraction — with accuracy and cost breakdowns.",
     publishedAt: "2026-03-20",
-    updatedAt: "2026-03-06",
+    updatedAt: "2026-03-23",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "9 min read",
     category: "Integration Guide" as const,
     imageTitle: "Automate Receipt Processing with Make",
     tldr: [
-      "**Receipt processing** — reading merchant names, amounts, dates, and categories from receipts — eats hours of manual time every month.",
-      "**Make (formerly Integromat)** provides a visual automation builder that connects Parsli to expense tracking tools, Google Sheets, and accounting software.",
-      "**Parsli's AI extraction** handles printed receipts, photographed receipts, and email receipt PDFs with built-in OCR.",
-      "**Build once, run forever** — receipts are processed automatically as they arrive via email or cloud upload.",
+      "**Receipt processing automation** — reading merchant names, amounts, dates, and categories from receipts — eliminates hours of manual data entry every month.",
+      "**Three methods compared**: dedicated expense apps (limited), Make/Zapier workflows (flexible), and Parsli AI extraction (fastest, most accurate).",
+      "**Parsli's AI extraction** handles printed receipts, photographed receipts, thermal fades, and email receipt PDFs with built-in OCR — 97% accuracy.",
+      "**Build once, run forever** — receipts are processed automatically as they arrive via email, cloud upload, or mobile capture.",
       "**Track expenses in real time** instead of chasing paper receipts at month-end. [Try the free receipt scanner →](/tools/receipt-scanner)",
     ],
     content: [
@@ -4564,11 +4621,11 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "Receipt processing is one of those tasks everyone hates but no one automates. It feels too small to justify building a system around — until you realize your team collectively spends 10+ hours per month on it, and the error rate makes your expense reports unreliable.",
+        text: "Receipt processing is one of those tasks everyone hates but no one automates. It feels too small to justify building a system around — until you realize your team collectively spends 10+ hours per month on it, and the error rate makes your expense reports unreliable. The average cost to manually process a single receipt is $26 when you factor in labor time, errors, and corrections (Aberdeen Group).",
       },
       {
         type: "paragraph",
-        text: "This guide shows you how to build a Make (formerly Integromat) scenario that automatically processes receipts as they arrive — extracting merchant, amount, date, tax, and category using Parsli's AI, then pushing the structured data to [Google Sheets](/guides/automate-invoice-processing-with-google-sheets), your expense tracker, or your accounting software.",
+        text: "This guide compares three methods for automating receipt processing — from dedicated expense apps to fully automated AI extraction pipelines — and shows you how to build each one step by step. Whether you're processing 50 receipts or 5,000 per month, there's a method that fits your volume and budget.",
       },
       {
         type: "key-stat",
@@ -6598,13 +6655,15 @@ const guides: GuideData[] = [
   },
   {
     slug: "extract-data-from-excel-to-json",
-    title: "How to Convert Excel Spreadsheets to Clean JSON",
-    h1: "How to Convert Excel Spreadsheets to Clean JSON",
-    metaTitle: "Convert Excel to JSON: 3 Methods Compared | Parsli",
+    title:
+      "How to Convert Excel to JSON: Online, Python & AI Methods (2026)",
+    h1: "How to Convert Excel to JSON: 3 Methods Compared",
+    metaTitle:
+      "Convert Excel to JSON: Online, Python & AI Methods (2026)",
     metaDescription:
-      "Learn how to convert Excel files to clean JSON for APIs, databases, and web apps. Compare manual, scripting, and AI-powered conversion methods.",
+      "Export Excel spreadsheets to clean JSON format for APIs and databases. Compare online converters, Python (openpyxl, pandas), and AI-powered extraction for merged cells and complex layouts.",
     publishedAt: "2026-03-20",
-    updatedAt: "2026-03-10",
+    updatedAt: "2026-03-23",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "8 min read",
@@ -9521,16 +9580,18 @@ const guides: GuideData[] = [
   },
   {
     slug: "extract-data-from-customs-documents",
-    title: "How to Extract Data from Customs Documents Automatically",
-    h1: "How to Extract Data from Customs Documents Automatically",
-    metaTitle: "How to Extract Data from Customs Documents Automatically | Parsli",
+    title:
+      "Extract Data from Customs Documents: Certificate of Origin, Packing Lists & Declarations",
+    h1: "Extract Data from Customs Documents: Certificate of Origin, Packing Lists & Declarations",
+    metaTitle:
+      "Customs Document Data Extractor: Certificate of Origin, Packing Lists & More | Parsli",
     metaDescription:
-      "Extract HS codes, declared values, and origin data from customs declarations and commercial invoices automatically with AI. Multi-language support included.",
+      "Parse certificates of origin, packing declarations, customs clearance documents, and commercial invoices automatically. AI extracts HS codes, declared values, and origin data in any language.",
     publishedAt: "2026-03-16",
-    updatedAt: "2026-03-14",
+    updatedAt: "2026-03-23",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
-    readTime: "8 min read",
+    readTime: "11 min read",
     category: "Document Extraction" as const,
     imageTitle: "Extract Customs Data",
     tldr: [
@@ -9795,6 +9856,56 @@ const guides: GuideData[] = [
       {
         type: "paragraph",
         text: "Trade compliance teams screen customs documents against denied party lists, validate HS codes against product classifications, and verify declared values against transfer pricing agreements. Structured extracted data enables automated compliance screening — flagging potential violations before goods clear customs rather than discovering issues during a post-entry audit.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Customs document types: what to extract from each",
+        id: "customs-document-types",
+      },
+      {
+        type: "paragraph",
+        text: "Each customs document type contains unique fields critical for clearance, compliance, and duty calculation. Here's what to extract from the most common types — and how an AI-powered customs document parser handles each one.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "Certificate of Origin — data extraction fields",
+        id: "certificate-of-origin-parser",
+      },
+      {
+        type: "paragraph",
+        text: "A certificate of origin (CO) certifies the country where goods were manufactured or produced. It determines eligibility for preferential trade agreements (USMCA, CAFTA-DR, EU GSP) and influences duty rates. Key fields to extract from a certificate of origin: **exporter name and address**, **producer name and address**, **importer/consignee**, **description of goods**, **HS tariff classification**, **country of origin**, **preferential trade agreement claimed**, **blanket period dates** (for blanket certificates), and **certifier signature block**. Parsli's AI reads certificates of origin in any format — USMCA certificates, EUR.1 forms, Form A (GSP), and free-form certificates — extracting all fields regardless of layout or language.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "Packing declaration — data extraction fields",
+        id: "packing-declaration-extractor",
+      },
+      {
+        type: "paragraph",
+        text: "A packing list (or packing declaration) details the contents of each package in a shipment — critical for customs verification and warehouse receiving. Key fields to extract: **shipper/exporter**, **consignee**, **number of packages**, **package type** (cartons, pallets, crates), **net weight and gross weight per package**, **dimensions per package**, **item descriptions per package**, **quantity per item**, **marks and numbers**, and **total shipment weight**. Packing lists often contain deeply nested tabular data (items within packages within containers) that template-based OCR cannot parse reliably. AI extraction preserves this hierarchical structure.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "Customs declaration — data extraction fields",
+        id: "customs-declaration-extractor",
+      },
+      {
+        type: "paragraph",
+        text: "Customs declarations (entry summaries) are the formal filings with customs authorities — US CBP Form 7501, EU SAD (Single Administrative Document), or country-specific equivalents. Key fields: **entry number**, **entry type**, **importer of record**, **consignee**, **country of export**, **port of entry**, **HS tariff numbers** (line-item level), **declared values per line**, **duty rates**, **quantities and units**, **special program indicators** (FTZ, bonded warehouse, drawback), and **other agency requirements** (FDA, USDA, EPA flags). These documents often contain 20-50+ line items with dense tabular data.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        text: "Commercial invoice — data extraction fields",
+        id: "commercial-invoice-extractor",
+      },
+      {
+        type: "paragraph",
+        text: "The commercial invoice is the primary document for customs valuation. Key extraction fields: **seller/exporter**, **buyer/importer**, **invoice number and date**, **terms of sale (Incoterms)**, **currency**, **line-item descriptions**, **HS codes per line item**, **unit prices and quantities**, **total declared value**, **freight and insurance charges**, **country of origin per item**, and **payment terms**. Commercial invoices arrive in every format and language imaginable — a German manufacturer's Handelsrechnung looks nothing like a Chinese 商业发票. AI extraction handles both identically.",
       },
       {
         type: "heading",
