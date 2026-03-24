@@ -6,6 +6,7 @@ import {
   Loader2,
   Webhook,
   FileSpreadsheet,
+  FileText,
   Zap,
   Blocks,
   Workflow,
@@ -26,6 +27,7 @@ import { WebhookForm } from "./WebhookForm"
 import { GoogleSheetsSetup } from "./GoogleSheetsSetup"
 import { ZapierMakeForm } from "./ZapierMakeForm"
 import { GmailInboxSetup } from "./GmailInboxSetup"
+import { GoogleDocsSetup } from "./GoogleDocsSetup"
 
 const INTEGRATION_OPTIONS: {
   type: IntegrationType
@@ -35,6 +37,7 @@ const INTEGRATION_OPTIONS: {
 }[] = [
   { type: "webhook", label: "Webhook", description: "Send results via HTTP POST to any URL", icon: Webhook },
   { type: "google_sheets", label: "Google Sheets", description: "Pull results into Google Sheets with IMPORTDATA", icon: FileSpreadsheet },
+  { type: "google_docs", label: "Google Docs", description: "Save extraction results as Google Docs in your Drive", icon: FileText },
   { type: "zapier", label: "Zapier", description: "Connect to 5000+ apps via Zapier webhook", icon: Zap },
   { type: "make", label: "Make", description: "Send results to Make (formerly Integromat) scenarios", icon: Blocks },
   { type: "power_automate", label: "Power Automate", description: "Connect to Microsoft Power Automate flows", icon: Workflow },
@@ -170,6 +173,14 @@ export function IntegrationList({ parserId }: IntegrationListProps) {
 
           {selectedType === "google_sheets" && (
             <GoogleSheetsSetup
+              parserId={parserId}
+              onCreated={handleCreated}
+              onCancel={() => setSelectedType(null)}
+            />
+          )}
+
+          {selectedType === "google_docs" && (
+            <GoogleDocsSetup
               parserId={parserId}
               onCreated={handleCreated}
               onCancel={() => setSelectedType(null)}

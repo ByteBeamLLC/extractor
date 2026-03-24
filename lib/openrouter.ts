@@ -206,6 +206,64 @@ export async function generateObject<T extends z.ZodSchema>(
     return { object: validated }
 }
 
+interface GenerateFreeformJsonOptions {
+    messages: Message[]
+    temperature?: number
+    model?: string
+}
+
+/**
+ * Generate a freeform JSON object from the model without Zod schema enforcement.
+ * Used for full_content extraction where the model decides the output structure.
+ */
+export async function generateFreeformJson(
+    options: GenerateFreeformJsonOptions
+): Promise<{ object: Record<string, any> }> {
+    const apiKey = getApiKey()
+    const model = getModel(options.model)
+
+    const enhancedMessages = [
+        {
+            role: 'system' as const,
+            content: 'You must respond with valid JSON only. No explanations, no markdown, no extra text — just the JSON object.'
+        },
+        ...options.messages
+    ]
+
+    const response = await fetch(OPENROUTER_API_URL, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+            'X-Title': 'Parsli'
+        },
+        body: JSON.stringify({
+            model,
+            messages: formatMessages(enhancedMessages),
+            temperature: options.temperature ?? 0.2,
+            response_format: { type: 'json_object' }
+        })
+    })
+
+    if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`OpenRouter API error (${response.status}): ${errorText}`)
+    }
+
+    const data = await response.json()
+    const content = data.choices?.[0]?.message?.content || '{}'
+
+    let parsedObject: Record<string, any>
+    try {
+        parsedObject = JSON.parse(content)
+    } catch (error) {
+        throw new Error(`Failed to parse JSON response from OpenRouter: ${content}`)
+    }
+
+    return { object: parsedObject }
+}
+
 /**
  * Check if OpenRouter is properly configured
  */

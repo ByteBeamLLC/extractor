@@ -40,8 +40,9 @@ export async function POST(
     return NextResponse.json({ error: "Parser is paused" }, { status: 400 })
   }
 
+  const extractionType = parser.extraction_type ?? "fields"
   const schemaTree: SchemaField[] = parser.fields ?? []
-  if (schemaTree.length === 0) {
+  if (extractionType === "fields" && schemaTree.length === 0) {
     return NextResponse.json({ error: "Parser has no fields configured" }, { status: 400 })
   }
 
@@ -104,6 +105,7 @@ export async function POST(
     mimeType: fileMimeType,
     schemaTree,
     extractionPromptOverride: parser.extraction_prompt_override,
+    extractionType,
   })
 
   const { __meta__, ...apiResults } = result.results

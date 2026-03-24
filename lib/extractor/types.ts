@@ -1,11 +1,14 @@
 import type { SchemaField } from "@/lib/schema"
 
+export type ExtractionType = "fields" | "full_content"
+
 export interface Parser {
   id: string
   user_id: string
   name: string
   description: string | null
   fields: SchemaField[]
+  extraction_type: ExtractionType
   extraction_mode: "ai" | "template" | "hybrid"
   extraction_prompt_override: string | null
   inbound_email: string | null
@@ -34,6 +37,7 @@ export interface ParserIntegration {
 export type IntegrationType =
   | "webhook"
   | "google_sheets"
+  | "google_docs"
   | "zapier"
   | "make"
   | "power_automate"
@@ -55,6 +59,14 @@ export interface GoogleSheetsConfig {
 
 export interface ZapierMakeConfig {
   webhook_url: string
+}
+
+export interface GoogleDocsConfig {
+  access_token: string
+  refresh_token: string
+  token_expiry: string
+  google_email: string
+  folder_id: string | null
 }
 
 export interface GmailInboxConfig {

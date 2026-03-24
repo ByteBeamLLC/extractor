@@ -4,11 +4,16 @@
  *
  * This is the core extraction pipeline:
  *   file → detect type → parse text → build Zod schema → build prompt → AI call → sanitize results
+ *
+ * Supports two modes:
+ *   - "fields" (default): Schema-driven extraction with Zod validation
+ *   - "full_content": Extract ALL data from the document, AI determines the structure
  */
 
-import { generateObject } from "@/lib/openrouter"
+import { generateObject, generateFreeformJson } from "@/lib/openrouter"
 import { flattenFields } from "@/lib/schema"
 import type { SchemaField } from "@/lib/schema"
+import type { ExtractionType } from "@/lib/extractor/types"
 import {
   extractTextFromDocument,
   isImageFile,
@@ -17,6 +22,9 @@ import {
   buildImagePrompt,
   buildPdfPrompt,
   buildTextDocumentPrompt,
+  buildFullContentImagePrompt,
+  buildFullContentPdfPrompt,
+  buildFullContentTextPrompt,
   buildFallbackFromTree,
   MAX_SUPPLEMENTAL_TEXT_CHARS,
 } from "@/lib/extraction/api"
@@ -34,10 +42,12 @@ export interface ExtractionInput {
   fileName: string
   /** MIME type of the file */
   mimeType: string
-  /** Schema fields defining what to extract */
+  /** Schema fields defining what to extract (used in "fields" mode) */
   schemaTree: SchemaField[]
   /** Optional custom prompt override */
   extractionPromptOverride?: string | null
+  /** Extraction type — "fields" for schema-driven, "full_content" for extracting everything */
+  extractionType?: ExtractionType
 }
 
 export interface ExtractionOutput {
@@ -54,10 +64,116 @@ export interface ExtractionOutput {
 
 /**
  * Runs the full extraction pipeline in a single AI request.
- * Uses the exact same schema builder, prompt builder, and result processing
- * as the main app's /api/extract route.
+ * Delegates to schema-driven or full-content extraction based on extractionType.
  */
 export async function runExtraction(input: ExtractionInput): Promise<ExtractionOutput> {
+  const extractionType = input.extractionType ?? "fields"
+
+  if (extractionType === "full_content") {
+    return runFullContentExtraction(input)
+  }
+  return runFieldsExtraction(input)
+}
+
+// ---------------------------------------------------------------------------
+// Full-content extraction (no predefined schema)
+// ---------------------------------------------------------------------------
+
+async function runFullContentExtraction(input: ExtractionInput): Promise<ExtractionOutput> {
+  const { fileData, fileName, mimeType, extractionPromptOverride } = input
+
+  const buffer = Buffer.from(fileData, "base64")
+  const bytes = new Uint8Array(buffer)
+  const fileMimeType = mimeType.toLowerCase()
+
+  if (bytes.length === 0) {
+    return {
+      success: false,
+      results: {},
+      warnings: ["Uploaded file is empty."],
+      handledWithFallback: true,
+    }
+  }
+
+  const isImage = isImageFile(fileMimeType, fileName)
+  const isPdf = isPdfFile(fileMimeType, fileName)
+
+  let documentContent: Array<{ type: string; text?: string; image?: string }> | null = null
+  let extractionPrompt = ""
+  const warnings: string[] = []
+  const promptOverride = extractionPromptOverride || undefined
+
+  if (isImage) {
+    const base64 = Buffer.from(bytes).toString("base64")
+    documentContent = buildFullContentImagePrompt(base64, fileMimeType || "image/png", promptOverride)
+  } else if (isPdf) {
+    const base64 = Buffer.from(bytes).toString("base64")
+
+    const extraction = await extractTextFromDocument(bytes, fileName, fileMimeType)
+    warnings.push(...extraction.warnings)
+
+    let supplemental = extraction.text.trim()
+    if (supplemental.length > MAX_SUPPLEMENTAL_TEXT_CHARS) {
+      supplemental = `${supplemental.slice(0, MAX_SUPPLEMENTAL_TEXT_CHARS)}\n\n[Truncated]`
+      warnings.push(`Supplemental text truncated to ${MAX_SUPPLEMENTAL_TEXT_CHARS} characters.`)
+    }
+
+    documentContent = buildFullContentPdfPrompt(
+      base64,
+      fileMimeType || "application/pdf",
+      supplemental.length > 0 ? supplemental : null,
+      promptOverride
+    )
+  } else {
+    const extraction = await extractTextFromDocument(bytes, fileName, fileMimeType)
+    warnings.push(...extraction.warnings)
+
+    if (extraction.text.trim().length === 0) {
+      return {
+        success: true,
+        results: {},
+        warnings: [...warnings, "No readable text detected."],
+        handledWithFallback: true,
+      }
+    }
+
+    extractionPrompt = buildFullContentTextPrompt(extraction.text, promptOverride)
+  }
+
+  try {
+    const result = await generateFreeformJson({
+      temperature: 0.2,
+      messages: documentContent
+        ? [{ role: "user" as const, content: documentContent as any }]
+        : [{ role: "user" as const, content: extractionPrompt }],
+    })
+
+    return {
+      success: true,
+      results: result.object,
+      warnings,
+    }
+  } catch (modelError) {
+    console.error("[extraction] Full-content extraction failed:", modelError)
+
+    return {
+      success: false,
+      results: {},
+      warnings: [
+        ...warnings,
+        "Extraction failed. Please review and retry.",
+      ],
+      handledWithFallback: true,
+      error: modelError instanceof Error ? modelError.message : String(modelError),
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Schema-driven field extraction (original behavior, unchanged)
+// ---------------------------------------------------------------------------
+
+async function runFieldsExtraction(input: ExtractionInput): Promise<ExtractionOutput> {
   const { fileData, fileName, mimeType, schemaTree, extractionPromptOverride } = input
 
   // Decode file
@@ -147,8 +263,8 @@ export async function runExtraction(input: ExtractionInput): Promise<ExtractionO
     const result = await generateObject({
       temperature: 0.2,
       messages: documentContent
-        ? [{ role: "user", content: documentContent }]
-        : [{ role: "user", content: extractionPrompt }],
+        ? [{ role: "user" as const, content: documentContent as any }]
+        : [{ role: "user" as const, content: extractionPrompt }],
       schema: zodSchema,
     })
 

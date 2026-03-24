@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { SchemaField } from "@/lib/schema"
+import type { ExtractionType } from "@/lib/extractor/types"
 
 interface ExtractionResultsViewProps {
   results: Record<string, any>
@@ -19,6 +20,8 @@ interface ExtractionResultsViewProps {
   onReprocess?: () => void
   /** Whether reprocessing is in progress */
   isReprocessing?: boolean
+  /** Extraction type — controls display mode */
+  extractionType?: ExtractionType
 }
 
 export function ExtractionResultsView({
@@ -28,9 +31,11 @@ export function ExtractionResultsView({
   documentId,
   onReprocess,
   isReprocessing,
+  extractionType,
 }: ExtractionResultsViewProps) {
+  const isFullContent = extractionType === "full_content"
   const [copied, setCopied] = useState(false)
-  const [view, setView] = useState<"table" | "json">("table")
+  const [view, setView] = useState<"table" | "json">(isFullContent ? "json" : "table")
 
   // Strip __meta__ from results for display
   const { __meta__, ...displayResults } = results
@@ -91,15 +96,35 @@ export function ExtractionResultsView({
     return <span>{String(value)}</span>
   }
 
-  // Flatten fields for table view (just top-level)
-  const fieldEntries = fields
-    .filter((f) => f.type !== "input")
-    .map((f) => ({
-      id: f.id,
-      name: f.name,
-      type: f.type,
-      value: displayResults[f.id],
-    }))
+  /** Infer a display type label from a value */
+  const inferType = (value: any): string => {
+    if (value === null || value === undefined || value === "-") return "—"
+    if (typeof value === "boolean") return "boolean"
+    if (typeof value === "number") return "number"
+    if (Array.isArray(value)) {
+      if (value.length > 0 && typeof value[0] === "object") return "table"
+      return "list"
+    }
+    if (typeof value === "object") return "object"
+    return "string"
+  }
+
+  // Build display entries — schema-driven or dynamic
+  const fieldEntries = isFullContent
+    ? Object.entries(displayResults).map(([key, value]) => ({
+        id: key,
+        name: key.replace(/_/g, " "),
+        type: inferType(value),
+        value,
+      }))
+    : fields
+        .filter((f) => f.type !== "input")
+        .map((f) => ({
+          id: f.id,
+          name: f.name,
+          type: f.type,
+          value: displayResults[f.id],
+        }))
 
   return (
     <div className="border rounded-lg overflow-hidden">
@@ -129,7 +154,7 @@ export function ExtractionResultsView({
               {isReprocessing ? "Reprocessing..." : "Reprocess"}
             </Button>
           )}
-          {parserId && (
+          {parserId && !isFullContent && (
             <Button variant="ghost" size="sm" asChild>
               <Link href={`/parsers/${parserId}/schema`}>
                 <Pencil className="h-3.5 w-3.5 mr-1" />
@@ -153,7 +178,7 @@ export function ExtractionResultsView({
           {fieldEntries.map((entry) => (
             <div key={entry.id} className="flex items-start gap-4 p-3">
               <div className="w-1/3 shrink-0">
-                <span className="text-sm font-medium">{entry.name}</span>
+                <span className="text-sm font-medium capitalize">{entry.name}</span>
                 <Badge variant="outline" className="text-[10px] ml-2">
                   {entry.type}
                 </Badge>
@@ -165,7 +190,7 @@ export function ExtractionResultsView({
           ))}
           {fieldEntries.length === 0 && (
             <div className="p-6 text-center text-sm text-muted-foreground">
-              No fields to display
+              No data to display
             </div>
           )}
         </div>

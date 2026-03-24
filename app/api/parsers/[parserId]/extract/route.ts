@@ -39,8 +39,9 @@ export async function POST(
     return NextResponse.json({ error: "Parser is paused" }, { status: 400 })
   }
 
+  const extractionType = p.extraction_type ?? "fields"
   const schemaTree: SchemaField[] = p.fields ?? []
-  if (schemaTree.length === 0) {
+  if (extractionType === "fields" && schemaTree.length === 0) {
     return NextResponse.json(
       { error: "Parser has no fields defined. Add fields in the Schema tab." },
       { status: 400 }
@@ -127,6 +128,7 @@ export async function POST(
     mimeType: fileData.type ?? "",
     schemaTree,
     extractionPromptOverride: p.extraction_prompt_override,
+    extractionType,
   })
 
   // Atomically deduct credits (DB-level guard prevents overshoot)

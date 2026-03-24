@@ -9,6 +9,8 @@ export interface IntegrationDeliveryStatus {
   status: "delivered" | "failed" | "skipped"
   delivered_at?: string
   error?: string | null
+  /** Google Docs URL when delivered via google_docs integration */
+  doc_url?: string
 }
 
 export interface DocumentProcessedEvent {

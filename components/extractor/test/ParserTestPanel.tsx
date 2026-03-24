@@ -23,7 +23,7 @@ export function ParserTestPanel({ parser }: ParserTestPanelProps) {
 
   const handleFileSelected = useCallback(
     async (file: File) => {
-      if (parser.fields.length === 0) {
+      if (parser.extraction_type !== "full_content" && parser.fields.length === 0) {
         setError("Please add fields to your parser schema before testing.")
         setState("error")
         return
@@ -148,7 +148,11 @@ export function ParserTestPanel({ parser }: ParserTestPanelProps) {
             </div>
           )}
 
-          <ExtractionResultsView results={results} fields={parser.fields} />
+          <ExtractionResultsView
+            results={results}
+            fields={parser.fields}
+            extractionType={parser.extraction_type}
+          />
         </div>
       )}
     </div>

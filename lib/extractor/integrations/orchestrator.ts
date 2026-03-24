@@ -3,8 +3,9 @@ import type {
   IntegrationDeliveryStatus,
   DocumentProcessedEvent,
 } from "./types"
-import type { ParserIntegration, WebhookConfig, ZapierMakeConfig } from "@/lib/extractor/types"
+import type { ParserIntegration, WebhookConfig, ZapierMakeConfig, GoogleDocsConfig } from "@/lib/extractor/types"
 import { deliverWebhook } from "./webhookDelivery"
+import { createGoogleDoc } from "@/lib/extractor/google-docs/create-doc"
 
 /**
  * Delivers extraction results to all active integrations for a parser.
@@ -88,6 +89,32 @@ export async function deliverToIntegrations(
           // Google Sheets is pull-based (IMPORTDATA), no delivery needed
           deliveryStatus[integration.id] = { status: "skipped" }
           break
+
+        case "google_docs": {
+          const gdConfig = integration.config as GoogleDocsConfig
+          if (!gdConfig.access_token || !gdConfig.refresh_token) {
+            deliveryStatus[integration.id] = { status: "skipped", error: "Not connected" }
+            break
+          }
+          const docResult = await createGoogleDoc(
+            gdConfig,
+            {
+              results,
+              fileName: metadata.file_name,
+              parserName,
+              processedAt: event.timestamp,
+              folderId: gdConfig.folder_id,
+            },
+            integration.id,
+            supabase
+          )
+          deliveryStatus[integration.id] = {
+            status: "delivered",
+            delivered_at: new Date().toISOString(),
+            doc_url: docResult.docUrl,
+          }
+          break
+        }
 
         case "gmail_inbox":
           // Input integration — no outbound delivery needed

@@ -31,16 +31,18 @@ export async function GET(
     return NextResponse.json({ error: "Invalid token" }, { status: 403 })
   }
 
-  // Fetch parser fields for headers
+  // Fetch parser for fields and extraction_type
   const { data: parser } = await supabase
     .from("parsers")
-    .select("fields")
+    .select("fields, extraction_type")
     .eq("id", params.parserId)
     .single()
 
   if (!parser) {
     return NextResponse.json({ error: "Parser not found" }, { status: 404 })
   }
+
+  const isFullContent = (parser as any).extraction_type === "full_content"
 
   // Fetch recent results
   const { data: docs } = await supabase
@@ -51,10 +53,17 @@ export async function GET(
     .order("processed_at", { ascending: false })
     .limit(1000)
 
+  const documents = docs ?? []
+
+  if (isFullContent) {
+    return buildFullContentFeed(documents, format, params.parserId)
+  }
+
+  // --- Fields mode (original logic) ---
   const fields = (parser.fields ?? []).filter((f: any) => f.type !== "input")
 
   if (format === "json") {
-    const rows = (docs ?? []).map((doc) => {
+    const rows = documents.map((doc: any) => {
       const row: Record<string, any> = {
         _file_name: doc.file_name,
         _processed_at: doc.processed_at,
@@ -77,7 +86,7 @@ export async function GET(
     return str
   }
 
-  const rows = (docs ?? []).map((doc) => {
+  const rows = documents.map((doc: any) => {
     const values = [
       doc.file_name,
       doc.processed_at,
@@ -97,6 +106,72 @@ export async function GET(
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": `inline; filename="parser-${params.parserId}.csv"`,
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+    },
+  })
+}
+
+/** Build feed response for full_content parsers with dynamic keys */
+function buildFullContentFeed(
+  documents: Array<{ results: any; file_name: string; processed_at: string | null }>,
+  format: string,
+  parserId: string
+) {
+  // Collect all unique keys across documents
+  const keySet = new Set<string>()
+  for (const doc of documents) {
+    if (!doc.results) continue
+    for (const key of Object.keys(doc.results)) {
+      if (key === "__meta__") continue
+      keySet.add(key)
+    }
+  }
+  const dynamicKeys = Array.from(keySet)
+
+  if (format === "json") {
+    const rows = documents.map((doc) => {
+      const { __meta__, ...data } = doc.results ?? {}
+      return {
+        _file_name: doc.file_name,
+        _processed_at: doc.processed_at,
+        ...data,
+      }
+    })
+    return NextResponse.json(rows)
+  }
+
+  // CSV format
+  const csvEscape = (v: any) => {
+    const str = v === null || v === undefined ? "" : String(v)
+    if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+      return `"${str.replace(/"/g, '""')}"`
+    }
+    return str
+  }
+
+  const headers = ["File Name", "Processed At", ...dynamicKeys.map((k) => k.replace(/_/g, " "))]
+
+  const rows = documents.map((doc) => {
+    const { __meta__, ...data } = doc.results ?? {}
+    const values = [
+      doc.file_name,
+      doc.processed_at,
+      ...dynamicKeys.map((key) => {
+        const val = data[key]
+        if (val === null || val === undefined) return ""
+        if (typeof val === "object") return JSON.stringify(val)
+        return String(val)
+      }),
+    ]
+    return values.map(csvEscape).join(",")
+  })
+
+  const csv = [headers.map(csvEscape).join(","), ...rows].join("\n")
+
+  return new NextResponse(csv, {
+    headers: {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `inline; filename="parser-${parserId}.csv"`,
       "Cache-Control": "no-cache, no-store, must-revalidate",
     },
   })

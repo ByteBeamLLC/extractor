@@ -81,9 +81,11 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
     loadDocuments()
   }, [loadDocuments])
 
+  const isFullContent = parser.extraction_type === "full_content"
+
   const handleFileSelected = useCallback(
     async (file: File) => {
-      if (parser.fields.length === 0) {
+      if (!isFullContent && parser.fields.length === 0) {
         setUploadError("Please add fields to your parser schema before uploading.")
         setUploadState("error")
         return
@@ -138,7 +140,7 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
         setUploadState("error")
       }
     },
-    [parser.id, parser.fields.length, loadDocuments]
+    [parser.id, parser.fields.length, isFullContent, loadDocuments]
   )
 
   const resetUpload = () => {
@@ -244,6 +246,7 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
                 results={uploadResults}
                 fields={parser.fields}
                 parserId={parser.id}
+                extractionType={parser.extraction_type}
               />
             </div>
           )}

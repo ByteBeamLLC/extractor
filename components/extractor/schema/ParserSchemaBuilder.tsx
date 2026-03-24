@@ -65,6 +65,7 @@ const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
 }
 
 export function ParserSchemaBuilder({ parser, onUpdate }: ParserSchemaBuilderProps) {
+  const isFullContent = parser.extraction_type === "full_content"
   const { fieldDetection, detectFields, clearFieldDetection } = useActiveParser()
   const [fields, setFields] = useState<SchemaField[]>(parser.fields ?? [])
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null)
@@ -231,6 +232,56 @@ export function ParserSchemaBuilder({ parser, onUpdate }: ParserSchemaBuilderPro
           <div className="mt-1 space-y-1">
             {renderFieldChildren((field as TableField).columns, depth + 1)}
           </div>
+        )}
+      </div>
+    )
+  }
+
+  // Full-content mode: simplified view with just the prompt override
+  if (isFullContent) {
+    return (
+      <div className="space-y-6">
+        <div className="border rounded-xl p-6 bg-card space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <FileText className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-semibold">Full Content Extraction</h3>
+              <p className="text-sm text-muted-foreground">
+                This parser extracts all data from your documents automatically. The AI determines the structure based on the document content.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">
+            Custom Extraction Instructions (optional)
+          </label>
+          <textarea
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring min-h-[100px] resize-y"
+            placeholder="Guide the AI on what to focus on or how to structure the output. E.g., 'Focus on financial data and line items' or 'Organize by sections: header, body, footer'..."
+            value={promptOverride}
+            onChange={(e) => {
+              setPromptOverride(e.target.value)
+              markChanged()
+            }}
+          />
+          <p className="text-xs text-muted-foreground">
+            Use this to guide the AI on what to prioritize or how to organize the extracted data.
+          </p>
+        </div>
+
+        {hasChanges && (
+          <Button size="sm" onClick={handleSave} disabled={isSaving}>
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-1" />
+            )}
+            Save Changes
+          </Button>
         )}
       </div>
     )

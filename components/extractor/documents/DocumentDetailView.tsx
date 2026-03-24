@@ -63,6 +63,7 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
   const [fileLoading, setFileLoading] = useState(true)
   const [reprocessing, setReprocessing] = useState(false)
   const [copied, setCopied] = useState(false)
+  const isFullContent = parser.extraction_type === "full_content"
   const [tab, setTab] = useState<"data" | "fields">("data")
 
   // Load document
@@ -277,7 +278,9 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
             <Tabs value={tab} onValueChange={(v) => setTab(v as "data" | "fields")}>
               <TabsList className="h-8">
                 <TabsTrigger value="data" className="text-xs h-7">Data</TabsTrigger>
-                <TabsTrigger value="fields" className="text-xs h-7">Fields</TabsTrigger>
+                {!isFullContent && (
+                  <TabsTrigger value="fields" className="text-xs h-7">Fields</TabsTrigger>
+                )}
               </TabsList>
             </Tabs>
             <div className="flex items-center gap-1">
@@ -331,12 +334,14 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
             <div className="flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-primary shrink-0" />
               <p className="text-xs text-muted-foreground flex-1">
-                Not the data you were looking for? Update your fields and instructions.
+                {isFullContent
+                  ? "Not the data you were looking for? Add custom extraction instructions."
+                  : "Not the data you were looking for? Update your fields and instructions."}
               </p>
               <Button size="sm" variant="default" className="h-7 text-xs shrink-0" asChild>
                 <Link href={`/parsers/${parser.id}/schema`}>
                   <Pencil className="h-3 w-3 mr-1" />
-                  Update fields
+                  {isFullContent ? "Instructions" : "Update fields"}
                 </Link>
               </Button>
             </div>

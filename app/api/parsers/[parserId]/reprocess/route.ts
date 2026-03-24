@@ -39,9 +39,10 @@ export async function POST(
   }
 
   const p = parser as any
+  const extractionType = p.extraction_type ?? "fields"
   const schemaTree: SchemaField[] = p.fields ?? []
 
-  if (schemaTree.length === 0) {
+  if (extractionType === "fields" && schemaTree.length === 0) {
     return NextResponse.json(
       { error: "Parser has no fields defined." },
       { status: 400 }
@@ -116,6 +117,7 @@ export async function POST(
     mimeType: d.mime_type ?? "",
     schemaTree,
     extractionPromptOverride: p.extraction_prompt_override,
+    extractionType,
   })
 
   // Deduct credits

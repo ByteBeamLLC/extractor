@@ -174,6 +174,88 @@ Guidelines:
   return contents
 }
 
+// ---------------------------------------------------------------------------
+// Full-content extraction prompts (no predefined schema)
+// ---------------------------------------------------------------------------
+
+const FULL_CONTENT_INSTRUCTIONS = `You are a specialized AI model for comprehensive document data extraction. Your purpose is to extract ALL meaningful data from the given document and return it as a well-structured JSON object.
+
+Guidelines:
+- Extract every piece of meaningful data: names, dates, amounts, addresses, line items, tables, reference numbers, etc.
+- Organize the data logically using descriptive, snake_case keys (e.g., "invoice_number", "vendor_name", "line_items").
+- For tabular data, return arrays of objects with consistent keys across rows.
+- For grouped data (e.g., sender info, recipient info), nest them in sub-objects.
+- Use appropriate data types: numbers for amounts/quantities, strings for text, booleans for yes/no, arrays for lists.
+- Format dates as YYYY-MM-DD when possible.
+- Do not skip any data. If it's in the document, it should be in the output.
+- Do not add commentary or explanations — return only the JSON object.
+- Do not invent data. Only extract what is actually present in the document.`
+
+/**
+ * Builds the full-content extraction prompt for image files
+ */
+export function buildFullContentImagePrompt(
+  base64: string,
+  mimeType: string,
+  extractionPromptOverride?: string
+): ContentItem[] {
+  const baseText = extractionPromptOverride
+    ? `${extractionPromptOverride}\n\nExtract ALL data from this image as a structured JSON object. Use descriptive snake_case keys.`
+    : FULL_CONTENT_INSTRUCTIONS
+
+  return [
+    { type: "text", text: baseText },
+    { type: "image", image: `data:${mimeType};base64,${base64}` },
+  ]
+}
+
+/**
+ * Builds the full-content extraction prompt for PDF files
+ */
+export function buildFullContentPdfPrompt(
+  base64: string,
+  mimeType: string,
+  supplementalText: string | null,
+  extractionPromptOverride?: string
+): ContentItem[] {
+  const baseText = extractionPromptOverride
+    ? `${extractionPromptOverride}\n\nExtract ALL data from this PDF as a structured JSON object. Use descriptive snake_case keys.`
+    : FULL_CONTENT_INSTRUCTIONS
+
+  const contents: ContentItem[] = [
+    { type: "text", text: baseText },
+    { type: "image", image: `data:${mimeType};base64,${base64}` },
+  ]
+
+  if (supplementalText && supplementalText.trim().length > 0) {
+    contents.push({
+      type: "text",
+      text: `Supplemental extracted text (may be incomplete OCR):\n${supplementalText}`,
+    })
+  }
+
+  return contents
+}
+
+/**
+ * Builds the full-content extraction prompt for text-based documents
+ */
+export function buildFullContentTextPrompt(
+  documentText: string,
+  extractionPromptOverride?: string
+): string {
+  const instructions = extractionPromptOverride
+    ? `${extractionPromptOverride}\n\nExtract ALL data from this document as a structured JSON object. Use descriptive snake_case keys.`
+    : FULL_CONTENT_INSTRUCTIONS
+
+  return `${instructions}
+
+Here is the document to process:
+${documentText}
+
+Extract ALL information from the document as a structured JSON object.`
+}
+
 /**
  * Builds the extraction prompt for text-based documents
  */

@@ -112,8 +112,9 @@ export async function pollGmailIntegration(
   }
 
   const p = parser as any
+  const extractionType = p.extraction_type ?? "fields"
   const schemaTree: SchemaField[] = p.fields ?? []
-  if (schemaTree.length === 0) {
+  if (extractionType === "fields" && schemaTree.length === 0) {
     result.errors.push("Parser has no fields")
     return result
   }
@@ -210,6 +211,7 @@ export async function pollGmailIntegration(
             mimeType,
             schemaTree,
             extractionPromptOverride: p.extraction_prompt_override,
+            extractionType,
           })
 
           if (s) {

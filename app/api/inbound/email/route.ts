@@ -77,8 +77,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Parser is paused" }, { status: 200 })
   }
 
+  const extractionType = parser.extraction_type ?? "fields"
   const schemaTree: SchemaField[] = parser.fields ?? []
-  if (schemaTree.length === 0) {
+  if (extractionType === "fields" && schemaTree.length === 0) {
     return NextResponse.json({ message: "Parser has no fields configured" }, { status: 200 })
   }
 
@@ -168,6 +169,7 @@ export async function POST(request: NextRequest) {
         mimeType: item.mimeType,
         schemaTree,
         extractionPromptOverride: parser.extraction_prompt_override,
+        extractionType,
       })
 
       // Deduct 1 credit

@@ -11,6 +11,8 @@ import {
   ScrollText,
   Package,
   Plus,
+  ListChecks,
+  ScanText,
 } from "lucide-react"
 import {
   Dialog,
@@ -28,6 +30,7 @@ import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
 import { generateInboundEmail } from "@/lib/extractor/inbound-email"
 import { parserTemplates, type ParserTemplate } from "@/lib/parser-templates"
 import { cn } from "@/lib/utils"
+import type { ExtractionType } from "@/lib/extractor/types"
 
 const templateIcons: Record<string, React.ElementType> = {
   "invoice-parsing": Receipt,
@@ -48,6 +51,7 @@ export function CreateParserDialog({ open, onOpenChange, onCreated }: CreatePars
   const session = useSession()
   const supabase = useSupabaseClient()
 
+  const [extractionType, setExtractionType] = useState<ExtractionType>("fields")
   const [selectedTemplate, setSelectedTemplate] = useState<ParserTemplate | null>(null)
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
@@ -55,6 +59,7 @@ export function CreateParserDialog({ open, onOpenChange, onCreated }: CreatePars
   const [error, setError] = useState<string | null>(null)
 
   const resetForm = () => {
+    setExtractionType("fields")
     setSelectedTemplate(null)
     setName("")
     setDescription("")
@@ -87,29 +92,33 @@ export function CreateParserDialog({ open, onOpenChange, onCreated }: CreatePars
       // Generate a unique webhook token
       const webhookToken = crypto.randomUUID().replace(/-/g, "")
 
-      const fields = selectedTemplate ? selectedTemplate.buildFields() : []
+      const fields = extractionType === "fields" && selectedTemplate
+        ? selectedTemplate.buildFields()
+        : []
 
       const { data, error: insertError } = await supabase
-        .from("parsers")
+        .from("parsers" as any)
         .insert({
           user_id: session.user.id,
           name: name.trim(),
           description: description.trim() || null,
           fields,
+          extraction_type: extractionType,
           extraction_mode: "ai",
           inbound_email: generateInboundEmail(name),
           inbound_webhook_token: webhookToken,
-        })
+        } as any)
         .select("id")
         .single()
 
       if (insertError) throw insertError
 
+      const parserId = (data as any)?.id
       onCreated()
       router.push(
-        selectedTemplate
-          ? `/parsers/${data.id}?onboarding=true`
-          : `/parsers/${data.id}`
+        extractionType === "fields" && selectedTemplate
+          ? `/parsers/${parserId}?onboarding=true`
+          : `/parsers/${parserId}`
       )
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create parser")
@@ -124,61 +133,118 @@ export function CreateParserDialog({ open, onOpenChange, onCreated }: CreatePars
         <DialogHeader>
           <DialogTitle>Create Parser</DialogTitle>
           <DialogDescription>
-            Start from a template or create a blank parser.
+            Choose how you want to extract data from your documents.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          {/* Template grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {/* Blank parser option */}
+          {/* Extraction type selection */}
+          <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
-              onClick={() => handleSelectTemplate(null)}
+              onClick={() => {
+                setExtractionType("fields")
+                setSelectedTemplate(null)
+                setName("")
+                setDescription("")
+              }}
               className={cn(
-                "flex flex-col items-center gap-2 rounded-lg border p-3 text-center text-sm transition-colors hover:bg-muted/50",
-                selectedTemplate === null
+                "flex flex-col items-start gap-2 rounded-xl border p-4 text-left transition-colors hover:bg-muted/50",
+                extractionType === "fields"
                   ? "border-primary bg-primary/5 ring-1 ring-primary"
                   : "border-border"
               )}
             >
-              <Plus className="h-5 w-5 text-muted-foreground" />
-              <span className="font-medium">Blank Parser</span>
-              <span className="text-xs text-muted-foreground leading-tight">
-                Start from scratch
-              </span>
+              <ListChecks className="h-5 w-5 text-primary" />
+              <div>
+                <span className="text-sm font-semibold">Extract Fields</span>
+                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                  Define specific fields to extract. Best when you know exactly what data you need.
+                </p>
+              </div>
             </button>
 
-            {parserTemplates.map((template) => {
-              const Icon = templateIcons[template.id] || FileText
-              const isSelected = selectedTemplate?.id === template.id
-              return (
-                <button
-                  key={template.id}
-                  type="button"
-                  onClick={() => handleSelectTemplate(template)}
-                  className={cn(
-                    "flex flex-col items-center gap-2 rounded-lg border p-3 text-center text-sm transition-colors hover:bg-muted/50",
-                    isSelected
-                      ? "border-primary bg-primary/5 ring-1 ring-primary"
-                      : "border-border"
-                  )}
-                >
-                  <Icon className="h-5 w-5 text-muted-foreground" />
-                  <span className="font-medium">{template.name}</span>
-                  <span className="text-xs text-muted-foreground leading-tight line-clamp-2">
-                    {template.description}
-                  </span>
-                </button>
-              )
-            })}
+            <button
+              type="button"
+              onClick={() => {
+                setExtractionType("full_content")
+                setSelectedTemplate(null)
+                setName("")
+                setDescription("")
+              }}
+              className={cn(
+                "flex flex-col items-start gap-2 rounded-xl border p-4 text-left transition-colors hover:bg-muted/50",
+                extractionType === "full_content"
+                  ? "border-primary bg-primary/5 ring-1 ring-primary"
+                  : "border-border"
+              )}
+            >
+              <ScanText className="h-5 w-5 text-primary" />
+              <div>
+                <span className="text-sm font-semibold">Extract Everything</span>
+                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                  Extract all data from the document. AI determines the structure automatically.
+                </p>
+              </div>
+            </button>
           </div>
+
+          {/* Template grid — only for "fields" mode */}
+          {extractionType === "fields" && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {/* Blank parser option */}
+              <button
+                type="button"
+                onClick={() => handleSelectTemplate(null)}
+                className={cn(
+                  "flex flex-col items-center gap-2 rounded-lg border p-3 text-center text-sm transition-colors hover:bg-muted/50",
+                  selectedTemplate === null
+                    ? "border-primary bg-primary/5 ring-1 ring-primary"
+                    : "border-border"
+                )}
+              >
+                <Plus className="h-5 w-5 text-muted-foreground" />
+                <span className="font-medium">Blank Parser</span>
+                <span className="text-xs text-muted-foreground leading-tight">
+                  Start from scratch
+                </span>
+              </button>
+
+              {parserTemplates.map((template) => {
+                const Icon = templateIcons[template.id] || FileText
+                const isSelected = selectedTemplate?.id === template.id
+                return (
+                  <button
+                    key={template.id}
+                    type="button"
+                    onClick={() => handleSelectTemplate(template)}
+                    className={cn(
+                      "flex flex-col items-center gap-2 rounded-lg border p-3 text-center text-sm transition-colors hover:bg-muted/50",
+                      isSelected
+                        ? "border-primary bg-primary/5 ring-1 ring-primary"
+                        : "border-border"
+                    )}
+                  >
+                    <Icon className="h-5 w-5 text-muted-foreground" />
+                    <span className="font-medium">{template.name}</span>
+                    <span className="text-xs text-muted-foreground leading-tight line-clamp-2">
+                      {template.description}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="parser-name">Name</Label>
             <Input
               id="parser-name"
-              placeholder="e.g. Invoice Parser, Lead Extractor"
+              placeholder={
+                extractionType === "full_content"
+                  ? "e.g. Contract Scanner, Receipt Digitizer"
+                  : "e.g. Invoice Parser, Lead Extractor"
+              }
               value={name}
               onChange={(e) => setName(e.target.value)}
             />

@@ -23,6 +23,8 @@ export function ExportPage({ parser }: ExportPageProps) {
   const [documents, setDocuments] = useState<ProcessedDocument[]>([])
   const [loading, setLoading] = useState(true)
 
+  const isFullContent = parser.extraction_type === "full_content"
+
   useEffect(() => {
     async function load() {
       if (!session?.user?.id) return
@@ -38,23 +40,41 @@ export function ExportPage({ parser }: ExportPageProps) {
     load()
   }, [parser.id, session?.user?.id, supabase])
 
-  // Build a field ID → name map from the parser schema
+  // Build a field ID → name map from the parser schema (used in fields mode)
   const fieldNameMap = new Map<string, string>()
   const fieldTypeMap = new Map<string, string>()
-  for (const f of parser.fields ?? []) {
-    if (f.type !== "input") {
-      fieldNameMap.set(f.id, f.name)
-      fieldTypeMap.set(f.id, f.type)
+  if (!isFullContent) {
+    for (const f of parser.fields ?? []) {
+      if (f.type !== "input") {
+        fieldNameMap.set(f.id, f.name)
+        fieldTypeMap.set(f.id, f.type)
+      }
     }
   }
 
   const resolveFieldName = (id: string) => fieldNameMap.get(id) ?? id
+
+  /** Collect all unique top-level keys across all full_content documents */
+  const collectDynamicKeys = (docs: ProcessedDocument[]): string[] => {
+    const keySet = new Set<string>()
+    for (const d of docs) {
+      if (!d.results) continue
+      for (const key of Object.keys(d.results)) {
+        if (key === "__meta__") continue
+        keySet.add(key)
+      }
+    }
+    return Array.from(keySet)
+  }
 
   const handleDownloadJSON = () => {
     const results = documents
       .filter((d) => d.results)
       .map((d) => {
         const { __meta__, ...data } = d.results!
+        if (isFullContent) {
+          return { file_name: d.file_name, processed_at: d.processed_at, ...data }
+        }
         // Replace field IDs with names in the output
         const named: Record<string, any> = { file_name: d.file_name, processed_at: d.processed_at }
         for (const [key, val] of Object.entries(data)) {
@@ -77,13 +97,15 @@ export function ExportPage({ parser }: ExportPageProps) {
     const completed = documents.filter((d) => d.results)
     if (completed.length === 0) return
 
-    // Collect extraction fields (excluding __meta__) in schema order
+    if (isFullContent) {
+      return handleDownloadCSVFullContent(completed)
+    }
+
+    // --- Fields mode (original logic) ---
     const fieldIds = (parser.fields ?? [])
       .filter((f) => f.type !== "input")
       .map((f) => f.id)
 
-    // For array/table fields, find the max row count and collect all sub-keys
-    // across all documents so we can expand them into flat columns
     const arraySubKeys: Record<string, string[]> = {}
     const arrayMaxRows: Record<string, number> = {}
 
@@ -110,13 +132,9 @@ export function ExportPage({ parser }: ExportPageProps) {
       }
     }
 
-    // Build headers: file_name, then for each field either a single column
-    // or expanded sub-columns for arrays/tables
     const headers: string[] = ["file_name"]
     const headerFieldMapping: Array<{ fieldId: string; subKey?: string; rowIndex?: number }> = []
 
-    // First pass: single header per non-array field
-    // For array fields: "FieldName [1] SubKey", "FieldName [2] SubKey", etc.
     for (const fid of fieldIds) {
       const fname = resolveFieldName(fid)
       if (arraySubKeys[fid]) {
@@ -134,26 +152,21 @@ export function ExportPage({ parser }: ExportPageProps) {
       }
     }
 
-    // Build rows
     const rows = completed.map((doc) => {
       const cells: string[] = [doc.file_name]
       for (const mapping of headerFieldMapping) {
         const val = doc.results?.[mapping.fieldId]
         if (mapping.subKey !== undefined && mapping.rowIndex !== undefined) {
-          // Array/table sub-column
           const arr = Array.isArray(val) ? val : []
           const row = arr[mapping.rowIndex]
           const cell = row?.[mapping.subKey]
           cells.push(cell === null || cell === undefined ? "" : String(cell))
         } else {
-          // Simple field
           if (val === null || val === undefined || val === "-") {
             cells.push("")
           } else if (Array.isArray(val)) {
-            // Array of primitives (not expanded above)
             cells.push(val.join(", "))
           } else if (typeof val === "object") {
-            // Object — flatten key: value pairs
             const pairs = Object.entries(val)
               .map(([k, v]) => `${k}: ${v}`)
               .join(", ")
@@ -166,22 +179,31 @@ export function ExportPage({ parser }: ExportPageProps) {
       return cells
     })
 
-    // Add BOM for Excel UTF-8 support
-    const BOM = "\uFEFF"
-    const csvContent = BOM + [
-      headers.map((h) => `"${h.replace(/"/g, '""')}"`).join(","),
-      ...rows.map((row) =>
-        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
-      ),
-    ].join("\n")
+    downloadCsv(headers, rows, parser.name)
+  }
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `${parser.name.replace(/\s+/g, "_")}_export.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+  /** CSV export for full_content mode — union all keys across documents */
+  const handleDownloadCSVFullContent = (completed: ProcessedDocument[]) => {
+    const dynamicKeys = collectDynamicKeys(completed)
+    const headers = ["file_name", ...dynamicKeys.map((k) => k.replace(/_/g, " "))]
+
+    const rows = completed.map((doc) => {
+      const { __meta__, ...data } = doc.results!
+      const cells: string[] = [doc.file_name]
+      for (const key of dynamicKeys) {
+        const val = data[key]
+        if (val === null || val === undefined) {
+          cells.push("")
+        } else if (typeof val === "object") {
+          cells.push(JSON.stringify(val))
+        } else {
+          cells.push(String(val))
+        }
+      }
+      return cells
+    })
+
+    downloadCsv(headers, rows, parser.name)
   }
 
   const completedCount = documents.filter((d) => d.results).length
@@ -239,4 +261,23 @@ export function ExportPage({ parser }: ExportPageProps) {
       </div>
     </div>
   )
+}
+
+/** Shared CSV download helper */
+function downloadCsv(headers: string[], rows: string[][], parserName: string) {
+  const BOM = "\uFEFF"
+  const csvContent = BOM + [
+    headers.map((h) => `"${h.replace(/"/g, '""')}"`).join(","),
+    ...rows.map((row) =>
+      row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+    ),
+  ].join("\n")
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = `${parserName.replace(/\s+/g, "_")}_export.csv`
+  a.click()
+  URL.revokeObjectURL(url)
 }
