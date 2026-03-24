@@ -133,7 +133,7 @@ const roiData = [
   {
     label: "Manual invoice processing cost",
     manual: "$15.96",
-    parsli: "$0.33",
+    parsli: "$0.08",
     source: "HighRadius",
   },
   {
@@ -151,7 +151,7 @@ const roiData = [
   {
     label: "Monthly cost (100 invoices)",
     manual: "$1,596",
-    parsli: "$33",
+    parsli: "$20",
     source: "Calculated",
   },
 ]
@@ -183,7 +183,7 @@ const competitors = [
     speed: "< 15 sec",
     accuracy: "95%+",
     anyCarrier: "Yes",
-    cost: "$0.33/page",
+    cost: "$0.08/page",
     highlight: true,
   },
 ]
@@ -202,7 +202,7 @@ const faqs = [
   {
     question: "How does pricing work for freight companies?",
     answer:
-      "Parsli offers volume-based pricing starting at $33/month for 100 pages. The Free plan includes 30 pages/month — enough to test with real freight documents. For 3PLs processing 300+ documents daily, the Business plan at $349/month covers 10,000 pages. All plans include API access, webhooks, and integrations.",
+      "Parsli offers volume-based pricing starting at $20/month for 250 pages. The Free plan includes 30 pages/month — enough to test with real freight documents. For 3PLs processing 300+ documents daily, the Business plan at $249/month covers 25,000 pages. All plans include API access, webhooks, and integrations.",
   },
   {
     question: "Can I integrate with my WMS or TMS?",
@@ -212,7 +212,7 @@ const faqs = [
   {
     question: "How is Parsli different from Shipamax or Cass?",
     answer:
-      "Shipamax and Cass target enterprise clients with custom pricing and long implementation timelines. Parsli is self-serve — sign up, create a parser, and start extracting data in minutes. No sales calls, no implementation project, no minimum contract. Pricing starts at $33/month vs. enterprise custom pricing.",
+      "Shipamax and Cass target enterprise clients with custom pricing and long implementation timelines. Parsli is self-serve — sign up, create a parser, and start extracting data in minutes. No sales calls, no implementation project, no minimum contract. Pricing starts at $20/month vs. enterprise custom pricing.",
   },
   {
     question: "What data can I extract from freight invoices?",
@@ -415,7 +415,7 @@ export default function FreightLandingPage() {
             Processing 100 freight invoices manually costs $1,596/mo
           </h2>
           <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-12">
-            Parsli costs $33/mo. Here&apos;s the math.
+            Parsli costs $20/mo. Here&apos;s the math.
           </p>
 
           <div className="rounded-xl border bg-card overflow-hidden">
@@ -453,11 +453,11 @@ export default function FreightLandingPage() {
             </div>
             <div className="border-t bg-primary/[0.03] px-6 py-4 text-center">
               <span className="font-semibold text-primary">
-                48x cost reduction
+                80x cost reduction
               </span>
               <span className="text-muted-foreground">
                 {" "}
-                — switch from $1,596/mo to $33/mo for 100 invoices
+                — switch from $1,596/mo to $20/mo for 100 invoices
               </span>
             </div>
           </div>

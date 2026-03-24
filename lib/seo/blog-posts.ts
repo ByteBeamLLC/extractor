@@ -361,7 +361,7 @@ export const blogPosts: BlogPost[] = [
     keyTakeaways: [
       "Invoice OCR tools fall into three categories: template/zone-based, ML-trained, and AI-powered (VLM/LLM)",
       "Template tools (Docparser, Parseur) work for fixed formats; AI tools (Parsli, Nanonets) adapt to any layout",
-      "Nanonets is powerful but starts at $499/month; Parsli starts at $27/month with similar AI capabilities",
+      "Nanonets is powerful but starts at $499/month; Parsli starts at $16/month with similar AI capabilities",
       "No tool is 100% accurate — plan for a human review step, especially during initial setup",
     ],
     relatedSlugs: ["extract-data-pdf-to-excel", "freight-invoice-processing-automation", "ai-invoice-processing"],
@@ -629,7 +629,7 @@ export const blogPosts: BlogPost[] = [
           "Google Sheets integration via IMPORTDATA — extracted data flows directly into your spreadsheets",
           "Gmail inbox automation — invoices arriving by email are processed automatically",
           "REST API and webhooks for developers who want programmatic access",
-          "Affordable pricing — free plan with 30 pages/month, paid plans start at $27/month",
+          "Affordable pricing — free plan with 30 pages/month, paid plans start at $16/month",
         ],
       },
       { type: "heading", level: 3, text: "Limitations" },
@@ -650,7 +650,7 @@ export const blogPosts: BlogPost[] = [
       { type: "heading", level: 3, text: "Pricing" },
       {
         type: "paragraph",
-        text: "Free plan: 30 pages/month. Starter: $27/month. Growth: $49/month. Pro: $79/month. Business: $279/month. All plans include API access.",
+        text: "Free plan: 30 pages/month. Starter: $16/month. Growth: $39/month. Pro: $79/month. Business: $199/month. All plans include API access.",
       },
       {
         type: "heading",
@@ -975,7 +975,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Parsli's free plan processes 30 pages per month with no credit card required, making it accessible for individuals and small teams evaluating AI document parsing for the first time. Paid plans start at $33 per month for higher volume."
+        text: "Parsli's free plan processes 30 pages per month with no credit card required, making it accessible for individuals and small teams evaluating AI document parsing for the first time. Paid plans start at $20 per month for higher volume."
       },
       {
         type: "paragraph",
@@ -1510,7 +1510,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Parsli's free plan processes 30 pages per month with no credit card required. Paid plans start at $33/month (Starter), $59/month (Growth), $99/month (Pro), and $349/month (Business). Direct integrations include Google Sheets, Zapier, Make, and webhooks. The full REST API is available on all paid plans. Setup from zero to first extraction takes under 10 minutes for most users."
+        text: "Parsli's free plan processes 30 pages per month with no credit card required. Paid plans start at $20/month (Starter), $49/month (Growth), $99/month (Pro), and $249/month (Business). Direct integrations include Google Sheets, Zapier, Make, and webhooks. The full REST API is available on all paid plans. Setup from zero to first extraction takes under 10 minutes for most users."
       },
       {
         type: "heading",
@@ -1639,12 +1639,12 @@ export const blogPosts: BlogPost[] = [
       {
         type: "list",
         items: [
-          "Price — Nanonets starts at $499/month; Parsli starts at $0 (free plan) with paid plans from $33/month",
+          "Price — Nanonets starts at $499/month; Parsli starts at $0 (free plan) with paid plans from $20/month",
           "Setup time — Nanonets requires data labeling and model training (days to weeks); Parsli is operational in under 10 minutes",
           "New document formats — Nanonets requires new labeled samples and retraining; Parsli handles new formats on first attempt",
           "Scanned documents — both handle scanned PDFs, with OCR integrated in both pipelines",
           "No-code access — Parsli has a full no-code interface; Nanonets also has a UI but setup is more complex due to training requirements",
-          "API access — both offer REST APIs; Parsli API is available on all paid plans starting at $33/month"
+          "API access — both offer REST APIs; Parsli API is available on all paid plans starting at $20/month"
         ]
       },
       {
@@ -1745,7 +1745,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Yes — most alternatives are cheaper than Nanonets' $499/month starting price. Parsli starts at $0 with a free plan (30 pages/month) and paid plans from $33/month. Docparser and Parseur start at around $39/month. Cloud APIs like AWS Textract and Google Document AI are pay-per-page and cost far less for low volumes. The cheapest option with comparable AI accuracy and no training requirement is Parsli."
+        text: "Yes — most alternatives are cheaper than Nanonets' $499/month starting price. Parsli starts at $0 with a free plan (30 pages/month) and paid plans from $20/month. Docparser and Parseur start at around $39/month. Cloud APIs like AWS Textract and Google Document AI are pay-per-page and cost far less for low volumes. The cheapest option with comparable AI accuracy and no training requirement is Parsli."
       },
       {
         type: "heading",
@@ -1781,7 +1781,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Nanonets starts at $499/month with no meaningful free plan for production testing. Parsli offers a permanent free plan processing 30 pages per month with no credit card required, and paid plans start at $33/month. For a small team processing 200 pages per month, Parsli's Growth plan ($59/month) provides comparable AI extraction capability at roughly one-eighth the cost of Nanonets' entry price."
+        text: "Nanonets starts at $499/month with no meaningful free plan for production testing. Parsli offers a permanent free plan processing 30 pages per month with no credit card required, and paid plans start at $20/month. For a small team processing 200 pages per month, Parsli's Growth plan ($49/month) provides comparable AI extraction capability at roughly one-tenth the cost of Nanonets' entry price."
       },
       {
         type: "heading",
@@ -1930,7 +1930,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Parsli's free plan covers 30 pages per month with no credit card required. Paid plans start at $33/month. The setup process — from account creation to first extraction result — takes under 10 minutes for most users. For developers who want programmatic access, the REST API is included on all paid plans.",
+        text: "Parsli's free plan covers 30 pages per month with no credit card required. Paid plans start at $20/month. The setup process — from account creation to first extraction result — takes under 10 minutes for most users. For developers who want programmatic access, the REST API is included on all paid plans.",
       },
       {
         type: "list",
@@ -2064,7 +2064,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Parsli includes a Gmail inbox integration for automatic email attachment processing, a no-code schema builder, Google Sheets sync, Zapier and Make integrations, and a REST API for developers who want programmatic access. The free plan covers 30 pages per month with no credit card required. Paid plans start at $33 per month for higher volumes and priority processing.",
+        text: "Parsli includes a Gmail inbox integration for automatic email attachment processing, a no-code schema builder, Google Sheets sync, Zapier and Make integrations, and a REST API for developers who want programmatic access. The free plan covers 30 pages per month with no credit card required. Paid plans start at $20 per month for higher volumes and priority processing.",
       },
       {
         type: "heading",
@@ -2102,7 +2102,7 @@ export const blogPosts: BlogPost[] = [
           "PyMuPDF — Python library, native PDFs + image rendering, free, fastest raw text extraction",
           "AWS Textract — Cloud API, scanned and native, $0.015–$0.10/page, strong AWS ecosystem integration",
           "Google Document AI — Cloud API, scanned and native, $0.01–$0.065/page, excellent OCR quality",
-          "Parsli — No-code platform, scanned and native, free up to 30 pages/month then from $33/month, no templates required",
+          "Parsli — No-code platform, scanned and native, free up to 30 pages/month then from $20/month, no templates required",
         ],
       },
       {
@@ -2296,7 +2296,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Parsli supports email forwarding for automatic inbox processing, PDF and image attachment extraction, Google Sheets sync, Zapier and Make integrations, and a REST API. The free plan covers 30 pages per month with no credit card required. Paid plans start at $33 per month. For teams that currently maintain a large library of Parseur templates, switching to Parsli typically reduces setup time from hours to minutes per document type.",
+        text: "Parsli supports email forwarding for automatic inbox processing, PDF and image attachment extraction, Google Sheets sync, Zapier and Make integrations, and a REST API. The free plan covers 30 pages per month with no credit card required. Paid plans start at $20 per month. For teams that currently maintain a large library of Parseur templates, switching to Parsli typically reduces setup time from hours to minutes per document type.",
       },
       {
         type: "heading",
@@ -2366,7 +2366,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "By comparison, Parsli offers a **perpetual free plan** (30 pages/month, no credit card required, no expiration) and paid plans starting at $33/month for 250 pages. Parsli's AI extraction works without templates, so you don't need to build a new template for each document format — one schema handles all layouts.",
+        text: "By comparison, Parsli offers a **perpetual free plan** (30 pages/month, no credit card required, no expiration) and paid plans starting at $20/month for 250 pages. Parsli's AI extraction works without templates, so you don't need to build a new template for each document format — one schema handles all layouts.",
       },
       {
         type: "heading",
@@ -2384,7 +2384,7 @@ export const blogPosts: BlogPost[] = [
           "Template requirement — Parseur requires a template per document format; Parsli requires only a schema definition shared across all formats",
           "Scanned document handling — both support scanned documents; Parsli applies AI-based OCR while Parseur uses traditional OCR",
           "New sender onboarding — Parseur requires creating a new template for each new sender; Parsli automatically handles new layouts with the same schema",
-          "Pricing — Parseur starts at $39 per month; Parsli offers a free plan (30 pages/month) and paid from $33 per month",
+          "Pricing — Parseur starts at $39 per month; Parsli offers a free plan (30 pages/month) and paid from $20 per month",
           "Integrations — both offer Google Sheets, Zapier, and webhooks; Parsli additionally includes a REST API and Make integration",
         ],
       },
@@ -2401,7 +2401,7 @@ export const blogPosts: BlogPost[] = [
         type: "list",
         items: [
           "Parseur — template-based, email + PDF, from $39/month, reliable for consistent formats",
-          "Parsli — AI-powered (Gemini 2.5 Pro), email + PDF, free up to 30 pages then from $33/month, no templates",
+          "Parsli — AI-powered (Gemini 2.5 Pro), email + PDF, free up to 30 pages then from $20/month, no templates",
           "Docparser — template/zone-based, PDF-first, from $39/month, strong table extraction",
           "Mailparser — rule-based, email body only (no attachments), from $24/month, simple UX",
           "Nanonets — ML-trained models, email + PDF + more, custom enterprise pricing, high accuracy at scale",
@@ -2475,7 +2475,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Parsli's Starter plan at $33/month includes more pages than Parseur's $39/month entry plan. At Growth ($59/month) and Pro ($99/month), the gap widens further. For teams on Parseur's $99/month or higher plans, Parsli typically offers 2-3x more pages for the same monthly spend. The free plan (30 pages/month, no credit card) is also more generous than Parseur's 20-page free tier.",
+        text: "Parsli's Starter plan at $20/month includes more pages than Parseur's $39/month entry plan. At Growth ($49/month) and Pro ($99/month), the gap widens further. For teams on Parseur's $99/month or higher plans, Parsli typically offers 2-3x more pages for the same monthly spend. The free plan (30 pages/month, no credit card) is also more generous than Parseur's 20-page free tier.",
       },
       {
         type: "heading",
@@ -2538,7 +2538,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Mailparser starts at $24 per month, making it cheaper than Parseur's $39 per month entry price. Parsli offers a free plan covering 30 pages per month with no credit card required, and paid plans starting at $33 per month. Zapier's built-in Email Parser is free but severely limited in capability. If price is the primary driver, Parsli's free tier is the best starting point — it costs nothing to test with your actual documents.",
+        text: "Mailparser starts at $24 per month, making it cheaper than Parseur's $39 per month entry price. Parsli offers a free plan covering 30 pages per month with no credit card required, and paid plans starting at $20 per month. Zapier's built-in Email Parser is free but severely limited in capability. If price is the primary driver, Parsli's free tier is the best starting point — it costs nothing to test with your actual documents.",
       },
       {
         type: "heading",
@@ -2556,7 +2556,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Parsli's free plan covers 30 pages per month vs Parseur's 20 pages. Paid plans start at $33/month (Parsli Starter) vs $39/month (Parseur). At mid-tier, Parsli Growth at $59/month typically includes more pages than Parseur's equivalent paid plan. Parsli's page-based pricing also tends to be more favorable when processing email attachments, since pages rather than messages are counted.",
+        text: "Parsli's free plan covers 30 pages per month vs Parseur's 20 pages. Paid plans start at $20/month (Parsli Starter) vs $39/month (Parseur). At mid-tier, Parsli Growth at $49/month typically includes more pages than Parseur's equivalent paid plan. Parsli's page-based pricing also tends to be more favorable when processing email attachments, since pages rather than messages are counted.",
       },
       {
         type: "heading",
@@ -2748,7 +2748,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "The schema you define works across all senders and all formats — there is no template to create per sender and no zone drawing. If you receive invoices from 50 different vendors, you define the schema once and Parsli handles all 50 formats. The free plan covers 30 pages per month with no credit card required. Paid plans start at $33 per month and scale by page volume.",
+        text: "The schema you define works across all senders and all formats — there is no template to create per sender and no zone drawing. If you receive invoices from 50 different vendors, you define the schema once and Parsli handles all 50 formats. The free plan covers 30 pages per month with no credit card required. Paid plans start at $20 per month and scale by page volume.",
       },
       {
         type: "mid-cta",
@@ -2819,7 +2819,7 @@ export const blogPosts: BlogPost[] = [
       {
         type: "list",
         items: [
-          "Parsli — AI-powered, email body + PDF/image attachments, free up to 30 pages then from $33/month, no templates",
+          "Parsli — AI-powered, email body + PDF/image attachments, free up to 30 pages then from $20/month, no templates",
           "Parseur — template-based, email body + attachments, from $39/month, reliable for consistent formats",
           "Mailparser — rule-based, email body only, from $24/month, simple and focused",
           "Zapier Email Parser — template-based, email body only, free (requires Zapier account), no attachment support",
@@ -2835,7 +2835,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Automation wins decisively when your email types are recurring and predictable. If you receive 200 invoices per month from various vendors and the fields you need are always the same — vendor name, invoice number, total amount, due date — an AI email parser will extract those fields faster, cheaper, and more accurately than a human after the initial setup is done. At $33 per month, even a modest volume of invoices represents significant savings over VA time.",
+        text: "Automation wins decisively when your email types are recurring and predictable. If you receive 200 invoices per month from various vendors and the fields you need are always the same — vendor name, invoice number, total amount, due date — an AI email parser will extract those fields faster, cheaper, and more accurately than a human after the initial setup is done. At $20 per month, even a modest volume of invoices represents significant savings over VA time.",
       },
       {
         type: "paragraph",
@@ -3156,7 +3156,7 @@ export const blogPosts: BlogPost[] = [
       {
         type: "list",
         items: [
-          "**Parsli** — AI-powered no-code extraction using Google Gemini 2.5 Pro. 95%+ accuracy on invoices, bank statements, and forms. No templates needed. Free tier (30 pages/month), paid from $33/month. Best for teams without developers who need structured output from varied PDF layouts.",
+          "**Parsli** — AI-powered no-code extraction using Google Gemini 2.5 Pro. 95%+ accuracy on invoices, bank statements, and forms. No templates needed. Free tier (30 pages/month), paid from $20/month. Best for teams without developers who need structured output from varied PDF layouts.",
           "**AWS Textract** — Amazon's document AI service. Strong table extraction, pre-built invoice/receipt analyzers. Pay-per-page (~$1.50-$15/1,000 pages depending on features). Requires AWS account and SDK integration. Best for teams already on AWS with developer resources.",
           "**Google Document AI** — GCP's document processing platform. Specialized processors for invoices, receipts, W2s, IDs. Pay-per-page (~$0.65-$10/1,000 pages). Requires GCP project setup. Best for Google Cloud environments. [See our detailed comparison →](/compare/google-document-ai)",
           "**Azure Document Intelligence** — Microsoft's Form Recognizer successor. Pre-built models for common documents plus custom training. Pay-per-page with Azure subscription required. [See our detailed pricing breakdown →](/compare/azure-document-intelligence)",
@@ -3486,7 +3486,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "For [small businesses](/guides/automate-invoice-processing-for-small-business) without dedicated IT resources, the best tool is one that requires no template setup, handles varied vendor formats, and integrates with existing tools. Parsli's free plan covers 30 pages per month — enough for many small business invoice volumes — and the paid Starter plan at $33 per month handles larger volumes. The Gmail integration eliminates manual upload for teams that receive invoices by email.",
+        text: "For [small businesses](/guides/automate-invoice-processing-for-small-business) without dedicated IT resources, the best tool is one that requires no template setup, handles varied vendor formats, and integrates with existing tools. Parsli's free plan covers 30 pages per month — enough for many small business invoice volumes — and the paid Starter plan at $20 per month handles larger volumes. The Gmail integration eliminates manual upload for teams that receive invoices by email.",
       },
       {
         type: "heading",
@@ -3628,7 +3628,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "The Gmail integration connects directly to an inbox and processes incoming emails and their attachments automatically. Extracted data flows out via CSV, Google Sheets, webhooks, Zapier, or Make. Pricing starts at a free forever plan covering 30 pages per month with no credit card required. Paid plans start at $33 per month for the Starter tier.",
+        text: "The Gmail integration connects directly to an inbox and processes incoming emails and their attachments automatically. Extracted data flows out via CSV, Google Sheets, webhooks, Zapier, or Make. Pricing starts at a free forever plan covering 30 pages per month with no credit card required. Paid plans start at $20 per month for the Starter tier.",
       },
       {
         type: "heading",
@@ -3720,7 +3720,7 @@ export const blogPosts: BlogPost[] = [
         type: "list",
         items: [
           "Mailparser — rule-based, limited PDF attachments, 30 emails/month free, paid plans from $32/month",
-          "Parsli — AI-powered (Gemini 2.5 Pro), full PDF attachment extraction, 30 pages/month free forever, paid from $33/month",
+          "Parsli — AI-powered (Gemini 2.5 Pro), full PDF attachment extraction, 30 pages/month free forever, paid from $20/month",
           "Parseur — template-based, some document support, 1 mailbox free tier, paid from $39/month",
           "Zapier Email Parser — rule-based, no attachment support, free (requires Zapier account), included with Zapier plans",
           "n8n — developer automation layer (not a parser), no native attachment parsing, free self-hosted, n8n Cloud from $20/month",
@@ -3873,7 +3873,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Mailparser's entry plan starts at $24/month for rule-based email body parsing. Parsli starts with a permanent free plan covering 30 pages per month, with paid plans from $33/month. Parsli's pricing is page-based rather than email-based, which is often more favorable for workflows involving email attachments — a 5-page invoice counts as 5 pages rather than 1 email.",
+        text: "Mailparser's entry plan starts at $24/month for rule-based email body parsing. Parsli starts with a permanent free plan covering 30 pages per month, with paid plans from $20/month. Parsli's pricing is page-based rather than email-based, which is often more favorable for workflows involving email attachments — a 5-page invoice counts as 5 pages rather than 1 email.",
       },
       {
         type: "heading",
@@ -3882,7 +3882,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Choose Mailparser if your use case is strictly email body extraction from a small number of consistent senders and you do not need PDF attachment parsing. Mailparser's $24/month entry point is lower than Parsli's $33/month paid tier, making it a reasonable option for very simple, low-volume email parsing without attachment requirements.",
+        text: "Choose Mailparser if your use case is strictly email body extraction from a small number of consistent senders and you do not need PDF attachment parsing. Mailparser's $24/month entry point is higher than Parsli's $20/month paid tier, making Parsli the more affordable option even for simple, low-volume email parsing without attachment requirements.",
       },
       {
         type: "heading",
@@ -4895,7 +4895,7 @@ export const blogPosts: BlogPost[] = [
           "AWS Textract — pricing $0.015–$0.10/page, no free tier for production, output: key-value pairs and table JSON, scanned PDF support: yes, setup: AWS IAM configuration required",
           "Google Document AI — pricing $0.01–$0.065/page, free tier 1,000 pages/month per processor, output: typed field JSON with confidence scores, scanned PDF support: yes (best-in-class OCR), setup: Google Cloud project required",
           "Azure Document Intelligence — pricing $0.01–$0.10/page, free tier 500 pages/month, output: field JSON with bounding box metadata, scanned PDF support: yes, setup: Azure subscription and resource provisioning",
-          "Parsli — pricing free up to 30 pages/month then $33–$349/month, free tier available, output: custom schema JSON matching user-defined fields, scanned PDF support: yes, setup: API key from dashboard, no cloud infrastructure",
+          "Parsli — pricing free up to 30 pages/month then $20–$249/month, free tier available, output: custom schema JSON matching user-defined fields, scanned PDF support: yes, setup: API key from dashboard, no cloud infrastructure",
           "Mindee — pricing pay-per-page starting at $0.10/page, free tier 250 pages/month, output: model-specific typed field JSON, scanned PDF support: yes, setup: API key, SDK available for major languages",
         ],
       },
@@ -4960,7 +4960,7 @@ export const blogPosts: BlogPost[] = [
       },
       {
         type: "paragraph",
-        text: "Parsli's free plan includes 30 pages per month with no credit card required, which covers API usage as well as no-code uploads. Paid plans start at $33 per month (Starter) and scale to $349 per month (Business) based on monthly page volume. Each page processed via the API counts toward your monthly plan limit the same way as pages uploaded through the interface.",
+        text: "Parsli's free plan includes 30 pages per month with no credit card required, which covers API usage as well as no-code uploads. Paid plans start at $20 per month (Starter) and scale to $249 per month (Business) based on monthly page volume. Each page processed via the API counts toward your monthly plan limit the same way as pages uploaded through the interface.",
       },
       {
         type: "cta",
@@ -8177,7 +8177,7 @@ export const blogPosts: BlogPost[] = [
       {
         type: "list",
         items: [
-          "AI extraction platform (e.g., Parsli Growth plan): $59/month for up to 500 pages, or Pro at $99/month for higher volume",
+          "AI extraction platform (e.g., Parsli Growth plan): $49/month for up to 1,000 pages, or Pro at $99/month for higher volume",
           "Template creation: None required — define schema once, works across all vendors",
           "Manual review (at 95%+ field-level accuracy, ~50 invoices need spot-checks): 3-5 hours/month",
           "Developer time for integrations: 2-5 hours initial setup via API or Zapier, minimal ongoing",
@@ -9691,7 +9691,7 @@ export const blogPosts: BlogPost[] = [
     },
     {
       type: "paragraph",
-      text: "Parsli's free plan includes 30 pages per month with no credit card required. A typical bank statement is 2–5 pages, so you can process 6–15 statements per month on the free tier. Paid plans start at $33/month for higher volumes. There is no per-file limit — you can upload as many documents as your page allowance covers."
+      text: "Parsli's free plan includes 30 pages per month with no credit card required. A typical bank statement is 2–5 pages, so you can process 6–15 statements per month on the free tier. Paid plans start at $20/month for higher volumes. There is no per-file limit — you can upload as many documents as your page allowance covers."
     },
     {
       type: "heading",
@@ -10074,7 +10074,7 @@ export const blogPosts: BlogPost[] = [
       items: [
         "Best for: Small to mid-size accounting firms that want accurate extraction without writing code or training models.",
         "Key features: No-code schema builder, Gemini 2.5 Pro AI engine, email forwarding import, Google Sheets integration, REST API, webhook support.",
-        "Pricing: Free tier (30 pages/month), Starter at $33/month, Growth at $59/month, Pro at $99/month, Business at $349/month. Annual plans save roughly 20%.",
+        "Pricing: Free tier (30 pages/month), Starter at $20/month, Growth at $49/month, Pro at $99/month, Business at $249/month. Annual plans save roughly 20%.",
         "Pros: Genuinely no-code setup — most users are extracting within 15 minutes. High accuracy on structured tax forms. Flexible import methods (upload, email, API). Transparent, predictable pricing.",
         "Cons: Newer product with a smaller user community compared to established players like ABBYY. No dedicated tax-specific templates (you build your own schema, which takes a few minutes). Limited pre-built integrations beyond Google Sheets, Zapier, and Make — direct connections to tax prep software like Drake or UltraTax are not yet available."
       ]
@@ -10228,8 +10228,8 @@ export const blogPosts: BlogPost[] = [
         "No-code setup: Parsli, Parseur, and DocuClipper can be used by non-technical staff immediately. Docsumo requires some setup but is manageable. Nanonets, Microsoft Document Intelligence, and Veryfi require developer involvement. ABBYY typically needs a consultant.",
         "Supported tax forms: Microsoft Document Intelligence has dedicated W-2 and 1099 models. Parsli and Docsumo handle a broad range of forms through flexible schema definitions. ABBYY covers most forms through its skill marketplace. Veryfi is weakest on tax-specific forms.",
         "Integrations: Nanonets leads with direct QuickBooks and Xero connections. Parsli, Parseur, and Docsumo integrate via Google Sheets, Zapier, and Make. ABBYY and Microsoft offer enterprise integration through APIs. None of the tools have direct integrations with tax prep software like Lacerte, Drake, or UltraTax — this remains a gap in the market.",
-        "Pricing for a small firm (under 500 documents/month): Parsli ($33-59/month), Parseur ($33/month), DocuClipper ($49/month), and Veryfi ($60/month) are the most affordable. Microsoft Document Intelligence is competitive on a per-page basis. Nanonets, Docsumo, and ABBYY are significantly more expensive.",
-        "Pricing for a large firm (5,000+ documents/month): ABBYY, Docsumo, and Nanonets offer volume discounts at scale. Microsoft Document Intelligence is very cost-effective at high volumes due to per-page pricing. Parsli's Business plan ($349/month) covers substantial volume. Parseur and DocuClipper become less competitive at very high volumes."
+        "Pricing for a small firm (under 500 documents/month): Parsli ($20-49/month), Parseur ($33/month), DocuClipper ($49/month), and Veryfi ($60/month) are the most affordable. Microsoft Document Intelligence is competitive on a per-page basis. Nanonets, Docsumo, and ABBYY are significantly more expensive.",
+        "Pricing for a large firm (5,000+ documents/month): ABBYY, Docsumo, and Nanonets offer volume discounts at scale. Microsoft Document Intelligence is very cost-effective at high volumes due to per-page pricing. Parsli's Business plan ($249/month) covers substantial volume. Parseur and DocuClipper become less competitive at very high volumes."
       ]
     },
     {

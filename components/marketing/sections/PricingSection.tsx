@@ -26,11 +26,11 @@ const tiers = [
   {
     tier: "starter",
     name: "Starter",
-    pages: 100,
-    monthlyPrice: 33,
-    annualPricePerMonth: 27,
+    pages: 250,
+    monthlyPrice: 20,
+    annualPricePerMonth: 16,
     features: [
-      "100 pages per month",
+      "250 pages per month",
       "Up to 10 parsers",
       "AI-powered extraction",
       "All integrations",
@@ -41,11 +41,11 @@ const tiers = [
   {
     tier: "growth",
     name: "Growth",
-    pages: 500,
-    monthlyPrice: 59,
-    annualPricePerMonth: 49,
+    pages: 1_000,
+    monthlyPrice: 49,
+    annualPricePerMonth: 39,
     features: [
-      "500 pages per month",
+      "1,000 pages per month",
       "Up to 25 parsers",
       "AI-powered extraction",
       "All integrations",
@@ -57,11 +57,11 @@ const tiers = [
   {
     tier: "pro",
     name: "Pro",
-    pages: 2_000,
+    pages: 5_000,
     monthlyPrice: 99,
     annualPricePerMonth: 79,
     features: [
-      "2,000 pages per month",
+      "5,000 pages per month",
       "Up to 100 parsers",
       "AI-powered extraction",
       "All integrations",
@@ -73,11 +73,11 @@ const tiers = [
   {
     tier: "business",
     name: "Business",
-    pages: 10_000,
-    monthlyPrice: 349,
-    annualPricePerMonth: 279,
+    pages: 25_000,
+    monthlyPrice: 249,
+    annualPricePerMonth: 199,
     features: [
-      "10,000 pages per month",
+      "25,000 pages per month",
       "Unlimited parsers",
       "AI-powered extraction",
       "All integrations",
@@ -208,7 +208,7 @@ export function PricingSection() {
 
         <div className="mt-12 text-center">
           <p className="text-muted-foreground mb-4">
-            Need more than 10,000 pages per month?
+            Need more than 25,000 pages per month?
           </p>
           <Button variant="outline" asChild>
             <a href="mailto:talal@bytebeam.co">Contact Sales</a>

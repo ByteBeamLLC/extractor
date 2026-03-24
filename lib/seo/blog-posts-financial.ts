@@ -709,7 +709,7 @@ export const financialBlogPosts: BlogPost[] = [
       {
         type: "list",
         items: [
-          "**Parsli** — AI-powered extraction using Google Gemini 2.5 Pro. No templates, no training — define invoice fields in plain English. Handles any invoice layout from any vendor. Free tier (30 pages/month), paid from $33/month. Integrates with Google Sheets, Zapier, Make, and REST API. Best for: SMBs and mid-market teams without dedicated AP automation budgets.",
+          "**Parsli** — AI-powered extraction using Google Gemini 2.5 Pro. No templates, no training — define invoice fields in plain English. Handles any invoice layout from any vendor. Free tier (30 pages/month), paid from $20/month. Integrates with Google Sheets, Zapier, Make, and REST API. Best for: SMBs and mid-market teams without dedicated AP automation budgets.",
           "**Rossum** — AI-first AP automation platform with smart capture and workflow routing. Strong on European invoice formats. Enterprise pricing (contact sales). Best for: mid-market to enterprise AP teams processing 1,000+ invoices/month.",
           "**Nanonets** — Custom ML models trained on your specific invoice formats. High accuracy at scale with human-in-the-loop review. Enterprise pricing. Best for: high-volume operations with consistent vendor base.",
           "**Kofax** — Enterprise AP automation with OCR, classification, and ERP integration. Legacy player with deep SAP/Oracle integration. Enterprise licensing. Best for: large enterprises with existing Kofax infrastructure.",

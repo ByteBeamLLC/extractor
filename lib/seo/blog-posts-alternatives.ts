@@ -47,7 +47,7 @@ export const alternativesBlogPosts: BlogPost[] = [
       {
         type: "list",
         items: [
-          "Pricing: Free tier (30 pages/month), paid plans from $33/month — dramatically cheaper than Ocrolus for most use cases",
+          "Pricing: Free tier (30 pages/month), paid plans from $20/month — dramatically cheaper than Ocrolus for most use cases",
           "Strengths: Handles any document type (not limited to financial), no-code setup, API access, integrations with Google Sheets, Zapier, Make, and webhooks",
           "Limitations: No built-in fraud detection scoring like Ocrolus, no human-in-the-loop QA (relies on AI accuracy), newer platform",
           "Best for: Accounting firms, small businesses, and operations teams who need to extract data from diverse document types at an affordable price",
@@ -260,7 +260,7 @@ export const alternativesBlogPosts: BlogPost[] = [
       {
         type: "list",
         items: [
-          "Pricing: Free tier (30 pages/month), paid plans from $33/month with generous page allowances",
+          "Pricing: Free tier (30 pages/month), paid plans from $20/month with generous page allowances",
           "Strengths: Any document type, no-code + API, Google Sheets integration, email parsing, affordable flat-rate pricing",
           "Limitations: No mobile SDK, no on-device processing, processing time is seconds (not sub-second like Veryfi)",
           "Best for: Businesses needing multi-document-type extraction without per-document pricing",
@@ -340,7 +340,7 @@ export const alternativesBlogPosts: BlogPost[] = [
       },
       {
         type: "mid-cta",
-        text: "Need receipt and invoice extraction without per-document pricing? Parsli offers flat-rate plans starting at $33/month. Try free.",
+        text: "Need receipt and invoice extraction without per-document pricing? Parsli offers flat-rate plans starting at $20/month. Try free.",
       },
       {
         type: "heading",
@@ -426,7 +426,7 @@ export const alternativesBlogPosts: BlogPost[] = [
       {
         type: "list",
         items: [
-          "Pricing: Free tier, paid plans from $33/month — transparent, published pricing",
+          "Pricing: Free tier, paid plans from $20/month — transparent, published pricing",
           "Strengths: Any document type, custom schema builder, API access, integrations (Google Sheets, Zapier, Make)",
           "Limitations: No identity document verification, focused on data extraction rather than document verification workflows",
           "Best for: Businesses needing flexible document extraction without custom development",
@@ -583,7 +583,7 @@ export const alternativesBlogPosts: BlogPost[] = [
       {
         type: "list",
         items: [
-          "Pricing: Free tier, $33-349/month — a fraction of ABBYY's cost",
+          "Pricing: Free tier, $20-249/month — a fraction of ABBYY's cost",
           "Strengths: 15-minute setup, any document type, no-code schema builder, REST API, integrations with Google Sheets, Zapier, Make",
           "Limitations: No on-premise deployment, no SOC 2 certification (yet), younger platform",
           "Best for: Small businesses, accounting firms, and operations teams who need fast, affordable document automation",
@@ -769,7 +769,7 @@ export const alternativesBlogPosts: BlogPost[] = [
       {
         type: "list",
         items: [
-          "Pricing: Free (30 pages/month), $33-349/month paid plans",
+          "Pricing: Free (30 pages/month), $20-249/month paid plans",
           "Bank coverage: Any bank — AI adapts to format automatically",
           "Output formats: CSV, JSON, Excel, Google Sheets, API",
           "Strengths: Template-free, handles any bank format, also processes other document types, affordable",
@@ -991,7 +991,7 @@ export const alternativesBlogPosts: BlogPost[] = [
       {
         type: "list",
         items: [
-          "Pricing: Free tier (30 pages/month), $33-349/month",
+          "Pricing: Free tier (30 pages/month), $20-249/month",
           "Accuracy: 95-99% on standard invoices",
           "Integrations: REST API, Google Sheets, Zapier, Make, webhooks",
           "Strengths: Template-free extraction, handles any vendor format, affordable, processes diverse document types",
@@ -1200,7 +1200,7 @@ export const alternativesBlogPosts: BlogPost[] = [
       {
         type: "list",
         items: [
-          "Pricing: Free tier, $33-349/month",
+          "Pricing: Free tier, $20-249/month",
           "Key features: AI document extraction, any document type, no templates, batch processing, API access",
           "Strengths: Template-free extraction across any bank or vendor format, fast processing, affordable, handles scanned documents",
           "Limitations: Data extraction only — no built-in statistical analysis, fraud scoring, or investigation management",

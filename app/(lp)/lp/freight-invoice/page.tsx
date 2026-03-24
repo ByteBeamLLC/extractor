@@ -17,7 +17,7 @@ import { AuthButton } from "@/components/marketing/shared/AuthButton"
 export const metadata: Metadata = {
   title: "AI Freight Invoice Parser — Extract Data in Seconds | Parsli",
   description:
-    "Automate freight invoice processing for FedEx, XPO, ODFL, Estes, Saia & any carrier. 95%+ accuracy. $33/mo. 30 free pages — no credit card.",
+    "Automate freight invoice processing for FedEx, XPO, ODFL, Estes, Saia & any carrier. 95%+ accuracy. $20/mo. 30 free pages — no credit card.",
   robots: { index: false, follow: false },
   alternates: { canonical: "https://parsli.co/lp/freight-invoice" },
 }
@@ -91,7 +91,7 @@ const competitors = [
   { name: "Manual entry", speed: "15-20 min", accuracy: "70-80%", cost: "$25-40/doc" },
   { name: "Template OCR", speed: "30-60 sec", accuracy: "75-85%", cost: "$3-8/doc" },
   { name: "Enterprise tools", speed: "< 30 sec", accuracy: "90%+", cost: "$$$$" },
-  { name: "Parsli", speed: "< 15 sec", accuracy: "95%+", cost: "$0.33/page", highlight: true },
+  { name: "Parsli", speed: "< 15 sec", accuracy: "95%+", cost: "$0.08/page", highlight: true },
 ]
 
 const objections = [
@@ -332,15 +332,15 @@ export default function FreightInvoiceLP() {
                 <ArrowRight className="h-6 w-6 text-muted-foreground" />
               </div>
               <div>
-                <p className="text-3xl font-bold text-green-600">$33</p>
+                <p className="text-3xl font-bold text-green-600">$20</p>
                 <p className="text-sm text-muted-foreground">
-                  100 invoices/mo (Parsli)
+                  250 invoices/mo (Parsli)
                 </p>
               </div>
             </div>
             <p className="text-muted-foreground mb-6">
               That&apos;s a{" "}
-              <span className="font-bold text-foreground">48x cost reduction</span>.
+              <span className="font-bold text-foreground">80x cost reduction</span>.
               Plus faster billing cycles, fewer errors, and automated freight audit.
             </p>
             <AuthButton className="text-base px-8 h-12" showArrow href="/dashboard?template=freight-invoice">
@@ -418,7 +418,7 @@ export default function FreightInvoiceLP() {
             Start Free — 30 Pages/Month
           </AuthButton>
           <p className="mt-6 text-xs text-muted-foreground">
-            Paid plans from $33/month &middot; Cancel anytime &middot; All carriers supported
+            Paid plans from $20/month &middot; Cancel anytime &middot; All carriers supported
           </p>
         </div>
       </section>

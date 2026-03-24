@@ -370,7 +370,7 @@ export default function BolAutomationLP() {
             Start Free — 30 Pages/Month
           </AuthButton>
           <p className="mt-6 text-xs text-muted-foreground">
-            Paid plans from $33/month for 250 pages &middot; Cancel anytime
+            Paid plans from $20/month for 250 pages &middot; Cancel anytime
           </p>
         </div>
       </section>

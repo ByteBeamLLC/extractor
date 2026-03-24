@@ -32,21 +32,21 @@ const pricingFaq = [
   {
     question: "Do you offer annual billing?",
     answer:
-      "Yes. Annual plans save approximately 20% compared to monthly billing. For example, the Starter plan is $33/month billed monthly or $27/month billed annually.",
+      "Yes. Annual plans save approximately 20% compared to monthly billing. For example, the Starter plan is $20/month billed monthly or $16/month billed annually.",
   },
 ]
 
 export const metadata: Metadata = {
   title: "Pricing - Simple, Page-Based Pricing",
   description:
-    "Parsli pricing plans start free with 30 pages/month. Pay only for what you use. Plans from $33/month. No credit card required to start.",
+    "Parsli pricing plans start free with 30 pages/month. Pay only for what you use. Plans from $20/month. No credit card required to start.",
   alternates: {
     canonical: "https://parsli.co/pricing",
   },
   openGraph: {
     title: "Parsli Pricing - Start Free, Scale as You Grow",
     description:
-      "Simple, page-based pricing. Free plan with 30 pages/month. Paid plans from $33/month.",
+      "Simple, page-based pricing. Free plan with 30 pages/month. Paid plans from $20/month.",
     url: "https://parsli.co/pricing",
   },
 }

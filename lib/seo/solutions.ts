@@ -124,7 +124,7 @@ export const solutions: SolutionPage[] = [
       {
         question: "Is Parsli's PDF to Excel converter free?",
         answer:
-          "Yes! The free tier includes 30 pages per month with no credit card required. For higher volumes, paid plans start at $33/month.",
+          "Yes! The free tier includes 30 pages per month with no credit card required. For higher volumes, paid plans start at $20/month.",
       },
       {
         question: "Can you convert scanned PDFs to Excel?",
@@ -708,7 +708,7 @@ export const solutions: SolutionPage[] = [
       {
         question: "Is there a free tier?",
         answer:
-          "Yes. 30 free pages per month with no credit card required. Paid plans start at $33/month for higher volumes.",
+          "Yes. 30 free pages per month with no credit card required. Paid plans start at $20/month for higher volumes.",
       },
       {
         question: "Do you support webhooks for async processing?",

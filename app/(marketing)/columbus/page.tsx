@@ -143,7 +143,7 @@ const faqs = [
   {
     question: "How does pricing work for high-volume operations?",
     answer:
-      "Parsli offers volume-based plans from Free (30 pages/month) to Business (15,000 pages/month at $349/mo). For Columbus 3PLs processing 500+ documents daily, the Business plan delivers document processing at under $0.03 per page. Contact us for custom enterprise volumes.",
+      "Parsli offers volume-based plans from Free (30 pages/month) to Business (25,000 pages/month at $249/mo). For Columbus 3PLs processing 500+ documents daily, the Business plan delivers document processing at under $0.01 per page. Contact us for custom enterprise volumes.",
   },
   {
     question:

@@ -112,7 +112,7 @@ const objections = [
   },
   {
     q: "What's the pricing?",
-    a: "Free: 30 pages/month. Starter: $33/mo (250 pages). Growth: $59/mo (1,000 pages). Pro: $99/mo (3,000 pages). Business: $349/mo (15,000 pages). All plans include full API access and all integrations.",
+    a: "Free: 30 pages/month. Starter: $20/mo (250 pages). Growth: $49/mo (1,000 pages). Pro: $99/mo (5,000 pages). Business: $249/mo (25,000 pages). All plans include full API access and all integrations.",
   },
 ]
 
@@ -400,7 +400,7 @@ export default function Columbus3plLP() {
             Start Free — 30 Pages/Month
           </AuthButton>
           <p className="mt-6 text-xs text-muted-foreground">
-            Paid plans from $33/month &middot; Cancel anytime &middot; All
+            Paid plans from $20/month &middot; Cancel anytime &middot; All
             integrations included
           </p>
         </div>

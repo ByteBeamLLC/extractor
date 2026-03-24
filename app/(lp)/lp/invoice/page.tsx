@@ -21,7 +21,7 @@ import { AuthButton } from "@/components/marketing/shared/AuthButton"
 export const metadata: Metadata = {
   title: "AI Invoice Data Extraction — 95%+ Accuracy, Any Format | Parsli",
   description:
-    "Extract vendor info, line items, totals, and dates from any invoice format. AI-powered, no templates needed. Free invoice parser + $33/mo for automation.",
+    "Extract vendor info, line items, totals, and dates from any invoice format. AI-powered, no templates needed. Free invoice parser + $20/mo for automation.",
   robots: { index: false, follow: false },
   alternates: { canonical: "https://parsli.co/lp/invoice" },
 }
@@ -113,7 +113,7 @@ const objections = [
   },
   {
     q: "How does pricing work?",
-    a: "Free plan: 30 pages/month, no credit card. Starter: $33/month for 250 pages. Growth: $59/month for 500 pages. All plans include API access, webhooks, Google Sheets integration, and email forwarding. No per-vendor fees, no template charges.",
+    a: "Free plan: 30 pages/month, no credit card. Starter: $20/month for 250 pages. Growth: $49/month for 1,000 pages. All plans include API access, webhooks, Google Sheets integration, and email forwarding. No per-vendor fees, no template charges.",
   },
   {
     q: "Does it integrate with my accounting software?",
@@ -466,7 +466,7 @@ export default function InvoiceLP() {
             </Link>
           </div>
           <p className="mt-6 text-xs text-muted-foreground">
-            Paid plans from $33/month &middot; Cancel anytime &middot; All vendors supported
+            Paid plans from $20/month &middot; Cancel anytime &middot; All vendors supported
           </p>
         </div>
       </section>

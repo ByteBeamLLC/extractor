@@ -1903,7 +1903,7 @@ const guides: GuideData[] = [
       },
       {
         question: "How many PDFs can I process for free?",
-        answer: "Parsli's free tier includes 30 pages per month. Each page of a multi-page PDF counts as one page. Paid plans start at $33/month for higher volumes.",
+        answer: "Parsli's free tier includes 30 pages per month. Each page of a multi-page PDF counts as one page. Paid plans start at $20/month for higher volumes.",
       },
     ],
     relatedTools: [
@@ -4107,7 +4107,7 @@ const guides: GuideData[] = [
         question:
           "How many invoices can I process per month on the free plan?",
         answer:
-          "Parsli's free tier includes 30 pages per month. A typical single-page invoice counts as one page. For higher volumes, paid plans start at $33/month for the Starter tier. Zapier's free plan supports up to 100 tasks/month, which is usually sufficient for small-volume testing.",
+          "Parsli's free tier includes 30 pages per month. A typical single-page invoice counts as one page. For higher volumes, paid plans start at $20/month for the Starter tier. Zapier's free plan supports up to 100 tasks/month, which is usually sufficient for small-volume testing.",
       },
       {
         question: "Can I map extracted data to specific QuickBooks expense accounts?",
@@ -5768,7 +5768,7 @@ const guides: GuideData[] = [
       {
         question: "How much does automated invoice processing cost for a small business?",
         answer:
-          "Parsli's free tier includes 30 pages per month — enough for many small businesses. Paid plans start at $33/month. If you use Zapier for the QuickBooks connection, their free plan covers 100 tasks/month. For a basic setup, you can start at $0/month and scale up only when your volume justifies it.",
+          "Parsli's free tier includes 30 pages per month — enough for many small businesses. Paid plans start at $20/month. If you use Zapier for the QuickBooks connection, their free plan covers 100 tasks/month. For a basic setup, you can start at $0/month and scale up only when your volume justifies it.",
       },
       {
         question: "Do I need technical skills to set this up?",
