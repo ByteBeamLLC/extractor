@@ -27,9 +27,9 @@ export const PARSER_TOUR_STEPS: TourStepConfig[] = [
   {
     id: "schema",
     route: "schema",
-    title: "Define your extraction fields",
+    title: "Configure extraction",
     description:
-      'Add fields manually or click "Auto-Detect Fields" to upload a sample document and let AI detect them for you.',
+      'For field-based parsers, add fields manually or use "Auto-Detect Fields." For full-content parsers, add optional instructions to guide the AI.',
   },
   {
     id: "documents",
@@ -50,6 +50,6 @@ export const PARSER_TOUR_STEPS: TourStepConfig[] = [
     route: "export",
     title: "Use your extracted data",
     description:
-      "Download as CSV or JSON, or connect integrations like Google Sheets, Zapier, Make, and webhooks to automate your workflow.",
+      "Download as CSV or JSON, or connect integrations like Google Sheets, Google Docs, Zapier, Make, and webhooks to automate your workflow.",
   },
 ]

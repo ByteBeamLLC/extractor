@@ -7,6 +7,7 @@ import { formatDistanceToNow } from "date-fns"
 import {
   FileText,
   ListChecks,
+  ScanText,
   Plug,
   Upload,
   Copy,
@@ -15,6 +16,7 @@ import {
   ArrowRight,
   BarChart3,
   HelpCircle,
+  Settings2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -76,7 +78,8 @@ export function ParserOverview({ parser, onUpdate }: ParserOverviewProps) {
     tourStartAttempted.current = true
 
     if (tourActive || hasCompletedTour()) return
-    // Fresh parser: no fields and no documents
+    // Fresh parser: no fields and no documents (skip for full_content — 0 fields is intentional)
+    if (parser.extraction_type === "full_content") return
     if (parser.fields.length > 0 || parser.document_count > 0) return
 
     const timer = setTimeout(() => startTour(), 400)
@@ -98,6 +101,7 @@ export function ParserOverview({ parser, onUpdate }: ParserOverviewProps) {
   }
 
   const fieldCount = parser.fields?.length ?? 0
+  const isFullContent = parser.extraction_type === "full_content"
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
@@ -125,14 +129,29 @@ export function ParserOverview({ parser, onUpdate }: ParserOverviewProps) {
 
         <Link href={`/parsers/${parser.id}/schema`} className="block">
           <div className="border rounded-xl p-4 bg-card hover:shadow-sm transition-shadow">
-            <div className="flex items-center gap-2 text-muted-foreground mb-2">
-              <ListChecks className="h-4 w-4" />
-              <span className="text-xs font-medium">Fields</span>
-            </div>
-            <p className="text-2xl font-bold">{fieldCount}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {fieldCount === 0 ? "Not configured" : "Configured"}
-            </p>
+            {isFullContent ? (
+              <>
+                <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                  <ScanText className="h-4 w-4" />
+                  <span className="text-xs font-medium">Mode</span>
+                </div>
+                <p className="text-sm font-bold">Full Content</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Extracts everything
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                  <ListChecks className="h-4 w-4" />
+                  <span className="text-xs font-medium">Fields</span>
+                </div>
+                <p className="text-2xl font-bold">{fieldCount}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {fieldCount === 0 ? "Not configured" : "Configured"}
+                </p>
+              </>
+            )}
           </div>
         </Link>
 
@@ -219,12 +238,20 @@ export function ParserOverview({ parser, onUpdate }: ParserOverviewProps) {
           <Link href={`/parsers/${parser.id}/schema`}>
             <div className="border rounded-xl p-4 bg-card hover:border-primary/50 hover:shadow-sm transition-all flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                <ListChecks className="h-5 w-5 text-primary" />
+                {isFullContent ? (
+                  <Settings2 className="h-5 w-5 text-primary" />
+                ) : (
+                  <ListChecks className="h-5 w-5 text-primary" />
+                )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium">Edit Schema</p>
+                <p className="text-sm font-medium">
+                  {isFullContent ? "Instructions" : "Edit Schema"}
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  Define extraction fields
+                  {isFullContent
+                    ? "Guide the AI extraction"
+                    : "Define extraction fields"}
                 </p>
               </div>
               <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />

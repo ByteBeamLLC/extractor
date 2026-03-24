@@ -115,11 +115,13 @@ export function CreateParserDialog({ open, onOpenChange, onCreated }: CreatePars
 
       const parserId = (data as any)?.id
       onCreated()
-      router.push(
-        extractionType === "fields" && selectedTemplate
-          ? `/parsers/${parserId}?onboarding=true`
-          : `/parsers/${parserId}`
-      )
+      if (extractionType === "full_content") {
+        router.push(`/parsers/${parserId}/documents`)
+      } else if (selectedTemplate) {
+        router.push(`/parsers/${parserId}?onboarding=true`)
+      } else {
+        router.push(`/parsers/${parserId}`)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create parser")
     } finally {

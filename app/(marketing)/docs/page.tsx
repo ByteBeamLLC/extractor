@@ -180,8 +180,10 @@ export default function DocsPage() {
           </Step>
 
           <Step number={2} title="Create a parser">
-            A <strong>parser</strong> is a reusable extraction template. Give it a name
-            (e.g. &quot;Invoice Parser&quot;) and an optional description.
+            A <strong>parser</strong> is a reusable extraction template. Choose between
+            two modes: <strong>Extract Fields</strong> (you define what data to extract) or{" "}
+            <strong>Extract Everything</strong> (AI extracts all data automatically).
+            Give it a name and an optional description.
           </Step>
 
           <div className="ml-12 mb-6 rounded-xl border bg-card overflow-hidden shadow-sm">
@@ -239,9 +241,43 @@ export default function DocsPage() {
           <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground mb-4">
             <li>Go to the <Link href="/" className="text-primary underline underline-offset-2">Parsers</Link> page.</li>
             <li>Click <strong>&quot;New Parser&quot;</strong>.</li>
+            <li>Choose your extraction mode (see below).</li>
             <li>Enter a name and optional description.</li>
-            <li>Click <strong>&quot;Create&quot;</strong>. You&apos;ll land on the parser detail page.</li>
+            <li>Click <strong>&quot;Create&quot;</strong>.</li>
           </ol>
+
+          <SubHeading id="extraction-types">Extraction types</SubHeading>
+          <p className="text-sm text-muted-foreground mb-3">
+            When creating a parser, you choose how data should be extracted:
+          </p>
+          <div className="border rounded-lg overflow-hidden mb-4">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="text-left px-4 py-2 font-semibold">Mode</th>
+                  <th className="text-left px-4 py-2 font-semibold">Best for</th>
+                  <th className="text-left px-4 py-2 font-semibold">How it works</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-t">
+                  <td className="px-4 py-2 font-medium">Extract Fields</td>
+                  <td className="px-4 py-2 text-muted-foreground">Structured, repeatable extraction</td>
+                  <td className="px-4 py-2 text-muted-foreground">You define specific fields (e.g. &quot;Invoice Number&quot;, &quot;Total&quot;). The AI extracts exactly those fields every time.</td>
+                </tr>
+                <tr className="border-t">
+                  <td className="px-4 py-2 font-medium">Extract Everything</td>
+                  <td className="px-4 py-2 text-muted-foreground">Exploratory or varied documents</td>
+                  <td className="px-4 py-2 text-muted-foreground">The AI extracts all data it finds and determines the structure automatically. Great for contracts, reports, or mixed document types.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <Callout type="tip">
+            Use <strong>Extract Fields</strong> when you process the same type of document repeatedly and need consistent output.
+            Use <strong>Extract Everything</strong> when documents vary or you want a quick, comprehensive extraction without configuring fields.
+          </Callout>
 
           <SubHeading id="parser-status">Parser status</SubHeading>
           <p className="text-sm text-muted-foreground mb-3">
@@ -285,6 +321,12 @@ export default function DocsPage() {
             Your schema tells the AI exactly what data to pull from each document.
             Each <strong>field</strong> you add becomes a column in your output data.
           </p>
+
+          <Callout type="info">
+            This section applies to <strong>Extract Fields</strong> parsers. If you chose{" "}
+            <strong>Extract Everything</strong>, the AI determines the structure automatically — you
+            can optionally add custom extraction instructions to guide what it focuses on.
+          </Callout>
 
           <SubHeading id="field-types">Field types</SubHeading>
           <div className="border rounded-lg overflow-hidden mb-6">
@@ -466,6 +508,28 @@ export default function DocsPage() {
           <Callout type="tip">
             The data refreshes automatically whenever Google Sheets recalculates.
             No webhooks or manual refresh needed.
+          </Callout>
+
+          {/* Google Docs */}
+          <SubHeading id="google-docs">
+            <span className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-blue-600" /> Google Docs
+            </span>
+          </SubHeading>
+          <p className="text-sm text-muted-foreground mb-3">
+            Automatically save extraction results as formatted Google Docs in your Drive.
+            Each processed document creates a new Google Doc with the extracted data organized
+            into readable sections, tables, and key-value pairs.
+          </p>
+          <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground mb-3">
+            <li>In the Integrations tab, click <strong>&quot;Add Integration&quot;</strong> and select <strong>Google Docs</strong>.</li>
+            <li>Click <strong>&quot;Connect Google Drive&quot;</strong> and authorize access.</li>
+            <li>Optionally specify a Google Drive folder ID to organize your docs.</li>
+            <li>Every new extraction will automatically create a Google Doc in your Drive.</li>
+          </ol>
+          <Callout type="info">
+            Parsli only requests access to files it creates (<code className="bg-muted px-1.5 py-0.5 rounded text-xs">drive.file</code> scope).
+            It cannot read, modify, or delete your other Google Drive files.
           </Callout>
 
           {/* Zapier */}
@@ -710,27 +774,33 @@ curl -X POST https://parsli.co/api/inbound/webhook/YOUR_TOKEN \\
               <tbody>
                 <tr className="border-t">
                   <td className="px-4 py-2 font-medium">Free</td>
-                  <td className="px-4 py-2 text-muted-foreground">50</td>
+                  <td className="px-4 py-2 text-muted-foreground">30</td>
                   <td className="px-4 py-2 text-muted-foreground">$0</td>
                   <td className="px-4 py-2 text-muted-foreground">Free</td>
                 </tr>
                 <tr className="border-t">
                   <td className="px-4 py-2 font-medium">Starter</td>
-                  <td className="px-4 py-2 text-muted-foreground">500</td>
-                  <td className="px-4 py-2 text-muted-foreground">$29/mo</td>
-                  <td className="px-4 py-2 text-muted-foreground">$0.058</td>
+                  <td className="px-4 py-2 text-muted-foreground">250</td>
+                  <td className="px-4 py-2 text-muted-foreground">$20/mo</td>
+                  <td className="px-4 py-2 text-muted-foreground">$0.080</td>
+                </tr>
+                <tr className="border-t">
+                  <td className="px-4 py-2 font-medium">Growth</td>
+                  <td className="px-4 py-2 text-muted-foreground">1,000</td>
+                  <td className="px-4 py-2 text-muted-foreground">$49/mo</td>
+                  <td className="px-4 py-2 text-muted-foreground">$0.049</td>
                 </tr>
                 <tr className="border-t">
                   <td className="px-4 py-2 font-medium">Pro</td>
-                  <td className="px-4 py-2 text-muted-foreground">2,000</td>
-                  <td className="px-4 py-2 text-muted-foreground">$79/mo</td>
+                  <td className="px-4 py-2 text-muted-foreground">5,000</td>
+                  <td className="px-4 py-2 text-muted-foreground">$199/mo</td>
                   <td className="px-4 py-2 text-muted-foreground">$0.040</td>
                 </tr>
                 <tr className="border-t">
-                  <td className="px-4 py-2 font-medium">Enterprise</td>
-                  <td className="px-4 py-2 text-muted-foreground">10,000+</td>
-                  <td className="px-4 py-2 text-muted-foreground">$249/mo</td>
-                  <td className="px-4 py-2 text-muted-foreground">$0.025</td>
+                  <td className="px-4 py-2 font-medium">Business</td>
+                  <td className="px-4 py-2 text-muted-foreground">25,000</td>
+                  <td className="px-4 py-2 text-muted-foreground">$499/mo</td>
+                  <td className="px-4 py-2 text-muted-foreground">$0.020</td>
                 </tr>
               </tbody>
             </table>
@@ -883,6 +953,38 @@ curl -X POST https://parsli.co/api/inbound/webhook/YOUR_TOKEN \\
                 instructions, (3) Make sure your field types match the data (e.g. use &quot;decimal&quot;
                 for currency amounts), (4) Use single-select/multi-select to constrain values to
                 known options.
+              </p>
+            </div>
+
+            <div>
+              <p className="font-semibold mb-1">What&apos;s the difference between &quot;Extract Fields&quot; and &quot;Extract Everything&quot;?</p>
+              <p className="text-sm text-muted-foreground">
+                <strong>Extract Fields</strong> — you define specific fields (like &quot;Invoice Number&quot;,
+                &quot;Total&quot;) and the AI extracts exactly those fields every time. Best for
+                repeatable, structured workflows.
+                <br />
+                <strong>Extract Everything</strong> — the AI extracts all data it finds and
+                determines the structure automatically. Best for varied documents or when
+                you want a quick, comprehensive extraction without setting up a schema.
+              </p>
+            </div>
+
+            <div>
+              <p className="font-semibold mb-1">Can I switch between Extract Fields and Extract Everything?</p>
+              <p className="text-sm text-muted-foreground">
+                The extraction mode is set when you create a parser. To switch modes, create a
+                new parser with the other mode. Your existing documents and results are preserved
+                in the original parser.
+              </p>
+            </div>
+
+            <div>
+              <p className="font-semibold mb-1">How does the Google Docs integration work?</p>
+              <p className="text-sm text-muted-foreground">
+                After connecting your Google Drive, every document you process automatically creates
+                a formatted Google Doc with the extracted data. The doc includes all fields, tables,
+                and metadata organized into readable sections. You can optionally specify a folder to
+                keep your docs organized.
               </p>
             </div>
           </div>
