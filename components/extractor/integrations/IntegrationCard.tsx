@@ -5,6 +5,7 @@ import { formatDistanceToNow } from "date-fns"
 import {
   Webhook,
   FileSpreadsheet,
+  FileText,
   Zap,
   Blocks,
   Workflow,
@@ -26,6 +27,7 @@ import type { ParserIntegration } from "@/lib/extractor/types"
 const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   webhook: Webhook,
   google_sheets: FileSpreadsheet,
+  google_docs: FileText,
   zapier: Zap,
   make: Blocks,
   power_automate: Workflow,
@@ -98,6 +100,12 @@ export function IntegrationCard({ integration, parserId, onUpdated }: Integratio
               {integration.config.from_filter && ` — from: ${integration.config.from_filter}`}
             </p>
           )}
+          {integration.type === "google_docs" && integration.config?.google_email && (
+            <p className="text-xs text-muted-foreground">
+              Connected as {integration.config.google_email}
+              {integration.config.folder_id && ` — folder: ${integration.config.folder_id}`}
+            </p>
+          )}
           {integration.last_triggered_at && (
             <p className="text-xs text-muted-foreground">
               Last triggered {formatDistanceToNow(new Date(integration.last_triggered_at), { addSuffix: true })}
@@ -124,7 +132,19 @@ export function IntegrationCard({ integration, parserId, onUpdated }: Integratio
               <span className="ml-1 text-xs">Re-auth</span>
             </Button>
           )}
-          {integration.type !== "google_sheets" && integration.type !== "gmail_inbox" && (
+          {integration.type === "google_docs" && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                window.location.href = `/api/auth/google-docs/connect?parserId=${parserId}`
+              }}
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              <span className="ml-1 text-xs">Re-auth</span>
+            </Button>
+          )}
+          {integration.type !== "google_sheets" && integration.type !== "google_docs" && integration.type !== "gmail_inbox" && (
             <Button variant="ghost" size="sm" onClick={handleTest} disabled={testing}>
               {testing ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
