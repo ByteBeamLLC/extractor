@@ -51,7 +51,15 @@ export async function GET(request: NextRequest) {
       envKeys: Object.keys(process.env).filter(k => k.includes("GOOGLE")).join(", "),
     })
     return NextResponse.json(
-      { error: "Google OAuth not configured. Check server logs." },
+      {
+        error: "Google OAuth not configured",
+        debug: {
+          message: err instanceof Error ? err.message : String(err),
+          hasClientId: !!process.env.GOOGLE_CLIENT_ID,
+          hasClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
+          googleEnvKeys: Object.keys(process.env).filter(k => k.includes("GOOGLE")),
+        },
+      },
       { status: 500 }
     )
   }
