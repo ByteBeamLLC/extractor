@@ -1,12 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createSupabaseServerComponentClient, createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import { runExtraction } from "@/lib/extraction/runExtraction"
+import { countDocumentPages } from "@/lib/extraction/api"
 import type { SchemaField } from "@/lib/schema"
 import { deliverToIntegrations } from "@/lib/extractor/integrations/orchestrator"
 import { checkCredits, deductCredits } from "@/lib/extractor/billing/credits"
 import { trackServerEvent } from "@/lib/analytics/server"
 
 export const runtime = "nodejs"
+export const maxDuration = 60
 
 export async function POST(
   request: NextRequest,
@@ -91,8 +93,12 @@ export async function POST(
     }
   }
 
+  // Count actual pages in the document
+  const fileBuffer = Buffer.from(fileData.data, "base64")
+  const pageCount = await countDocumentPages(new Uint8Array(fileBuffer), fileData.name, fileData.type)
+
   // Check credits (with automatic reset if period elapsed)
-  const { allowed, reason } = await checkCredits(user.id, 1, supabase)
+  const { allowed, reason } = await checkCredits(user.id, pageCount, supabase)
   if (!allowed) {
     return NextResponse.json(
       { error: reason || "Monthly credit limit reached. Upgrade your plan for more pages." },
@@ -164,7 +170,7 @@ export async function POST(
   })
 
   // Atomically deduct credits (DB-level guard prevents overshoot)
-  const creditsUsed = 1
+  const creditsUsed = pageCount
   const { success: deducted } = await deductCredits(user.id, creditsUsed, supabase)
   if (!deducted) {
     // Race condition: credits exhausted between check and deduct
@@ -214,7 +220,7 @@ export async function POST(
       p.name,
       docId,
       extractionResult.results,
-      { file_name: fileData.name ?? "uploaded", mime_type: fileData.type ?? "", source_type: sourceType, page_count: 1 },
+      { file_name: fileData.name ?? "uploaded", mime_type: fileData.type ?? "", source_type: sourceType, page_count: pageCount },
       supabase as any
     ).catch((err) => console.error("[extractor] Integration delivery failed:", err))
   }

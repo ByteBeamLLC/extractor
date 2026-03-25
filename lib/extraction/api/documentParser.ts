@@ -154,6 +154,35 @@ async function extractPptxText(bytes: Uint8Array): Promise<string> {
 }
 
 /**
+ * Counts the number of pages in a document.
+ * PDFs: actual page count via pdf-parse. Images: 1. Others: 1.
+ */
+export async function countDocumentPages(
+  bytes: Uint8Array,
+  fileName?: string,
+  mimeType?: string
+): Promise<number> {
+  const ext = fileName?.split(".").pop()?.toLowerCase() ?? ""
+  const normalizedMime = mimeType?.toLowerCase() ?? ""
+
+  // PDF — use pdf-parse to get actual page count
+  if (PDF_MIME_TYPES.has(normalizedMime) || ext === "pdf") {
+    try {
+      const pdfParse = await loadPdfParse()
+      if (pdfParse) {
+        const result = await pdfParse(Buffer.from(bytes))
+        return (result as any).numpages ?? 1
+      }
+    } catch {
+      // fall through to default
+    }
+  }
+
+  // Everything else (images, DOCX, XLSX, etc.) = 1 page
+  return 1
+}
+
+/**
  * Checks if a MIME type represents text-like content
  */
 export function isTextLikeMimeType(mimeType?: string | null): boolean {

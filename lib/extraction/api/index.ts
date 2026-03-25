@@ -34,6 +34,7 @@ export {
 export {
   isTextLikeMimeType,
   extractTextFromDocument,
+  countDocumentPages,
   isImageFile,
   isPdfFile,
   isDotsOcrSupported,

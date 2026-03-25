@@ -2,12 +2,14 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import { authenticateApiKey } from "@/lib/extractor/auth/apiKeyAuth"
 import { runExtraction } from "@/lib/extraction/runExtraction"
+import { countDocumentPages } from "@/lib/extraction/api"
 import { deliverToIntegrations } from "@/lib/extractor/integrations/orchestrator"
 import { checkCredits, deductCredits } from "@/lib/extractor/billing/credits"
 import type { SchemaField } from "@/lib/schema"
 import { trackServerEvent } from "@/lib/analytics/server"
 
 export const runtime = "nodejs"
+export const maxDuration = 60
 
 /**
  * POST /api/v1/extract
@@ -53,8 +55,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Missing file.data (base64)" }, { status: 400 })
   }
 
+  // Count actual pages
+  const fileBuffer = Buffer.from(fileData.data, "base64")
+  const pageCount = await countDocumentPages(new Uint8Array(fileBuffer), fileData.name, fileData.type)
+
   // Check credits
-  const creditCheck = await checkCredits(auth.userId!, 1, supabase)
+  const creditCheck = await checkCredits(auth.userId!, pageCount, supabase)
   if (!creditCheck.allowed) {
     return NextResponse.json(
       { error: "Monthly credit limit reached. Upgrade your plan for more pages." },
@@ -93,7 +99,7 @@ export async function POST(request: NextRequest) {
   const { __meta__, ...apiResults } = result.results
 
   // Atomically deduct credits (DB-level guard prevents overshoot)
-  const { success: deducted } = await deductCredits(auth.userId!, 1, supabase)
+  const { success: deducted } = await deductCredits(auth.userId!, pageCount, supabase)
   if (!deducted) {
     console.warn(`[v1/extract] Credit deduction failed for user ${auth.userId} — possible race condition`)
   }
@@ -106,7 +112,7 @@ export async function POST(request: NextRequest) {
         status: result.error ? "error" : "completed",
         results: result.results,
         processed_at: new Date().toISOString(),
-        credits_used: 1,
+        credits_used: pageCount,
         error_message: result.error ?? null,
       } as any)
       .eq("id", docId)
@@ -117,7 +123,7 @@ export async function POST(request: NextRequest) {
       parser.name,
       docId,
       result.results,
-      { file_name: fileData.name ?? "api-upload", mime_type: fileData.type ?? "", source_type: "api", page_count: 1 },
+      { file_name: fileData.name ?? "api-upload", mime_type: fileData.type ?? "", source_type: "api", page_count: pageCount },
       supabase as any
     ).catch((err) => console.error("[extractor] Integration delivery failed:", err))
   }

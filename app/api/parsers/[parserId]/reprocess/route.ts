@@ -1,11 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createSupabaseServerComponentClient, createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import { runExtraction } from "@/lib/extraction/runExtraction"
+import { countDocumentPages } from "@/lib/extraction/api"
 import type { SchemaField } from "@/lib/schema"
 import { checkCredits, deductCredits } from "@/lib/extractor/billing/credits"
 import { deliverToIntegrations } from "@/lib/extractor/integrations/orchestrator"
 
 export const runtime = "nodejs"
+export const maxDuration = 60
 
 /**
  * POST /api/parsers/[parserId]/reprocess
@@ -91,8 +93,12 @@ export async function POST(
     )
   }
 
+  // Count actual pages
+  const fileBytes = new Uint8Array(await fileBlob.arrayBuffer())
+  const pageCount = await countDocumentPages(fileBytes, d.file_name, d.mime_type)
+
   // Check credits
-  const { allowed, reason } = await checkCredits(user.id, 1, supabase)
+  const { allowed, reason } = await checkCredits(user.id, pageCount, supabase)
   if (!allowed) {
     return NextResponse.json(
       { error: reason || "Monthly credit limit reached." },
@@ -106,9 +112,8 @@ export async function POST(
     .update({ status: "processing", error_message: null } as any)
     .eq("id", documentId)
 
-  // Convert blob to base64
-  const arrayBuffer = await fileBlob.arrayBuffer()
-  const base64 = Buffer.from(arrayBuffer).toString("base64")
+  // Convert to base64 (reuse bytes from page counting)
+  const base64 = Buffer.from(fileBytes).toString("base64")
 
   // Run extraction
   const extractionResult = await runExtraction({
@@ -121,7 +126,7 @@ export async function POST(
   })
 
   // Deduct credits
-  const { success: deducted } = await deductCredits(user.id, 1, supabase)
+  const { success: deducted } = await deductCredits(user.id, pageCount, supabase)
   if (!deducted) {
     console.warn(`[reprocess] Credit deduction failed for user ${user.id}`)
   }
@@ -133,7 +138,7 @@ export async function POST(
       status: extractionResult.handledWithFallback && extractionResult.error ? "error" : "completed",
       results: extractionResult.results,
       processed_at: new Date().toISOString(),
-      credits_used: (d.credits_used ?? 0) + 1,
+      credits_used: (d.credits_used ?? 0) + pageCount,
       error_message: extractionResult.error ?? null,
     } as any)
     .eq("id", documentId)
@@ -144,7 +149,7 @@ export async function POST(
     p.name,
     documentId,
     extractionResult.results,
-    { file_name: d.file_name, mime_type: d.mime_type ?? "", source_type: d.source_type, page_count: 1 },
+    { file_name: d.file_name, mime_type: d.mime_type ?? "", source_type: d.source_type, page_count: pageCount },
     supabase as any
   ).catch((err) => console.error("[reprocess] Integration delivery failed:", err))
 

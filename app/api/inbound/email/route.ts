@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import { runExtraction } from "@/lib/extraction/runExtraction"
+import { countDocumentPages } from "@/lib/extraction/api"
 import { deliverToIntegrations } from "@/lib/extractor/integrations/orchestrator"
 import { checkCredits, deductCredits } from "@/lib/extractor/billing/credits"
 import type { SchemaField } from "@/lib/schema"
@@ -133,17 +134,31 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "No processable content found" }, { status: 200 })
   }
 
+  // Count actual pages per item for accurate metering
+  const itemPageCounts: number[] = []
+  for (const item of items) {
+    const pages = await countDocumentPages(
+      new Uint8Array(Buffer.from(item.base64, "base64")),
+      item.fileName,
+      item.mimeType
+    )
+    itemPageCounts.push(pages)
+  }
+  const totalPages = itemPageCounts.reduce((sum, p) => sum + p, 0)
+
   // Check credits for all items upfront
-  const creditCheck = await checkCredits(parser.user_id, items.length, supabase)
+  const creditCheck = await checkCredits(parser.user_id, totalPages, supabase)
   if (!creditCheck.allowed) {
-    console.log(`[inbound/email] Insufficient credits for user ${parser.user_id} (need ${items.length}, have ${creditCheck.remaining})`)
+    console.log(`[inbound/email] Insufficient credits for user ${parser.user_id} (need ${totalPages}, have ${creditCheck.remaining})`)
     return NextResponse.json({ message: "Credit limit reached" }, { status: 200 })
   }
 
   // Process each item
   const results: { fileName: string; success: boolean; error?: string }[] = []
 
-  for (const item of items) {
+  for (let idx = 0; idx < items.length; idx++) {
+    const item = items[idx]
+    const itemPages = itemPageCounts[idx]
     try {
       // Create processing log
       const { data: processedDoc } = await supabase
@@ -172,8 +187,8 @@ export async function POST(request: NextRequest) {
         extractionType,
       })
 
-      // Deduct 1 credit
-      const { success: deducted } = await deductCredits(parser.user_id, 1, supabase)
+      // Deduct credits based on actual page count
+      const { success: deducted } = await deductCredits(parser.user_id, itemPages, supabase)
       if (!deducted) {
         console.warn(`[inbound/email] Credit deduction failed for user ${parser.user_id}`)
       }
@@ -186,7 +201,7 @@ export async function POST(request: NextRequest) {
             status: result.error ? "error" : "completed",
             results: result.results,
             processed_at: new Date().toISOString(),
-            credits_used: 1,
+            credits_used: itemPages,
             error_message: result.error ?? null,
           } as any)
           .eq("id", docId)
@@ -197,7 +212,7 @@ export async function POST(request: NextRequest) {
           parser.name,
           docId,
           result.results,
-          { file_name: item.fileName, mime_type: item.mimeType, source_type: "email", page_count: 1 },
+          { file_name: item.fileName, mime_type: item.mimeType, source_type: "email", page_count: itemPages },
           supabase as any
         )
       }

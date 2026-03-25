@@ -1,11 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import { runExtraction } from "@/lib/extraction/runExtraction"
+import { countDocumentPages } from "@/lib/extraction/api"
 import { deliverToIntegrations } from "@/lib/extractor/integrations/orchestrator"
 import { checkCredits, deductCredits } from "@/lib/extractor/billing/credits"
 import type { SchemaField } from "@/lib/schema"
 
 export const runtime = "nodejs"
+export const maxDuration = 60
 
 /**
  * POST /api/inbound/webhook/[token]
@@ -73,8 +75,15 @@ export async function POST(
     fileBase64 = body.file.data
   }
 
+  // Count actual pages
+  const pageCount = await countDocumentPages(
+    new Uint8Array(Buffer.from(fileBase64, "base64")),
+    fileName,
+    fileMimeType
+  )
+
   // Check credits
-  const creditCheck = await checkCredits(parser.user_id, 1, supabase)
+  const creditCheck = await checkCredits(parser.user_id, pageCount, supabase)
   if (!creditCheck.allowed) {
     return NextResponse.json(
       { error: "Parser owner has reached monthly credit limit" },
@@ -111,7 +120,7 @@ export async function POST(
   const { __meta__, ...apiResults } = result.results
 
   // Atomically deduct credits (DB-level guard prevents overshoot)
-  const { success: deducted } = await deductCredits(parser.user_id, 1, supabase)
+  const { success: deducted } = await deductCredits(parser.user_id, pageCount, supabase)
   if (!deducted) {
     console.warn(`[inbound/webhook] Credit deduction failed for user ${parser.user_id} — possible race condition`)
   }
@@ -124,7 +133,7 @@ export async function POST(
         status: result.error ? "error" : "completed",
         results: result.results,
         processed_at: new Date().toISOString(),
-        credits_used: 1,
+        credits_used: pageCount,
         error_message: result.error ?? null,
       } as any)
       .eq("id", docId)
@@ -135,7 +144,7 @@ export async function POST(
       parser.name,
       docId,
       result.results,
-      { file_name: fileName, mime_type: fileMimeType, source_type: "webhook", page_count: 1 },
+      { file_name: fileName, mime_type: fileMimeType, source_type: "webhook", page_count: pageCount },
       supabase as any
     )
   }
