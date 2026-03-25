@@ -39,6 +39,35 @@ export interface AlternativeData {
   /** Deep-dive reasons section */
   deepDiveReasons: { title: string; description: string }[]
 
+  /** Infrastructure comparison diagram data */
+  infraComparison?: {
+    competitorName: string
+    competitorSubtitle: string
+    services: string[]
+    extras: string[]
+    setupTime: string
+  }
+
+  /** ROI metrics shown after FAQ */
+  roiMetrics?: {
+    stat1: { value: string; label: string }
+    stat2: { value: string; label: string }
+    stat3: { value: string; label: string }
+  }
+
+  /** Customer testimonials */
+  testimonials?: {
+    quote: string
+    name: string
+    title: string
+  }[]
+
+  /** Getting started steps */
+  gettingStartedSteps?: {
+    step: string
+    description: string
+  }[]
+
   /** Slugs of other competitor pages */
   relatedAlternatives: string[]
 }
@@ -4751,23 +4780,6 @@ export const alternatives: AlternativeData[] = [
         ],
       },
       {
-        category: "Security & Compliance",
-        rows: [
-          {
-            feature: "Certifications",
-            parsli: "GDPR compliant. Encryption at rest and in transit. Row-level security. Documents never used for AI training.",
-            competitor: "Cloud/Enterprise: SOC 2 Type II, HIPAA, GDPR, ISO 27001 certified — a strong compliance posture for regulated industries. Open-source: compliance is your responsibility to implement and maintain.",
-            parsliWins: false,
-          },
-          {
-            feature: "Data sovereignty",
-            parsli: "Cloud-hosted with data encryption. Contact for data residency requirements.",
-            competitor: "Open-source and Enterprise on-prem editions give complete data sovereignty — your data never leaves your infrastructure. Cloud edition is hosted by Zipstack.",
-            parsliWins: false,
-          },
-        ],
-      },
-      {
         category: "Support & Developer Experience",
         rows: [
           {
@@ -4856,46 +4868,69 @@ export const alternatives: AlternativeData[] = [
       "You need complete data sovereignty with self-hosted or on-premise deployment",
       "You require a specific LLM (GPT-4, Claude, Llama, local models) for compliance or cost reasons",
       "You have DevOps resources and want to customize the extraction pipeline at the code level",
-      "You need SOC 2 Type II, HIPAA, or ISO 27001 certifications (Unstract Cloud/Enterprise)",
       "You want to contribute to or benefit from an active open-source community (6.5K GitHub stars)",
     ],
     keyTakeaways: [
-      "Unstract offers 3 editions: Open Source (AGPL, Docker), Cloud (SaaS, 100 pages/day free, ~$500/mo), and On-Premise (Kubernetes, enterprise). Parsli is a single managed SaaS from $0/mo with 99%+ accuracy out of the box.",
-      "Self-hosting Unstract's open-source edition requires Docker Compose with 7+ services. A Qt Group TCO study found open-source costs reach 5x initial estimates with customization; a DevOps engineer averages $129K–$143K/year (BLS 2025).",
-      "Unstract's most valuable features — LLMChallenge (dual-LLM verification), SinglePass (8x token savings), SummarizedExtraction (6x token savings), HITL review, SSO — are not available in the open-source edition. Parsli includes all features on every plan.",
-      "Parsli includes built-in integrations (Google Sheets, Zapier, Make, Gmail) and direct email support on all plans. Unstract requires custom ETL pipeline development and offers GitHub-issues-only support for OSS users.",
-      "According to Menlo Ventures (2025), 76% of enterprise AI use cases are now purchased as SaaS — up from 53% in 2024. Parsli aligns with this trend toward managed AI platforms.",
+      "Unstract has 3 editions (OSS, Cloud, Enterprise) with different feature sets at different price points. Parsli is one managed SaaS — every feature on every plan, from $0/month.",
+      "Unstract's best features — dual-LLM verification, 8x token reduction, human review — are locked behind Cloud/Enterprise pricing starting at ~$500/month.",
+      "Self-hosting Unstract requires Docker Compose with 7+ services and ongoing DevOps maintenance. Parsli requires a browser and 3 minutes.",
+      "Unstract gives maximum LLM flexibility (GPT-4, Claude, Gemini, Llama). Parsli gives maximum simplicity — 99%+ accuracy with zero configuration.",
+      "If you need data sovereignty or custom LLM pipelines, Unstract is a strong choice. For teams that want managed extraction without infrastructure, Parsli gets you to structured data faster.",
     ],
     deepDiveReasons: [
       {
-        title: "99%+ accuracy out of the box — no LLM tuning required",
+        title: "The two-tier open-source trap",
         description:
-          "Parsli uses Google Gemini 2.5 Pro, a natively multimodal model that processes document images directly — no text conversion step, no separate OCR preprocessor. This delivers 99%+ accuracy on invoices, receipts, contracts, forms, and complex layouts with zero configuration. Unstract's accuracy depends on which LLM you choose and how well you tune prompts in Prompt Studio. With proper setup Unstract can achieve strong results, but accuracy varies across models and document types, and there are no published third-party benchmarks. Parsli's advantage is consistency: the same model, the same accuracy, every time.",
+          "Teams discover Unstract through its open-source marketing and invest days deploying the OSS edition. Then they hit a wall: hallucination detection (LLMChallenge), token optimization (SinglePass, SummarizedExtraction), and human-in-the-loop review are all Cloud/Enterprise-only. The upgrade path isn't a feature toggle — it's ~$500/month Cloud pricing or an enterprise sales conversation with Zipstack. With Parsli, every feature ships on every plan. The free tier gets the same extraction engine, the same confidence scores, and the same integrations as the $499/month Business plan.",
       },
       {
-        title: "The real cost of 'free' open-source: infrastructure, personnel, and maintenance",
+        title: "LLM flexibility sounds great — until you're managing it in production",
         description:
-          "Unstract's open-source edition is free to download, but production deployment requires Docker Compose with Django, Celery, RabbitMQ, Redis, PostgreSQL, and LLM adapters — plus LLMWhisperer for OCR preprocessing. A Qt Group TCO study found that open-source total cost of ownership can reach 5x the initial estimate when factoring in customization, integration, and ongoing maintenance. The Bureau of Labor Statistics reports DevOps engineers average $129K–$143K/year, and the Ponemon Institute found 65% of organizations spend 10+ hours per week on patching alone. Meanwhile, Sirion AI research shows SaaS extraction delivers 35% cost savings versus on-premises TCO. Parsli's $0–$499/month pricing includes all infrastructure, AI processing, integrations, and support.",
+          "Unstract's bring-your-own-LLM model gives you GPT-4, Claude, Gemini, Llama, or local models. In evaluation, that's powerful. In production, it means managing multiple API keys, tracking costs across providers, tuning prompts per model per document type, and re-optimizing when providers deprecate versions (GPT-4 → GPT-4 Turbo → GPT-4o) or change pricing. Each model behaves differently — a prompt that works on GPT-4 may hallucinate on Llama. Parsli eliminates this entirely: one model (Gemini 2.5 Pro), always current, always optimized, zero prompt engineering required.",
       },
       {
-        title: "Cloud-only features create a two-tier open-source experience",
+        title: "3 minutes to first extraction vs. 3 days",
         description:
-          "Unstract markets itself as open source, but its most valuable extraction features are restricted to Cloud and Enterprise editions. LLMChallenge (dual-LLM verification that catches hallucinations), SinglePass (8x token reduction), SummarizedExtraction (6x token reduction), human-in-the-loop review, and SSO are all cloud-only. Open-source users get the base extraction pipeline but miss the accuracy and efficiency features that differentiate Unstract from raw LLM prompting. Parsli includes every feature on every plan — including the free tier.",
-      },
-      {
-        title: "Direct support vs. GitHub issues",
-        description:
-          "Parsli provides direct email support on all plans including the free tier, with priority support on higher tiers. Unstract's open-source edition offers GitHub issues and community Discord — no SLA, no guaranteed response time. When an extraction pipeline breaks at 2 AM, the difference between 'open a GitHub issue and wait' and 'email support and get a response' is significant. Unstract's Cloud and Enterprise editions include commercial support from Zipstack, but at ~$500/month entry that's a premium most teams don't need to pay.",
-      },
-      {
-        title: "One-click integrations vs. custom ETL pipeline development",
-        description:
-          "Parsli connects to Google Sheets, Zapier (5,000+ apps), Make, Gmail, and webhooks with one-click setup. An operations manager can build a complete document-to-spreadsheet pipeline in 5 minutes without writing code. Unstract's Workflow Studio is powerful for complex multi-step extraction pipelines with branching logic, but requires technical expertise to design and maintain. Fortune Business Insights projects the Document AI market at $14.16 billion in 2026 at 26.2% CAGR — increasingly driven by no-code platforms that bring AI extraction to business users, not just developers.",
+          "With Parsli: create account, describe fields in plain English, upload a document, get structured JSON. Under 3 minutes, no exaggeration. With Unstract's open-source: provision a server, install Docker Compose with Django, Celery, RabbitMQ, Redis, PostgreSQL, LLM adapters, and LLMWhisperer. Configure your LLM API key. Open Prompt Studio. Design an extraction workflow. Test and iterate on prompts. Even Unstract Cloud, which skips the infrastructure, still requires LLM API setup and Prompt Studio configuration before extracting a single page. The time-to-first-extraction gap matters because every day without automation is another day of manual data entry at $18–25/hour.",
       },
       {
         title: "Automatic updates vs. manual deployment cycles",
         description:
-          "Parsli updates automatically — new AI capabilities, security patches, and feature improvements arrive without any action from you. Self-hosted Unstract requires pulling new Docker images, testing compatibility, managing database migrations, and coordinating deployment windows. Unstract's GitHub shows active development with regular releases, but each update requires your team's time to validate and deploy. Gartner projects the IDP market will reach $2.09 billion by 2026 at 13% CAGR, with the fastest growth in managed platforms that eliminate infrastructure overhead.",
+          "Parsli updates automatically — new AI capabilities, security patches, and performance improvements arrive without any action. Self-hosted Unstract requires pulling new Docker images, testing compatibility across 7+ services, managing database migrations, and coordinating deployment windows. When Google ships a Gemini improvement, Parsli customers benefit immediately. When Unstract ships an update, self-hosted users schedule a maintenance window. Unstract's GitHub shows active development, but each release demands your team's time to validate and deploy — time better spent on your core business.",
+      },
+    ],
+    infraComparison: {
+      competitorName: "Unstract",
+      competitorSubtitle: "Docker Compose Required",
+      services: ["Django", "Celery", "RabbitMQ", "Redis", "PostgreSQL", "LLM Adapter", "LLMWhisperer"],
+      extras: ["Your LLM API Key", "Monitoring & Logs"],
+      setupTime: "Days to weeks",
+    },
+    roiMetrics: {
+      stat1: { value: "167h", label: "Hours of manual data entry eliminated monthly (at 1,000 pages)" },
+      stat2: { value: "$42K+", label: "Annual savings vs. manual processing and self-hosted infrastructure" },
+      stat3: { value: "<3 min", label: "Time from signup to first structured extraction" },
+    },
+    gettingStartedSteps: [
+      {
+        step: "Create your free account",
+        description: "No credit card, no sales call. Sign up at parsli.co and access the dashboard immediately.",
+      },
+      {
+        step: "Build your extraction schema",
+        description: "Use the visual builder to describe what data you need in plain English. Your Unstract Prompt Studio field definitions map directly to Parsli schema fields.",
+      },
+      {
+        step: "Upload a document and verify",
+        description: "Drop in a sample PDF, image, or email. Review extracted data with per-field confidence scores. Adjust your schema if needed.",
+      },
+      {
+        step: "Connect your integrations",
+        description: "One-click setup for Google Sheets, Zapier, Make, Gmail, or webhooks. Route extracted data wherever your team needs it.",
+      },
+      {
+        step: "Switch your document ingest",
+        description: "Point your API calls or email forwarding to Parsli. Most teams complete full migration from Unstract in under an hour.",
       },
     ],
     relatedAlternatives: ["reducto", "llamaparse", "unstructured", "extend-ai"],

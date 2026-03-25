@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import Image from "next/image"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { Check, ChevronDown, ArrowRight, Info } from "lucide-react"
@@ -266,6 +267,108 @@ export default function AlternativePage({
         </div>
       </section>
 
+      {/* ═══════ Architecture Diagram (conditional) ═══════ */}
+      {alt.infraComparison && (
+        <section className="py-16 sm:py-20 bg-muted/30">
+          <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-center mb-4">
+              Infrastructure Comparison
+            </h2>
+            <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-12">
+              What it takes to run each platform in production.
+            </p>
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* Parsli — Simple */}
+              <div className="rounded-xl border-2 border-primary/30 bg-primary/[0.02] p-6 sm:p-8">
+                <div className="text-center mb-6">
+                  <p className="text-lg font-bold text-primary">Parsli</p>
+                  <p className="text-sm text-muted-foreground">Fully Managed SaaS</p>
+                </div>
+                <div className="rounded-lg bg-primary/10 p-5">
+                  <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
+                    <span className="px-3 py-1.5 bg-white rounded-md shadow-sm font-medium">Sign Up</span>
+                    <ArrowRight className="h-4 w-4 text-primary shrink-0" />
+                    <span className="px-3 py-1.5 bg-white rounded-md shadow-sm font-medium">Build Schema</span>
+                    <ArrowRight className="h-4 w-4 text-primary shrink-0" />
+                    <span className="px-3 py-1.5 bg-white rounded-md shadow-sm font-medium">Upload</span>
+                    <ArrowRight className="h-4 w-4 text-primary shrink-0" />
+                    <span className="px-3 py-1.5 bg-white rounded-md shadow-sm font-medium">Get JSON</span>
+                  </div>
+                </div>
+                <div className="text-center mt-6">
+                  <p className="text-base font-semibold text-primary">Setup: 3 minutes</p>
+                  <p className="text-xs text-muted-foreground mt-1">1 service &middot; Zero infrastructure &middot; Zero DevOps</p>
+                </div>
+              </div>
+
+              {/* Competitor — Complex */}
+              <div className="rounded-xl border bg-card p-6 sm:p-8">
+                <div className="text-center mb-6">
+                  <p className="text-lg font-bold text-muted-foreground">{alt.infraComparison.competitorName} (Self-Hosted)</p>
+                  <p className="text-sm text-muted-foreground">{alt.infraComparison.competitorSubtitle}</p>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {alt.infraComparison.services.map((service) => (
+                    <div key={service} className="px-2 py-2.5 bg-muted rounded-md text-center text-xs font-medium truncate">
+                      {service}
+                    </div>
+                  ))}
+                  {alt.infraComparison.extras.map((extra) => (
+                    <div key={extra} className="px-2 py-2.5 bg-muted/50 rounded-md text-center text-xs text-muted-foreground border border-dashed truncate">
+                      + {extra}
+                    </div>
+                  ))}
+                </div>
+                <div className="text-center mt-6">
+                  <p className="text-base font-semibold text-muted-foreground">Setup: {alt.infraComparison.setupTime}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{alt.infraComparison.services.length}+ services &middot; DevOps required &middot; Ongoing maintenance</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ═══════ Product Screenshots ═══════ */}
+      <section className="py-16 sm:py-20">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-4">
+            See Parsli in Action
+          </h2>
+          <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-12">
+            No-code schema builder and AI-powered extraction — from any document to structured data.
+          </p>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="rounded-xl border bg-card overflow-hidden">
+              <div className="px-6 py-3 border-b bg-muted/50">
+                <h3 className="text-sm font-semibold">Visual Schema Builder</h3>
+                <p className="text-xs text-muted-foreground">Define fields in plain English — no code, no templates</p>
+              </div>
+              <Image
+                src="/images/compare/parsli-schema-builder.png"
+                alt="Parsli schema builder showing a Bank Statement Parser with 11 fields including bank name, account holder, transactions table, and balances"
+                width={800}
+                height={600}
+                className="w-full h-auto"
+              />
+            </div>
+            <div className="rounded-xl border bg-card overflow-hidden">
+              <div className="px-6 py-3 border-b bg-muted/50">
+                <h3 className="text-sm font-semibold">AI Extraction Results</h3>
+                <p className="text-xs text-muted-foreground">Document preview alongside structured extracted data</p>
+              </div>
+              <Image
+                src="/images/compare/parsli-extraction-results.png"
+                alt="Parsli extraction results showing a resume document with extracted fields including candidate name, location, email, phone, and professional summary"
+                width={800}
+                height={600}
+                className="w-full h-auto"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ═══════ 3. Detailed Comparison Table (Narrative) ═══════ */}
       <section className="py-16 sm:py-20 bg-muted/30">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
@@ -370,7 +473,76 @@ export default function AlternativePage({
         </div>
       </section>
 
-      {/* ═══════ 5. Key Takeaways ═══════ */}
+      {/* ═══════ 5. ROI Metrics ═══════ */}
+      <section className="py-16 sm:py-20">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-4">
+            The Impact of Switching to Parsli
+          </h2>
+          <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-12">
+            Based on teams processing 1,000+ documents per month.
+          </p>
+          <div className="grid sm:grid-cols-3 gap-6">
+            {alt.roiMetrics ? (
+              <>
+                <div className="rounded-xl border bg-card p-6 text-center">
+                  <p className="text-4xl font-bold text-primary mb-2">{alt.roiMetrics.stat1.value}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{alt.roiMetrics.stat1.label}</p>
+                </div>
+                <div className="rounded-xl border bg-card p-6 text-center">
+                  <p className="text-4xl font-bold text-primary mb-2">{alt.roiMetrics.stat2.value}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{alt.roiMetrics.stat2.label}</p>
+                </div>
+                <div className="rounded-xl border bg-card p-6 text-center">
+                  <p className="text-4xl font-bold text-primary mb-2">{alt.roiMetrics.stat3.value}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{alt.roiMetrics.stat3.label}</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="rounded-xl border bg-card p-6 text-center">
+                  <p className="text-4xl font-bold text-primary mb-2">&lt;3s</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">Average processing time per document</p>
+                </div>
+                <div className="rounded-xl border bg-card p-6 text-center">
+                  <p className="text-4xl font-bold text-primary mb-2">99%+</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">Extraction accuracy on complex layouts</p>
+                </div>
+                <div className="rounded-xl border bg-card p-6 text-center">
+                  <p className="text-4xl font-bold text-primary mb-2">50k+</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">Documents processed across all accounts</p>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════ 6. Testimonials ═══════ */}
+      {alt.testimonials && alt.testimonials.length > 0 && (
+        <section className="py-16 sm:py-20 bg-muted/30">
+          <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
+              What Our Customers Say
+            </h2>
+            <div className="grid sm:grid-cols-3 gap-6">
+              {alt.testimonials.map((t, i) => (
+                <div key={i} className="rounded-xl border bg-card p-6">
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-4 italic">
+                    &ldquo;{t.quote}&rdquo;
+                  </p>
+                  <div>
+                    <p className="font-semibold text-sm">{t.name}</p>
+                    <p className="text-xs text-muted-foreground">{t.title}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ═══════ 7. Key Takeaways ═══════ */}
       <section className="py-16 sm:py-20 bg-muted/30">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8">
@@ -447,36 +619,31 @@ export default function AlternativePage({
         </div>
       </section>
 
-      {/* ═══════ 8. ROI Stats ═══════ */}
-      <section className="py-16 sm:py-20">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
-            What Teams Get with Parsli
-          </h2>
-          <div className="grid sm:grid-cols-3 gap-6">
-            <div className="rounded-xl border bg-card p-6 text-center">
-              <p className="text-4xl font-bold text-primary mb-2">&lt;3s</p>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Average processing time per document
-              </p>
-            </div>
-            <div className="rounded-xl border bg-card p-6 text-center">
-              <p className="text-4xl font-bold text-primary mb-2">95%+</p>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Extraction accuracy on complex layouts and scanned documents
-              </p>
-            </div>
-            <div className="rounded-xl border bg-card p-6 text-center">
-              <p className="text-4xl font-bold text-primary mb-2">50k+</p>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Documents processed across all customer accounts
-              </p>
+      {/* ═══════ Getting Started Steps ═══════ */}
+      {alt.gettingStartedSteps && alt.gettingStartedSteps.length > 0 && (
+        <section className="py-16 sm:py-20">
+          <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
+              How to Get Started
+            </h2>
+            <div className="space-y-6">
+              {alt.gettingStartedSteps.map((s, i) => (
+                <div key={i} className="flex gap-4">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
+                    {i + 1}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-1">{s.step}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{s.description}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* ═══════ 9. Getting Started / CTA ═══════ */}
+      {/* ═══════ CTA ═══════ */}
       <section className="py-16 sm:py-20 bg-muted/30">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-2xl sm:text-3xl font-bold mb-4">
