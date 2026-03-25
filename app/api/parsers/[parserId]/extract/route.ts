@@ -56,18 +56,40 @@ export async function POST(
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
   }
 
-  const fileData = body.file as {
-    name?: string
-    type?: string
-    data?: string
-    size?: number
-  } | undefined
-
-  if (!fileData?.data) {
-    return NextResponse.json({ error: "No file provided" }, { status: 400 })
-  }
-
   const sourceType = (body.source_type ?? "upload") as string
+
+  // Support two upload modes:
+  // 1. storage_path — file already uploaded to Supabase Storage (large files)
+  // 2. file.data — base64 inline (legacy / small files / API)
+  let fileData: { name: string; type: string; data: string; size?: number }
+
+  if (body.storage_path) {
+    const adminClient = createSupabaseServiceRoleClient()
+    const { data: fileBytes, error: downloadError } = await adminClient.storage
+      .from("parser-documents")
+      .download(body.storage_path)
+    if (downloadError || !fileBytes) {
+      return NextResponse.json({ error: "Failed to read uploaded file" }, { status: 400 })
+    }
+    const buffer = Buffer.from(await fileBytes.arrayBuffer())
+    fileData = {
+      name: body.file_name ?? body.storage_path.split("/").pop() ?? "uploaded",
+      type: body.file_type ?? "application/octet-stream",
+      data: buffer.toString("base64"),
+      size: body.file_size ?? buffer.length,
+    }
+  } else {
+    const inlineFile = body.file as { name?: string; type?: string; data?: string; size?: number } | undefined
+    if (!inlineFile?.data) {
+      return NextResponse.json({ error: "No file provided" }, { status: 400 })
+    }
+    fileData = {
+      name: inlineFile.name ?? "uploaded",
+      type: inlineFile.type ?? "application/octet-stream",
+      data: inlineFile.data,
+      size: inlineFile.size,
+    }
+  }
 
   // Check credits (with automatic reset if period elapsed)
   const { allowed, reason } = await checkCredits(user.id, 1, supabase)
@@ -96,8 +118,8 @@ export async function POST(
   const docId = (processedDoc as any)?.id
 
   // Store original file to Supabase Storage for preview & reprocessing
-  // Uses service role client to bypass RLS and ensure bucket access
-  if (docId) {
+  // Skip if file was already uploaded via storage_path (client-side upload)
+  if (docId && !body.storage_path) {
     const storagePath = `${user.id}/${params.parserId}/${docId}/${fileData.name ?? "uploaded"}`
     const fileBuffer = Buffer.from(fileData.data, "base64")
     try {
@@ -118,6 +140,16 @@ export async function POST(
       }
     } catch (err) {
       console.error("[extract] File storage error:", err)
+    }
+  } else if (docId && body.storage_path) {
+    // Move file from pending path to final path
+    const adminClient = createSupabaseServiceRoleClient()
+    const finalPath = `${user.id}/${params.parserId}/${docId}/${fileData.name}`
+    if (body.storage_path !== finalPath) {
+      await adminClient.storage
+        .from("parser-documents")
+        .move(body.storage_path, finalPath)
+        .catch(() => {}) // best-effort rename
     }
   }
 

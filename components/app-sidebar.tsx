@@ -105,15 +105,24 @@ export function AppSidebar() {
       }
       setIsUploading(true)
       try {
-        const buffer = await file.arrayBuffer()
-        const base64 = btoa(
-          new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), "")
-        )
+        // Upload file directly to Supabase Storage (bypasses Vercel 4.5MB body limit)
+        const storagePath = `${session?.user?.id}/${parser.id}/pending/${crypto.randomUUID()}/${file.name}`
+        const { error: storageError } = await supabase.storage
+          .from("parser-documents")
+          .upload(storagePath, file, {
+            contentType: file.type || "application/octet-stream",
+            upsert: true,
+          })
+        if (storageError) throw storageError
+
         await fetch(`/api/parsers/${parser.id}/extract`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            file: { name: file.name, type: file.type, data: base64, size: file.size },
+            storage_path: storagePath,
+            file_name: file.name,
+            file_type: file.type,
+            file_size: file.size,
             source_type: "upload",
           }),
         })
@@ -125,7 +134,7 @@ export function AppSidebar() {
         setIsUploading(false)
       }
     },
-    [parser, router]
+    [parser, router, session?.user?.id, supabase]
   )
 
   const displayName =

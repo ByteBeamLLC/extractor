@@ -16,6 +16,11 @@ export const XLSX_MIME_TYPES = new Set([
   "application/vnd.ms-excel",
 ])
 
+export const PPTX_MIME_TYPES = new Set([
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/vnd.ms-powerpoint",
+])
+
 export const TEXT_LIKE_MIME_PREFIXES = ["text/", "application/json", "application/xml"]
 
 // Keys used to extract markdown from OCR responses

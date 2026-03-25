@@ -16,16 +16,22 @@ const ACCEPTED_TYPES = [
   "image/webp",
   "image/gif",
   "image/bmp",
+  "image/tiff",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/vnd.ms-powerpoint",
   "text/plain",
   "text/csv",
+  "text/html",
+  "text/xml",
   "application/json",
+  "application/xml",
 ]
 
-const ACCEPTED_EXTENSIONS = ".pdf,.png,.jpg,.jpeg,.webp,.gif,.bmp,.docx,.doc,.xlsx,.xls,.txt,.csv,.json"
+const ACCEPTED_EXTENSIONS = ".pdf,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tif,.tiff,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.txt,.csv,.json,.html,.htm,.xml"
 
 export function DocumentUploader({ onFileSelected }: DocumentUploaderProps) {
   const [isDragging, setIsDragging] = useState(false)
@@ -85,7 +91,7 @@ export function DocumentUploader({ onFileSelected }: DocumentUploaderProps) {
         Drop a document here or click to browse
       </p>
       <p className="text-xs text-muted-foreground">
-        Supports PDF, images (PNG, JPG, WebP), Word (DOCX), Excel (XLSX), text files
+        Supports PDF, images (PNG, JPG, WebP, TIFF), Word, Excel, PowerPoint, HTML, XML, text files
       </p>
     </div>
   )

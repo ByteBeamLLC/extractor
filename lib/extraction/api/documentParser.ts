@@ -7,6 +7,7 @@ import {
   DOCX_MIME_TYPES,
   DOC_MIME_TYPES,
   XLSX_MIME_TYPES,
+  PPTX_MIME_TYPES,
   TEXT_LIKE_MIME_PREFIXES,
 } from "./constants"
 
@@ -20,6 +21,9 @@ let mammothSingleton: MammothModule | null = null
 
 type XlsxModule = typeof import("xlsx")
 let xlsxSingleton: XlsxModule | null = null
+
+type JSZipModule = typeof import("jszip")
+let jszipSingleton: JSZipModule | null = null
 
 /**
  * Lazily loads the pdf-parse module
@@ -79,6 +83,74 @@ async function loadXlsx(): Promise<XlsxModule | null> {
     console.error("[extraction] Failed to load xlsx:", error)
     return null
   }
+}
+
+/**
+ * Lazily loads the jszip module for PPTX parsing
+ */
+async function loadJSZip(): Promise<JSZipModule | null> {
+  if (jszipSingleton) return jszipSingleton
+  try {
+    const mod = await import("jszip")
+    const lib = (mod as { default?: JSZipModule }).default ?? mod
+    if (lib) {
+      jszipSingleton = lib as JSZipModule
+      return jszipSingleton
+    }
+    console.warn("[extraction] jszip module not available")
+    return null
+  } catch (error) {
+    console.error("[extraction] Failed to load jszip:", error)
+    return null
+  }
+}
+
+/**
+ * Extracts text from a PPTX file by parsing its XML slides
+ */
+async function extractPptxText(bytes: Uint8Array): Promise<string> {
+  const JSZip = await loadJSZip()
+  if (!JSZip) throw new Error("PPTX extraction unavailable (jszip not loaded)")
+
+  const zip = await (JSZip as any).loadAsync(bytes)
+  const slideFiles: string[] = []
+
+  // Collect slide XML files (ppt/slides/slide1.xml, slide2.xml, ...)
+  zip.forEach((relativePath: string) => {
+    if (/^ppt\/slides\/slide\d+\.xml$/i.test(relativePath)) {
+      slideFiles.push(relativePath)
+    }
+  })
+
+  // Sort by slide number
+  slideFiles.sort((a, b) => {
+    const numA = parseInt(a.match(/slide(\d+)/)?.[1] ?? "0")
+    const numB = parseInt(b.match(/slide(\d+)/)?.[1] ?? "0")
+    return numA - numB
+  })
+
+  const texts: string[] = []
+  for (const slidePath of slideFiles) {
+    const xml = await zip.file(slidePath)?.async("string")
+    if (!xml) continue
+    // Strip XML tags, decode entities, collapse whitespace
+    const text = xml
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'")
+      .replace(/&#\d+;/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+    if (text) {
+      const slideNum = slidePath.match(/slide(\d+)/)?.[1] ?? "?"
+      texts.push(`Slide ${slideNum}:\n${text}`)
+    }
+  }
+
+  return texts.join("\n\n")
 }
 
 /**
@@ -167,10 +239,24 @@ export async function extractTextFromDocument(
       return { text: decoder.decode(bytes), warnings }
     }
 
-    // Handle text-like files
+    // Handle PPTX/PPT files
+    if (PPTX_MIME_TYPES.has(normalizedMime) || ext === "pptx" || ext === "ppt") {
+      try {
+        const text = await extractPptxText(bytes)
+        if (!text) {
+          warnings.push("Could not extract text from presentation. The file may be empty or image-only.")
+        }
+        return { text, warnings }
+      } catch {
+        warnings.push("PPTX extraction failed. Falling back to UTF-8 decode.")
+        return { text: decoder.decode(bytes), warnings }
+      }
+    }
+
+    // Handle text-like files (including HTML and XML)
     if (
       TEXT_LIKE_MIME_PREFIXES.some((prefix) => normalizedMime.startsWith(prefix)) ||
-      ["txt", "csv", "json", "xml", "md"].includes(ext)
+      ["txt", "csv", "json", "xml", "html", "htm", "md"].includes(ext)
     ) {
       return { text: decoder.decode(bytes), warnings }
     }
@@ -194,7 +280,7 @@ export function isImageFile(mimeType: string, fileName: string): boolean {
   const ext = fileName.toLowerCase()
   return (
     normalizedMime.startsWith("image/") ||
-    /\.(png|jpg|jpeg|gif|bmp|webp)$/.test(ext)
+    /\.(png|jpg|jpeg|gif|bmp|webp|tif|tiff)$/.test(ext)
   )
 }
 
@@ -215,6 +301,6 @@ export function isDotsOcrSupported(mimeType?: string, fileName?: string): boolea
   return (
     normalizedMime.startsWith("image/") ||
     normalizedMime === "application/pdf" ||
-    /\.(png|jpg|jpeg|gif|bmp|webp|pdf)$/.test(`.${ext}`)
+    /\.(png|jpg|jpeg|gif|bmp|webp|tif|tiff|pdf)$/.test(`.${ext}`)
   )
 }
