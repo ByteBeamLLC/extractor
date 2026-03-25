@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import Image from "next/image"
+import dynamic from "next/dynamic"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { Check, ChevronDown, ArrowRight, Info } from "lucide-react"
@@ -12,6 +12,11 @@ import {
   getAlternativeBySlug,
   getAllAlternativeSlugs,
 } from "@/lib/seo/alternatives"
+
+const InteractiveDemo = dynamic(
+  () => import("@/components/marketing/InteractiveDemo").then((m) => m.InteractiveDemo),
+  { ssr: false, loading: () => <div className="h-[420px] rounded-xl border bg-muted/30 animate-pulse" /> }
+)
 import { getAllBlogPosts } from "@/lib/seo/blog-posts"
 import { getAllSolutions } from "@/lib/seo/solutions"
 
@@ -329,43 +334,16 @@ export default function AlternativePage({
         </section>
       )}
 
-      {/* ═══════ Product Screenshots ═══════ */}
+      {/* ═══════ Interactive Product Tour ═══════ */}
       <section className="py-16 sm:py-20">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-4">
             See Parsli in Action
           </h2>
           <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-12">
-            No-code schema builder and AI-powered extraction — from any document to structured data.
+            Click through the interactive tour — from creating a parser to extracting structured data.
           </p>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="rounded-xl border bg-card overflow-hidden">
-              <div className="px-6 py-3 border-b bg-muted/50">
-                <h3 className="text-sm font-semibold">Visual Schema Builder</h3>
-                <p className="text-xs text-muted-foreground">Define fields in plain English — no code, no templates</p>
-              </div>
-              <Image
-                src="/images/compare/parsli-schema-builder.png"
-                alt="Parsli schema builder showing a Bank Statement Parser with 11 fields including bank name, account holder, transactions table, and balances"
-                width={800}
-                height={600}
-                className="w-full h-auto"
-              />
-            </div>
-            <div className="rounded-xl border bg-card overflow-hidden">
-              <div className="px-6 py-3 border-b bg-muted/50">
-                <h3 className="text-sm font-semibold">AI Extraction Results</h3>
-                <p className="text-xs text-muted-foreground">Document preview alongside structured extracted data</p>
-              </div>
-              <Image
-                src="/images/compare/parsli-extraction-results.png"
-                alt="Parsli extraction results showing a resume document with extracted fields including candidate name, location, email, phone, and professional summary"
-                width={800}
-                height={600}
-                className="w-full h-auto"
-              />
-            </div>
-          </div>
+          <InteractiveDemo />
         </div>
       </section>
 
