@@ -33,6 +33,7 @@ const STEPS = [
   { label: "Schema", url: "app.parsli.co/parsers/inv-1/schema", tip: "Let AI analyze your document type and suggest fields" },
   { label: "Fields", url: "app.parsli.co/parsers/inv-1/schema", tip: "AI detected 6 fields. Add, edit, or remove any field." },
   { label: "Import", url: "app.parsli.co/parsers/inv-1/import", tip: "Upload manually, forward emails, or send via webhook" },
+  { label: "Results", url: "app.parsli.co/parsers/inv-1/documents/d1", tip: "Structured data extracted in seconds \u2014 every field with a confidence score" },
   { label: "Export", url: "app.parsli.co/parsers/inv-1/export", tip: "One-click integrations \u2014 data flows automatically" },
   { label: "API", url: "app.parsli.co/parsers/inv-1/api", tip: "Full REST API on every plan, including free" },
 ] as const
@@ -81,16 +82,19 @@ function Sidebar({ step, onAdvance }: { step: number; onAdvance: () => void }) {
   const activeKey =
     step === 2 || step === 3 ? "fields" :
     step === 4 ? "import" :
-    step === 5 ? "export" :
-    step === 6 ? "api" : "overview"
+    step === 5 ? "documents" :
+    step === 6 ? "export" :
+    step === 7 ? "api" : "overview"
 
   // step=3 (Schema populated) -> hotspot on Documents
-  // step=4 (Import) -> hotspot on Export
-  // step=5 (Export) -> hotspot on API
+  // step=4 (Import) -> hotspot on Documents (to see results)
+  // step=5 (Results) -> hotspot on Export
+  // step=6 (Export) -> hotspot on API
   const hotspot =
     step === 3 ? "documents" :
-    step === 4 ? "export" :
-    step === 5 ? "api" : null
+    step === 4 ? "documents" :
+    step === 5 ? "export" :
+    step === 6 ? "api" : null
 
   return (
     <div className="hidden md:flex flex-col w-[180px] shrink-0 bg-white border-r border-border">
@@ -352,6 +356,137 @@ function StepImport() {
   )
 }
 
+function StepResults() {
+  return (
+    <div className="p-4 space-y-3">
+      <div>
+        <h2 className="text-sm font-semibold">Extraction Results</h2>
+        <p className="text-[11px] text-muted-foreground">invoice-march.pdf &mdash; processed in 2.1s</p>
+      </div>
+      <div className="grid grid-cols-2 gap-3 h-[330px]">
+        {/* Left: mock invoice */}
+        <div className="border rounded-lg bg-white p-3 overflow-hidden text-[9px] leading-[1.4] space-y-2">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-[11px] font-bold text-foreground">Acme Supply Co.</p>
+              <p className="text-muted-foreground">123 Main St, Chicago, IL 60601</p>
+              <p className="text-muted-foreground">billing@acmesupply.com</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[11px] font-bold text-foreground">INVOICE</p>
+              <p className="text-muted-foreground">#INV-2026-0342</p>
+              <p className="text-muted-foreground">Mar 15, 2026</p>
+            </div>
+          </div>
+          <hr className="border-border" />
+          <div>
+            <p className="font-medium text-muted-foreground mb-0.5">Bill To:</p>
+            <p>Parsli Inc.</p>
+            <p className="text-muted-foreground">456 Tech Ave, Austin, TX 78701</p>
+          </div>
+          <table className="w-full text-left">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="pb-1 font-medium text-muted-foreground">Item</th>
+                <th className="pb-1 font-medium text-muted-foreground text-right">Qty</th>
+                <th className="pb-1 font-medium text-muted-foreground text-right">Price</th>
+                <th className="pb-1 font-medium text-muted-foreground text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-b border-border/50">
+                <td className="py-1">API Integration Service</td>
+                <td className="py-1 text-right">40 hrs</td>
+                <td className="py-1 text-right">$150.00</td>
+                <td className="py-1 text-right">$6,000.00</td>
+              </tr>
+              <tr className="border-b border-border/50">
+                <td className="py-1">Cloud Hosting (March)</td>
+                <td className="py-1 text-right">1</td>
+                <td className="py-1 text-right">$450.00</td>
+                <td className="py-1 text-right">$450.00</td>
+              </tr>
+              <tr>
+                <td className="py-1">Support & Maintenance</td>
+                <td className="py-1 text-right">1</td>
+                <td className="py-1 text-right">$300.00</td>
+                <td className="py-1 text-right">$300.00</td>
+              </tr>
+            </tbody>
+          </table>
+          <div className="flex justify-end pt-1 border-t border-border">
+            <div className="text-right">
+              <p className="text-muted-foreground">Subtotal: $6,750.00</p>
+              <p className="text-muted-foreground">Tax (8%): $540.00</p>
+              <p className="text-[10px] font-bold text-foreground">Total: $7,290.00 USD</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: extracted data */}
+        <div className="border rounded-lg bg-card overflow-y-auto">
+          <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/50">
+            <button className="text-[10px] font-medium text-primary border-b border-primary pb-0.5">Data</button>
+            <button className="text-[10px] font-medium text-muted-foreground pb-0.5">JSON</button>
+          </div>
+          <div className="divide-y">
+            {[
+              { field: "vendor_name", value: "Acme Supply Co.", conf: "99%" },
+              { field: "invoice_number", value: "INV-2026-0342", conf: "99%" },
+              { field: "invoice_date", value: "2026-03-15", conf: "98%" },
+              { field: "total_amount", value: "7290.00", conf: "99%" },
+              { field: "currency", value: "USD", conf: "99%" },
+            ].map((r) => (
+              <div key={r.field} className="px-3 py-2">
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="text-[10px] font-mono font-medium text-foreground">{r.field}</span>
+                  <span className="text-[9px] text-green-600 font-medium">{r.conf}</span>
+                </div>
+                <p className="text-[11px] text-foreground">{r.value}</p>
+              </div>
+            ))}
+            {/* Line items as nested table */}
+            <div className="px-3 py-2">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-mono font-medium text-foreground">line_items</span>
+                <span className="text-[9px] text-green-600 font-medium">97%</span>
+              </div>
+              <div className="rounded border overflow-hidden">
+                <table className="w-full text-[9px]">
+                  <thead>
+                    <tr className="bg-muted/50">
+                      <th className="text-left px-1.5 py-1 font-medium">description</th>
+                      <th className="text-right px-1.5 py-1 font-medium">qty</th>
+                      <th className="text-right px-1.5 py-1 font-medium">amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-t border-border/50">
+                      <td className="px-1.5 py-0.5">API Integration Service</td>
+                      <td className="text-right px-1.5 py-0.5">40</td>
+                      <td className="text-right px-1.5 py-0.5">6000.00</td>
+                    </tr>
+                    <tr className="border-t border-border/50">
+                      <td className="px-1.5 py-0.5">Cloud Hosting (March)</td>
+                      <td className="text-right px-1.5 py-0.5">1</td>
+                      <td className="text-right px-1.5 py-0.5">450.00</td>
+                    </tr>
+                    <tr className="border-t border-border/50">
+                      <td className="px-1.5 py-0.5">Support & Maintenance</td>
+                      <td className="text-right px-1.5 py-0.5">1</td>
+                      <td className="text-right px-1.5 py-0.5">300.00</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function StepExport() {
   return (
     <div className="p-4 space-y-4">
@@ -471,8 +606,9 @@ export function InteractiveDemo() {
             {step === 2 && <StepSchemaEmpty onAdvance={advance} />}
             {step === 3 && <StepSchemaPopulated />}
             {step === 4 && <StepImport />}
-            {step === 5 && <StepExport />}
-            {step === 6 && <StepAPI />}
+            {step === 5 && <StepResults />}
+            {step === 6 && <StepExport />}
+            {step === 7 && <StepAPI />}
           </div>
         </div>
 
