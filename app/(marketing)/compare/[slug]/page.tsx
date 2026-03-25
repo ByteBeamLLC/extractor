@@ -247,6 +247,25 @@ export default function AlternativePage({
         </div>
       </section>
 
+      {/* ═══════ Key Takeaways ═══════ */}
+      <section className="py-16 sm:py-20 bg-muted/30">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8">
+            Key Takeaways
+          </h2>
+          <div className="rounded-xl border bg-card p-6 sm:p-8">
+            <ul className="space-y-4">
+              {alt.keyTakeaways.map((takeaway) => (
+                <li key={takeaway} className="flex gap-3">
+                  <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                  <span className="text-sm sm:text-base">{takeaway}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
       {/* ═══════ 2. What Makes Parsli Different ═══════ */}
       <section className="py-16 sm:py-20">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
@@ -520,26 +539,7 @@ export default function AlternativePage({
         </section>
       )}
 
-      {/* ═══════ 7. Key Takeaways ═══════ */}
-      <section className="py-16 sm:py-20 bg-muted/30">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8">
-            Key Takeaways
-          </h2>
-          <div className="rounded-xl border bg-card p-6 sm:p-8">
-            <ul className="space-y-4">
-              {alt.keyTakeaways.map((takeaway) => (
-                <li key={takeaway} className="flex gap-3">
-                  <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                  <span className="text-sm sm:text-base">{takeaway}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════ 6. Decision Matrix ═══════ */}
+      {/* ═══════ Decision Matrix ═══════ */}
       <section className="py-16 sm:py-20">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
