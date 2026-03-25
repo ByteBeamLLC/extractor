@@ -13,6 +13,8 @@ import { PasswordStrength, getStrength } from "@/components/ui/password-strength
 import { useSupabaseClient } from "@/lib/supabase/hooks"
 import { cn } from "@/lib/utils"
 import { trackEvent } from "@/lib/analytics"
+import { getAttribution } from "@/lib/analytics/attribution"
+import { getIdentity } from "@/lib/analytics/identity"
 
 type AuthMode = "sign-in" | "sign-up" | "forgot-password" | "check-email"
 
@@ -43,6 +45,18 @@ function LoginForm() {
   const [passwordError, setPasswordError] = useState<string | null>(null)
 
   const supabase = useSupabaseClient()
+
+  // Track login page view (measures CTA → signup form drop-off)
+  useEffect(() => {
+    const identity = getIdentity()
+    const attribution = getAttribution()
+    trackEvent("login_page_viewed", {
+      referrer: document.referrer || "",
+      traffic_source: identity?.traffic_source || "direct",
+      has_attribution: !!(attribution?.gclid || attribution?.utm_source),
+      landing_page: identity?.first_landing || "",
+    })
+  }, [])
 
   const validateEmail = useCallback((value: string): boolean => {
     if (!value) {

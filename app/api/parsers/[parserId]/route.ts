@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createSupabaseServerComponentClient } from "@/lib/supabase/server"
+import { trackServerEvent } from "@/lib/analytics/server"
 
 export const runtime = "nodejs"
 
@@ -83,6 +84,16 @@ export async function PATCH(
 
   if (error || !data) {
     return NextResponse.json({ error: error?.message ?? "Parser not found" }, { status: 404 })
+  }
+
+  // Track schema saves (fields were updated)
+  if ("fields" in body && Array.isArray(body.fields)) {
+    trackServerEvent("schema_saved", {
+      distinct_id: user.id,
+      user_id: user.id,
+      parser_id: params.parserId,
+      field_count: body.fields.length,
+    })
   }
 
   return NextResponse.json({ parser: data })

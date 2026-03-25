@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createSupabaseServerComponentClient } from "@/lib/supabase/server"
 import { getTemplateById } from "@/lib/parser-templates"
 import { generateInboundEmail } from "@/lib/extractor/inbound-email"
+import { trackServerEvent } from "@/lib/analytics/server"
 
 export const runtime = "nodejs"
 
@@ -69,6 +70,17 @@ export async function POST(request: NextRequest) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
+
+  // Track parser creation from template (critical activation event)
+  trackServerEvent("parser_created", {
+    distinct_id: user.id,
+    user_id: user.id,
+    parser_id: (data as any).id,
+    parser_name: (data as any).name,
+    extraction_type: "ai",
+    has_template: true,
+    is_first_parser: (count ?? 0) === 0,
+  })
 
   return NextResponse.json({ parser: data }, { status: 201 })
 }

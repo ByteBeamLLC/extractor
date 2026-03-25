@@ -114,6 +114,75 @@ export type AnalyticsEventMap = {
     current_plan: string
     days_since_last_use: number
   }
+
+  // ─── Funnel milestone events ───
+
+  // User arrives at the login/signup page (measures CTA → signup form drop-off)
+  login_page_viewed: {
+    referrer: string
+    traffic_source: string
+    has_attribution: boolean // came from a paid ad (gclid/utm present)
+    landing_page: string // first page they ever hit
+  }
+
+  // User confirmed email and exchanged auth code for session (server-side)
+  email_confirmed: {
+    user_id: string
+    email: string
+  }
+
+  // User created a new parser (server-side)
+  parser_created: {
+    user_id: string
+    parser_id: string
+    parser_name: string
+    extraction_type: string
+    has_template: boolean
+    is_first_parser: boolean
+  }
+
+  // User saved schema fields on a parser (server-side)
+  schema_saved: {
+    user_id: string
+    parser_id: string
+    field_count: number
+  }
+
+  // ─── Landing page (paid ad) events ───
+
+  // LP page view with full UTM context for keyword-level attribution
+  lp_viewed: {
+    lp_page: string
+    utm_source: string
+    utm_medium: string
+    utm_campaign: string
+    utm_term: string // Google Ads keyword via {keyword} ValueTrack
+    utm_content: string
+    has_gclid: boolean
+    traffic_source: string
+    session_number: number
+  }
+
+  // CTA click on landing page — carries keyword context for conversion attribution
+  lp_cta_clicked: {
+    lp_page: string
+    cta_text: string
+    cta_href: string
+    cta_section: string
+    utm_source: string
+    utm_medium: string
+    utm_campaign: string
+    utm_term: string
+    utm_content: string
+  }
+
+  // Scroll depth milestones (25/50/75/100%) — measures engagement per keyword
+  lp_scroll_depth: {
+    lp_page: string
+    depth_pct: number
+    utm_term: string
+    utm_campaign: string
+  }
 }
 
 export type AnalyticsEvent = keyof AnalyticsEventMap
