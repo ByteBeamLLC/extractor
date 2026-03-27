@@ -66,6 +66,18 @@ export function resetAnalytics() {
 }
 
 /**
+ * Registers Mixpanel super properties that auto-attach to every future event.
+ * Used for attribution data so keyword/campaign context persists across the entire funnel.
+ */
+export function registerSuperProperties(props: Record<string, unknown>) {
+  if (typeof window === "undefined") return
+
+  import("mixpanel-browser").then((mp) => {
+    mp.default.register(props)
+  })
+}
+
+/**
  * Tracks an event to both GTM dataLayer (for GA4 + Google Ads) and Mixpanel.
  */
 export function trackEvent<E extends AnalyticsEvent>(
