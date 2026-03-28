@@ -23,6 +23,7 @@ const footerLinks = {
     { href: "/docs", label: "Documentation" },
     { href: "/pricing", label: "Pricing" },
     { href: "/docs#api", label: "API Reference" },
+    { href: "/feed.xml", label: "RSS Feed" },
   ],
   "Use Cases": [
     { href: "/use-cases/invoice-parsing", label: "Invoice Parsing" },

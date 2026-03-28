@@ -66,6 +66,11 @@ export const metadata: Metadata = {
       "Extract structured data from any document with AI. No code required.",
     images: ["/og-image.png"],
   },
+  alternates: {
+    types: {
+      "application/rss+xml": "https://parsli.co/feed.xml",
+    },
+  },
   robots: {
     index: true,
     follow: true,
