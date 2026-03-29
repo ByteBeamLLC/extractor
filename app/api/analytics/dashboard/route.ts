@@ -1,26 +1,23 @@
 import { NextResponse } from "next/server"
 import { queryInsights, queryFunnel, type DateRange } from "@/lib/analytics/mixpanel-query"
-import { getTimeseries, getTop } from "@/lib/analytics/vercel-query"
-import { createClient } from "@supabase/supabase-js"
-
-// Protect with service role — only authenticated admins
-function getSupabaseAdmin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-}
 
 export async function GET(req: Request) {
-  // Verify auth via cookie
   const { searchParams } = new URL(req.url)
   const days = parseInt(searchParams.get("days") || "30", 10)
+
+  // Check if API secret is configured
+  if (!process.env.MIXPANEL_API_SECRET) {
+    return NextResponse.json(
+      { error: "MIXPANEL_API_SECRET env var is not set. Add it in Vercel → Settings → Environment Variables." },
+      { status: 500 }
+    )
+  }
 
   const to = new Date().toISOString().split("T")[0]
   const from = new Date(Date.now() - days * 86400000).toISOString().split("T")[0]
   const dateRange: DateRange = { from, to }
 
-  // Run all queries in parallel
+  // Run all Mixpanel queries in parallel
   const [
     sessionsOverTime,
     trafficSources,
@@ -32,14 +29,7 @@ export async function GET(req: Request) {
     hwtFunnel,
     lpPerformance,
     activationMetrics,
-    vercelTimeseries,
-    vercelTopPages,
-    vercelReferrers,
-    vercelCountries,
-    vercelBrowsers,
-    vercelDevices,
   ] = await Promise.all([
-    // Mixpanel
     queryInsights({
       events: [{ name: "session_started", math: "unique" }],
       dateRange,
@@ -115,36 +105,19 @@ export async function GET(req: Request) {
       dateRange,
       chartType: "bar",
     }),
-    // Vercel
-    getTimeseries({ from, to, granularity: "day" }).catch(() => null),
-    getTop({ from, to, type: "path", limit: 15 }).catch(() => null),
-    getTop({ from, to, type: "referrer", limit: 10 }).catch(() => null),
-    getTop({ from, to, type: "country", limit: 10 }).catch(() => null),
-    getTop({ from, to, type: "browser", limit: 5 }).catch(() => null),
-    getTop({ from, to, type: "device", limit: 5 }).catch(() => null),
   ])
 
   return NextResponse.json({
     dateRange: { from, to, days },
-    mixpanel: {
-      sessionsOverTime,
-      trafficSources,
-      topPages,
-      toolViews,
-      signupsOverTime,
-      ctaClicks,
-      conversionFunnel,
-      hwtFunnel,
-      lpPerformance,
-      activationMetrics,
-    },
-    vercel: {
-      timeseries: vercelTimeseries,
-      topPages: vercelTopPages,
-      referrers: vercelReferrers,
-      countries: vercelCountries,
-      browsers: vercelBrowsers,
-      devices: vercelDevices,
-    },
+    sessionsOverTime,
+    trafficSources,
+    topPages,
+    toolViews,
+    signupsOverTime,
+    ctaClicks,
+    conversionFunnel,
+    hwtFunnel,
+    lpPerformance,
+    activationMetrics,
   })
 }
