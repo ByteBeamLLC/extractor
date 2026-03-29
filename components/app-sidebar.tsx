@@ -53,7 +53,6 @@ import { cn } from "@/lib/utils"
 
 const mainNav = [
   { key: "dashboard", href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { key: "analytics", href: "/dashboard/analytics", icon: BarChart3, label: "Analytics" },
   { key: "docs", href: "https://parsli.co/docs", icon: BookOpen, label: "Documentation", external: true },
 ] as const
 
