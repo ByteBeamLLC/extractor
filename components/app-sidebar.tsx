@@ -7,6 +7,7 @@ import Image from "next/image"
 import {
   LayoutDashboard,
   BookOpen,
+  BarChart3,
   Settings,
   ChevronsUpDown,
   LogOut,
@@ -52,6 +53,7 @@ import { cn } from "@/lib/utils"
 
 const mainNav = [
   { key: "dashboard", href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { key: "analytics", href: "/dashboard/analytics", icon: BarChart3, label: "Analytics" },
   { key: "docs", href: "/docs", icon: BookOpen, label: "Documentation" },
 ]
 
