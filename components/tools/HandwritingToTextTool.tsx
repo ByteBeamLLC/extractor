@@ -91,7 +91,7 @@ export function HandwritingToTextTool() {
   const inputRef = useRef<HTMLInputElement>(null)
 
   const callApi = useCallback(
-    async (base64: string, mimeType: string, name: string, source: "upload" | "sample") => {
+    async (base64: string, mimeType: string, name: string, source: "upload" | "sample", fileSize?: number) => {
       setFileName(name)
       setStatus("processing")
       setError(null)
@@ -106,7 +106,7 @@ export function HandwritingToTextTool() {
         const res = await fetch("/api/tools/handwriting-to-text", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ image: base64, mimeType }),
+          body: JSON.stringify({ image: base64, mimeType, source, fileName: name, fileSize }),
         })
 
         if (!res.ok) {
@@ -193,7 +193,7 @@ export function HandwritingToTextTool() {
       setPreviewUrl(url)
 
       const base64 = await fileToBase64(file)
-      await callApi(base64, file.type, file.name, "upload")
+      await callApi(base64, file.type, file.name, "upload", file.size)
     },
     [callApi]
   )
