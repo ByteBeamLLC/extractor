@@ -8,6 +8,7 @@ import type { GuideData, GuideContentBlock, GuideCategory } from "./guides"
 import { bankStatementBlogPosts } from "./blog-posts-bank-statements"
 import { financialBlogPosts } from "./blog-posts-financial"
 import { nicheBlogPosts } from "./blog-posts-niche"
+import { contentBlogPosts } from "./blog-posts-from-markdown"
 import { guideSlugs } from "./guide-slug-list"
 
 /* ── slug → GuideCategory mapping ── */
@@ -35,6 +36,9 @@ const categoryMap: Record<string, GuideCategory> = {
   "ocr-vs-idp": "Document Extraction",
   "ocr-underwriting": "Document Extraction",
   "bookkeeping-clean-up-guide": "Workflow Automation",
+  // Content blog posts promoted to guides
+  "extract-invoice-data-to-excel": "Data Conversion",
+  "extract-table-data-from-pdfs": "Data Conversion",
   // Original blog posts promoted to guides
   "extract-data-pdf-to-excel": "Data Conversion",
   "what-is-document-parsing": "Document Extraction",
@@ -137,6 +141,15 @@ const toolsMap: Record<string, { href: string; title: string; description: strin
     { href: "/tools/bank-statement-to-excel", title: "Bank Statement to Excel", description: "Convert months of bank statements to Excel in minutes." },
     { href: "/tools/receipt-scanner", title: "Free Receipt Scanner", description: "Digitize receipt backlog for clean-up." },
   ],
+  // Content blog posts
+  "extract-invoice-data-to-excel": [
+    { href: "/tools/invoice-parser", title: "Free Invoice Parser", description: "Extract invoice data to Excel automatically." },
+    { href: "/tools/pdf-to-excel", title: "Free PDF to Excel Converter", description: "Convert invoice PDFs to Excel instantly." },
+  ],
+  "extract-table-data-from-pdfs": [
+    { href: "/tools/pdf-table-extractor", title: "Free PDF Table Extractor", description: "Extract tables from PDFs into structured data." },
+    { href: "/tools/pdf-to-excel", title: "Free PDF to Excel Converter", description: "Convert PDF tables to Excel instantly." },
+  ],
   // Original blog posts
   "extract-data-pdf-to-excel": [
     { href: "/tools/pdf-to-excel", title: "Free PDF to Excel Converter", description: "Convert PDF tables to Excel instantly in your browser." },
@@ -233,6 +246,8 @@ const solutionsMap: Record<string, string[]> = {
   "ocr-vs-idp": ["no-code-document-parser", "document-parsing-api"],
   "ocr-underwriting": ["bank-statement-extraction"],
   "bookkeeping-clean-up-guide": ["bank-statement-extraction"],
+  "extract-invoice-data-to-excel": ["invoice-parsing", "pdf-to-excel"],
+  "extract-table-data-from-pdfs": ["pdf-to-excel", "no-code-document-parser"],
 }
 
 /* ── slug → relatedCompare ── */
@@ -257,6 +272,8 @@ const compareMap: Record<string, string[]> = {
   "ocr-vs-idp": ["abbyy", "nanonets"],
   "ocr-underwriting": ["nanonets", "abbyy"],
   "bookkeeping-clean-up-guide": ["docuclipper"],
+  "extract-invoice-data-to-excel": ["nanonets", "docparser"],
+  "extract-table-data-from-pdfs": ["google-document-ai", "textract"],
 }
 
 /* ── slug → relatedBlog ── */
@@ -281,6 +298,8 @@ const blogMap: Record<string, string[]> = {
   "ocr-vs-idp": ["ocr-vs-ai-document-extraction", "what-is-intelligent-document-processing"],
   "ocr-underwriting": ["extract-bank-statement-data-pdf"],
   "bookkeeping-clean-up-guide": ["extract-bank-statement-data-pdf", "automate-data-entry"],
+  "extract-invoice-data-to-excel": ["best-invoice-ocr-software", "extract-data-pdf-to-excel"],
+  "extract-table-data-from-pdfs": ["extract-data-pdf-to-excel", "best-pdf-parser-tools"],
 }
 
 /* ── Conversion helpers ── */
@@ -384,6 +403,7 @@ const allGuideBlogPosts = [
   ...bankStatementBlogPosts.filter((p) => guideSlugs.has(p.slug)),
   ...financialBlogPosts.filter((p) => guideSlugs.has(p.slug)),
   ...nicheBlogPosts.filter((p) => guideSlugs.has(p.slug)),
+  ...contentBlogPosts.filter((p) => guideSlugs.has(p.slug)),
 ]
 
 export const convertedGuides: GuideData[] = allGuideBlogPosts.map(convertBlogToGuide)

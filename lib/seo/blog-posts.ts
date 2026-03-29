@@ -3,6 +3,7 @@ import { financialBlogPosts } from "./blog-posts-financial"
 import { alternativesBlogPosts } from "./blog-posts-alternatives"
 import { statisticsBlogPosts } from "./blog-posts-statistics"
 import { nicheBlogPosts } from "./blog-posts-niche"
+import { contentBlogPosts } from "./blog-posts-from-markdown"
 import { guideSlugs } from "./guide-slug-list"
 
 export type ContentBlock =
@@ -10342,6 +10343,7 @@ const allBlogPosts: BlogPost[] = [
   ...alternativesBlogPosts,
   ...statisticsBlogPosts,
   ...nicheBlogPosts,
+  ...contentBlogPosts,
 ].filter((post) => !guideSlugs.has(post.slug))
 
 export function getAllBlogPosts(): BlogPost[] {

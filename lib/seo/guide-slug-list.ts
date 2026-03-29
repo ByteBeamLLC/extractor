@@ -44,4 +44,7 @@ export const guideSlugs = new Set([
   "credit-card-statement-parsing-expense-reporting",
   "bank-statement-to-excel-automation-guide",
   "aml-document-processing-small-financial-firms",
+  // Content blog posts promoted to guides
+  "extract-invoice-data-to-excel",
+  "extract-table-data-from-pdfs",
 ])
