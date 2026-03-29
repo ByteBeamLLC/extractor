@@ -10,6 +10,15 @@ const nextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
   },
+  async redirects() {
+    return [
+      {
+        source: "/alternative/:slug",
+        destination: "/compare/:slug",
+        permanent: true,
+      },
+    ]
+  },
   async rewrites() {
     return [
       // Mixpanel first-party proxy — bypasses ad blockers
