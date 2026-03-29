@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import { ArrowLeft, ArrowRight, ChevronRight, Check } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,7 @@ import {
   getAllBlogPosts,
   type ContentBlock,
 } from "@/lib/seo/blog-posts"
+import { guideSlugs } from "@/lib/seo/guide-slug-list"
 import { getAllSolutions } from "@/lib/seo/solutions"
 import { getAlternativeBySlug } from "@/lib/seo/alternatives"
 
@@ -771,6 +772,7 @@ export async function generateMetadata({
 }: {
   params: { slug: string }
 }): Promise<Metadata> {
+  if (guideSlugs.has(params.slug)) redirect(`/guides/${params.slug}`)
   const post = getBlogPostBySlug(params.slug)
   if (!post) return {}
 
@@ -909,6 +911,7 @@ export default function BlogPostPage({
 }: {
   params: { slug: string }
 }) {
+  if (guideSlugs.has(params.slug)) redirect(`/guides/${params.slug}`)
   const post = getBlogPostBySlug(params.slug)
   if (!post) notFound()
 

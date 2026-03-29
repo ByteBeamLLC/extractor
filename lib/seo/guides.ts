@@ -5153,7 +5153,7 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "Tools like [Docparser](/alternative/docparser) and some versions of [Parseur](/alternative/parseur) use a template approach: you upload a sample document, draw boxes around the fields you want to extract, label them, and save the template. Future documents with the same layout are processed automatically against that template.",
+        text: "Tools like [Docparser](/compare/docparser) and some versions of [Parseur](/compare/parseur) use a template approach: you upload a sample document, draw boxes around the fields you want to extract, label them, and save the template. Future documents with the same layout are processed automatically against that template.",
       },
       {
         type: "list",
@@ -5895,7 +5895,7 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "If you've tried running a handwritten form through Tesseract, ABBYY FineReader, or even [Google Document AI](/alternative/google-document-ai), you've seen the problem firsthand. The printed labels on the form come through perfectly, but the handwritten entries are mangled. Here's why.",
+        text: "If you've tried running a handwritten form through Tesseract, ABBYY FineReader, or even [Google Document AI](/compare/google-document-ai), you've seen the problem firsthand. The printed labels on the form come through perfectly, but the handwritten entries are mangled. Here's why.",
       },
       {
         type: "list",
@@ -5976,7 +5976,7 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "Run the scanned forms through an OCR engine to get a rough text extraction, then have a human review and correct the handwritten fields. This hybrid approach saves time on the printed portions of the form while accepting that the handwritten sections need human review. Tools like Tesseract, [ABBYY](/alternative/abbyy), and Adobe Acrobat can handle this first-pass OCR.",
+        text: "Run the scanned forms through an OCR engine to get a rough text extraction, then have a human review and correct the handwritten fields. This hybrid approach saves time on the printed portions of the form while accepting that the handwritten sections need human review. Tools like Tesseract, [ABBYY](/compare/abbyy), and Adobe Acrobat can handle this first-pass OCR.",
       },
       {
         type: "list",
