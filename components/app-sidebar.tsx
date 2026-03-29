@@ -54,8 +54,8 @@ import { cn } from "@/lib/utils"
 const mainNav = [
   { key: "dashboard", href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { key: "analytics", href: "/dashboard/analytics", icon: BarChart3, label: "Analytics" },
-  { key: "docs", href: "/docs", icon: BookOpen, label: "Documentation" },
-]
+  { key: "docs", href: "https://parsli.co/docs", icon: BookOpen, label: "Documentation", external: true },
+] as const
 
 export function AppSidebar() {
   const pathname = usePathname()
@@ -73,6 +73,7 @@ export function AppSidebar() {
     if (item.href === "/dashboard") {
       return pathname === "/dashboard"
     }
+    if ("external" in item && item.external) return false
     return pathname?.startsWith(item.href)
   }
 
@@ -314,10 +315,17 @@ export function AppSidebar() {
                       isActive={isMainNavActive(item)}
                       tooltip={item.label}
                     >
-                      <Link href={item.href}>
-                        <item.icon />
-                        <span>{item.label}</span>
-                      </Link>
+                      {"external" in item && item.external ? (
+                        <a href={item.href}>
+                          <item.icon />
+                          <span>{item.label}</span>
+                        </a>
+                      ) : (
+                        <Link href={item.href}>
+                          <item.icon />
+                          <span>{item.label}</span>
+                        </Link>
+                      )}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
