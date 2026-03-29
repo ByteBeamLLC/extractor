@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { generateText } from "@/lib/openrouter"
 import { trackServerEvent } from "@/lib/analytics/server"
 
-const MODEL = "google/gemini-3-flash-preview"
+const PRIMARY_MODEL = "google/gemini-3-flash-preview"
+const FALLBACK_MODEL = "google/gemini-2.5-flash"
 
 const SYSTEM_PROMPT = `You are a handwriting recognition expert. Your job is to extract ALL text from the handwritten content in the provided image.
 
@@ -11,6 +12,31 @@ Rules:
 - Preserve the original paragraph structure and line breaks.
 - If you can read partial words, include your best guess.
 - If the image contains no handwritten text, respond with exactly: [NO_TEXT_FOUND]`
+
+async function extractWithModel(model: string, image: string, mimeType: string) {
+  return generateText({
+    model,
+    messages: [
+      { role: "system", content: SYSTEM_PROMPT },
+      {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: "Extract all handwritten text from this image.",
+          },
+          {
+            type: "image_url",
+            image_url: {
+              url: `data:${mimeType};base64,${image}`,
+            },
+          },
+        ],
+      },
+    ],
+    temperature: 0.1,
+  })
+}
 
 export async function POST(req: NextRequest) {
   const startTime = Date.now()
@@ -29,28 +55,16 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const result = await generateText({
-      model: MODEL,
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: "Extract all handwritten text from this image.",
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:${mimeType};base64,${image}`,
-              },
-            },
-          ],
-        },
-      ],
-      temperature: 0.1,
-    })
+    let result: { text: string }
+    let modelUsed = PRIMARY_MODEL
+
+    try {
+      result = await extractWithModel(PRIMARY_MODEL, image, mimeType)
+    } catch {
+      // Primary model failed — fall back to stable model
+      modelUsed = FALLBACK_MODEL
+      result = await extractWithModel(FALLBACK_MODEL, image, mimeType)
+    }
 
     const text = result.text.trim()
     const durationMs = Date.now() - startTime
