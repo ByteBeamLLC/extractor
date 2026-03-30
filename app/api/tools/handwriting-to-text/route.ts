@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { generateText } from "@/lib/openrouter"
 import { trackServerEvent } from "@/lib/analytics/server"
+import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 const PRIMARY_MODEL = "google/gemini-3-flash-preview"
 const FALLBACK_MODEL = "google/gemini-2.5-flash"
@@ -38,6 +39,62 @@ async function extractWithModel(model: string, image: string, mimeType: string) 
   })
 }
 
+async function storeUpload({
+  distinctId,
+  image,
+  mimeType,
+  fileName,
+  fileSize,
+  extractedText,
+  wordCount,
+  success,
+  durationMs,
+  ip,
+  userAgent,
+}: {
+  distinctId: string
+  image: string
+  mimeType: string
+  fileName?: string
+  fileSize?: number
+  extractedText: string | null
+  wordCount: number
+  success: boolean
+  durationMs: number
+  ip: string
+  userAgent: string
+}) {
+  try {
+    const supabase = createSupabaseServiceRoleClient()
+    const ext = mimeType.split("/")[1] || "jpg"
+    const storagePath = `${distinctId}/${Date.now()}.${ext}`
+
+    // Upload image to storage
+    const buffer = Buffer.from(image, "base64")
+    await supabase.storage
+      .from("handwriting-uploads")
+      .upload(storagePath, buffer, { contentType: mimeType, upsert: false })
+
+    // Insert metadata row
+    await supabase.from("handwriting_uploads").insert({
+      distinct_id: distinctId,
+      file_name: fileName ?? null,
+      mime_type: mimeType,
+      file_size_bytes: fileSize ?? buffer.length,
+      storage_path: storagePath,
+      extracted_text: extractedText,
+      word_count: wordCount,
+      success,
+      duration_ms: durationMs,
+      ip_address: ip,
+      user_agent: userAgent,
+    })
+  } catch (e) {
+    // Storage should never block the user response
+    console.error("Failed to store handwriting upload:", e)
+  }
+}
+
 export async function POST(req: NextRequest) {
   const startTime = Date.now()
   // Use IP + user-agent hash as anonymous distinct_id for free tool users
@@ -46,7 +103,7 @@ export async function POST(req: NextRequest) {
   const distinctId = `hwt_${Buffer.from(`${ip}:${ua}`).toString("base64url").slice(0, 24)}`
 
   try {
-    const { image, mimeType } = await req.json()
+    const { image, mimeType, source, fileName, fileSize } = await req.json()
 
     if (!image || !mimeType) {
       return NextResponse.json(
@@ -54,6 +111,8 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       )
     }
+
+    const isUserUpload = source === "upload"
 
     let result: { text: string }
     let modelUsed = PRIMARY_MODEL
@@ -78,6 +137,15 @@ export async function POST(req: NextRequest) {
         duration_ms: durationMs,
         error_type: "no_text",
       })
+
+      if (isUserUpload) {
+        storeUpload({
+          distinctId, image, mimeType, fileName, fileSize,
+          extractedText: null, wordCount: 0, success: false,
+          durationMs, ip, userAgent: ua,
+        })
+      }
+
       return NextResponse.json({ text: "", error: "no_text" })
     }
 
@@ -90,6 +158,14 @@ export async function POST(req: NextRequest) {
       word_count: wordCount,
       duration_ms: durationMs,
     })
+
+    if (isUserUpload) {
+      storeUpload({
+        distinctId, image, mimeType, fileName, fileSize,
+        extractedText: text, wordCount, success: true,
+        durationMs, ip, userAgent: ua,
+      })
+    }
 
     return NextResponse.json({ text })
   } catch (error) {

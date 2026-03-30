@@ -25,6 +25,10 @@ const ACCEPTED_TYPES = [
   "image/gif",
   "image/bmp",
   "image/webp",
+  "image/tiff",
+  "image/heic",
+  "image/heif",
+  "application/pdf",
 ]
 
 type Status = "idle" | "processing" | "done" | "error"
@@ -91,7 +95,7 @@ export function HandwritingToTextTool() {
   const inputRef = useRef<HTMLInputElement>(null)
 
   const callApi = useCallback(
-    async (base64: string, mimeType: string, name: string, source: "upload" | "sample") => {
+    async (base64: string, mimeType: string, name: string, source: "upload" | "sample", fileSize?: number) => {
       setFileName(name)
       setStatus("processing")
       setError(null)
@@ -106,7 +110,7 @@ export function HandwritingToTextTool() {
         const res = await fetch("/api/tools/handwriting-to-text", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ image: base64, mimeType }),
+          body: JSON.stringify({ image: base64, mimeType, source, fileName: name, fileSize }),
         })
 
         if (!res.ok) {
@@ -165,7 +169,7 @@ export function HandwritingToTextTool() {
           file_type: file.type || "unknown",
         })
         setError(
-          "Please upload an image file (JPG, PNG, GIF, BMP, or WebP)."
+          "Please upload an image or PDF file (JPG, PNG, PDF, HEIC, TIFF, GIF, BMP, or WebP)."
         )
         setStatus("error")
         return
@@ -193,7 +197,7 @@ export function HandwritingToTextTool() {
       setPreviewUrl(url)
 
       const base64 = await fileToBase64(file)
-      await callApi(base64, file.type, file.name, "upload")
+      await callApi(base64, file.type, file.name, "upload", file.size)
     },
     [callApi]
   )
@@ -294,14 +298,14 @@ export function HandwritingToTextTool() {
                 Drop your handwritten note here or click to browse
               </p>
               <p className="text-sm text-muted-foreground">
-                Photo of handwritten text &mdash; JPG, PNG, GIF, BMP, or WebP
-                up to 20 MB
+                Photo or scan of handwritten text &mdash; JPG, PNG, PDF, HEIC,
+                TIFF, GIF, BMP, or WebP up to 20 MB
               </p>
             </div>
             <input
               ref={inputRef}
               type="file"
-              accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,image/jpeg,image/png,image/gif,image/bmp,image/webp"
+              accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,.tiff,.tif,.heic,.heif,.pdf,image/jpeg,image/png,image/gif,image/bmp,image/webp,image/tiff,image/heic,image/heif,application/pdf"
               className="sr-only"
               onChange={handleFileChange}
             />
