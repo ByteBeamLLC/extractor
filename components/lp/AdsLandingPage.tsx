@@ -242,6 +242,20 @@ export function AdsLandingPage({
         </div>
       </section>
 
+      {/* ═══ Interactive Demo ═══ */}
+      <section className="py-16 sm:py-20">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-center mb-4">
+            See Parsli in action
+          </h2>
+          <p className="text-center text-muted-foreground mb-10 max-w-2xl mx-auto">
+            Click through the interactive tour — from creating a parser to extracting structured data.
+          </p>
+          <InteractiveDemo />
+          <InlineCTA href={hero.ctaHref} text={hero.ctaText} />
+        </div>
+      </section>
+
       {/* ═══ Stats ═══ */}
       {stats && stats.length > 0 && (
         <section className="py-14 sm:py-16">
@@ -321,20 +335,6 @@ export function AdsLandingPage({
           </div>
         </section>
       )}
-
-      {/* ═══ Interactive Demo ═══ */}
-      <section className="py-16 sm:py-20 bg-muted/30">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-center mb-4">
-            See Parsli in action
-          </h2>
-          <p className="text-center text-muted-foreground mb-10 max-w-2xl mx-auto">
-            Click through the interactive tour — from creating a parser to extracting structured data.
-          </p>
-          <InteractiveDemo />
-          <InlineCTA href={hero.ctaHref} text={hero.ctaText} />
-        </div>
-      </section>
 
       {/* ═══ Features ═══ */}
       {features && (
