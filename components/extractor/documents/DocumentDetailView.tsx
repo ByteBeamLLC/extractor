@@ -208,7 +208,7 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
       {/* Side-by-side content */}
       <div className="flex-1 flex min-h-0">
         {/* Left: Document preview */}
-        <div className="w-1/2 border-r flex flex-col bg-muted/30 min-h-0">
+        <div className="mp-block w-1/2 border-r flex flex-col bg-muted/30 min-h-0">
           <div className="px-4 py-2 border-b bg-card flex items-center justify-between shrink-0">
             <span className="text-xs font-medium text-muted-foreground">Document Preview</span>
             {fileUrl && (
@@ -355,7 +355,7 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
 /** Tree-style JSON data view (like Parseur's Data tab) */
 function DataView({ results }: { results: Record<string, any> }) {
   return (
-    <div className="p-4">
+    <div className="mp-mask p-4">
       <pre className="text-xs leading-relaxed font-mono whitespace-pre-wrap break-words">
         <JsonTree data={results} indent={0} />
       </pre>
@@ -431,7 +431,7 @@ function FieldsView({
   const extractionFields = fields.filter((f) => f.type !== "input")
 
   return (
-    <div className="divide-y">
+    <div className="mp-mask divide-y">
       {extractionFields.map((field) => {
         const value = results?.[field.id]
         const isEmpty =

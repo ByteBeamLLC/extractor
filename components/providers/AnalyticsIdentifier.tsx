@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react"
 import { useSession } from "@/lib/supabase/hooks"
-import { identifyUser, trackEvent } from "@/lib/analytics"
+import { identifyUser, startSessionRecording } from "@/lib/analytics"
 import { getAttribution, clearAttribution } from "@/lib/analytics/attribution"
 import { getIdentity } from "@/lib/analytics/identity"
 
@@ -32,6 +32,9 @@ export function AnalyticsIdentifier() {
         total_sessions_before_signup: identity.session_count,
       }),
     })
+
+    // Record 100% of authenticated app sessions
+    startSessionRecording()
 
     // Send attribution data to Supabase, then clear local storage
     const attribution = getAttribution()

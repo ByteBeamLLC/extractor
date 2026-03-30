@@ -174,7 +174,7 @@ export function ExtractionResultsView({
       </div>
 
       {view === "table" ? (
-        <div className="divide-y">
+        <div className="mp-mask divide-y">
           {fieldEntries.map((entry) => (
             <div key={entry.id} className="flex items-start gap-4 p-3">
               <div className="w-1/3 shrink-0">
@@ -195,7 +195,7 @@ export function ExtractionResultsView({
           )}
         </div>
       ) : (
-        <pre className="p-4 text-xs overflow-auto max-h-[600px] bg-muted/20">
+        <pre className="mp-mask p-4 text-xs overflow-auto max-h-[600px] bg-muted/20">
           {JSON.stringify(displayResults, null, 2)}
         </pre>
       )}

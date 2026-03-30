@@ -24,6 +24,13 @@ export function initAnalytics() {
       track_pageview: true,
       persistence: "cookie",
       api_host: "/mp",
+      // Session replay — disabled globally; started manually for authenticated users
+      // via startSessionRecording() in AnalyticsIdentifier so we capture 100% of app sessions.
+      record_sessions_percent: 0,
+      // Privacy-first: mask all text and inputs by default.
+      // Extraction components use "mp-mask" / "mp-block" classes as defense-in-depth.
+      record_mask_all_text: true,
+      record_mask_all_inputs: true,
     })
     mixpanelInitialized = true
   })
@@ -62,6 +69,18 @@ export function resetAnalytics() {
 
   import("mixpanel-browser").then((mp) => {
     mp.default.reset()
+  })
+}
+
+/**
+ * Starts Mixpanel session recording for the current user.
+ * Called after identify() in the authenticated app layout.
+ */
+export function startSessionRecording() {
+  if (typeof window === "undefined") return
+
+  import("mixpanel-browser").then((mp) => {
+    mp.default.start_session_recording()
   })
 }
 
