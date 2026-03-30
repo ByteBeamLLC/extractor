@@ -72,6 +72,26 @@ export default function EmailToSpreadsheetLandingPage() {
           ctaHref: "/login",
 
         }}
+        heroAnimation={{
+          docTitle: "INVOICE EMAIL",
+          docRef: "#INV-88432",
+          docLines: [
+            "From: billing@vendorco.com",
+            "Invoice: INV-2026-0847",
+            "Due Date: April 15, 2026",
+            "Amount: $1,875.00",
+            "Payment: Net 30",
+          ],
+          docFooterLeft: "→ Google Sheets",
+          docFooterRight: "03/29/2026",
+          fields: [
+            { key: "sender", value: "billing@vendorco.com" },
+            { key: "invoice_no", value: "INV-2026-0847" },
+            { key: "due_date", value: "2026-04-15" },
+            { key: "amount", value: "$1,875.00" },
+            { key: "terms", value: "Net 30" },
+          ],
+        }}
         stats={[
           { value: "<3s", label: "Email → Spreadsheet", icon: "Zap" },
           { value: "99%", label: "Accuracy", icon: "ShieldCheck" },
