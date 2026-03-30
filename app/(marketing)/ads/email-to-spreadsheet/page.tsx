@@ -70,7 +70,7 @@ export default function EmailToSpreadsheetLandingPage() {
             "Stop manually copying data from emails into Excel or Google Sheets. Parsli's AI reads every email and auto-fills your spreadsheet — invoices, orders, confirmations, anything.",
           ctaText: "Start Free — 30 Pages/Month",
           ctaHref: "/login",
-          secondaryCta: { text: "See how it works", href: "/docs" },
+
         }}
         stats={[
           { value: "<3s", label: "Email → Spreadsheet", icon: "Zap" },

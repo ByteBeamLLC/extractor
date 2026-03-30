@@ -70,7 +70,7 @@ export default function DataEntryAutomationLandingPage() {
             "AI extracts data from invoices, PDFs, emails, and documents automatically. Cut processing costs from $15 to under $0.10 per document. No code. No templates. Set up in minutes.",
           ctaText: "Start Free — 30 Pages/Month",
           ctaHref: "/login",
-          secondaryCta: { text: "View pricing", href: "/pricing" },
+
         }}
         stats={[
           { value: "80%", label: "Cost Reduction", icon: "TrendingDown" },

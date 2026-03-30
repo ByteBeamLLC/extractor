@@ -1,8 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import Link from "next/link"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Check,
   ChevronDown,
@@ -55,7 +54,6 @@ interface HeroProps {
   subheadline: string
   ctaText: string
   ctaHref: string
-  secondaryCta?: { text: string; href: string }
 }
 
 interface Stat {
@@ -113,7 +111,7 @@ const logos = [
   { src: "/logos/takhlees.png", alt: "Takhlees Government Services", h: "h-9" },
 ]
 
-// ─── Mini pricing (inline for LPs — no page navigation) ───
+// ─── Mini pricing (inline — no external link) ───
 
 const plans = [
   { name: "Free", price: "$0", pages: "30 pages/mo", highlight: false },
@@ -121,6 +119,24 @@ const plans = [
   { name: "Growth", price: "$39", pages: "1,000 pages/mo", highlight: true },
   { name: "Pro", price: "$79", pages: "5,000 pages/mo", highlight: false },
 ]
+
+// ─── Inline CTA block (reused 3+ times on the page) ───
+
+function InlineCTA({ href, text }: { href: string; text: string }) {
+  return (
+    <div className="text-center py-10">
+      <Button size="lg" className="text-base px-8 h-13" asChild>
+        <a href={`${APP_URL}${href}`}>
+          {text}
+          <ArrowRight className="ml-2 h-4 w-4" />
+        </a>
+      </Button>
+      <p className="mt-3 text-xs text-muted-foreground">
+        No credit card required. Cancel anytime.
+      </p>
+    </div>
+  )
+}
 
 // ─── Component ───
 
@@ -144,6 +160,16 @@ export function AdsLandingPage({
   }
   const cta = { ...defaultCta, ...finalCta }
 
+  // Sticky mobile CTA — show after scrolling past hero
+  const [showSticky, setShowSticky] = useState(false)
+  useEffect(() => {
+    function onScroll() {
+      setShowSticky(window.scrollY > 600)
+    }
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
+
   return (
     <>
       <LPTracker page={page} />
@@ -163,28 +189,14 @@ export function AdsLandingPage({
           <p className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
             {hero.subheadline}
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button size="lg" className="text-base px-8 h-13" asChild>
-              <a href={`${APP_URL}${hero.ctaHref}`}>
-                {hero.ctaText}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </a>
-            </Button>
-            {hero.secondaryCta && (
-              <Button
-                variant="outline"
-                size="lg"
-                className="text-base px-8 h-13"
-                asChild
-              >
-                <Link href={hero.secondaryCta.href}>
-                  {hero.secondaryCta.text}
-                </Link>
-              </Button>
-            )}
-          </div>
+          <Button size="lg" className="text-base px-8 h-13" asChild>
+            <a href={`${APP_URL}${hero.ctaHref}`}>
+              {hero.ctaText}
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </a>
+          </Button>
           <p className="mt-4 text-sm text-muted-foreground">
-            Free plan included — no credit card required
+            No credit card required. Set up in under 2 minutes.
           </p>
         </div>
       </section>
@@ -286,6 +298,8 @@ export function AdsLandingPage({
                 )
               })}
             </div>
+            {/* Mid-page CTA #2 — after how-it-works */}
+            <InlineCTA href={hero.ctaHref} text={hero.ctaText} />
           </div>
         </section>
       )}
@@ -365,6 +379,8 @@ export function AdsLandingPage({
                 </tbody>
               </table>
             </div>
+            {/* Mid-page CTA #3 — after comparison */}
+            <InlineCTA href={hero.ctaHref} text={hero.ctaText} />
           </div>
         </section>
       )}
@@ -376,7 +392,7 @@ export function AdsLandingPage({
             Simple, transparent pricing
           </h2>
           <p className="text-center text-muted-foreground mb-10">
-            Annual pricing shown. No hidden fees. Cancel anytime.
+            Start free. Upgrade when you need more pages. Cancel anytime.
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {plans.map((plan) => (
@@ -404,14 +420,9 @@ export function AdsLandingPage({
               </div>
             ))}
           </div>
-          <div className="text-center mt-6">
-            <Link
-              href="/pricing"
-              className="text-sm text-primary hover:underline"
-            >
-              View all plans & features →
-            </Link>
-          </div>
+          <p className="text-center text-xs text-muted-foreground mt-4">
+            Annual pricing shown. All plans include API access, webhooks, and integrations.
+          </p>
         </div>
       </section>
 
@@ -446,8 +457,26 @@ export function AdsLandingPage({
               <ArrowRight className="ml-2 h-4 w-4" />
             </a>
           </Button>
+          <p className="mt-3 text-xs text-muted-foreground">
+            No credit card required. Cancel anytime.
+          </p>
         </div>
       </section>
+
+      {/* ═══ Sticky Mobile CTA ═══ */}
+      <div
+        className={cn(
+          "fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur px-4 py-3 transition-transform duration-300 sm:hidden",
+          showSticky ? "translate-y-0" : "translate-y-full"
+        )}
+      >
+        <Button size="lg" className="w-full text-base h-12" asChild>
+          <a href={`${APP_URL}${hero.ctaHref}`}>
+            {hero.ctaText}
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </a>
+        </Button>
+      </div>
     </>
   )
 }
