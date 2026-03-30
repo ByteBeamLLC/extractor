@@ -69,6 +69,26 @@ export default function EmailParserLandingPage() {
           ctaHref: "/login",
 
         }}
+        heroAnimation={{
+          docTitle: "ORDER CONFIRMATION",
+          docRef: "#ORD-94012",
+          docLines: [
+            "From: orders@acmecorp.com",
+            "Customer: Jane Smith",
+            "Order: #PO-2026-1847",
+            "Amount: $3,250.00",
+            "Ship to: 440 N Wabash, Chicago",
+          ],
+          docFooterLeft: "via Gmail",
+          docFooterRight: "03/28/2026",
+          fields: [
+            { key: "sender", value: "orders@acmecorp.com" },
+            { key: "customer", value: "Jane Smith" },
+            { key: "order_number", value: "PO-2026-1847" },
+            { key: "amount", value: "$3,250.00" },
+            { key: "ship_to", value: "440 N Wabash, Chicago" },
+          ],
+        }}
         stats={[
           { value: "99%", label: "Extraction Accuracy", icon: "ShieldCheck" },
           { value: "<3s", label: "Per Email", icon: "Zap" },

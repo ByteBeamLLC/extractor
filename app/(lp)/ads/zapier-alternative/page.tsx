@@ -72,6 +72,26 @@ export default function ZapierAlternativeLandingPage() {
           ctaHref: "/login",
 
         }}
+        heroAnimation={{
+          docTitle: "SHIPPING NOTIFICATION",
+          docRef: "#SHP-60291",
+          docLines: [
+            "From: shipping@supplier.io",
+            "Tracking: 1Z999AA10123456784",
+            "Carrier: UPS Ground",
+            "ETA: March 31, 2026",
+            "Items: 3 packages",
+          ],
+          docFooterLeft: "via Outlook",
+          docFooterRight: "03/27/2026",
+          fields: [
+            { key: "sender", value: "shipping@supplier.io" },
+            { key: "tracking", value: "1Z999AA10123456784" },
+            { key: "carrier", value: "UPS Ground" },
+            { key: "eta", value: "2026-03-31" },
+            { key: "package_count", value: "3" },
+          ],
+        }}
         stats={[
           { value: "99%", label: "Extraction Accuracy", icon: "ShieldCheck" },
           { value: "0", label: "Templates to Build", icon: "RefreshCw" },

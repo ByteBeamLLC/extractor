@@ -34,6 +34,8 @@ import { Button } from "@/components/ui/button"
 import { APP_URL } from "@/lib/config"
 import { LPTracker } from "./LPTracker"
 import { cn } from "@/lib/utils"
+import { AdHeroAnimation } from "./AdHeroAnimation"
+import type { AdHeroAnimationProps } from "./AdHeroAnimation"
 
 const InteractiveDemo = dynamic(
   () => import("@/components/marketing/InteractiveDemo").then((m) => m.InteractiveDemo),
@@ -99,6 +101,8 @@ export interface AdsLandingPageProps {
   /** Unique page identifier for tracking (e.g. "email-parser") */
   page: string
   hero: HeroProps
+  /** Props for the animated document extraction visual in the hero */
+  heroAnimation: AdHeroAnimationProps
   stats?: Stat[]
   painPoints?: { title: string; subtitle: string; items: PainPoint[] }
   howItWorks?: { title: string; steps: HowItWorksStep[] }
@@ -149,6 +153,7 @@ function InlineCTA({ href, text }: { href: string; text: string }) {
 export function AdsLandingPage({
   page,
   hero,
+  heroAnimation,
   stats,
   painPoints,
   howItWorks,
@@ -181,29 +186,38 @@ export function AdsLandingPage({
       <LPTracker page={page} />
 
       {/* ═══ Hero ═══ */}
-      <section className="relative min-h-[70vh] flex items-center justify-center">
+      <section className="relative min-h-[70vh] flex items-center">
         <div className="absolute inset-0 -z-10">
           <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-primary/5 rounded-full blur-3xl" />
         </div>
-        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-20 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary mb-6">
-            {hero.badge}
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-20">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Left — copy */}
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary mb-6">
+                {hero.badge}
+              </div>
+              <h1 className="text-4xl sm:text-5xl lg:text-[3.25rem] font-bold tracking-tight leading-[1.08] mb-6">
+                {hero.headline}
+              </h1>
+              <p className="text-lg text-muted-foreground mb-8 max-w-xl">
+                {hero.subheadline}
+              </p>
+              <Button size="lg" className="text-base px-8 h-13" asChild>
+                <a href={`${APP_URL}${hero.ctaHref}`}>
+                  {hero.ctaText}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </a>
+              </Button>
+              <p className="mt-4 text-sm text-muted-foreground">
+                No credit card required. Set up in under 2 minutes.
+              </p>
+            </div>
+            {/* Right — animation */}
+            <div className="hidden lg:block">
+              <AdHeroAnimation {...heroAnimation} />
+            </div>
           </div>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.08] mb-6">
-            {hero.headline}
-          </h1>
-          <p className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            {hero.subheadline}
-          </p>
-          <Button size="lg" className="text-base px-8 h-13" asChild>
-            <a href={`${APP_URL}${hero.ctaHref}`}>
-              {hero.ctaText}
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </a>
-          </Button>
-          <p className="mt-4 text-sm text-muted-foreground">
-            No credit card required. Set up in under 2 minutes.
-          </p>
         </div>
       </section>
 

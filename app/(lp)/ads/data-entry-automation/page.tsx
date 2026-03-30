@@ -72,6 +72,26 @@ export default function DataEntryAutomationLandingPage() {
           ctaHref: "/login",
 
         }}
+        heroAnimation={{
+          docTitle: "RECEIPT",
+          docRef: "#REC-45019",
+          docLines: [
+            "Store: Office Depot #1247",
+            "Date: March 26, 2026",
+            "Item: HP LaserJet Toner x2",
+            "Subtotal: $189.98",
+            "Tax: $16.52 | Total: $206.50",
+          ],
+          docFooterLeft: "Scanned image",
+          docFooterRight: "03/26/2026",
+          fields: [
+            { key: "store", value: "Office Depot #1247" },
+            { key: "date", value: "2026-03-26" },
+            { key: "item", value: "HP LaserJet Toner x2" },
+            { key: "subtotal", value: "$189.98" },
+            { key: "total", value: "$206.50" },
+          ],
+        }}
         stats={[
           { value: "80%", label: "Cost Reduction", icon: "TrendingDown" },
           { value: "99%", label: "Accuracy", icon: "ShieldCheck" },

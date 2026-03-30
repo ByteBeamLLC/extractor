@@ -69,6 +69,26 @@ export default function ParsingSoftwareLandingPage() {
           ctaHref: "/login",
 
         }}
+        heroAnimation={{
+          docTitle: "PURCHASE ORDER",
+          docRef: "#PO-77204",
+          docLines: [
+            "Vendor: Global Supply Inc.",
+            "PO Date: 2026-03-15",
+            "Item: Industrial Valve x24",
+            "Unit Price: $142.50",
+            "Total: $3,420.00",
+          ],
+          docFooterLeft: "PDF attachment",
+          docFooterRight: "03/15/2026",
+          fields: [
+            { key: "vendor", value: "Global Supply Inc." },
+            { key: "po_date", value: "2026-03-15" },
+            { key: "item", value: "Industrial Valve x24" },
+            { key: "unit_price", value: "$142.50" },
+            { key: "total", value: "$3,420.00" },
+          ],
+        }}
         stats={[
           { value: "99%", label: "Extraction Accuracy", icon: "ShieldCheck" },
           { value: "<3s", label: "Processing Time", icon: "Zap" },

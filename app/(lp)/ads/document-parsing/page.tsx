@@ -77,6 +77,26 @@ export default function DocumentParsingLandingPage() {
           ctaHref: "/login",
 
         }}
+        heroAnimation={{
+          docTitle: "FINANCIAL REPORT",
+          docRef: "#Q1-2026",
+          docLines: [
+            "Company: Apex Holdings Ltd.",
+            "Period: Q1 2026",
+            "Revenue: $4,280,000",
+            "Net Income: $612,400",
+            "EPS: $2.14",
+          ],
+          docFooterLeft: "PDF — 12 pages",
+          docFooterRight: "03/31/2026",
+          fields: [
+            { key: "company", value: "Apex Holdings Ltd." },
+            { key: "period", value: "Q1 2026" },
+            { key: "revenue", value: "$4,280,000" },
+            { key: "net_income", value: "$612,400" },
+            { key: "eps", value: "$2.14" },
+          ],
+        }}
         stats={[
           { value: "99%", label: "Extraction Accuracy", icon: "ShieldCheck" },
           { value: "<3s", label: "Per Document", icon: "Zap" },
