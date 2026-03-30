@@ -1,16 +1,5 @@
 import type { Metadata } from "next"
-import {
-  Zap,
-  Clock,
-  ShieldCheck,
-  DollarSign,
-  Mail,
-  FileText,
-  Plug,
-  Brain,
-  RefreshCw,
-  ArrowRightLeft,
-} from "lucide-react"
+
 import { AdsLandingPage } from "@/components/lp/AdsLandingPage"
 import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd, faqJsonLd } from "@/lib/seo/json-ld"
@@ -84,10 +73,10 @@ export default function ZapierAlternativeLandingPage() {
           secondaryCta: { text: "Compare features", href: "/compare" },
         }}
         stats={[
-          { value: "99%", label: "Extraction Accuracy", icon: ShieldCheck },
-          { value: "0", label: "Templates to Build", icon: RefreshCw },
-          { value: "<5 min", label: "Migration Time", icon: Clock },
-          { value: "$16", label: "Starting Price/mo", icon: DollarSign },
+          { value: "99%", label: "Extraction Accuracy", icon: "ShieldCheck" },
+          { value: "0", label: "Templates to Build", icon: "RefreshCw" },
+          { value: "<5 min", label: "Migration Time", icon: "Clock" },
+          { value: "$16", label: "Starting Price/mo", icon: "DollarSign" },
         ]}
         painPoints={{
           title: "Why Zapier Email Parser frustrates teams",
@@ -132,37 +121,37 @@ export default function ZapierAlternativeLandingPage() {
               title: "AI, Not Templates",
               description:
                 "Google Gemini 2.5 Pro reads emails semantically. No templates to train, no rules to maintain. Format changes? Handled automatically.",
-              icon: Brain,
+              icon: "Brain",
             },
             {
               title: "Attachments Included",
               description:
                 "Parse email body AND PDF/image attachments in one workflow. Invoices, receipts, POs — extracted together.",
-              icon: FileText,
+              icon: "FileText",
             },
             {
               title: "Works With Zapier",
               description:
                 "Native Zapier integration. Trigger Zaps when data is extracted. Your existing workflows stay intact.",
-              icon: Zap,
+              icon: "Zap",
             },
             {
               title: "5,000+ Integrations",
               description:
                 "Beyond Zapier: connect via Make, webhooks, REST API, and Google Sheets. Push data anywhere.",
-              icon: Plug,
+              icon: "Plug",
             },
             {
               title: "Never Breaks",
               description:
                 "When senders change email formats, Parsli adapts automatically. No re-training, no downtime, no manual fixes.",
-              icon: RefreshCw,
+              icon: "RefreshCw",
             },
             {
               title: "Easy Migration",
               description:
                 "Redirect email forwarding and swap your Zapier trigger. Full migration in under 5 minutes.",
-              icon: ArrowRightLeft,
+              icon: "ArrowRightLeft",
             },
           ],
         }}

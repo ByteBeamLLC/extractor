@@ -1,16 +1,5 @@
 import type { Metadata } from "next"
-import {
-  Zap,
-  Clock,
-  ShieldCheck,
-  DollarSign,
-  FileText,
-  Brain,
-  Plug,
-  Settings,
-  Layers,
-  Lock,
-} from "lucide-react"
+
 import { AdsLandingPage } from "@/components/lp/AdsLandingPage"
 import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd, faqJsonLd } from "@/lib/seo/json-ld"
@@ -89,10 +78,10 @@ export default function DocumentParsingLandingPage() {
           secondaryCta: { text: "View pricing", href: "/pricing" },
         }}
         stats={[
-          { value: "99%", label: "Extraction Accuracy", icon: ShieldCheck },
-          { value: "<3s", label: "Per Document", icon: Zap },
-          { value: "5,000+", label: "Integrations", icon: Plug },
-          { value: "$0.08", label: "Per Page", icon: DollarSign },
+          { value: "99%", label: "Extraction Accuracy", icon: "ShieldCheck" },
+          { value: "<3s", label: "Per Document", icon: "Zap" },
+          { value: "5,000+", label: "Integrations", icon: "Plug" },
+          { value: "$0.08", label: "Per Page", icon: "DollarSign" },
         ]}
         painPoints={{
           title: "Why document parsing is harder than it looks",
@@ -139,37 +128,37 @@ export default function DocumentParsingLandingPage() {
               title: "Google Gemini 2.5 Pro",
               description:
                 "State-of-the-art multimodal AI that reads documents like a human — understanding layout, context, tables, and relationships.",
-              icon: Brain,
+              icon: "Brain",
             },
             {
               title: "Any Document Format",
               description:
                 "PDFs, scans, images, emails, Word, Excel. Invoices, POs, receipts, forms, contracts, BOLs — all supported.",
-              icon: FileText,
+              icon: "FileText",
             },
             {
               title: "No-Code Schema Builder",
               description:
                 "Define extraction fields visually. Support for flat fields, tables, nested objects, and arrays.",
-              icon: Settings,
+              icon: "Settings",
             },
             {
               title: "Table & Line Item Extraction",
               description:
                 "Complex tables, multi-row line items, hierarchical data — extracted with full structure preserved.",
-              icon: Layers,
+              icon: "Layers",
             },
             {
               title: "5,000+ Integrations",
               description:
                 "Google Sheets, Zapier, Make, webhooks, REST API. Route extracted data anywhere in your workflow.",
-              icon: Plug,
+              icon: "Plug",
             },
             {
               title: "Enterprise-Grade Security",
               description:
                 "TLS 1.3 encryption, SOC 2 compliant infrastructure, documents processed in memory. Your data stays yours.",
-              icon: Lock,
+              icon: "Lock",
             },
           ],
         }}

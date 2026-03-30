@@ -1,16 +1,5 @@
 import type { Metadata } from "next"
-import {
-  Zap,
-  Clock,
-  ShieldCheck,
-  DollarSign,
-  FileText,
-  Brain,
-  Plug,
-  Settings,
-  Timer,
-  TrendingDown,
-} from "lucide-react"
+
 import { AdsLandingPage } from "@/components/lp/AdsLandingPage"
 import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd, faqJsonLd } from "@/lib/seo/json-ld"
@@ -84,10 +73,10 @@ export default function DataEntryAutomationLandingPage() {
           secondaryCta: { text: "View pricing", href: "/pricing" },
         }}
         stats={[
-          { value: "80%", label: "Cost Reduction", icon: TrendingDown },
-          { value: "99%", label: "Accuracy", icon: ShieldCheck },
-          { value: "<3s", label: "Per Document", icon: Timer },
-          { value: "$0.08", label: "Per Page", icon: DollarSign },
+          { value: "80%", label: "Cost Reduction", icon: "TrendingDown" },
+          { value: "99%", label: "Accuracy", icon: "ShieldCheck" },
+          { value: "<3s", label: "Per Document", icon: "Timer" },
+          { value: "$0.08", label: "Per Page", icon: "DollarSign" },
         ]}
         painPoints={{
           title: "The real cost of manual data entry",
@@ -132,37 +121,37 @@ export default function DataEntryAutomationLandingPage() {
               title: "AI Data Extraction",
               description:
                 "Google Gemini 2.5 Pro reads documents like a human — understanding context, tables, and relationships across any format.",
-              icon: Brain,
+              icon: "Brain",
             },
             {
               title: "Any Document Type",
               description:
                 "Invoices, POs, receipts, forms, BOLs, bank statements — if it has data, Parsli can extract it.",
-              icon: FileText,
+              icon: "FileText",
             },
             {
               title: "No Templates Needed",
               description:
                 "Unlike legacy OCR, Parsli doesn't need per-format templates. The AI adapts to new document layouts automatically.",
-              icon: Settings,
+              icon: "Settings",
             },
             {
               title: "Sub-3-Second Processing",
               description:
                 "Documents are processed in under 3 seconds. Process hundreds per hour instead of dozens per day.",
-              icon: Zap,
+              icon: "Zap",
             },
             {
               title: "5,000+ Integrations",
               description:
                 "Zapier, Make, Google Sheets, webhooks, REST API. Push data to any system in your stack.",
-              icon: Plug,
+              icon: "Plug",
             },
             {
               title: "ROI in Week One",
               description:
                 "At $0.08/page vs. $15+ for manual entry, Parsli pays for itself from the first batch of documents.",
-              icon: DollarSign,
+              icon: "DollarSign",
             },
           ],
         }}

@@ -1,16 +1,5 @@
 import type { Metadata } from "next"
-import {
-  Zap,
-  Clock,
-  ShieldCheck,
-  DollarSign,
-  Table2,
-  Mail,
-  Plug,
-  Brain,
-  RefreshCw,
-  FileSpreadsheet,
-} from "lucide-react"
+
 import { AdsLandingPage } from "@/components/lp/AdsLandingPage"
 import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd, faqJsonLd } from "@/lib/seo/json-ld"
@@ -84,10 +73,10 @@ export default function EmailToSpreadsheetLandingPage() {
           secondaryCta: { text: "See how it works", href: "/docs" },
         }}
         stats={[
-          { value: "<3s", label: "Email → Spreadsheet", icon: Zap },
-          { value: "99%", label: "Accuracy", icon: ShieldCheck },
-          { value: "2 min", label: "Setup Time", icon: Clock },
-          { value: "$0", label: "To Start", icon: DollarSign },
+          { value: "<3s", label: "Email → Spreadsheet", icon: "Zap" },
+          { value: "99%", label: "Accuracy", icon: "ShieldCheck" },
+          { value: "2 min", label: "Setup Time", icon: "Clock" },
+          { value: "$0", label: "To Start", icon: "DollarSign" },
         ]}
         painPoints={{
           title: "Tired of copying email data into spreadsheets?",
@@ -132,37 +121,37 @@ export default function EmailToSpreadsheetLandingPage() {
               title: "Google Sheets Integration",
               description:
                 "Native IMPORTDATA connection to Google Sheets. Each extraction becomes a new row automatically — no middleware needed.",
-              icon: FileSpreadsheet,
+              icon: "FileSpreadsheet",
             },
             {
               title: "Excel via Zapier/Make",
               description:
                 "Push to Excel Online, Excel desktop (via OneDrive), or any spreadsheet app using Zapier, Make, or webhooks.",
-              icon: Table2,
+              icon: "Table2",
             },
             {
               title: "AI Reads Any Format",
               description:
                 "Different senders, different layouts — doesn't matter. The AI extracts your fields from any email format automatically.",
-              icon: Brain,
+              icon: "Brain",
             },
             {
               title: "Includes Attachments",
               description:
                 "PDF invoices, image receipts, document attachments — extracted alongside the email body in one flow.",
-              icon: Mail,
+              icon: "Mail",
             },
             {
               title: "Never Breaks",
               description:
                 "Template changes? New senders? Parsli adapts automatically. No rules to update, no re-training.",
-              icon: RefreshCw,
+              icon: "RefreshCw",
             },
             {
               title: "5,000+ App Connections",
               description:
                 "Beyond spreadsheets: push data to CRMs, ERPs, databases, Slack, or any app in your workflow.",
-              icon: Plug,
+              icon: "Plug",
             },
           ],
         }}

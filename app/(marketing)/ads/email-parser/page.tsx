@@ -1,16 +1,5 @@
 import type { Metadata } from "next"
-import {
-  Zap,
-  Clock,
-  ShieldCheck,
-  DollarSign,
-  Mail,
-  FileText,
-  Plug,
-  Brain,
-  Settings,
-  BarChart3,
-} from "lucide-react"
+
 import { AdsLandingPage } from "@/components/lp/AdsLandingPage"
 import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd, faqJsonLd } from "@/lib/seo/json-ld"
@@ -81,10 +70,10 @@ export default function EmailParserLandingPage() {
           secondaryCta: { text: "See how it works", href: "/docs" },
         }}
         stats={[
-          { value: "99%", label: "Extraction Accuracy", icon: ShieldCheck },
-          { value: "<3s", label: "Per Email", icon: Zap },
-          { value: "2 min", label: "Setup Time", icon: Clock },
-          { value: "$0.08", label: "Per Page", icon: DollarSign },
+          { value: "99%", label: "Extraction Accuracy", icon: "ShieldCheck" },
+          { value: "<3s", label: "Per Email", icon: "Zap" },
+          { value: "2 min", label: "Setup Time", icon: "Clock" },
+          { value: "$0.08", label: "Per Page", icon: "DollarSign" },
         ]}
         painPoints={{
           title: "Sound familiar?",
@@ -129,37 +118,37 @@ export default function EmailParserLandingPage() {
               title: "AI-Powered, Not Rule-Based",
               description:
                 "Google Gemini 2.5 Pro understands email content semantically. No regex, no templates, no rules to maintain.",
-              icon: Brain,
+              icon: "Brain",
             },
             {
               title: "Any Email Format",
               description:
                 "Invoices, orders, shipping notifications, lead forms — the AI adapts to any sender's format automatically.",
-              icon: Mail,
+              icon: "Mail",
             },
             {
               title: "Attachments Included",
               description:
                 "Parse both email body and PDF/image attachments in a single workflow. Invoices, receipts, and documents extracted together.",
-              icon: FileText,
+              icon: "FileText",
             },
             {
               title: "5,000+ Integrations",
               description:
                 "Connect to Google Sheets, Zapier, Make, webhooks, and REST API. Push data anywhere your workflow needs it.",
-              icon: Plug,
+              icon: "Plug",
             },
             {
               title: "No-Code Schema Builder",
               description:
                 "Define extraction fields visually. Add, rename, or restructure fields without touching code.",
-              icon: Settings,
+              icon: "Settings",
             },
             {
               title: "Real-Time Dashboard",
               description:
                 "Monitor extraction results, accuracy, and volume in real-time. Export to CSV or JSON anytime.",
-              icon: BarChart3,
+              icon: "BarChart3",
             },
           ],
         }}

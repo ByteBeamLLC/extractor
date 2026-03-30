@@ -1,16 +1,5 @@
 import type { Metadata } from "next"
-import {
-  Zap,
-  Clock,
-  ShieldCheck,
-  DollarSign,
-  FileText,
-  Mail,
-  Plug,
-  Brain,
-  Settings,
-  BarChart3,
-} from "lucide-react"
+
 import { AdsLandingPage } from "@/components/lp/AdsLandingPage"
 import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd, faqJsonLd } from "@/lib/seo/json-ld"
@@ -81,10 +70,10 @@ export default function ParsingSoftwareLandingPage() {
           secondaryCta: { text: "View pricing", href: "/pricing" },
         }}
         stats={[
-          { value: "99%", label: "Extraction Accuracy", icon: ShieldCheck },
-          { value: "<3s", label: "Processing Time", icon: Zap },
-          { value: "5,000+", label: "App Integrations", icon: Plug },
-          { value: "$0.08", label: "Per Page", icon: DollarSign },
+          { value: "99%", label: "Extraction Accuracy", icon: "ShieldCheck" },
+          { value: "<3s", label: "Processing Time", icon: "Zap" },
+          { value: "5,000+", label: "App Integrations", icon: "Plug" },
+          { value: "$0.08", label: "Per Page", icon: "DollarSign" },
         ]}
         painPoints={{
           title: "Why parsing software usually disappoints",
@@ -129,37 +118,37 @@ export default function ParsingSoftwareLandingPage() {
               title: "AI-Powered Extraction",
               description:
                 "Google Gemini 2.5 Pro understands documents like a human. It reads context, tables, and relationships — not just patterns.",
-              icon: Brain,
+              icon: "Brain",
             },
             {
               title: "Email + Document Parsing",
               description:
                 "Parse email bodies, PDF attachments, images, Word docs, and Excel files — all in one platform.",
-              icon: Mail,
+              icon: "Mail",
             },
             {
               title: "No-Code Schema Builder",
               description:
                 "Define extraction fields visually. Drag, rename, and restructure your schema without writing code.",
-              icon: Settings,
+              icon: "Settings",
             },
             {
               title: "5,000+ Integrations",
               description:
                 "Google Sheets, Zapier, Make, webhooks, and a full REST API. Connect Parsli to your entire stack.",
-              icon: Plug,
+              icon: "Plug",
             },
             {
               title: "Handles Any Document",
               description:
                 "Invoices, purchase orders, receipts, BOLs, forms, contracts — any document with data to extract.",
-              icon: FileText,
+              icon: "FileText",
             },
             {
               title: "Real-Time Monitoring",
               description:
                 "Track extractions, accuracy, and throughput in a real-time dashboard. Export results anytime.",
-              icon: BarChart3,
+              icon: "BarChart3",
             },
           ],
         }}

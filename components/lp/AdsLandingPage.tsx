@@ -10,12 +10,42 @@ import {
   Upload,
   Sparkles,
   Download,
+  Zap,
+  Clock,
+  ShieldCheck,
+  DollarSign,
+  Mail,
+  FileText,
+  Plug,
+  Brain,
+  Settings,
+  BarChart3,
+  RefreshCw,
+  ArrowRightLeft,
+  Table2,
+  FileSpreadsheet,
+  Timer,
+  TrendingDown,
+  Layers,
+  Lock,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { APP_URL } from "@/lib/config"
 import { LPTracker } from "./LPTracker"
 import { cn } from "@/lib/utils"
+
+// ─── Icon registry (maps string names to components for Server→Client serialization) ───
+
+const iconMap: Record<string, LucideIcon> = {
+  Zap, Clock, ShieldCheck, DollarSign, Mail, FileText, Plug, Brain,
+  Settings, BarChart3, RefreshCw, ArrowRightLeft, Table2, FileSpreadsheet,
+  Timer, TrendingDown, Layers, Lock, Upload, Sparkles, Download,
+}
+
+function resolveIcon(name: string): LucideIcon {
+  return iconMap[name] || Sparkles
+}
 
 // ─── Types ───
 
@@ -31,7 +61,7 @@ interface HeroProps {
 interface Stat {
   value: string
   label: string
-  icon: LucideIcon
+  icon: string
 }
 
 interface PainPoint {
@@ -47,7 +77,7 @@ interface HowItWorksStep {
 interface Feature {
   title: string
   description: string
-  icon: LucideIcon
+  icon: string
 }
 
 interface ComparisonRow {
@@ -186,7 +216,7 @@ export function AdsLandingPage({
           <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
               {stats.map((stat) => {
-                const Icon = stat.icon
+                const Icon = resolveIcon(stat.icon)
                 return (
                   <div key={stat.label} className="text-center">
                     <Icon className="h-6 w-6 text-primary mx-auto mb-2" />
@@ -274,7 +304,7 @@ export function AdsLandingPage({
             )}
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {features.items.map((feature) => {
-                const Icon = feature.icon
+                const Icon = resolveIcon(feature.icon)
                 return (
                   <div
                     key={feature.title}
