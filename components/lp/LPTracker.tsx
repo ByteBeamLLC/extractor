@@ -57,15 +57,20 @@ export function LPTracker({ page }: { page: string }) {
       const text = link.textContent?.trim() || ""
       const href = link.getAttribute("href") || ""
 
+      const lowerText = text.toLowerCase()
       const isCta =
         href.includes("app.parsli.co") ||
         href.includes("calendly.com") ||
         href.includes("/tools/handwriting") ||
-        text.toLowerCase().includes("start free") ||
-        text.toLowerCase().includes("get started") ||
-        text.toLowerCase().includes("book a") ||
-        text.toLowerCase().includes("try free") ||
-        text.toLowerCase().includes("contact sales")
+        href.includes("/login") ||
+        href.includes("/dashboard") ||
+        lowerText.includes("start free") ||
+        lowerText.includes("get started") ||
+        lowerText.includes("book a") ||
+        lowerText.includes("try free") ||
+        lowerText.includes("try it") ||
+        lowerText.includes("sign up") ||
+        lowerText.includes("contact sales")
 
       if (isCta) {
         const stored = sessionStorage.getItem("parsli_lp_utm")
