@@ -67,7 +67,7 @@ export default function EmailParserLandingPage() {
             "Stop copy-pasting data from emails. Parsli's AI reads invoices, orders, and leads from your inbox and pushes structured data to your apps. 99% accuracy. No code. Set up in 2 minutes.",
           ctaText: "Start Free — 30 Pages/Month",
           ctaHref: "/login",
-          secondaryCta: { text: "See how it works", href: "/docs" },
+
         }}
         stats={[
           { value: "99%", label: "Extraction Accuracy", icon: "ShieldCheck" },

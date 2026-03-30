@@ -70,7 +70,7 @@ export default function ZapierAlternativeLandingPage() {
             "Parsli uses AI instead of templates. It doesn't break when email formats change, it parses attachments too, and it's 99% accurate. Migrate in under 5 minutes.",
           ctaText: "Try Parsli Free",
           ctaHref: "/login",
-          secondaryCta: { text: "Compare features", href: "/compare" },
+
         }}
         stats={[
           { value: "99%", label: "Extraction Accuracy", icon: "ShieldCheck" },

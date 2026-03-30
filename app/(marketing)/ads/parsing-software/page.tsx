@@ -67,7 +67,7 @@ export default function ParsingSoftwareLandingPage() {
             "Extract structured data from emails, PDFs, invoices, and documents in seconds. No templates to build, no rules to maintain. AI handles any format automatically.",
           ctaText: "Start Free — 30 Pages/Month",
           ctaHref: "/login",
-          secondaryCta: { text: "View pricing", href: "/pricing" },
+
         }}
         stats={[
           { value: "99%", label: "Extraction Accuracy", icon: "ShieldCheck" },

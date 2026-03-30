@@ -75,7 +75,7 @@ export default function DocumentParsingLandingPage() {
             "Parse PDFs, scanned documents, invoices, and forms with AI. No templates, no rules — just define your fields and the AI extracts structured data from any format in seconds.",
           ctaText: "Start Free — 30 Pages/Month",
           ctaHref: "/login",
-          secondaryCta: { text: "View pricing", href: "/pricing" },
+
         }}
         stats={[
           { value: "99%", label: "Extraction Accuracy", icon: "ShieldCheck" },
