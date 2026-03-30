@@ -1,6 +1,7 @@
 "use client"
 
 import Image from "next/image"
+import dynamic from "next/dynamic"
 import { useEffect, useState } from "react"
 import {
   Check,
@@ -33,6 +34,11 @@ import { Button } from "@/components/ui/button"
 import { APP_URL } from "@/lib/config"
 import { LPTracker } from "./LPTracker"
 import { cn } from "@/lib/utils"
+
+const InteractiveDemo = dynamic(
+  () => import("@/components/marketing/InteractiveDemo").then((m) => m.InteractiveDemo),
+  { ssr: false, loading: () => <div className="h-[420px] rounded-xl border bg-muted/30 animate-pulse" /> }
+)
 
 // ─── Icon registry (maps string names to components for Server→Client serialization) ───
 
@@ -298,15 +304,27 @@ export function AdsLandingPage({
                 )
               })}
             </div>
-            {/* Mid-page CTA #2 — after how-it-works */}
-            <InlineCTA href={hero.ctaHref} text={hero.ctaText} />
           </div>
         </section>
       )}
 
+      {/* ═══ Interactive Demo ═══ */}
+      <section className="py-16 sm:py-20 bg-muted/30">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-center mb-4">
+            See Parsli in action
+          </h2>
+          <p className="text-center text-muted-foreground mb-10 max-w-2xl mx-auto">
+            Click through the interactive tour — from creating a parser to extracting structured data.
+          </p>
+          <InteractiveDemo />
+          <InlineCTA href={hero.ctaHref} text={hero.ctaText} />
+        </div>
+      </section>
+
       {/* ═══ Features ═══ */}
       {features && (
-        <section className="py-16 sm:py-20 bg-muted/30">
+        <section className="py-16 sm:py-20">
           <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-center mb-4">
               {features.title}
