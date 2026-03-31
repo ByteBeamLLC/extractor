@@ -99,7 +99,9 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
 
       try {
         // Upload file directly to Supabase Storage (bypasses Vercel 4.5MB body limit)
-        const storagePath = `${session?.user?.id}/${parser.id}/pending/${crypto.randomUUID()}/${file.name}`
+        // Sanitize filename for storage key (spaces/special chars cause "Invalid key" errors)
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_")
+        const storagePath = `${session?.user?.id}/${parser.id}/pending/${crypto.randomUUID()}/${safeName}`
         const { error: storageError } = await supabase.storage
           .from("parser-documents")
           .upload(storagePath, file, {

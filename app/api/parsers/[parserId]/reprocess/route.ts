@@ -81,7 +81,8 @@ export async function POST(
   // We need the original file data to re-extract.
   // Use service role client to bypass storage RLS
   const adminClient = createSupabaseServiceRoleClient()
-  const storagePath = `${user.id}/${params.parserId}/${documentId}/${d.file_name}`
+  const safeName = (d.file_name ?? "uploaded").replace(/[^a-zA-Z0-9._-]/g, "_")
+  const storagePath = `${user.id}/${params.parserId}/${documentId}/${safeName}`
   const { data: fileBlob } = await adminClient.storage
     .from("parser-documents")
     .download(storagePath)

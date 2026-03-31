@@ -126,7 +126,8 @@ export async function POST(
   // Store original file to Supabase Storage for preview & reprocessing
   // Skip if file was already uploaded via storage_path (client-side upload)
   if (docId && !body.storage_path) {
-    const storagePath = `${user.id}/${params.parserId}/${docId}/${fileData.name ?? "uploaded"}`
+    const safeName = (fileData.name ?? "uploaded").replace(/[^a-zA-Z0-9._-]/g, "_")
+    const storagePath = `${user.id}/${params.parserId}/${docId}/${safeName}`
     const fileBuffer = Buffer.from(fileData.data, "base64")
     try {
       const adminClient = createSupabaseServiceRoleClient()
@@ -150,7 +151,8 @@ export async function POST(
   } else if (docId && body.storage_path) {
     // Move file from pending path to final path
     const adminClient = createSupabaseServiceRoleClient()
-    const finalPath = `${user.id}/${params.parserId}/${docId}/${fileData.name}`
+    const safeFinalName = (fileData.name ?? "uploaded").replace(/[^a-zA-Z0-9._-]/g, "_")
+    const finalPath = `${user.id}/${params.parserId}/${docId}/${safeFinalName}`
     if (body.storage_path !== finalPath) {
       await adminClient.storage
         .from("parser-documents")
