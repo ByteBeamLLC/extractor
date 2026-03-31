@@ -26,9 +26,9 @@ export function initAnalytics() {
       api_host: "/mp",
       // Session replay — records all sessions (marketing, tools, ads, and app).
       record_sessions_percent: 100,
-      // Privacy-first: mask all text and inputs by default.
-      // Extraction components use "mp-mask" / "mp-block" classes as defense-in-depth.
-      record_mask_all_text: true,
+      // Show text so replays are readable. Sensitive data (extraction results,
+      // document previews) is protected by mp-mask/mp-block classes on those components.
+      record_mask_all_text: false,
       record_mask_all_inputs: true,
     })
     mixpanelInitialized = true
