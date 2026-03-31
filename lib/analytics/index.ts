@@ -24,9 +24,8 @@ export function initAnalytics() {
       track_pageview: true,
       persistence: "cookie",
       api_host: "/mp",
-      // Session replay — disabled globally; started manually for authenticated users
-      // via startSessionRecording() in AnalyticsIdentifier so we capture 100% of app sessions.
-      record_sessions_percent: 0,
+      // Session replay — records all sessions (marketing, tools, ads, and app).
+      record_sessions_percent: 100,
       // Privacy-first: mask all text and inputs by default.
       // Extraction components use "mp-mask" / "mp-block" classes as defense-in-depth.
       record_mask_all_text: true,
