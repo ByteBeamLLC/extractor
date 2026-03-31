@@ -27,14 +27,14 @@ import { breadcrumbJsonLd, faqJsonLd } from "@/lib/seo/json-ld"
 
 export const metadata: Metadata = {
   title:
-    "Freight Invoice Automation for 3PLs & Freight Brokers | Parsli",
+    "Freight Invoice Automation for 3PLs",
   description:
     "Automate freight invoice processing and bill of lading data extraction. Works with FedEx, XPO, ODFL, Estes, Saia, DHL — any carrier format. Freight audit and 3-way matching included. 30 free pages/month.",
   alternates: {
     canonical: "https://parsli.co/freight",
   },
   openGraph: {
-    title: "Freight Invoice Automation for 3PLs & Freight Brokers | Parsli",
+    title: "Freight Invoice Automation for 3PLs",
     description:
       "Automate freight invoice processing and bill of lading data extraction. Works with FedEx, XPO, ODFL, Estes, Saia, DHL — any carrier format. Freight audit and 3-way matching included. 30 free pages/month.",
     url: "https://parsli.co/freight",

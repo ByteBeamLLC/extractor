@@ -29,7 +29,7 @@ import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld"
 
 export const metadata: Metadata = {
-  title: "Bank Statement to Excel Converter — Free, Instant, No Sign-Up | Parsli",
+  title: "Bank Statement to Excel — Free Converter",
   description:
     "Convert bank statement PDFs to Excel (.xlsx) instantly in your browser. Free, no sign-up, no file uploads to servers. Works with statements from any bank. Extract transactions into a spreadsheet for bookkeeping and reconciliation.",
   keywords: [
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
     canonical: "https://parsli.co/tools/bank-statement-to-excel",
   },
   openGraph: {
-    title: "Bank Statement to Excel Converter — Free, Instant, No Sign-Up",
+    title: "Bank Statement to Excel — Free Converter",
     description:
       "Convert bank statement PDFs to Excel instantly in your browser. Free forever, no sign-up required, your data never leaves your device.",
     url: "https://parsli.co/tools/bank-statement-to-excel",

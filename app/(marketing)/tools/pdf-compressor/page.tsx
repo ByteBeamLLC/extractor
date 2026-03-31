@@ -26,7 +26,7 @@ import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld"
 
 export const metadata: Metadata = {
-  title: "PDF Compressor — Free, No Sign-Up | Parsli",
+  title: "PDF Compressor — Free, No Sign-Up",
   description:
     "Compress PDF files to reduce file size instantly in your browser. Free, no sign-up, no file uploads to servers. Privacy-first PDF compression.",
   keywords: [

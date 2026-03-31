@@ -28,7 +28,7 @@ import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld"
 
 export const metadata: Metadata = {
-  title: "Free BOL Parser — Extract Text from Bills of Lading Online | Parsli",
+  title: "Free BOL Parser — Bill of Lading Extractor",
   description:
     "Extract text from bills of lading instantly in your browser. Free, no sign-up, no file uploads to servers. Supports PDF and image BOLs. For structured data extraction, try Parsli AI.",
   keywords: [
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
     canonical: "https://parsli.co/tools/bol-parser",
   },
   openGraph: {
-    title: "Free BOL Parser — Extract Text from Bills of Lading Online",
+    title: "Free BOL Parser — Bill of Lading Extractor",
     description:
       "Extract text from bills of lading instantly in your browser. Free forever, no sign-up required, your data never leaves your device.",
     url: "https://parsli.co/tools/bol-parser",

@@ -29,7 +29,7 @@ import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld"
 
 export const metadata: Metadata = {
-  title: "Free Receipt Scanner — Extract Text from Receipts Online | Parsli",
+  title: "Free Receipt Scanner — Extract Data Online",
   description:
     "Scan receipts and extract text instantly in your browser. Free, no sign-up, no file uploads to servers. Supports photos and PDFs. For structured receipt data, try Parsli AI.",
   keywords: [
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
     canonical: "https://parsli.co/tools/receipt-scanner",
   },
   openGraph: {
-    title: "Free Receipt Scanner — Extract Text from Receipts Online",
+    title: "Free Receipt Scanner — Extract Data Online",
     description:
       "Scan receipts and extract text instantly in your browser. Free forever, no sign-up required, your data never leaves your device.",
     url: "https://parsli.co/tools/receipt-scanner",

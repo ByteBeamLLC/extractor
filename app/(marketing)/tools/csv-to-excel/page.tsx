@@ -29,7 +29,7 @@ import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld"
 
 export const metadata: Metadata = {
-  title: "CSV to Excel Converter — Free, Instant, No Sign-Up | Parsli",
+  title: "CSV to Excel Converter — Free, Instant, No Sign-Up",
   description:
     "Convert CSV files to Excel spreadsheets (.xlsx) instantly in your browser. Free, no sign-up, no file uploads to servers. Upload a file or paste CSV directly.",
   keywords: [

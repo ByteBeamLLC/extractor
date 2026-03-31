@@ -29,7 +29,7 @@ import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld"
 
 export const metadata: Metadata = {
-  title: "Merge PDF Files — Free, Instant, No Sign-Up | Parsli",
+  title: "Merge PDF Files — Free, Instant, No Sign-Up",
   description:
     "Merge multiple PDF files into one document instantly in your browser. Free, no sign-up, no file uploads to servers. Drag to reorder pages before combining.",
   keywords: [

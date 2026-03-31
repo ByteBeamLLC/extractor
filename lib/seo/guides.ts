@@ -69,8 +69,7 @@ const guides: GuideData[] = [
     slug: "extract-line-items-from-invoices",
     title: "How to Extract Line Items from Invoices Automatically",
     h1: "How to Extract Line Items from Invoices Automatically",
-    metaTitle:
-      "How to Extract Line Items from Invoices Automatically | Parsli",
+    metaTitle: "How to Extract Line Items from Invoices",
     metaDescription:
       "Learn 3 methods to extract line items from invoices — manual, Python, and AI-powered. Compare accuracy, speed, and cost for each approach.",
     publishedAt: "2026-03-15",
@@ -488,8 +487,7 @@ const guides: GuideData[] = [
     slug: "extract-data-from-bank-statements",
     title: "How to Extract Data from Bank Statements (PDF to Excel)",
     h1: "How to Extract Data from Bank Statements (PDF to Excel)",
-    metaTitle:
-      "How to Extract Data from Bank Statements (PDF to Excel) | Parsli",
+    metaTitle: "Extract Data from Bank Statements to Excel",
     metaDescription:
       "Learn how to extract transactions, balances, and account details from bank statement PDFs. Compare manual, Python, and AI methods.",
     publishedAt: "2026-03-17",
@@ -743,7 +741,7 @@ const guides: GuideData[] = [
     slug: "convert-receipts-to-spreadsheet",
     title: "How to Convert Receipts to Spreadsheet Data",
     h1: "How to Convert Receipts to Spreadsheet Data",
-    metaTitle: "How to Convert Receipts to Spreadsheet Data | Parsli",
+    metaTitle: "How to Convert Receipts to Spreadsheet Data",
     metaDescription:
       "Learn how to convert paper and digital receipts into structured spreadsheet data. Compare scanning apps, OCR tools, and AI extraction.",
     publishedAt: "2026-03-19",
@@ -947,8 +945,7 @@ const guides: GuideData[] = [
     title:
       "How to Extract Tables from PDF: 3 Methods (Copy, Python, AI)",
     h1: "How to Extract Tables from PDF: 3 Methods Compared",
-    metaTitle:
-      "How to Extract Tables from PDF: Copy, Python & AI Methods (2026)",
+    metaTitle: "Extract Tables from PDF: 3 Methods (2026)",
     metaDescription:
       "Extract tables from any PDF — digital or scanned. Compare copy-paste, Python (pdfplumber, camelot, tabula), and AI extraction for accuracy, speed, and ease of use.",
     publishedAt: "2026-03-21",
@@ -1141,7 +1138,7 @@ const guides: GuideData[] = [
     slug: "parse-email-attachments-automatically",
     title: "How to Parse Email Attachments Automatically",
     h1: "How to Parse Email Attachments Automatically",
-    metaTitle: "How to Parse Email Attachments Automatically | Parsli",
+    metaTitle: "How to Parse Email Attachments Automatically",
     metaDescription:
       "Learn how to automatically extract data from email attachments — invoices, receipts, reports — and route it to spreadsheets or your ERP.",
     publishedAt: "2026-03-23",
@@ -1301,7 +1298,7 @@ const guides: GuideData[] = [
     slug: "extract-data-from-purchase-orders",
     title: "How to Extract Data from Purchase Orders",
     h1: "How to Extract Data from Purchase Orders",
-    metaTitle: "How to Extract Data from Purchase Orders | Parsli",
+    metaTitle: "How to Extract Data from Purchase Orders",
     metaDescription:
       "Learn how to extract PO numbers, line items, and vendor details from purchase orders automatically. Compare manual vs automated methods.",
     publishedAt: "2026-03-25",
@@ -1453,8 +1450,7 @@ const guides: GuideData[] = [
     slug: "automate-invoice-processing-with-google-sheets",
     title: "How to Automate Invoice Processing with Google Sheets",
     h1: "How to Automate Invoice Processing with Google Sheets",
-    metaTitle:
-      "How to Automate Invoice Processing with Google Sheets | Parsli",
+    metaTitle: "Automate Invoice Processing in Google Sheets",
     metaDescription:
       "Set up an automated pipeline that extracts invoice data and pushes it directly to Google Sheets. Step-by-step guide with Parsli integration.",
     publishedAt: "2026-03-27",
@@ -1599,8 +1595,7 @@ const guides: GuideData[] = [
     title:
       "How to Extract Data from Scanned Documents & PDFs (OCR + AI)",
     h1: "How to Extract Data from Scanned Documents & PDFs",
-    metaTitle:
-      "Extract Data from Scanned Documents & PDFs: OCR + AI Methods (2026)",
+    metaTitle: "Extract Data from Scanned Documents (2026)",
     metaDescription:
       "Extract structured data from scanned PDFs, photographed documents, and faxes. Compare 3 methods: OCR + manual, OCR + Python, and AI-powered extraction with 95%+ accuracy.",
     publishedAt: "2026-03-29",
@@ -1930,7 +1925,7 @@ const guides: GuideData[] = [
     slug: "extract-vendor-information-from-invoices",
     title: "How to Extract Vendor Information from Invoices",
     h1: "How to Extract Vendor Information from Invoices",
-    metaTitle: "How to Extract Vendor Information from Invoices | Parsli",
+    metaTitle: "How to Extract Vendor Information from Invoices",
     metaDescription:
       "Learn how to extract vendor names, addresses, tax IDs, and contact details from invoices automatically for AP and vendor management.",
     publishedAt: "2026-04-02",
@@ -2086,7 +2081,7 @@ const guides: GuideData[] = [
     slug: "extract-data-from-contracts",
     title: "How to Extract Data from Contracts Automatically",
     h1: "How to Extract Data from Contracts Automatically",
-    metaTitle: "How to Extract Data from Contracts | Parsli",
+    metaTitle: "How to Extract Data from Contracts",
     metaDescription:
       "Learn how to extract parties, dates, clauses, and payment terms from contracts. Compare manual, Python, and AI-powered extraction methods.",
     publishedAt: "2026-03-20",
@@ -2497,7 +2492,7 @@ const guides: GuideData[] = [
     slug: "extract-data-from-medical-records",
     title: "How to Extract Data from Medical Records with AI",
     h1: "How to Extract Data from Medical Records with AI",
-    metaTitle: "How to Extract Data from Medical Records | Parsli",
+    metaTitle: "How to Extract Data from Medical Records",
     metaDescription:
       "Learn how to extract patient info, diagnosis codes, and medications from medical records. HIPAA-compliant methods compared step by step.",
     publishedAt: "2026-03-20",
@@ -2910,7 +2905,7 @@ const guides: GuideData[] = [
     slug: "extract-data-from-shipping-documents",
     title: "How to Extract Data from Shipping Documents Automatically",
     h1: "How to Extract Data from Shipping Documents Automatically",
-    metaTitle: "Extract Data from Shipping Documents | Parsli",
+    metaTitle: "Extract Data from Shipping Documents",
     metaDescription:
       "Learn how to extract tracking numbers, weights, origins, and customs info from BOLs, packing slips, and shipping labels. 3 methods compared.",
     publishedAt: "2026-03-20",
@@ -3323,7 +3318,7 @@ const guides: GuideData[] = [
     slug: "extract-data-from-insurance-claims",
     title: "How to Extract Data from Insurance Claims Automatically",
     h1: "How to Extract Data from Insurance Claims Automatically",
-    metaTitle: "Extract Data from Insurance Claims | Parsli",
+    metaTitle: "Extract Data from Insurance Claims",
     metaDescription:
       "Learn how to extract claim numbers, policy details, incident dates, and amounts from insurance claim forms. Compare 3 extraction methods.",
     publishedAt: "2026-03-20",
@@ -3731,7 +3726,7 @@ const guides: GuideData[] = [
     slug: "extract-invoice-data-to-quickbooks",
     title: "How to Extract Invoice Data and Send It to QuickBooks",
     h1: "How to Extract Invoice Data and Send It to QuickBooks",
-    metaTitle: "Extract Invoice Data to QuickBooks Automatically | Parsli",
+    metaTitle: "Extract Invoice Data to QuickBooks Automatically",
     metaDescription:
       "Learn how to extract vendor names, amounts, and line items from invoice PDFs and send structured data to QuickBooks Online via Zapier, Make, or API.",
     publishedAt: "2026-03-20",
@@ -4146,8 +4141,7 @@ const guides: GuideData[] = [
     title:
       "How to Parse Email Attachments Automatically: Zapier, API & No-Code",
     h1: "How to Parse Email Attachments Automatically",
-    metaTitle:
-      "How to Parse Email Attachments: Zapier, API & No-Code Methods (2026)",
+    metaTitle: "Parse Email Attachments: Zapier & API (2026)",
     metaDescription:
       "Parse invoices, receipts, and POs from email attachments automatically. Compare 3 methods — Zapier automation, REST API integration, and no-code email forwarding — with setup guides.",
     publishedAt: "2026-03-20",
@@ -5011,7 +5005,7 @@ const guides: GuideData[] = [
     slug: "extract-data-from-pdfs-without-code",
     title: "How to Extract Data from PDFs Without Code",
     h1: "How to Extract Data from PDFs Without Code",
-    metaTitle: "Extract Data from PDFs Without Code | Parsli",
+    metaTitle: "Extract Data from PDFs Without Code",
     metaDescription:
       "Learn how non-technical users can extract structured data from PDFs using no-code tools. Compare manual, template-based, and AI-powered approaches.",
     publishedAt: "2026-03-20",
@@ -5418,7 +5412,7 @@ const guides: GuideData[] = [
     slug: "automate-invoice-processing-for-small-business",
     title: "How to Automate Invoice Processing for Small Business",
     h1: "How to Automate Invoice Processing for Small Business",
-    metaTitle: "Automate Invoice Processing for Small Business | Parsli",
+    metaTitle: "Automate Invoice Processing for Small Business",
     metaDescription:
       "End-to-end guide for small business owners to automate invoice processing — from receiving invoices via email to exporting data to accounting software.",
     publishedAt: "2026-03-20",
@@ -5834,7 +5828,7 @@ const guides: GuideData[] = [
     slug: "extract-data-from-handwritten-documents",
     title: "How to Extract Data from Handwritten Documents with AI",
     h1: "How to Extract Data from Handwritten Documents with AI",
-    metaTitle: "Extract Data from Handwritten Documents | Parsli",
+    metaTitle: "Extract Data from Handwritten Documents",
     metaDescription:
       "Learn how to extract structured data from handwritten forms, notes, and documents using AI-powered handwriting recognition. Compare ICR, OCR, and AI methods.",
     publishedAt: "2026-03-20",
@@ -6246,7 +6240,7 @@ const guides: GuideData[] = [
     slug: "pdf-to-json-extraction",
     title: "How to Convert PDF Documents to Structured JSON Data",
     h1: "How to Convert PDF Documents to Structured JSON Data",
-    metaTitle: "Convert PDF to JSON: 3 Methods Compared | Parsli",
+    metaTitle: "Convert PDF to JSON: 3 Methods Compared",
     metaDescription:
       "Learn how to extract structured JSON data from PDFs for APIs, databases, and apps. Compare manual, Python, and AI-powered conversion methods step by step.",
     publishedAt: "2026-03-20",
@@ -7065,7 +7059,7 @@ const guides: GuideData[] = [
     slug: "batch-process-documents-automatically",
     title: "How to Batch Process Documents Automatically",
     h1: "How to Batch Process Documents Automatically",
-    metaTitle: "Batch Process Documents Automatically | Parsli",
+    metaTitle: "Batch Process Documents Automatically",
     metaDescription:
       "Learn how to set up automated batch document processing pipelines. Compare email ingestion, API uploads, and bulk processing for hundreds of documents.",
     publishedAt: "2026-03-20",
@@ -7478,7 +7472,7 @@ const guides: GuideData[] = [
     slug: "extract-data-from-tax-forms",
     title: "How to Extract Data from Tax Forms (W-2s, 1099s, and More)",
     h1: "How to Extract Data from Tax Forms (W-2s, 1099s, and More)",
-    metaTitle: "Extract Data from Tax Forms (W-2, 1099) | Parsli",
+    metaTitle: "Extract Data from Tax Forms (W-2, 1099)",
     metaDescription:
       "Learn how to extract employer info, income, and withholdings from W-2s, 1099s, and other tax forms. Compare manual, Python, and AI methods.",
     publishedAt: "2026-03-20",
@@ -7893,7 +7887,7 @@ const guides: GuideData[] = [
     slug: "extract-data-from-utility-bills",
     title: "How to Extract Data from Utility Bills Automatically",
     h1: "How to Extract Data from Utility Bills Automatically",
-    metaTitle: "Extract Data from Utility Bills | Parsli",
+    metaTitle: "Extract Data from Utility Bills",
     metaDescription:
       "Learn how to extract account numbers, usage, charges, and billing periods from utility bills. Compare manual, Python, and AI methods.",
     publishedAt: "2026-03-20",
@@ -8308,7 +8302,7 @@ const guides: GuideData[] = [
     slug: "extract-data-from-bills-of-lading",
     title: "How to Extract Data from Bills of Lading Automatically",
     h1: "How to Extract Data from Bills of Lading Automatically",
-    metaTitle: "How to Extract Data from Bills of Lading Automatically | Parsli",
+    metaTitle: "How to Extract Bill of Lading Data (Guide)",
     metaDescription:
       "Learn 3 methods to extract data from bills of lading — manual, Python/OCR, and AI-powered. Compare accuracy for faded thermal prints and handwritten BOLs.",
     publishedAt: "2026-03-16",
@@ -8739,7 +8733,7 @@ const guides: GuideData[] = [
     slug: "automate-freight-invoice-processing",
     title: "How to Automate Freight Invoice Processing with AI",
     h1: "How to Automate Freight Invoice Processing with AI",
-    metaTitle: "How to Automate Freight Invoice Processing with AI | Parsli",
+    metaTitle: "How to Automate Freight Invoice Processing with AI",
     metaDescription:
       "Step-by-step guide to automating freight invoice processing. Covers carrier-specific formats, 3-way matching, and 92% time reduction for 3PLs.",
     publishedAt: "2026-03-16",
@@ -9151,7 +9145,7 @@ const guides: GuideData[] = [
     slug: "bol-data-to-wms-integration",
     title: "How to Send BOL Data to Your WMS Automatically",
     h1: "How to Send BOL Data to Your WMS Automatically",
-    metaTitle: "How to Send BOL Data to Your WMS Automatically | Parsli",
+    metaTitle: "How to Send BOL Data to Your WMS Automatically",
     metaDescription:
       "Connect BOL data extraction to your WMS. Step-by-step guide using webhooks, REST API, and Zapier to push shipment data from BOLs directly into your warehouse system.",
     publishedAt: "2026-03-16",
@@ -9583,8 +9577,7 @@ const guides: GuideData[] = [
     title:
       "Extract Data from Customs Documents: Certificate of Origin, Packing Lists & Declarations",
     h1: "Extract Data from Customs Documents: Certificate of Origin, Packing Lists & Declarations",
-    metaTitle:
-      "Customs Document Data Extractor: Certificate of Origin, Packing Lists & More | Parsli",
+    metaTitle: "Customs Document Data Extraction (Guide)",
     metaDescription:
       "Parse certificates of origin, packing declarations, customs clearance documents, and commercial invoices automatically. AI extracts HS codes, declared values, and origin data in any language.",
     publishedAt: "2026-03-16",
@@ -10040,7 +10033,7 @@ const guides: GuideData[] = [
     slug: "extract-data-from-delivery-notes",
     title: "How to Extract Data from Delivery Notes & Proof of Delivery",
     h1: "How to Extract Data from Delivery Notes & Proof of Delivery",
-    metaTitle: "How to Extract Data from Delivery Notes & Proof of Delivery | Parsli",
+    metaTitle: "Extract Data from Delivery Notes & PODs",
     metaDescription:
       "Extract recipient, delivery date, signature status, and exception notes from delivery notes and PODs automatically. Digitize proof of delivery for your records.",
     publishedAt: "2026-03-16",

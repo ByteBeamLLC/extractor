@@ -26,7 +26,7 @@ import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld"
 
 export const metadata: Metadata = {
-  title: "Rotate PDF Pages — Free Online Tool | Parsli",
+  title: "Rotate PDF Pages — Free Online Tool",
   description:
     "Rotate PDF pages 90, 180, or 270 degrees instantly in your browser. Free, no sign-up, no file uploads to servers. Fix upside-down or sideways PDF pages.",
   keywords: [

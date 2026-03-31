@@ -5293,7 +5293,7 @@ export const blogPosts: BlogPost[] = [
     title:
       "FMCSA Bill of Lading Requirements: All 17 Mandated Fields + DOT Rules (2026)",
     metaTitle:
-      "FMCSA Bill of Lading Requirements: 17 Mandated Fields & DOT Regulations (2026)",
+      "FMCSA Bill of Lading Requirements (2026)",
     metaDescription:
       "Complete 2026 FMCSA bill of lading requirements under 49 CFR 375.505. All 17 mandated fields, 5 BOL types, DOT regulations, compliance pitfalls, and fines up to $16,000/violation.",
     publishedAt: "2026-03-16",
@@ -6221,7 +6221,7 @@ export const blogPosts: BlogPost[] = [
     slug: "ohio-freight-regulations-2026",
     title: "Ohio Freight & Logistics Regulations 2026: What 3PLs Need to Know",
     metaTitle:
-      "Ohio Freight & Logistics Regulations 2026: What 3PLs Need to Know",
+      "Ohio Freight Regulations 2026: 3PL Guide",
     metaDescription:
       "2026 Ohio freight regulations update: dimension/weight changes, PUCO rules, Franklin County restrictions, and FTZ #138 benefits. Essential reading for Ohio 3PLs.",
     publishedAt: "2026-03-16",
@@ -7067,8 +7067,7 @@ export const blogPosts: BlogPost[] = [
     slug: "true-cost-manual-data-entry-2026",
     title:
       "The True Cost of Manual Data Entry in 2026: Industry Benchmarks and Statistics",
-    metaTitle:
-      "The True Cost of Manual Data Entry in 2026 | Industry Benchmarks",
+    metaTitle: "True Cost of Manual Data Entry in 2026",
     metaDescription:
       "Manual data entry costs $15 per document and has a 1% error rate. See 2026 benchmarks on time wasted, error costs, and the 248% ROI of automation.",
     publishedAt: "2026-03-18",
@@ -7367,8 +7366,7 @@ export const blogPosts: BlogPost[] = [
     slug: "what-is-intelligent-document-processing",
     title:
       "What Is Intelligent Document Processing (IDP)? The Complete Guide for 2026",
-    metaTitle:
-      "What Is Intelligent Document Processing (IDP)? Complete 2026 Guide",
+    metaTitle: "Intelligent Document Processing (IDP) Guide",
     metaDescription:
       "Intelligent document processing uses AI to extract data from documents automatically. Learn how IDP works, IDP vs OCR, use cases, and market trends for 2026.",
     publishedAt: "2026-03-18",
@@ -8666,7 +8664,7 @@ export const blogPosts: BlogPost[] = [
 {
   slug: "receipt-extraction-accountants-bulk-processing",
   title: "Receipt Extraction for Accountants: A Bulk Processing Guide",
-  metaTitle: "Receipt Extraction for Accountants: Bulk Processing Guide (2026)",
+  metaTitle: "Receipt Extraction for Accountants (2026)",
   metaDescription:
     "Learn how accountants can bulk-process client receipts with AI-powered extraction. Covers key fields, auto-categorization, QuickBooks/Xero integration, and cost savings.",
   publishedAt: "2026-03-18",
@@ -9238,7 +9236,7 @@ export const blogPosts: BlogPost[] = [
   {
   slug: "credit-card-statement-parsing-expense-reporting",
   title: "Credit Card Statement Parsing for Expense Reporting (2026 Guide)",
-  metaTitle: "Credit Card Statement Parsing for Expense Reporting (2026 Guide)",
+  metaTitle: "Credit Card Statement Parsing for Expenses",
   metaDescription: "Learn how to automate credit card statement parsing for expense reports. Extract transactions, categorize expenses, and integrate with QuickBooks or Xero — with 85% cost reduction.",
   publishedAt: "2026-03-18",
   updatedAt: "2026-03-18",
@@ -9722,7 +9720,7 @@ export const blogPosts: BlogPost[] = [
 {
   slug: "aml-document-processing-small-financial-firms",
   title: "AML Document Processing for Small Financial Firms: A Practical Guide (2026)",
-  metaTitle: "AML Document Processing for Small Financial Firms (2026 Guide)",
+  metaTitle: "AML Document Processing for Small Firms",
   metaDescription: "How small broker-dealers, credit unions, and MSBs can automate AML document processing — CIP forms, SAR evidence, CDD documents, and beneficial ownership filings. Practical, compliance-aware guide.",
   publishedAt: "2026-03-18",
   updatedAt: "2026-03-18",

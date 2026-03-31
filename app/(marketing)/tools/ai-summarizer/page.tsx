@@ -29,7 +29,7 @@ import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld"
 
 export const metadata: Metadata = {
-  title: "Free AI Document Summarizer — Extract Text from Documents | Parsli",
+  title: "Free AI Document Summarizer — Online Tool",
   description:
     "Extract text from documents instantly in your browser. Free, no sign-up, no file uploads to servers. Supports PDFs and images. For AI-powered summaries and structured extraction, try Parsli AI.",
   keywords: [
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
     canonical: "https://parsli.co/tools/ai-summarizer",
   },
   openGraph: {
-    title: "Free AI Document Summarizer — Extract Text from Documents",
+    title: "Free AI Document Summarizer — Online Tool",
     description:
       "Extract text from documents instantly in your browser. Free forever, no sign-up required, your data never leaves your device.",
     url: "https://parsli.co/tools/ai-summarizer",

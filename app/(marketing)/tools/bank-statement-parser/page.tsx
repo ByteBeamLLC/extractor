@@ -29,7 +29,7 @@ import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld"
 
 export const metadata: Metadata = {
-  title: "Free Bank Statement Parser — Extract Text from Statements | Parsli",
+  title: "Free Bank Statement Parser — Extract Data",
   description:
     "Extract text from bank statements instantly in your browser. Free, no sign-up, no file uploads to servers. Supports PDF and image statements. For structured transaction data, try Parsli AI.",
   keywords: [
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
     canonical: "https://parsli.co/tools/bank-statement-parser",
   },
   openGraph: {
-    title: "Free Bank Statement Parser — Extract Text from Statements",
+    title: "Free Bank Statement Parser — Extract Data",
     description:
       "Extract text from bank statements instantly in your browser. Free forever, no sign-up required, your data never leaves your device.",
     url: "https://parsli.co/tools/bank-statement-parser",

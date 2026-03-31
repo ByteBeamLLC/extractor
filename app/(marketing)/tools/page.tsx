@@ -178,7 +178,7 @@ const categories = [
 ]
 
 export const metadata: Metadata = {
-  title: "25 Free Document Tools — PDF, OCR, Data Conversion & More | Parsli",
+  title: "25 Free Document Tools — PDF, OCR & More",
   description:
     "Free online tools for PDF merging, splitting, OCR text extraction, data conversion, and document parsing. No signup required. 100% browser-based and private.",
   keywords: [

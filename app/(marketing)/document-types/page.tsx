@@ -6,14 +6,14 @@ import { AuthButton } from "@/components/marketing/shared/AuthButton"
 import { documentTypes } from "@/lib/seo/document-types"
 
 export const metadata: Metadata = {
-  title: "Supported Document Types - Extract Data from Any Document | Parsli",
+  title: "Supported Document Types — Data Extraction",
   description:
     "Extract structured data from invoices, receipts, emails, PDFs, bank statements, contracts, forms, and spreadsheets. See all supported document types.",
   alternates: {
     canonical: "https://parsli.co/document-types",
   },
   openGraph: {
-    title: "Supported Document Types - Parsli",
+    title: "Supported Document Types — Data Extraction",
     description:
       "Extract structured data from any document type with AI.",
     url: "https://parsli.co/document-types",
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Supported Document Types - Parsli",
+    title: "Supported Document Types — Data Extraction",
     description:
       "Extract structured data from any document type with AI.",
     images: ["https://parsli.co/parsli-og.png"],

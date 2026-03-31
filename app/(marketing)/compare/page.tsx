@@ -6,14 +6,14 @@ import { AuthButton } from "@/components/marketing/shared/AuthButton"
 import { alternatives } from "@/lib/seo/alternatives"
 
 export const metadata: Metadata = {
-  title: "Compare Parsli to Alternatives - Document Parsing Tools Compared",
+  title: "Compare Parsli to Top Alternatives (2026)",
   description:
     "See how Parsli compares to Parseur, Docparser, Nanonets, Docsumo, and 20+ other document parsing tools. Side-by-side feature comparisons, pricing, and accuracy.",
   alternates: {
     canonical: "https://parsli.co/compare",
   },
   openGraph: {
-    title: "Compare Parsli to Alternatives",
+    title: "Compare Parsli to Top Alternatives (2026)",
     description:
       "Side-by-side comparisons of Parsli vs every major document parsing tool.",
     url: "https://parsli.co/compare",
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Compare Parsli to Alternatives",
+    title: "Compare Parsli to Top Alternatives (2026)",
     description:
       "Side-by-side comparisons of Parsli vs every major document parsing tool.",
     images: ["https://parsli.co/parsli-og.png"],

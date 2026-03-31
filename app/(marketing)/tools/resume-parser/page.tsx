@@ -29,7 +29,7 @@ import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld"
 
 export const metadata: Metadata = {
-  title: "Free Resume Parser — Extract Text from Resumes Online | Parsli",
+  title: "Free Resume Parser — Extract Data Online",
   description:
     "Extract text from resumes and CVs instantly in your browser. Free, no sign-up, no file uploads to servers. Supports PDF and image resumes. For structured candidate data, try Parsli AI.",
   keywords: [
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
     canonical: "https://parsli.co/tools/resume-parser",
   },
   openGraph: {
-    title: "Free Resume Parser — Extract Text from Resumes Online",
+    title: "Free Resume Parser — Extract Data Online",
     description:
       "Extract text from resumes and CVs instantly in your browser. Free forever, no sign-up required, your data never leaves your device.",
     url: "https://parsli.co/tools/resume-parser",

@@ -28,7 +28,7 @@ import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld"
 
 export const metadata: Metadata = {
-  title: "PDF to Text Converter — Free, Instant, No Sign-Up | Parsli",
+  title: "PDF to Text Converter — Free, Instant, No Sign-Up",
   description:
     "Extract text from PDF files instantly in your browser. Free, no sign-up, no file uploads to servers. Convert any text-based PDF to plain text in seconds.",
   keywords: [

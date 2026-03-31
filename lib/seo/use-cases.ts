@@ -14,7 +14,7 @@ export const useCases: UseCaseData[] = [
   {
     slug: "invoice-parsing",
     title: "Invoice Parsing",
-    metaTitle: "AI Invoice Parsing Software - Extract Invoice Data Automatically",
+    metaTitle: "AI Invoice Parser — Extract Data Automatically",
     metaDescription:
       "Extract vendor names, amounts, line items, and due dates from invoices automatically with AI. No-code invoice parser with Google Sheets and Zapier integrations.",
     h1: "AI-Powered Invoice Parsing Software",
@@ -80,7 +80,7 @@ export const useCases: UseCaseData[] = [
   {
     slug: "email-parsing",
     title: "Email Parsing",
-    metaTitle: "AI Email Parser Software - Extract Data from Emails Automatically",
+    metaTitle: "AI Email Parser — Auto-Extract Email Data",
     metaDescription:
       "Parse emails and extract structured data automatically with AI. Auto-process Gmail attachments, extract order details, leads, and notifications. No code required.",
     h1: "Automated Email Parsing & Data Extraction",
@@ -268,7 +268,7 @@ export const useCases: UseCaseData[] = [
   {
     slug: "document-automation",
     title: "Document Automation",
-    metaTitle: "Document Automation Software - Automate Document Processing with AI",
+    metaTitle: "Document Automation — AI Document Processing",
     metaDescription:
       "Automate document processing from ingestion to data delivery with AI. No-code document automation with Gmail, Zapier, Make, and webhook integrations.",
     h1: "Automate Document Processing with AI",
@@ -604,7 +604,7 @@ export const useCases: UseCaseData[] = [
   {
     slug: "bill-of-lading-parsing",
     title: "Bill of Lading Parsing",
-    metaTitle: "AI Bill of Lading Parsing - Extract BOL Data Automatically | Parsli",
+    metaTitle: "AI Bill of Lading Parser — Extract BOL Data",
     metaDescription: "Extract shipper, consignee, weight, freight class, and PRO numbers from any bill of lading format automatically with AI. Handles straight, order, and master BOLs.",
     h1: "AI-Powered Bill of Lading Parsing",
     heroDescription: "Stop manually keying BOL data into your WMS. Parsli extracts shipper names, consignee details, freight class, weight, PRO numbers, and all 17 FMCSA-mandated fields from any [bill of lading format](/blog/bill-of-lading-requirements-complete-guide) — straight, order, through, or master.",
@@ -658,7 +658,7 @@ export const useCases: UseCaseData[] = [
   {
     slug: "freight-invoice-processing",
     title: "Freight Invoice Processing",
-    metaTitle: "Automated Freight Invoice Processing - Extract Carrier Invoice Data | Parsli",
+    metaTitle: "Freight Invoice Processing — AI Extraction",
     metaDescription: "Automate freight invoice processing with AI. Extract carrier names, PRO numbers, rates, surcharges, and accessorial charges from any carrier format. 92% time reduction.",
     h1: "Automated Freight Invoice Processing",
     heroDescription: "Every carrier sends invoices in a different format. Parsli's AI extracts carrier names, PRO numbers, base rates, fuel surcharges, accessorial charges, and totals from any freight invoice — [eliminating the 20-30% error rate](/blog/bol-errors-prevention-guide) of manual auditing.",

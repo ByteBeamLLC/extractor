@@ -26,7 +26,7 @@ import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld"
 
 export const metadata: Metadata = {
-  title: "Image to PDF Converter — Free Online | Parsli",
+  title: "Image to PDF Converter — Free Online",
   description:
     "Convert JPG, PNG, and other images to PDF instantly in your browser. Arrange image order, combine into one PDF. Free, no sign-up, no file uploads to servers.",
   keywords: [

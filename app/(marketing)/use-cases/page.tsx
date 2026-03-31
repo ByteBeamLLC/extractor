@@ -6,14 +6,14 @@ import { AuthButton } from "@/components/marketing/shared/AuthButton"
 import { useCases } from "@/lib/seo/use-cases"
 
 export const metadata: Metadata = {
-  title: "Use Cases - AI Document Data Extraction for Every Workflow | Parsli",
+  title: "Use Cases — AI Document Data Extraction",
   description:
     "See how Parsli automates document data extraction for invoices, emails, receipts, PDFs, and more. Find the workflow that fits your business.",
   alternates: {
     canonical: "https://parsli.co/use-cases",
   },
   openGraph: {
-    title: "Use Cases - Parsli",
+    title: "Use Cases — AI Document Data Extraction",
     description:
       "AI document extraction for invoices, emails, receipts, PDFs, and more.",
     url: "https://parsli.co/use-cases",
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Use Cases - Parsli",
+    title: "Use Cases — AI Document Data Extraction",
     description:
       "AI document extraction for invoices, emails, receipts, PDFs, and more.",
     images: ["https://parsli.co/parsli-og.png"],

@@ -6,14 +6,14 @@ import { AuthButton } from "@/components/marketing/shared/AuthButton"
 import { integrations } from "@/lib/seo/integrations"
 
 export const metadata: Metadata = {
-  title: "Integrations - Connect Parsli to Google Sheets, Zapier, Make & More",
+  title: "Integrations — Google Sheets, Zapier & More",
   description:
     "Connect Parsli to your existing tools. Send extracted document data to Google Sheets, Zapier, Make, Gmail, webhooks, and more. No code required.",
   alternates: {
     canonical: "https://parsli.co/integrations",
   },
   openGraph: {
-    title: "Integrations - Parsli",
+    title: "Integrations — Google Sheets, Zapier & More",
     description:
       "Connect Parsli to Google Sheets, Zapier, Make, Gmail, and more.",
     url: "https://parsli.co/integrations",
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Integrations - Parsli",
+    title: "Integrations — Google Sheets, Zapier & More",
     description:
       "Connect Parsli to Google Sheets, Zapier, Make, Gmail, and more.",
     images: ["https://parsli.co/parsli-og.png"],
