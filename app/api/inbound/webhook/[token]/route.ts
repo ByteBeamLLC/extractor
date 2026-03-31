@@ -107,6 +107,30 @@ export async function POST(
 
   const docId = (processedDoc as any)?.id
 
+  // Store original file to Supabase Storage for preview & reprocessing
+  if (docId) {
+    const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_")
+    const storagePath = `${parser.user_id}/${parser.id}/${docId}/${safeName}`
+    const fileBuffer = Buffer.from(fileBase64, "base64")
+    try {
+      await supabase.storage.createBucket("parser-documents", {
+        public: false,
+        fileSizeLimit: 50 * 1024 * 1024,
+      }).catch(() => {})
+      const { error: uploadError } = await supabase.storage
+        .from("parser-documents")
+        .upload(storagePath, fileBuffer, {
+          contentType: fileMimeType || "application/octet-stream",
+          upsert: true,
+        })
+      if (uploadError) {
+        console.error("[inbound/webhook] File storage failed:", uploadError.message)
+      }
+    } catch (err) {
+      console.error("[inbound/webhook] File storage error:", err)
+    }
+  }
+
   // Run extraction using shared logic
   const result = await runExtraction({
     fileData: fileBase64,
