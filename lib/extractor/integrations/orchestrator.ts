@@ -150,11 +150,19 @@ export async function deliverToIntegrations(
     }
   }
 
-  // Update processed document with delivery status
+  // Merge delivery status into existing integration_status (preserves email_message_id for dedup)
   if (documentId) {
+    const { data: existing } = await supabase
+      .from("parser_processed_documents")
+      .select("integration_status")
+      .eq("id", documentId)
+      .single()
+
+    const merged = { ...((existing as any)?.integration_status ?? {}), ...deliveryStatus }
+
     await supabase
       .from("parser_processed_documents")
-      .update({ integration_status: deliveryStatus })
+      .update({ integration_status: merged })
       .eq("id", documentId)
   }
 

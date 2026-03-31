@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { waitUntil } from "@vercel/functions"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import { runExtraction } from "@/lib/extraction/runExtraction"
 import { countDocumentPages } from "@/lib/extraction/api"
@@ -33,11 +34,15 @@ const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024 // 10MB
  * Receives inbound emails from SendGrid Inbound Parse (parsed mode).
  * SendGrid POSTs multipart/form-data with fields:
  *   - to, from, subject, text, html
+ *   - headers (raw email headers including Message-ID)
  *   - attachment1, attachment2, ... (File objects)
  *   - attachment-info (JSON string with metadata)
  *
  * Routes to the correct parser by matching the "to" address
  * against parsers.inbound_email.
+ *
+ * Returns 200 immediately and processes in the background to avoid
+ * SendGrid retry storms.
  */
 export async function POST(request: NextRequest) {
   const supabase = createSupabaseServiceRoleClient()
@@ -70,7 +75,6 @@ export async function POST(request: NextRequest) {
 
   const parser = parserRaw as any
   if (!parser) {
-    // No parser found — silently accept so SendGrid doesn't retry
     return NextResponse.json({ message: "No parser found for this address" }, { status: 200 })
   }
 
@@ -82,6 +86,24 @@ export async function POST(request: NextRequest) {
   const schemaTree: SchemaField[] = parser.fields ?? []
   if (extractionType === "fields" && schemaTree.length === 0) {
     return NextResponse.json({ message: "Parser has no fields configured" }, { status: 200 })
+  }
+
+  // --- Deduplication via Message-ID ---
+  const headersRaw = formData.get("headers") as string | null
+  const messageId = extractMessageId(headersRaw)
+
+  if (messageId) {
+    const { data: existing } = await supabase
+      .from("parser_processed_documents" as any)
+      .select("id")
+      .eq("parser_id", parser.id)
+      .eq("source_type", "email")
+      .contains("integration_status", { email_message_id: messageId } as any)
+      .limit(1)
+
+    if (existing && existing.length > 0) {
+      return NextResponse.json({ message: "Already processed" }, { status: 200 })
+    }
   }
 
   const from = (formData.get("from") as string) ?? ""
@@ -104,7 +126,6 @@ export async function POST(request: NextRequest) {
   }
 
   // 2. Collect attachments
-  // SendGrid sends attachments as attachment1, attachment2, etc.
   for (let i = 1; i <= 30; i++) {
     const file = formData.get(`attachment${i}`) as File | null
     if (!file) break
@@ -134,110 +155,136 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "No processable content found" }, { status: 200 })
   }
 
-  // Count actual pages per item for accurate metering
-  const itemPageCounts: number[] = []
-  for (const item of items) {
-    const pages = await countDocumentPages(
-      new Uint8Array(Buffer.from(item.base64, "base64")),
-      item.fileName,
-      item.mimeType
-    )
-    itemPageCounts.push(pages)
-  }
-  const totalPages = itemPageCounts.reduce((sum, p) => sum + p, 0)
+  // Return 200 immediately — process in background via waitUntil
+  // This prevents SendGrid from timing out and retrying
+  waitUntil(processEmail(supabase, parser, items, messageId))
 
-  // Check credits for all items upfront
-  const creditCheck = await checkCredits(parser.user_id, totalPages, supabase)
-  if (!creditCheck.allowed) {
-    console.log(`[inbound/email] Insufficient credits for user ${parser.user_id} (need ${totalPages}, have ${creditCheck.remaining})`)
-    return NextResponse.json({ message: "Credit limit reached" }, { status: 200 })
-  }
+  return NextResponse.json({ message: "Accepted", items: items.length })
+}
 
-  // Process each item
-  const results: { fileName: string; success: boolean; error?: string }[] = []
+/**
+ * Background processing of the email items (attachments + body).
+ */
+async function processEmail(
+  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
+  parser: any,
+  items: { fileName: string; mimeType: string; base64: string; size: number }[],
+  messageId: string | null
+) {
+  const extractionType = parser.extraction_type ?? "fields"
+  const schemaTree: SchemaField[] = parser.fields ?? []
 
-  for (let idx = 0; idx < items.length; idx++) {
-    const item = items[idx]
-    const itemPages = itemPageCounts[idx]
-    try {
-      // Create processing log
-      const { data: processedDoc } = await supabase
-        .from("parser_processed_documents" as any)
-        .insert({
-          parser_id: parser.id,
-          user_id: parser.user_id,
-          source_type: "email",
-          file_name: item.fileName,
-          mime_type: item.mimeType,
-          file_size: item.size,
-          status: "processing",
-        } as any)
-        .select("id")
-        .single()
-
-      const docId = (processedDoc as any)?.id
-
-      // Run extraction
-      const result = await runExtraction({
-        fileData: item.base64,
-        fileName: item.fileName,
-        mimeType: item.mimeType,
-        schemaTree,
-        extractionPromptOverride: parser.extraction_prompt_override,
-        extractionType,
-      })
-
-      // Deduct credits based on actual page count
-      const { success: deducted } = await deductCredits(parser.user_id, itemPages, supabase)
-      if (!deducted) {
-        console.warn(`[inbound/email] Credit deduction failed for user ${parser.user_id}`)
-      }
-
-      // Update processing log
-      if (docId) {
-        await supabase
-          .from("parser_processed_documents" as any)
-          .update({
-            status: result.error ? "error" : "completed",
-            results: result.results,
-            processed_at: new Date().toISOString(),
-            credits_used: itemPages,
-            error_message: result.error ?? null,
-          } as any)
-          .eq("id", docId)
-
-        // Deliver to integrations
-        await deliverToIntegrations(
-          parser.id,
-          parser.name,
-          docId,
-          result.results,
-          { file_name: item.fileName, mime_type: item.mimeType, source_type: "email", page_count: itemPages },
-          supabase as any
-        )
-      }
-
-      // Update parser stats
-      await supabase
-        .from("parsers" as any)
-        .update({
-          document_count: (parser.document_count ?? 0) + 1,
-          last_processed_at: new Date().toISOString(),
-        } as any)
-        .eq("id", parser.id)
-
-      // Increment in-memory count for subsequent updates
-      parser.document_count = (parser.document_count ?? 0) + 1
-
-      results.push({ fileName: item.fileName, success: result.success, error: result.error })
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : "Unknown error"
-      console.error(`[inbound/email] Error processing ${item.fileName}:`, errorMsg)
-      results.push({ fileName: item.fileName, success: false, error: errorMsg })
+  try {
+    // Count pages for all items
+    const itemPageCounts: number[] = []
+    for (const item of items) {
+      const pages = await countDocumentPages(
+        new Uint8Array(Buffer.from(item.base64, "base64")),
+        item.fileName,
+        item.mimeType
+      )
+      itemPageCounts.push(pages)
     }
-  }
+    const totalPages = itemPageCounts.reduce((sum, p) => sum + p, 0)
 
-  return NextResponse.json({ processed: results.length, results })
+    // Check credits upfront
+    const creditCheck = await checkCredits(parser.user_id, totalPages, supabase)
+    if (!creditCheck.allowed) {
+      console.log(`[inbound/email] Insufficient credits for user ${parser.user_id} (need ${totalPages}, have ${creditCheck.remaining})`)
+      return
+    }
+
+    // Process each item
+    for (let idx = 0; idx < items.length; idx++) {
+      const item = items[idx]
+      const itemPages = itemPageCounts[idx]
+      try {
+        // Create processing log — store messageId for deduplication
+        const { data: processedDoc } = await supabase
+          .from("parser_processed_documents" as any)
+          .insert({
+            parser_id: parser.id,
+            user_id: parser.user_id,
+            source_type: "email",
+            file_name: item.fileName,
+            mime_type: item.mimeType,
+            file_size: item.size,
+            status: "processing",
+            integration_status: messageId ? { email_message_id: messageId } : {},
+          } as any)
+          .select("id")
+          .single()
+
+        const docId = (processedDoc as any)?.id
+
+        // Run extraction
+        const result = await runExtraction({
+          fileData: item.base64,
+          fileName: item.fileName,
+          mimeType: item.mimeType,
+          schemaTree,
+          extractionPromptOverride: parser.extraction_prompt_override,
+          extractionType,
+        })
+
+        // Deduct credits
+        const { success: deducted } = await deductCredits(parser.user_id, itemPages, supabase)
+        if (!deducted) {
+          console.warn(`[inbound/email] Credit deduction failed for user ${parser.user_id}`)
+        }
+
+        // Update processing log
+        if (docId) {
+          await supabase
+            .from("parser_processed_documents" as any)
+            .update({
+              status: result.error ? "error" : "completed",
+              results: result.results,
+              processed_at: new Date().toISOString(),
+              credits_used: itemPages,
+              error_message: result.error ?? null,
+            } as any)
+            .eq("id", docId)
+
+          // Deliver to integrations
+          await deliverToIntegrations(
+            parser.id,
+            parser.name,
+            docId,
+            result.results,
+            { file_name: item.fileName, mime_type: item.mimeType, source_type: "email", page_count: itemPages },
+            supabase as any
+          )
+        }
+
+        // Update parser stats
+        await supabase
+          .from("parsers" as any)
+          .update({
+            document_count: (parser.document_count ?? 0) + 1,
+            last_processed_at: new Date().toISOString(),
+          } as any)
+          .eq("id", parser.id)
+
+        parser.document_count = (parser.document_count ?? 0) + 1
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : "Unknown error"
+        console.error(`[inbound/email] Error processing ${item.fileName}:`, errorMsg)
+      }
+    }
+  } catch (err) {
+    console.error(`[inbound/email] Background processing error:`, err)
+  }
+}
+
+/**
+ * Extract Message-ID from raw email headers.
+ * Headers is a string like: "Message-ID: <abc123@mail.gmail.com>\r\nFrom: ..."
+ */
+function extractMessageId(headers: string | null): string | null {
+  if (!headers) return null
+  const match = headers.match(/^Message-ID:\s*(.+)$/im)
+  return match ? match[1].trim() : null
 }
 
 /**
