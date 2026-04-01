@@ -120,7 +120,7 @@ export function AppSidebar() {
           })
         if (storageError) throw storageError
 
-        await fetch(`/api/parsers/${parser.id}/extract`, {
+        const res = await fetch(`/api/parsers/${parser.id}/extract`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -131,9 +131,19 @@ export function AppSidebar() {
             source_type: "upload",
           }),
         })
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}))
+          const msg = body.error || "Upload failed"
+          // For credit limit errors, prompt signup for anonymous users
+          if (res.status === 402 && session?.user?.is_anonymous) {
+            openAuthDialog("sign-up")
+            return
+          }
+          alert(msg)
+          return
+        }
         router.push(`/parsers/${parser.id}/documents`)
       } catch {
-        // Navigate to documents page even on error
         router.push(`/parsers/${parser.id}/documents`)
       } finally {
         setIsUploading(false)
