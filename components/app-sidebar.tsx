@@ -109,7 +109,6 @@ export function AppSidebar() {
       setIsUploading(true)
       try {
         // Upload file directly to Supabase Storage (bypasses Vercel 4.5MB body limit)
-        // Sanitize filename for storage key (spaces/special chars cause "Invalid key" errors)
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_")
         const storagePath = `${session?.user?.id}/${parser.id}/pending/${crypto.randomUUID()}/${safeName}`
         const { error: storageError } = await supabase.storage
@@ -120,6 +119,7 @@ export function AppSidebar() {
           })
         if (storageError) throw storageError
 
+        // Extract API now returns immediately — extraction runs in background
         const res = await fetch(`/api/parsers/${parser.id}/extract`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -134,7 +134,6 @@ export function AppSidebar() {
         if (!res.ok) {
           const body = await res.json().catch(() => ({}))
           const msg = body.error || "Upload failed"
-          // For credit limit errors, prompt signup for anonymous users
           if (res.status === 402 && session?.user?.is_anonymous) {
             openAuthDialog("sign-up")
             return
@@ -142,6 +141,7 @@ export function AppSidebar() {
           alert(msg)
           return
         }
+        // Navigate to documents page — Realtime subscription will show the processing doc
         router.push(`/parsers/${parser.id}/documents`)
       } catch {
         router.push(`/parsers/${parser.id}/documents`)
