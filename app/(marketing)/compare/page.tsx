@@ -39,24 +39,33 @@ export const metadata: Metadata = {
   },
 }
 
-/* ───── Floating hero logos — bare icons, no containers ───── */
+/* ───── Floating hero logos — ordered by keyword traffic ───── */
 const heroLogos: { slug: string; className: string; size: number }[] = [
-  // Large foreground logos
-  { slug: "parseur", className: "top-16 left-[7%]", size: 64 },
-  { slug: "abbyy", className: "top-10 right-[8%]", size: 60 },
-  { slug: "google-document-ai", className: "bottom-20 left-[10%]", size: 56 },
-  { slug: "textract", className: "bottom-16 right-[7%]", size: 60 },
-  // Medium logos
-  { slug: "nanonets", className: "top-8 left-[25%]", size: 48 },
-  { slug: "docparser", className: "top-12 right-[24%]", size: 44 },
-  { slug: "uipath", className: "bottom-28 left-[26%]", size: 44 },
-  { slug: "rossum", className: "bottom-24 right-[22%]", size: 48 },
-  // Smaller background logos
-  { slug: "mindee", className: "top-[42%] left-[5%] -translate-y-1/2", size: 40 },
-  { slug: "docsumo", className: "top-[42%] right-[5%] -translate-y-1/2", size: 40 },
-  { slug: "klippa", className: "top-[60%] left-[18%]", size: 36 },
-  { slug: "base64ai", className: "top-[55%] right-[16%]", size: 36 },
+  // Top traffic — largest & most prominent positions
+  { slug: "abbyy", className: "top-12 left-[7%]", size: 72 },           // 12,220/mo
+  { slug: "unstructured", className: "top-8 right-[7%]", size: 68 },    // 10,300/mo
+  { slug: "google-document-ai", className: "bottom-16 left-[8%]", size: 68 }, // 3,210/mo
+  { slug: "landing-ai", className: "bottom-20 right-[8%]", size: 64 },  // 2,900/mo
+  // High traffic — large
+  { slug: "docparser", className: "top-6 left-[24%]", size: 56 },       // 1,500/mo
+  { slug: "parseur", className: "top-10 right-[22%]", size: 56 },       // 1,380/mo
+  // Medium traffic
+  { slug: "pulse-ai", className: "top-[44%] left-[5%] -translate-y-1/2", size: 48 }, // 880/mo
+  { slug: "mailparser", className: "top-[44%] right-[5%] -translate-y-1/2", size: 48 }, // 520/mo
+  { slug: "nanonets", className: "bottom-28 left-[24%]", size: 48 },    // 430/mo
+  { slug: "upstage", className: "bottom-24 right-[22%]", size: 44 },    // 260/mo
+  // Lower traffic — smaller
+  { slug: "klippa", className: "top-[62%] left-[16%]", size: 40 },
+  { slug: "mindee", className: "top-[58%] right-[16%]", size: 40 },
 ]
+
+/* ───── Sort order by keyword search traffic ───── */
+const trafficRank: Record<string, number> = {
+  abbyy: 12220, unstructured: 10300, "google-document-ai": 3210,
+  "landing-ai": 2900, docparser: 1500, parseur: 1380,
+  "pulse-ai": 880, mailparser: 520, nanonets: 430, upstage: 260,
+  "cradl-ai": 50, klippa: 40, mindee: 30, rossum: 10,
+}
 
 /* ───── Friendly card labels for raw feature names ───── */
 const cardLabels: Record<string, string> = {
@@ -95,32 +104,34 @@ const cardLabels: Record<string, string> = {
   "Team pricing": "Affordable team pricing",
 }
 
-/* ───── Pre-compute card data ───── */
+/* ───── Pre-compute card data, sorted by keyword traffic ───── */
 function buildCardData(): CompetitorCardData[] {
-  return alternatives.map((alt) => {
-    const allRows = alt.comparisonCategories.flatMap((cat) => cat.rows)
-    const wins = allRows.filter((r) => r.parsliWins)
+  return alternatives
+    .map((alt) => {
+      const allRows = alt.comparisonCategories.flatMap((cat) => cat.rows)
+      const wins = allRows.filter((r) => r.parsliWins)
 
-    // Pick one win per category for diverse representation
-    const diverseWins: string[] = []
-    for (const cat of alt.comparisonCategories) {
-      if (diverseWins.length >= 4) break
-      const win = cat.rows.find((r) => r.parsliWins)
-      if (win) {
-        diverseWins.push(cardLabels[win.feature] ?? win.feature)
+      // Pick one win per category for diverse representation
+      const diverseWins: string[] = []
+      for (const cat of alt.comparisonCategories) {
+        if (diverseWins.length >= 4) break
+        const win = cat.rows.find((r) => r.parsliWins)
+        if (win) {
+          diverseWins.push(cardLabels[win.feature] ?? win.feature)
+        }
       }
-    }
 
-    return {
-      slug: alt.slug,
-      competitor: alt.competitor,
-      attackAngle: alt.attackAngle,
-      logo: getCompetitorLogo(alt.slug),
-      winCount: wins.length,
-      totalRows: allRows.length,
-      topWins: diverseWins,
-    }
-  })
+      return {
+        slug: alt.slug,
+        competitor: alt.competitor,
+        attackAngle: alt.attackAngle,
+        logo: getCompetitorLogo(alt.slug),
+        winCount: wins.length,
+        totalRows: allRows.length,
+        topWins: diverseWins,
+      }
+    })
+    .sort((a, b) => (trafficRank[b.slug] ?? 0) - (trafficRank[a.slug] ?? 0))
 }
 
 export default function ComparePage() {
@@ -161,18 +172,15 @@ export default function ComparePage() {
         </div>
 
         {/* Hero content */}
-        <div className="relative z-10 mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-sm font-medium text-emerald-700 mb-6 ring-1 ring-inset ring-emerald-600/20">
-            Starting at $20/mo &mdash; cheapest in the market
-          </div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.1] mb-5">
-            Same AI extraction.
+        <div className="relative z-10 mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
+          <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold tracking-tight leading-[1.08] mb-6">
+            Compare Parsli to
             <br />
-            <span className="text-primary">Half the price.</span>
+            every alternative
           </h1>
-          <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-8">
-            Compare Parsli to {alternatives.length}+ document parsing tools.
-            We show the data — you decide.
+          <p className="text-xl sm:text-2xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
+            Top-tier AI accuracy at every plan — starting at $20/mo,
+            up to 50% cheaper than alternatives.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <AuthButton href="/login" className="text-base px-8 h-12" showArrow>
