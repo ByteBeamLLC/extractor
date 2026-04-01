@@ -1,11 +1,13 @@
 import type { Metadata } from "next"
-import Link from "next/link"
 import Image from "next/image"
-import { ArrowRight, Zap, DollarSign, Shield, Puzzle, Eye, Sparkles, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AuthButton } from "@/components/marketing/shared/AuthButton"
 import { alternatives } from "@/lib/seo/alternatives"
 import { getCompetitorLogo } from "@/lib/seo/competitor-logos"
+import {
+  CompareGrid,
+  type CompetitorCardData,
+} from "@/components/marketing/CompareGrid"
 
 export const metadata: Metadata = {
   title: "Compare Parsli to Top Alternatives (2026)",
@@ -37,216 +39,148 @@ export const metadata: Metadata = {
   },
 }
 
-/* ───── Attack-angle styling ───── */
-const angleConfig: Record<string, { label: string; color: string; icon: typeof Zap }> = {
-  cost: { label: "Save money", color: "emerald", icon: DollarSign },
-  technology: { label: "Better AI", color: "violet", icon: Zap },
-  completeness: { label: "More complete", color: "blue", icon: Puzzle },
-  pricing_transparency: { label: "Transparent pricing", color: "emerald", icon: Eye },
-  simplicity: { label: "Simpler setup", color: "amber", icon: Sparkles },
-  modernization: { label: "Modern alternative", color: "violet", icon: Zap },
-  accessibility: { label: "More accessible", color: "amber", icon: Sparkles },
-  self_service: { label: "Self-service", color: "amber", icon: Sparkles },
-  instant_accuracy: { label: "Instant accuracy", color: "blue", icon: Zap },
-  flexibility: { label: "More flexible", color: "blue", icon: Puzzle },
-  purpose: { label: "Purpose-built", color: "violet", icon: Shield },
-  ease: { label: "Easier to use", color: "amber", icon: Sparkles },
-  "ease-of-use": { label: "Easier to use", color: "amber", icon: Sparkles },
-  features: { label: "More features", color: "blue", icon: Puzzle },
-}
+/* ───── Floating hero logos ───── */
+const heroLogos: { slug: string; className: string }[] = [
+  { slug: "parseur", className: "top-12 left-[6%] h-11 w-11" },
+  { slug: "nanonets", className: "top-6 left-[22%] h-10 w-10" },
+  { slug: "docparser", className: "top-20 right-[8%] h-10 w-10" },
+  { slug: "abbyy", className: "top-8 right-[22%] h-11 w-11" },
+  { slug: "google-document-ai", className: "bottom-24 left-[10%] h-10 w-10" },
+  { slug: "uipath", className: "bottom-16 left-[24%] h-9 w-9" },
+  { slug: "textract", className: "bottom-20 right-[10%] h-11 w-11" },
+  { slug: "rossum", className: "bottom-12 right-[24%] h-10 w-10" },
+  { slug: "mindee", className: "top-1/2 left-[4%] h-9 w-9 -translate-y-1/2" },
+  { slug: "docsumo", className: "top-1/2 right-[4%] h-9 w-9 -translate-y-1/2" },
+]
 
-const colorClasses: Record<string, { badge: string; glow: string }> = {
-  emerald: {
-    badge: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
-    glow: "group-hover:shadow-emerald-100",
-  },
-  violet: {
-    badge: "bg-violet-50 text-violet-700 ring-violet-600/20",
-    glow: "group-hover:shadow-violet-100",
-  },
-  blue: {
-    badge: "bg-blue-50 text-blue-700 ring-blue-600/20",
-    glow: "group-hover:shadow-blue-100",
-  },
-  amber: {
-    badge: "bg-amber-50 text-amber-700 ring-amber-600/20",
-    glow: "group-hover:shadow-amber-100",
-  },
-}
+/* ───── Pre-compute card data ───── */
+function buildCardData(): CompetitorCardData[] {
+  return alternatives.map((alt) => {
+    const allRows = alt.comparisonCategories.flatMap((cat) => cat.rows)
+    const wins = allRows.filter((r) => r.parsliWins)
 
-function getWinCount(alt: (typeof alternatives)[0]): number {
-  return alt.comparisonCategories.reduce(
-    (count, cat) => count + cat.rows.filter((r) => r.parsliWins).length,
-    0
-  )
-}
-
-function getTopWin(alt: (typeof alternatives)[0]): string | null {
-  for (const cat of alt.comparisonCategories) {
-    for (const row of cat.rows) {
-      if (row.parsliWins) return row.feature
+    return {
+      slug: alt.slug,
+      competitor: alt.competitor,
+      attackAngle: alt.attackAngle,
+      logo: getCompetitorLogo(alt.slug),
+      winCount: wins.length,
+      totalRows: allRows.length,
+      topWins: wins.slice(0, 4).map((r) => r.feature),
     }
-  }
-  return null
+  })
 }
 
 export default function ComparePage() {
-  const totalComparisons = alternatives.length
+  const competitors = buildCardData()
 
   return (
     <>
-      {/* Hero */}
-      <section className="relative pt-28 pb-12 sm:pt-36 sm:pb-16">
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-primary/5 rounded-full blur-3xl" />
+      {/* Hero with floating competitor logos */}
+      <section className="relative pt-28 pb-16 sm:pt-36 sm:pb-20 overflow-hidden">
+        {/* Background glow */}
+        <div className="absolute inset-0 -z-20">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-primary/5 rounded-full blur-3xl" />
         </div>
-        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary mb-6">
-            <Zap className="h-3.5 w-3.5" />
-            {totalComparisons} head-to-head comparisons
+
+        {/* Floating logos — hidden on mobile */}
+        <div className="hidden lg:block absolute inset-0 -z-10" aria-hidden="true">
+          {heroLogos.map(({ slug, className }) => {
+            const logo = getCompetitorLogo(slug)
+            if (!logo) return null
+            return (
+              <div
+                key={slug}
+                className={`absolute rounded-2xl border bg-white/80 backdrop-blur-sm shadow-sm flex items-center justify-center animate-float-slow ${className}`}
+              >
+                <Image
+                  src={logo}
+                  alt=""
+                  width={24}
+                  height={24}
+                  className="object-contain opacity-60"
+                />
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Hero content */}
+        <div className="relative z-10 mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 text-center">
+          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-sm font-medium text-emerald-700 mb-6 ring-1 ring-inset ring-emerald-600/20">
+            Starting at $20/mo &mdash; cheapest in the market
           </div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.1] mb-6">
-            See how Parsli stacks up
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.1] mb-5">
+            Same AI extraction.
+            <br />
+            <span className="text-primary">Half the price.</span>
           </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Transparent, data-backed comparisons with every major document
-            parsing tool. We show the numbers — you decide.
+          <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-8">
+            Compare Parsli to {alternatives.length}+ document parsing tools.
+            We show the data — you decide.
           </p>
-        </div>
-      </section>
-
-      {/* Battlecard grid */}
-      <section className="pb-16">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {alternatives.map((alt) => {
-              const logo = getCompetitorLogo(alt.slug)
-              const angle = angleConfig[alt.attackAngle] ?? angleConfig.cost
-              const colors = colorClasses[angle.color] ?? colorClasses.blue
-              const AngleIcon = angle.icon
-              const winCount = getWinCount(alt)
-              const topWin = getTopWin(alt)
-
-              return (
-                <Link
-                  key={alt.slug}
-                  href={`/compare/${alt.slug}`}
-                  className={`group relative flex flex-col rounded-2xl border bg-card overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 ${colors.glow}`}
-                >
-                  {/* Card header — logo matchup */}
-                  <div className="flex items-center gap-3 px-5 pt-5 pb-3">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      {/* Parsli icon */}
-                      <div className="relative h-8 w-8 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden">
-                        <Image
-                          src="/parsli-icon.png"
-                          alt="Parsli"
-                          width={20}
-                          height={20}
-                          className="object-contain"
-                        />
-                      </div>
-
-                      <span className="text-xs font-bold text-muted-foreground/60 uppercase tracking-wider shrink-0">
-                        vs
-                      </span>
-
-                      {/* Competitor icon */}
-                      <div className="relative h-8 w-8 shrink-0 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
-                        {logo ? (
-                          <Image
-                            src={logo}
-                            alt={alt.competitor}
-                            width={20}
-                            height={20}
-                            className="object-contain"
-                          />
-                        ) : (
-                          <span className="text-xs font-bold text-muted-foreground">
-                            {alt.competitor.charAt(0)}
-                          </span>
-                        )}
-                      </div>
-
-                      <span className="font-semibold text-sm truncate">
-                        {alt.competitor}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Title */}
-                  <div className="px-5 pb-3 flex-1">
-                    <h2 className="font-semibold leading-snug mb-2 group-hover:text-primary transition-colors">
-                      {alt.h1}
-                    </h2>
-                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
-                      {alt.heroSubtitle}
-                    </p>
-                  </div>
-
-                  {/* Stats strip */}
-                  <div className="px-5 pb-3">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      {/* Attack angle badge */}
-                      <span
-                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${colors.badge}`}
-                      >
-                        <AngleIcon className="h-3 w-3" />
-                        {angle.label}
-                      </span>
-
-                      {/* Win count */}
-                      {winCount > 0 && (
-                        <span className="text-xs text-muted-foreground">
-                          <span className="font-semibold text-foreground">{winCount}</span>{" "}
-                          categories won
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Top win highlight */}
-                    {topWin && (
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        Top advantage:{" "}
-                        <span className="font-medium text-foreground">{topWin}</span>
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Footer */}
-                  <div className="mt-auto flex items-center justify-between border-t px-5 py-3">
-                    <span className="text-xs text-muted-foreground">
-                      {alt.readTime} &middot; Updated{" "}
-                      {new Date(alt.updatedAt).toLocaleDateString("en-US", {
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </span>
-                    <span className="inline-flex items-center text-xs font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                      Compare
-                      <ChevronRight className="h-3 w-3 ml-0.5" />
-                    </span>
-                  </div>
-                </Link>
-              )
-            })}
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <AuthButton href="/login" className="text-base px-8 h-12" showArrow>
+              Try free — 30 pages/mo
+            </AuthButton>
+            <Button
+              variant="outline"
+              size="lg"
+              className="text-base px-8 h-12"
+              asChild
+            >
+              <a
+                href="https://calendly.com/talal-bytebeam/parsli-discovery-call"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Book a demo
+              </a>
+            </Button>
           </div>
         </div>
       </section>
+
+      {/* Pricing proof strip */}
+      <section className="pb-12">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+            {[
+              { value: "$20/mo", label: "Starting price" },
+              { value: "2¢", label: "Per page at scale" },
+              { value: "30 pages", label: "Free forever" },
+              { value: "0", label: "Training needed" },
+            ].map((stat) => (
+              <div key={stat.label} className="rounded-xl border bg-card p-4">
+                <p className="text-xl sm:text-2xl font-bold text-primary">
+                  {stat.value}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {stat.label}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Filterable comparison grid */}
+      <CompareGrid competitors={competitors} />
 
       {/* Footer CTA */}
       <section className="pb-20">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
           <div className="rounded-2xl border bg-muted/30 p-10 text-center">
             <h2 className="text-2xl font-bold mb-3">
-              Start extracting data for free
+              Switch to Parsli and save
             </h2>
             <p className="text-muted-foreground mb-6 max-w-md mx-auto">
               Free forever up to 30 pages/month. No credit card required.
+              Most teams save 50%+ on their document parsing bill.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <AuthButton href="/login" className="text-base px-8 h-12" showArrow>
-                Try it for free
+                Get started free
               </AuthButton>
               <Button
                 variant="outline"
@@ -254,13 +188,7 @@ export default function ComparePage() {
                 className="text-base px-8 h-12"
                 asChild
               >
-                <a
-                  href="https://calendly.com/talal-bytebeam/parsli-discovery-call"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Book a demo
-                </a>
+                <a href="/pricing">See pricing</a>
               </Button>
             </div>
           </div>
