@@ -1,13 +1,16 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { cookies } from "next/headers"
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
 import { exchangeCodeForUser } from "@/lib/auth/google-oauth"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import { trackServerEvent } from "@/lib/analytics/server"
+import type { Database } from "@/lib/supabase/types"
 
 export const runtime = "nodejs"
 
 // GET /api/auth/google/callback?code=...&state=...
 // Google redirects here after user grants consent.
-// Creates or finds the Supabase user, generates a magic link to set their session.
+// Creates or finds the Supabase user, verifies OTP server-side to set session cookies.
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl
   const code = searchParams.get("code")
@@ -32,10 +35,10 @@ export async function GET(request: NextRequest) {
     const redirectUri = `${origin}/api/auth/google/callback`
     const { email, name } = await exchangeCodeForUser(code, redirectUri)
 
-    const supabase = createSupabaseServiceRoleClient()
+    const admin = createSupabaseServiceRoleClient()
 
     // Try to create user — if they already exist, Supabase returns an error we can handle
-    const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+    const { data: newUser, error: createError } = await admin.auth.admin.createUser({
       email,
       email_confirm: true,
       user_metadata: { full_name: name },
@@ -52,20 +55,23 @@ export async function GET(request: NextRequest) {
       throw createError
     }
 
-    // Generate a magic link to set the session
-    const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+    // Generate a magic link token
+    const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
       type: "magiclink",
       email,
     })
     if (linkError) throw linkError
 
-    // Build the verify URL ourselves so it uses the correct origin
-    // (Supabase action_link uses the Site URL from dashboard which may be localhost)
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const redirectTo = `${origin}/auth/callback?next=${encodeURIComponent(next)}`
-    const verifyUrl = `${supabaseUrl}/auth/v1/verify?token=${linkData.properties.hashed_token}&type=magiclink&redirect_to=${encodeURIComponent(redirectTo)}`
+    // Verify the token server-side to set session cookies directly
+    // This avoids redirecting through Supabase (which uses the Site URL)
+    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const { error: verifyError } = await supabase.auth.verifyOtp({
+      token_hash: linkData.properties.hashed_token,
+      type: "magiclink",
+    })
+    if (verifyError) throw verifyError
 
-    return NextResponse.redirect(verifyUrl)
+    return NextResponse.redirect(new URL(next, origin))
   } catch (err) {
     console.error("[google-auth-callback] Error:", err)
     return NextResponse.redirect(loginUrl)
