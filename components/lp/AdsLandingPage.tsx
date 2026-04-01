@@ -265,18 +265,18 @@ export function AdsLandingPage({
       <LPTracker page={page} />
 
       {/* ═══ Hero ═══ */}
-      <section className="relative min-h-[70vh] flex items-center">
+      <section className="relative min-h-[50vh] sm:min-h-[70vh] flex items-center">
         <div className="absolute inset-0 -z-10">
           <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-primary/5 rounded-full blur-3xl" />
         </div>
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-20">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             {/* Left — copy */}
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary mb-6">
+              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary mb-4 sm:mb-6">
                 {hero.badge}
               </div>
-              <h1 className="text-4xl sm:text-5xl lg:text-[3.25rem] font-bold tracking-tight leading-[1.12] mb-6 whitespace-pre-line">
+              <h1 className="text-3xl sm:text-5xl lg:text-[3.25rem] font-bold tracking-tight leading-[1.12] mb-4 sm:mb-6 whitespace-pre-line">
                 {hero.rotatingWords && hero.headline.includes("{word}") ? (
                   <>
                     {hero.headline.split("{word}")[0]}
@@ -287,11 +287,12 @@ export function AdsLandingPage({
                   hero.headline
                 )}
               </h1>
-              <p className="text-lg text-muted-foreground mb-8 max-w-xl">
+              <p className="text-base sm:text-lg text-muted-foreground mb-5 sm:mb-8 max-w-xl">
                 {hero.subheadline}
               </p>
+              {/* Primary CTA — always visible. Secondary hidden on mobile to reduce decision fatigue */}
               <div className="flex flex-wrap items-center gap-3">
-                <Button size="lg" className="text-base px-8 h-13" asChild>
+                <Button size="lg" className="w-full sm:w-auto text-base px-8 h-[52px] sm:h-13" asChild>
                   <a href={`${APP_URL}${hero.ctaHref}`}>
                     {hero.ctaText}
                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -301,7 +302,7 @@ export function AdsLandingPage({
                   <Button
                     size="lg"
                     variant="outline"
-                    className="text-base px-6 h-13"
+                    className="hidden sm:inline-flex text-base px-6 h-13"
                     onClick={() => setShowDemoModal(true)}
                   >
                     <Play className="mr-2 h-4 w-4" />
@@ -309,7 +310,7 @@ export function AdsLandingPage({
                   </Button>
                 )}
               </div>
-              <p className="mt-4 text-sm text-muted-foreground">
+              <p className="mt-3 sm:mt-4 text-xs sm:text-sm text-muted-foreground">
                 {hero.trustLine || "No credit card required. Set up in under 2 minutes."}
               </p>
             </div>
@@ -620,7 +621,7 @@ export function AdsLandingPage({
       )}
 
       {/* ═══ Final CTA ═══ */}
-      <section className="py-16 sm:py-20 bg-muted/30">
+      <section className="py-16 sm:py-20 pb-28 sm:pb-20 bg-muted/30">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
             {cta.title}
@@ -628,19 +629,22 @@ export function AdsLandingPage({
           <p className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto">
             {cta.subtitle}
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <Button size="lg" className="text-base px-10 h-13" asChild>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Button size="lg" className="w-full sm:w-auto text-base px-10 h-[52px] sm:h-13" asChild>
               <a href={`${APP_URL}${cta.ctaHref}`}>
                 {cta.ctaText}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </a>
             </Button>
-            {hero.secondaryCtaText && hero.secondaryCtaHref && (
-              <Button size="lg" variant="outline" className="text-base px-6 h-13" asChild>
-                <a href={hero.secondaryCtaHref}>
-                  <Play className="mr-2 h-4 w-4" />
-                  {hero.secondaryCtaText}
-                </a>
+            {hero.secondaryCtaText && (
+              <Button
+                size="lg"
+                variant="outline"
+                className="w-full sm:w-auto text-base px-6 h-[52px] sm:h-13"
+                onClick={() => setShowDemoModal(true)}
+              >
+                <Play className="mr-2 h-4 w-4" />
+                {hero.secondaryCtaText}
               </Button>
             )}
           </div>
@@ -661,7 +665,7 @@ export function AdsLandingPage({
       {/* ═══ Demo Modal ═══ */}
       {showDemoModal && (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6"
+          className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-6"
           role="dialog"
           aria-modal="true"
           aria-label="Interactive product tour"
@@ -671,16 +675,18 @@ export function AdsLandingPage({
             className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
             onClick={() => setShowDemoModal(false)}
           />
-          {/* Modal content */}
-          <div className="relative w-full max-w-5xl animate-in zoom-in-95 fade-in duration-200">
+          {/* Modal content — slides up on mobile, centered on desktop */}
+          <div className="relative w-full sm:max-w-5xl max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-background animate-in slide-in-from-bottom sm:zoom-in-95 fade-in duration-200">
             <button
               onClick={() => setShowDemoModal(false)}
-              className="absolute -top-10 right-0 sm:-top-2 sm:-right-10 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-md hover:bg-white transition-colors"
+              className="sticky top-2 right-2 ml-auto mr-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-muted shadow-md hover:bg-muted/80 transition-colors"
               aria-label="Close tour"
             >
               <X className="h-4 w-4" />
             </button>
-            <InteractiveDemo />
+            <div className="px-2 pb-4 -mt-4 sm:px-0 sm:pb-0 sm:mt-0">
+              <InteractiveDemo />
+            </div>
           </div>
         </div>
       )}
@@ -688,16 +694,24 @@ export function AdsLandingPage({
       {/* ═══ Sticky Mobile CTA ═══ */}
       <div
         className={cn(
-          "fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur px-4 py-3 transition-transform duration-300 sm:hidden",
+          "fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur px-4 py-2.5 transition-transform duration-300 sm:hidden",
           showSticky ? "translate-y-0" : "translate-y-full"
         )}
       >
-        <Button size="lg" className="w-full text-base h-12" asChild>
+        <Button size="lg" className="w-full text-base h-[52px]" asChild>
           <a href={`${APP_URL}${hero.ctaHref}`}>
             {hero.ctaText}
             <ArrowRight className="ml-2 h-4 w-4" />
           </a>
         </Button>
+        {hero.secondaryCtaText && (
+          <button
+            onClick={() => setShowDemoModal(true)}
+            className="w-full text-center text-xs text-primary font-medium mt-1.5 py-1"
+          >
+            {hero.secondaryCtaText}
+          </button>
+        )}
       </div>
     </>
   )
