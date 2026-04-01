@@ -56,14 +56,16 @@ export async function GET(request: NextRequest) {
     const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
       type: "magiclink",
       email,
-      options: {
-        redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
-      },
     })
     if (linkError) throw linkError
 
-    // Redirect user through the magic link to establish their session
-    return NextResponse.redirect(linkData.properties.action_link)
+    // Build the verify URL ourselves so it uses the correct origin
+    // (Supabase action_link uses the Site URL from dashboard which may be localhost)
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const redirectTo = `${origin}/auth/callback?next=${encodeURIComponent(next)}`
+    const verifyUrl = `${supabaseUrl}/auth/v1/verify?token=${linkData.properties.hashed_token}&type=magiclink&redirect_to=${encodeURIComponent(redirectTo)}`
+
+    return NextResponse.redirect(verifyUrl)
   } catch (err) {
     console.error("[google-auth-callback] Error:", err)
     return NextResponse.redirect(loginUrl)
