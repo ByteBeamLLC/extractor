@@ -179,8 +179,8 @@ export default function ComparePage() {
             every alternative
           </h1>
           <p className="text-xl sm:text-2xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
-            Better accuracy with top-tier AI at every plan — starting at $20/mo,
-            the lowest price in the market.
+            Top-tier AI accuracy at every plan — starting at $20/mo,
+            up to 50% cheaper than alternatives.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <AuthButton href="/login" className="text-base px-8 h-12" showArrow>
