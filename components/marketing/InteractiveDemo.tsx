@@ -72,7 +72,11 @@ function Hotspot({ children, active, onClick, className }: {
     >
       {children}
       {active && (
-        <span className="absolute -inset-1 rounded-lg ring-2 ring-primary animate-pulse pointer-events-none" />
+        <>
+          <style>{`@keyframes hotspotRing { 0%, 100% { opacity: 1; box-shadow: 0 0 0 2px rgba(39,130,255,0.5); } 50% { opacity: 0.6; box-shadow: 0 0 0 2px rgba(39,130,255,0.2); } } @keyframes hotspotGlow { 0%, 100% { opacity: 0.12; } 50% { opacity: 0.04; } }`}</style>
+          <span className="absolute -inset-1 rounded-lg pointer-events-none" style={{ animation: "hotspotRing 2s ease-in-out infinite" }} />
+          <span className="absolute -inset-2 rounded-xl bg-primary pointer-events-none" style={{ animation: "hotspotGlow 2s ease-in-out infinite" }} />
+        </>
       )}
     </span>
   )
@@ -561,6 +565,14 @@ function StepAPI() {
   -d '{"file":{"name":"invoice.pdf","type":"application/pdf","data":"BASE64_DATA"}}'`}</pre>
         </div>
       </div>
+      {/* Inline CTA — in the visual zone */}
+      <a
+        href="https://app.parsli.co/login?mode=signup"
+        className="flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground text-sm font-medium py-3 rounded-lg hover:opacity-90 transition-opacity shadow-[0_0_12px_rgba(39,130,255,0.3)]"
+      >
+        Start My Free Parser <ArrowRight className="w-4 h-4" />
+      </a>
+      <p className="text-[10px] text-muted-foreground text-center">No credit card required. Free forever up to 30 pages/mo.</p>
     </div>
   )
 }
@@ -578,7 +590,9 @@ export function InteractiveDemo() {
   return (
     <div className="mx-auto w-full max-w-5xl px-4">
       {/* Browser chrome */}
-      <div className="rounded-xl border bg-card shadow-lg overflow-hidden">
+      <div className="rounded-xl border bg-card shadow-2xl shadow-slate-900/10 overflow-hidden ring-1 ring-black/[0.03] animate-[float_6s_ease-in-out_infinite]"
+        style={{ animation: "float 6s ease-in-out infinite" }}>
+        <style>{`@keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-6px); } }`}</style>
         {/* Title bar */}
         <div className="flex items-center gap-2 bg-[#f1f3f5] px-4 py-2.5 border-b">
           <div className="flex gap-1.5">
@@ -653,15 +667,19 @@ export function InteractiveDemo() {
               {isLast ? (
                 <a
                   href="https://app.parsli.co/login"
-                  className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground text-xs font-medium px-4 py-1.5 rounded-md hover:opacity-90 transition-opacity"
+                  className="relative inline-flex items-center gap-1.5 bg-primary text-primary-foreground text-xs font-medium px-4 py-1.5 rounded-md hover:opacity-90 transition-opacity animate-[ctaGlow_2s_ease-in-out_infinite] shadow-[0_0_12px_rgba(39,130,255,0.4)]"
+                  style={{ animationName: "ctaGlow" }}
                 >
-                  Try Parsli Free <ArrowRight className="w-3.5 h-3.5" />
+                  <style>{`@keyframes ctaGlow { 0%, 100% { box-shadow: 0 0 12px rgba(39,130,255,0.4); } 50% { box-shadow: 0 0 20px rgba(39,130,255,0.6); } }`}</style>
+                  Start My Free Parser <ArrowRight className="w-3.5 h-3.5" />
                 </a>
               ) : (
                 <button
                   onClick={advance}
-                  className="inline-flex items-center gap-1 text-xs font-medium bg-primary text-primary-foreground px-3 py-1.5 rounded-md hover:opacity-90 transition-opacity"
+                  className="relative inline-flex items-center gap-1 text-xs font-medium bg-primary text-primary-foreground px-3 py-1.5 rounded-md hover:opacity-90 transition-opacity shadow-[0_0_8px_rgba(39,130,255,0.3)] animate-[nextGlow_2.5s_ease-in-out_infinite]"
+                  style={{ animationName: "nextGlow" }}
                 >
+                  <style>{`@keyframes nextGlow { 0%, 100% { box-shadow: 0 0 8px rgba(39,130,255,0.3); } 50% { box-shadow: 0 0 16px rgba(39,130,255,0.5); } }`}</style>
                   Next <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               )}

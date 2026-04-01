@@ -28,6 +28,9 @@ import {
   TrendingDown,
   Layers,
   Lock,
+  Play,
+  Quote,
+  X,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -36,6 +39,7 @@ import { LPTracker } from "./LPTracker"
 import { cn } from "@/lib/utils"
 import { AdHeroAnimation } from "./AdHeroAnimation"
 import type { AdHeroAnimationProps } from "./AdHeroAnimation"
+import { AdHeroDemo } from "./AdHeroDemo"
 
 const InteractiveDemo = dynamic(
   () => import("@/components/marketing/InteractiveDemo").then((m) => m.InteractiveDemo),
@@ -54,6 +58,36 @@ function resolveIcon(name: string): LucideIcon {
   return iconMap[name] || Sparkles
 }
 
+// ─── Rotating Word (used in hero headline) ───
+
+function RotatingWord({ words }: { words: string[] }) {
+  const [index, setIndex] = useState(0)
+  const [visible, setVisible] = useState(true)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setVisible(false)
+      setTimeout(() => {
+        setIndex((i) => (i + 1) % words.length)
+        setVisible(true)
+      }, 400)
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [words.length])
+
+  return (
+    <span className="relative inline-block">
+      <span
+        className={`text-primary transition-all duration-400 inline-block ${
+          visible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2"
+        }`}
+      >
+        {words[index]}
+      </span>
+    </span>
+  )
+}
+
 // ─── Types ───
 
 interface HeroProps {
@@ -62,6 +96,20 @@ interface HeroProps {
   subheadline: string
   ctaText: string
   ctaHref: string
+  /** Optional secondary CTA (e.g. "Watch Demo", "Book a Call") */
+  secondaryCtaText?: string
+  secondaryCtaHref?: string
+  /** Trust micro-line shown below CTAs (e.g. "Join 500+ teams...") */
+  trustLine?: string
+  /** Words that rotate in the headline — use {word} in headline as placeholder */
+  rotatingWords?: string[]
+}
+
+interface Testimonial {
+  quote: string
+  name: string
+  role: string
+  company: string
 }
 
 interface Stat {
@@ -102,7 +150,9 @@ export interface AdsLandingPageProps {
   page: string
   hero: HeroProps
   /** Props for the animated document extraction visual in the hero */
-  heroAnimation: AdHeroAnimationProps
+  heroAnimation?: AdHeroAnimationProps
+  /** Use the full image-based demo (like handwriting LP) instead of the small mockup animation */
+  useHeroDemo?: boolean
   stats?: Stat[]
   painPoints?: { title: string; subtitle: string; items: PainPoint[] }
   howItWorks?: { title: string; steps: HowItWorksStep[] }
@@ -110,6 +160,16 @@ export interface AdsLandingPageProps {
   comparison?: { title: string; subtitle?: string; rows: ComparisonRow[] }
   faqs?: FAQ[]
   finalCta?: { title: string; subtitle: string; ctaText: string; ctaHref: string }
+  /** Customer testimonials — shown after How It Works */
+  testimonials?: Testimonial[]
+  /** Set to true to hide the interactive demo section */
+  hideDemo?: boolean
+  /** Custom heading/subtitle for the demo section */
+  demoSection?: { title: string; subtitle: string }
+  /** Set to true to hide the mini pricing section */
+  hidePricing?: boolean
+  /** Custom social proof headline (defaults to "Trusted by teams at") */
+  socialProofHeadline?: string
 }
 
 // ─── Logos ───
@@ -154,6 +214,7 @@ export function AdsLandingPage({
   page,
   hero,
   heroAnimation,
+  useHeroDemo,
   stats,
   painPoints,
   howItWorks,
@@ -161,6 +222,11 @@ export function AdsLandingPage({
   comparison,
   faqs,
   finalCta,
+  testimonials,
+  hideDemo,
+  hidePricing,
+  demoSection,
+  socialProofHeadline,
 }: AdsLandingPageProps) {
   const defaultCta = {
     title: "Start extracting data in minutes",
@@ -170,6 +236,19 @@ export function AdsLandingPage({
     ctaHref: hero.ctaHref,
   }
   const cta = { ...defaultCta, ...finalCta }
+
+  // Demo modal
+  const [showDemoModal, setShowDemoModal] = useState(false)
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (showDemoModal) {
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = ""
+    }
+    return () => { document.body.style.overflow = "" }
+  }, [showDemoModal])
 
   // Sticky mobile CTA — show after scrolling past hero
   const [showSticky, setShowSticky] = useState(false)
@@ -197,25 +276,50 @@ export function AdsLandingPage({
               <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary mb-6">
                 {hero.badge}
               </div>
-              <h1 className="text-4xl sm:text-5xl lg:text-[3.25rem] font-bold tracking-tight leading-[1.08] mb-6">
-                {hero.headline}
+              <h1 className="text-4xl sm:text-5xl lg:text-[3.25rem] font-bold tracking-tight leading-[1.12] mb-6 whitespace-pre-line">
+                {hero.rotatingWords && hero.headline.includes("{word}") ? (
+                  <>
+                    {hero.headline.split("{word}")[0]}
+                    <RotatingWord words={hero.rotatingWords} />
+                    {hero.headline.split("{word}")[1]}
+                  </>
+                ) : (
+                  hero.headline
+                )}
               </h1>
               <p className="text-lg text-muted-foreground mb-8 max-w-xl">
                 {hero.subheadline}
               </p>
-              <Button size="lg" className="text-base px-8 h-13" asChild>
-                <a href={`${APP_URL}${hero.ctaHref}`}>
-                  {hero.ctaText}
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </a>
-              </Button>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button size="lg" className="text-base px-8 h-13" asChild>
+                  <a href={`${APP_URL}${hero.ctaHref}`}>
+                    {hero.ctaText}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </a>
+                </Button>
+                {hero.secondaryCtaText && (
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="text-base px-6 h-13"
+                    onClick={() => setShowDemoModal(true)}
+                  >
+                    <Play className="mr-2 h-4 w-4" />
+                    {hero.secondaryCtaText}
+                  </Button>
+                )}
+              </div>
               <p className="mt-4 text-sm text-muted-foreground">
-                No credit card required. Set up in under 2 minutes.
+                {hero.trustLine || "No credit card required. Set up in under 2 minutes."}
               </p>
             </div>
             {/* Right — animation */}
             <div className="hidden lg:block">
-              <AdHeroAnimation {...heroAnimation} />
+              {useHeroDemo ? (
+                <AdHeroDemo />
+              ) : heroAnimation ? (
+                <AdHeroAnimation {...heroAnimation} />
+              ) : null}
             </div>
           </div>
         </div>
@@ -225,7 +329,7 @@ export function AdsLandingPage({
       <section className="py-10 border-y bg-muted/20">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <p className="text-center text-sm text-muted-foreground mb-6">
-            Trusted by teams at
+            {socialProofHeadline || "Trusted by teams at"}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-12 opacity-70">
             {logos.map((logo) => (
@@ -239,20 +343,6 @@ export function AdsLandingPage({
               />
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* ═══ Interactive Demo ═══ */}
-      <section className="py-16 sm:py-20">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-center mb-4">
-            See Parsli in action
-          </h2>
-          <p className="text-center text-muted-foreground mb-10 max-w-2xl mx-auto">
-            Click through the interactive tour — from creating a parser to extracting structured data.
-          </p>
-          <InteractiveDemo />
-          <InlineCTA href={hero.ctaHref} text={hero.ctaText} />
         </div>
       </section>
 
@@ -307,7 +397,7 @@ export function AdsLandingPage({
 
       {/* ═══ How It Works ═══ */}
       {howItWorks && (
-        <section className="py-16 sm:py-20">
+        <section id="how-it-works" className="py-16 sm:py-20 scroll-mt-16">
           <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-center mb-12">
               {howItWorks.title}
@@ -331,6 +421,61 @@ export function AdsLandingPage({
                   </div>
                 )
               })}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ═══ Interactive Demo ═══ */}
+      {!hideDemo && (
+        <section className="py-16 sm:py-20 relative overflow-hidden border-y bg-gradient-to-b from-slate-50 to-blue-50/50">
+          <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 relative">
+            <div className="text-center mb-10">
+              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary mb-4">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+                </span>
+                Interactive Tour — Click Through It
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">
+                {demoSection?.title || "See exactly what you'll get"}
+              </h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                {demoSection?.subtitle || "Walk through the full workflow in 60 seconds — from creating a parser to seeing extracted data."}
+              </p>
+            </div>
+            <InteractiveDemo />
+            <InlineCTA href={hero.ctaHref} text={hero.ctaText} />
+          </div>
+        </section>
+      )}
+
+      {/* ═══ Testimonials ═══ */}
+      {testimonials && testimonials.length > 0 && (
+        <section className="py-16 sm:py-20 bg-muted/30">
+          <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-center mb-10">
+              What our customers say
+            </h2>
+            <div className={cn(
+              "grid gap-6",
+              testimonials.length === 1 ? "max-w-xl mx-auto" : "sm:grid-cols-2"
+            )}>
+              {testimonials.map((t, i) => (
+                <div key={i} className="rounded-xl border bg-card p-6 relative">
+                  <Quote className="h-8 w-8 text-primary/15 absolute top-4 right-4" />
+                  <p className="text-sm leading-relaxed mb-4 italic text-foreground/80">
+                    &ldquo;{t.quote}&rdquo;
+                  </p>
+                  <div>
+                    <p className="text-sm font-semibold">{t.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t.role}, {t.company}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </section>
@@ -418,7 +563,7 @@ export function AdsLandingPage({
       )}
 
       {/* ═══ Mini Pricing ═══ */}
-      <section className="py-16 sm:py-20 bg-muted/30">
+      {!hidePricing && <section className="py-16 sm:py-20 bg-muted/30">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-center mb-4">
             Simple, transparent pricing
@@ -456,7 +601,7 @@ export function AdsLandingPage({
             Annual pricing shown. All plans include API access, webhooks, and integrations.
           </p>
         </div>
-      </section>
+      </section>}
 
       {/* ═══ FAQ ═══ */}
       {faqs && faqs.length > 0 && (
@@ -483,17 +628,62 @@ export function AdsLandingPage({
           <p className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto">
             {cta.subtitle}
           </p>
-          <Button size="lg" className="text-base px-10 h-13" asChild>
-            <a href={`${APP_URL}${cta.ctaHref}`}>
-              {cta.ctaText}
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </a>
-          </Button>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Button size="lg" className="text-base px-10 h-13" asChild>
+              <a href={`${APP_URL}${cta.ctaHref}`}>
+                {cta.ctaText}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </a>
+            </Button>
+            {hero.secondaryCtaText && hero.secondaryCtaHref && (
+              <Button size="lg" variant="outline" className="text-base px-6 h-13" asChild>
+                <a href={hero.secondaryCtaHref}>
+                  <Play className="mr-2 h-4 w-4" />
+                  {hero.secondaryCtaText}
+                </a>
+              </Button>
+            )}
+          </div>
           <p className="mt-3 text-xs text-muted-foreground">
             No credit card required. Cancel anytime.
           </p>
+          {testimonials && testimonials.length > 0 && (
+            <p className="mt-6 text-sm text-muted-foreground italic max-w-md mx-auto">
+              &ldquo;{testimonials[0].quote.length > 100 ? testimonials[0].quote.slice(0, 100) + "..." : testimonials[0].quote}&rdquo;
+              <span className="block mt-1 text-xs not-italic font-medium text-foreground/60">
+                — {testimonials[0].name}, {testimonials[0].company}
+              </span>
+            </p>
+          )}
         </div>
       </section>
+
+      {/* ═══ Demo Modal ═══ */}
+      {showDemoModal && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Interactive product tour"
+        >
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => setShowDemoModal(false)}
+          />
+          {/* Modal content */}
+          <div className="relative w-full max-w-5xl animate-in zoom-in-95 fade-in duration-200">
+            <button
+              onClick={() => setShowDemoModal(false)}
+              className="absolute -top-10 right-0 sm:-top-2 sm:-right-10 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-md hover:bg-white transition-colors"
+              aria-label="Close tour"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <InteractiveDemo />
+          </div>
+        </div>
+      )}
 
       {/* ═══ Sticky Mobile CTA ═══ */}
       <div
