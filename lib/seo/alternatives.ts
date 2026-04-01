@@ -187,7 +187,7 @@ export const alternatives: AlternativeData[] = [
           },
           {
             feature: "Cost per page at scale",
-            parsli: "As low as 2¢/page on the Business plan ($499/month for 25,000 pages).",
+            parsli: "As low as 1¢/page on the Business plan ($249/month for 25,000 pages).",
             competitor: "Approximately 4¢/page on the Business plan ($399/month for 10,000 pages).",
             parsliWins: true,
           },
@@ -355,7 +355,7 @@ export const alternatives: AlternativeData[] = [
       {
         title: "More Pages Per Dollar",
         description:
-          "At every pricing tier, Parsli provides more pages for less money. The free plan includes 30 pages/month vs Parseur's 20. At the Business tier, you get 25,000 pages for $499/month. IOFM research shows that the average invoice processing cost drops from $15.97 (manual) to $2.36 (fully automated) — Parsli's lower per-page pricing makes this ROI accessible to smaller teams.",
+          "At every pricing tier, Parsli provides more pages for less money. The free plan includes 30 pages/month vs Parseur's 20. At the Business tier, you get 25,000 pages for $249/month. IOFM research shows that the average invoice processing cost drops from $15.97 (manual) to $2.36 (fully automated) — Parsli's lower per-page pricing makes this ROI accessible to smaller teams.",
       },
       {
         title: "State-of-the-Art AI Model",
@@ -640,7 +640,7 @@ export const alternatives: AlternativeData[] = [
           },
           {
             feature: "Cost per page at scale",
-            parsli: "As low as 2¢/page on the Business plan.",
+            parsli: "As low as 1¢/page on the Business plan.",
             competitor: "Varies by plan and volume. Contact sales for enterprise pricing.",
             parsliWins: true,
           },
@@ -1053,7 +1053,7 @@ export const alternatives: AlternativeData[] = [
           },
           {
             feature: "Cost per page at scale",
-            parsli: "As low as 2¢/page on the Business plan ($499/month for 25,000 pages).",
+            parsli: "As low as 1¢/page on the Business plan ($249/month for 25,000 pages).",
             competitor: "Higher cost per page at equivalent tiers. Check their pricing for current rates.",
             parsliWins: true,
           },
@@ -1172,7 +1172,7 @@ export const alternatives: AlternativeData[] = [
       {
         question: "How does Parsli pricing compare to Parsio?",
         answer:
-          "Parsli starts at $20/month ($16 annually) with 30 free pages/month perpetually. Parsio starts at a similar entry point but offers fewer pages per tier. At scale, Parsli's per-page cost is lower — as little as 2¢/page on the Business plan.",
+          "Parsli starts at $20/month ($16 annually) with 30 free pages/month perpetually. Parsio starts at a similar entry point but offers fewer pages per tier. At scale, Parsli's per-page cost is lower — as little as 1¢/page on the Business plan.",
       },
       {
         question: "When should I choose Parsio over Parsli?",
@@ -1208,7 +1208,7 @@ export const alternatives: AlternativeData[] = [
       {
         title: "More Pages, Lower Cost",
         description:
-          "At every pricing tier, Parsli provides more pages per dollar. The free plan includes 30 pages/month perpetually. At scale, the Business plan delivers 25,000 pages for $499/month — one of the best per-page rates in the market. For teams processing hundreds of documents monthly, the cost difference compounds quickly.",
+          "At every pricing tier, Parsli provides more pages per dollar. The free plan includes 30 pages/month perpetually. At scale, the Business plan delivers 25,000 pages for $249/month — one of the best per-page rates in the market. For teams processing hundreds of documents monthly, the cost difference compounds quickly.",
       },
       {
         title: "Gemini 2.5 Pro for Any Document",
@@ -2706,7 +2706,7 @@ export const alternatives: AlternativeData[] = [
           },
           {
             feature: "Volume pricing",
-            parsli: "Business plan: 25,000 pages/month for $499. Scales to any volume.",
+            parsli: "Business plan: 25,000 pages/month for $249. Scales to any volume.",
             competitor: "Pricing tiers based on emails/month. Higher volumes require higher tiers.",
             parsliWins: true,
           },
@@ -2808,7 +2808,7 @@ export const alternatives: AlternativeData[] = [
       {
         question: "How does Parsli pricing compare to Mailparser?",
         answer:
-          "Mailparser starts at ~$17-29/month for limited volumes. Parsli starts at $20/month ($16 annually) with a perpetual free tier of 30 pages/month. At scale, Parsli's Business plan handles 25,000 pages for $499/month. The key difference is AI vs rules — Parsli requires no ongoing rule maintenance.",
+          "Mailparser starts at ~$17-29/month for limited volumes. Parsli starts at $20/month ($16 annually) with a perpetual free tier of 30 pages/month. At scale, Parsli's Business plan handles 25,000 pages for $249/month. The key difference is AI vs rules — Parsli requires no ongoing rule maintenance.",
       },
       {
         question: "When should I choose Mailparser over Parsli?",
@@ -3334,7 +3334,7 @@ export const alternatives: AlternativeData[] = [
         rows: [
           { feature: "Free plan", parsli: "Perpetual free plan with 30 pages/month. No credit card.", competitor: "Free trial with 30 credits. Not a perpetual free tier.", parsliWins: true },
           { feature: "Entry price", parsli: "$20/month ($16 annually). Full features.", competitor: "$39/month for 100 credits.", parsliWins: true },
-          { feature: "Cost per document", parsli: "As low as 2¢/page on Business plan.", competitor: "39¢/document on entry plan ($39 for 100 credits). Gets better at higher tiers.", parsliWins: true },
+          { feature: "Cost per document", parsli: "As low as 1¢/page on Business plan.", competitor: "39¢/document on entry plan ($39 for 100 credits). Gets better at higher tiers.", parsliWins: true },
         ],
       },
       {
@@ -3360,7 +3360,7 @@ export const alternatives: AlternativeData[] = [
       },
     ],
     faqs: [
-      { question: "How does Parsli pricing compare to Airparser?", answer: "Airparser charges $39/month for 100 documents — about 39¢ per document. Parsli starts at $20/month with significantly more pages per tier. At scale, Parsli's Business plan brings per-page cost to under 2¢ — over 19x cheaper per document than Airparser's entry plan." },
+      { question: "How does Parsli pricing compare to Airparser?", answer: "Airparser charges $39/month for 100 documents — about 39¢ per document. Parsli starts at $20/month with significantly more pages per tier. At scale, Parsli's Business plan brings per-page cost to under 1¢ — over 19x cheaper per document than Airparser's entry plan." },
       { question: "When should I choose Airparser over Parsli?", answer: "Choose Airparser if you process very few documents (under 50/month) and prefer the simplest possible setup experience with minimal configuration." },
       { question: "When should I choose Parsli over Airparser?", answer: "Choose Parsli if you want more pages per dollar, need a perpetual free tier, want full API access, or process more than a few dozen documents monthly." },
       ...universalFaqs,
@@ -3379,7 +3379,7 @@ export const alternatives: AlternativeData[] = [
       "Choose Parsli for better per-page value; Airparser for very low-volume simplicity",
     ],
     deepDiveReasons: [
-      { title: "10x More Pages Per Dollar", description: "McKinsey estimates that 42% of finance activities — including document-heavy workflows like invoice processing and receipt management — are fully automatable with current AI technology. Airparser's entry plan costs $39/month for 100 credits (39¢/document). Parsli's Business plan delivers 25,000 pages for $499/month (under 2¢/page). Even at entry level, Parsli provides significantly more pages for less money." },
+      { title: "10x More Pages Per Dollar", description: "McKinsey estimates that 42% of finance activities — including document-heavy workflows like invoice processing and receipt management — are fully automatable with current AI technology. Airparser's entry plan costs $39/month for 100 credits (39¢/document). Parsli's Business plan delivers 25,000 pages for $249/month (under 1¢/page). Even at entry level, Parsli provides significantly more pages for less money." },
       { title: "Perpetual Free Tier", description: "Parsli's free plan includes 30 pages/month with no time limit, full API access, and all integrations. Airparser offers a limited trial with 30 credits. Parsli lets you evaluate indefinitely." },
       { title: "Full API on Every Plan", description: "Parsli includes REST API, webhooks, and all integrations from the free plan up. Airparser reserves API access for paid plans." },
       { title: "More Document Types", description: "Parsli handles PDFs, images, scanned documents, Word, Excel, and emails — all with the same AI engine. Airparser covers common types but Parsli's format support is broader. Extract data from [contracts](/guides/extract-data-from-contracts), [utility bills](/guides/extract-data-from-utility-bills), [shipping documents](/guides/extract-data-from-shipping-documents), and more." },
@@ -3412,7 +3412,7 @@ export const alternatives: AlternativeData[] = [
         category: "Pricing & Value",
         rows: [
           { feature: "Free plan", parsli: "Perpetual free plan with 30 pages/month.", competitor: "Free plan with 25 pages/month.", parsliWins: true },
-          { feature: "Volume pricing", parsli: "Business plan: 25,000 pages for $499/month (under 2¢/page).", competitor: "Additional pages from $0.05-$0.10/page beyond plan limits. Gets expensive at scale.", parsliWins: true },
+          { feature: "Volume pricing", parsli: "Business plan: 25,000 pages for $249/month (under 1¢/page).", competitor: "Additional pages from $0.05-$0.10/page beyond plan limits. Gets expensive at scale.", parsliWins: true },
           { feature: "Pricing predictability", parsli: "Flat monthly plans. All features included.", competitor: "Base plan + overage charges per page. Costs can surprise.", parsliWins: true },
         ],
       },
@@ -3455,14 +3455,14 @@ export const alternatives: AlternativeData[] = [
     ],
     keyTakeaways: [
       "Mindee is a developer API; Parsli is a no-code platform with a visual schema builder",
-      "Parsli is cheaper at scale (under 2¢/page vs 5-10¢/page overage on Mindee)",
+      "Parsli is cheaper at scale (under 1¢/page vs 5-10¢/page overage on Mindee)",
       "Mindee has stronger pre-built models for IDs, passports, and handwriting",
       "Parsli includes Google Sheets, Zapier, and Gmail integrations built in",
       "Choose based on whether you need a developer API (Mindee) or no-code platform (Parsli)",
     ],
     deepDiveReasons: [
       { title: "No-Code Platform vs Developer API", description: "According to Gartner, API-first document AI platforms that offer both developer tools and no-code interfaces capture 60% more of the mid-market than developer-only solutions. Mindee is built for developers — every extraction requires API calls and code. Parsli's visual schema builder lets anyone define extraction fields with plain English and run parsers from a web interface. Your operations team doesn't need to wait for engineering resources." },
-      { title: "Better Volume Pricing", description: "Mindee charges $0.05-$0.10 per additional page beyond plan limits. Parsli's Business plan delivers 25,000 pages for $499/month (under 2¢/page). At scale, the cost difference is significant." },
+      { title: "Better Volume Pricing", description: "Mindee charges $0.05-$0.10 per additional page beyond plan limits. Parsli's Business plan delivers 25,000 pages for $249/month (under 1¢/page). At scale, the cost difference is significant." },
       { title: "Built-In Business Integrations", description: "Parsli connects to Google Sheets, Zapier, Make, Gmail, and webhooks out of the box. With Mindee, you build every integration yourself through their API." },
       { title: "Flexible Schema for Any Document", description: "Mindee's strength is pre-built models for specific document types. Parsli's schema builder handles any document type — define your fields with plain English and the AI extracts from any layout. Process [insurance claims](/guides/extract-data-from-insurance-claims), [tax forms](/guides/extract-data-from-tax-forms), or [Excel to JSON](/guides/extract-data-from-excel-to-json) conversions." },
     ],
@@ -3495,7 +3495,7 @@ export const alternatives: AlternativeData[] = [
         rows: [
           { feature: "Free plan", parsli: "Perpetual free plan with 30 pages/month.", competitor: "Pay-as-you-go from $0.015/page. No perpetual free tier.", parsliWins: true },
           { feature: "Pricing model", parsli: "Flat monthly plans starting at $20/month.", competitor: "Pay-per-page starting at $0.015/page. Volume discounts at higher tiers.", parsliWins: false },
-          { feature: "True cost at scale", parsli: "Business: $499/month for 25,000 pages (2¢/page).", competitor: "At $0.015/page, 25,000 pages = $375/month. Reducto is cheaper per page, but Parsli includes the full platform — UI, schema builder, and integrations — with no engineering required.", parsliWins: true },
+          { feature: "True cost at scale", parsli: "Business: $249/month for 25,000 pages (1¢/page).", competitor: "At $0.015/page, 25,000 pages = $375/month. Reducto is cheaper per page, but Parsli includes the full platform — UI, schema builder, and integrations — with no engineering required.", parsliWins: true },
         ],
       },
       {
@@ -3522,11 +3522,11 @@ export const alternatives: AlternativeData[] = [
       },
     ],
     faqs: [
-      { question: "How does Parsli compare to Reducto?", answer: "Reducto is a developer API with multi-pass agentic extraction at $0.015/page. Parsli is a no-code platform starting at $20/month with built-in integrations. Parsli's Business plan processes 25,000 pages for $499/month (2¢/page) and includes the entire platform — UI, schema builder, integrations — with no engineering required." },
+      { question: "How does Parsli compare to Reducto?", answer: "Reducto is a developer API with multi-pass agentic extraction at $0.015/page. Parsli is a no-code platform starting at $20/month with built-in integrations. Parsli's Business plan processes 25,000 pages for $249/month (1¢/page) and includes the entire platform — UI, schema builder, integrations — with no engineering required." },
       { question: "When should I choose Reducto over Parsli?", answer: "Choose Reducto if you have engineering resources to build a custom pipeline, need HIPAA/SOC 2 compliance, process very high volumes where $0.015/page is significantly cheaper, or want agentic multi-pass error correction." },
       { question: "When should I choose Parsli over Reducto?", answer: "Choose Parsli if you want non-technical team members to use it, need built-in integrations (Sheets, Zapier, Gmail), want a complete platform without building a pipeline, or prefer flat monthly pricing over per-page billing." },
       ...universalFaqs,
-      { question: "Is Reducto cheaper than Parsli?", answer: "Parsli's Business plan is 2¢/page ($499/month for 25,000 pages) vs Reducto's $0.015/page. While Reducto is cheaper per page, it's just an API — you still need to build the schema interface, document management, integrations, and UI yourself. When factoring in engineering time, Parsli is typically more cost-effective for teams without dedicated developers." },
+      { question: "Is Reducto cheaper than Parsli?", answer: "Parsli's Business plan is 1¢/page ($249/month for 25,000 pages) vs Reducto's $0.015/page. While Reducto is cheaper per page, it's just an API — you still need to build the schema interface, document management, integrations, and UI yourself. When factoring in engineering time, Parsli is typically more cost-effective for teams without dedicated developers." },
     ],
     chooseParsli: universalChooseParsli,
     chooseCompetitor: [
@@ -3577,7 +3577,7 @@ export const alternatives: AlternativeData[] = [
         rows: [
           { feature: "Free plan", parsli: "Perpetual free plan with 30 pages/month.", competitor: "Free plan with 100 documents/month.", parsliWins: false },
           { feature: "Entry paid price", parsli: "$20/month ($16 annually) for Starter.", competitor: "$499/month for 750 document extractions.", parsliWins: true },
-          { feature: "Cost per document", parsli: "As low as 2¢/page on Business plan.", competitor: "~66¢/document on entry plan ($499 for 750 docs).", parsliWins: true },
+          { feature: "Cost per document", parsli: "As low as 1¢/page on Business plan.", competitor: "~66¢/document on entry plan ($499 for 750 docs).", parsliWins: true },
         ],
       },
       {
@@ -3626,7 +3626,7 @@ export const alternatives: AlternativeData[] = [
       "Choose based on whether you need compliance + pre-built configs (Sensible) or affordable no-code extraction (Parsli)",
     ],
     deepDiveReasons: [
-      { title: "93% Lower Entry Cost", description: "Sensible starts at $499/month for 750 documents (~66¢ each). Parsli starts at $20/month with far more pages per tier. At the Business level, Parsli processes pages at under 2¢ each — a fraction of Sensible's per-document cost." },
+      { title: "93% Lower Entry Cost", description: "Sensible starts at $499/month for 750 documents (~66¢ each). Parsli starts at $20/month with far more pages per tier. At the Business level, Parsli processes pages at under 1¢ each — a fraction of Sensible's per-document cost." },
       { title: "Plain English vs SenseML", description: "Sensible's hybrid approach is powerful but requires learning their SenseML query language. Parsli uses plain English field descriptions — 'Extract the invoice total including tax as a currency value.' No specialized syntax, no developer needed." },
       { title: "Accessible to Non-Technical Teams", description: "IDC predicts the document AI market will reach $20.7 billion by 2027, with the fastest growth in platforms that combine API access with visual configuration tools — exactly Parsli's approach. Sensible is designed for developers who can write SenseML queries. Parsli's visual schema builder lets anyone on your team build and maintain extraction workflows independently." },
       { title: "Built-In Business Integrations", description: "Parsli connects to Google Sheets, Zapier, Make, Gmail, and webhooks out of the box. Sensible provides an API and webhooks but requires custom development for business tool integrations." },
@@ -3731,7 +3731,7 @@ export const alternatives: AlternativeData[] = [
     readTime: "6 min read",
     metaTitle: "Hyperscience Alternative — 99% Cheaper Per Page",
     metaDescription:
-      "Looking for a Hyperscience alternative? Parsli delivers AI document extraction at under 2¢/page — vs Hyperscience's reported $1.50/page. Self-service, no implementation project.",
+      "Looking for a Hyperscience alternative? Parsli delivers AI document extraction at under 1¢/page — vs Hyperscience's reported $1.50/page. Self-service, no implementation project.",
     h1: "Hyperscience Alternative — 99% Cheaper Per Page",
     heroSubtitle:
       "Hyperscience charges up to $1.50 per page with enterprise-only pricing. Parsli processes pages for as little as 1¢ each — 99% cheaper, self-service, with a perpetual free tier.",
@@ -3741,7 +3741,7 @@ export const alternatives: AlternativeData[] = [
       {
         title: "99% lower per-page cost",
         description:
-          "Hyperscience reportedly charges up to $1.50/page. Parsli's Business plan processes pages at under 2¢ each. At 1,000 pages/month, that's $49 (Growth plan) vs $1,500.",
+          "Hyperscience reportedly charges up to $1.50/page. Parsli's Business plan processes pages at under 1¢ each. At 1,000 pages/month, that's $49 (Growth plan) vs $1,500.",
       },
     ],
     comparisonCategories: [
@@ -3749,7 +3749,7 @@ export const alternatives: AlternativeData[] = [
         category: "Pricing & Value",
         rows: [
           { feature: "Free plan", parsli: "Perpetual free plan with 30 pages/month.", competitor: "No free plan. Enterprise pricing only.", parsliWins: true },
-          { feature: "Per-page cost", parsli: "As low as 2¢/page on Business plan.", competitor: "Reports suggest up to $1.50/page. Enterprise contracts required.", parsliWins: true },
+          { feature: "Per-page cost", parsli: "As low as 1¢/page on Business plan.", competitor: "Reports suggest up to $1.50/page. Enterprise contracts required.", parsliWins: true },
           { feature: "Pricing transparency", parsli: "All plans published on the website.", competitor: "No published pricing. Enterprise sales process.", parsliWins: true },
         ],
       },
@@ -3778,7 +3778,7 @@ export const alternatives: AlternativeData[] = [
       },
     ],
     faqs: [
-      { question: "How does Parsli pricing compare to Hyperscience?", answer: "Parsli processes pages at under 2¢ each (Business plan). Hyperscience reportedly charges up to $1.50/page with enterprise contracts. At 1,000 pages/month, that's $49 (Growth plan) vs $1,500 — a 97% difference." },
+      { question: "How does Parsli pricing compare to Hyperscience?", answer: "Parsli processes pages at under 1¢ each (Business plan). Hyperscience reportedly charges up to $1.50/page with enterprise contracts. At 1,000 pages/month, that's $49 (Growth plan) vs $1,500 — a 97% difference." },
       { question: "When should I choose Hyperscience over Parsli?", answer: "Choose Hyperscience if you need 99.5% accuracy for mission-critical workflows, require FedRAMP High certification, need strong handwriting recognition, or run an enterprise compliance workflow requiring human-in-the-loop validation." },
       { question: "When should I choose Parsli over Hyperscience?", answer: "Choose Parsli if you want self-service setup without an implementation project, need affordable per-page pricing, want a perpetual free tier, or process documents that don't require enterprise-grade compliance certifications. Parsli also handles [handwritten documents](/guides/extract-data-from-handwritten-documents) with Gemini 2.5 Pro." },
       ...universalFaqs,
@@ -3792,7 +3792,7 @@ export const alternatives: AlternativeData[] = [
       "You run an enterprise workflow requiring collaborative human-in-the-loop validation",
     ],
     keyTakeaways: [
-      "Parsli is 99% cheaper per page (under 2¢ vs up to $1.50)",
+      "Parsli is 99% cheaper per page (under 1¢ vs up to $1.50)",
       "Hyperscience claims 99.5% accuracy; Parsli achieves 95%+ with Gemini 2.5 Pro",
       "Hyperscience is FedRAMP High certified; Parsli is GDPR compliant",
       "Parsli is self-service in minutes; Hyperscience requires a multi-week implementation",
@@ -3913,7 +3913,7 @@ export const alternatives: AlternativeData[] = [
         category: "Pricing & Value",
         rows: [
           { feature: "Free plan", parsli: "Perpetual free plan with 30 pages/month.", competitor: "Free tier: 15,000 pages. Then $0.03/page flat rate.", parsliWins: false },
-          { feature: "Per-page cost at scale", parsli: "Under 2¢/page on Business plan.", competitor: "$0.03/page flat rate. Competitive per-page pricing.", parsliWins: true },
+          { feature: "Per-page cost at scale", parsli: "Under 1¢/page on Business plan.", competitor: "$0.03/page flat rate. Competitive per-page pricing.", parsliWins: true },
         ],
       },
       {
@@ -4004,7 +4004,7 @@ export const alternatives: AlternativeData[] = [
           },
           {
             feature: "Transparent pricing",
-            parsli: "Published pricing from $0 to $499/month. All features included at every tier.",
+            parsli: "Published pricing from $0 to $249/month. All features included at every tier.",
             competitor: "No published pricing. Custom quotes only. Typically $1,000+/month.",
             parsliWins: true,
           },
@@ -4134,7 +4134,7 @@ export const alternatives: AlternativeData[] = [
       },
       {
         title: "Transparent pricing vs custom quotes",
-        description: "Parsli publishes all pricing — from free to $499/month. Shipamax provides custom enterprise quotes only, typically starting at $1,000+/month with annual commitments. You know exactly what you'll pay with Parsli before signing up.",
+        description: "Parsli publishes all pricing — from free to $249/month. Shipamax provides custom enterprise quotes only, typically starting at $1,000+/month with annual commitments. You know exactly what you'll pay with Parsli before signing up.",
       },
       {
         title: "Flexibility beyond logistics",
@@ -4251,7 +4251,7 @@ export const alternatives: AlternativeData[] = [
           },
           {
             feature: "Pricing model",
-            parsli: "Per-page pricing from free to $499/month. Transparent, published plans.",
+            parsli: "Per-page pricing from free to $249/month. Transparent, published plans.",
             competitor: "Custom pricing based on usage, compute, and model complexity. Typically $500+/month.",
             parsliWins: true,
           },
@@ -4367,7 +4367,7 @@ export const alternatives: AlternativeData[] = [
           },
           {
             feature: "Pricing transparency",
-            parsli: "Published pricing from $0 to $499/month. All features included at every tier.",
+            parsli: "Published pricing from $0 to $249/month. All features included at every tier.",
             competitor: "No published pricing. Custom quotes only. 'Talk to sales' for any pricing information.",
             parsliWins: true,
           },
@@ -4379,7 +4379,7 @@ export const alternatives: AlternativeData[] = [
           },
           {
             feature: "Cost per page at scale",
-            parsli: "As low as 2¢/page on the Business plan (25,000 pages/month).",
+            parsli: "As low as 1¢/page on the Business plan (25,000 pages/month).",
             competitor: "Not publicly disclosed. Enterprise pricing varies by volume and use case.",
             parsliWins: true,
           },
@@ -4564,7 +4564,7 @@ export const alternatives: AlternativeData[] = [
     keyTakeaways: [
       "Extend AI is an enterprise-focused document AI platform targeting F500 companies with API-first extraction, classification, and splitting",
       "Parsli offers instant no-code setup with a visual schema builder — no enterprise onboarding or developer resources needed",
-      "Extend AI has no public pricing; Parsli publishes transparent plans from free to $499/month",
+      "Extend AI has no public pricing; Parsli publishes transparent plans from free to $249/month",
       "Parsli includes built-in Google Sheets, Zapier, Make, and Gmail integrations; Extend AI requires API development for integrations",
       "Choose Extend AI for enterprise-scale document processing with dedicated support; choose Parsli for fast, self-service extraction",
     ],
@@ -4577,7 +4577,7 @@ export const alternatives: AlternativeData[] = [
       {
         title: "Transparent pricing vs. 'talk to sales'",
         description:
-          "Extend AI has no published pricing — you must go through a sales process to learn what it costs. Parsli publishes all plans from $0 to $499/month. You can evaluate, test, and scale without ever talking to a salesperson.",
+          "Extend AI has no published pricing — you must go through a sales process to learn what it costs. Parsli publishes all plans from $0 to $249/month. You can evaluate, test, and scale without ever talking to a salesperson.",
       },
       {
         title: "Built-in integrations vs. API-only",
@@ -4625,7 +4625,7 @@ export const alternatives: AlternativeData[] = [
       {
         title: "Predictable pricing vs. hidden LLM + infra costs",
         description:
-          "Unstract's software is free, but you pay separately for cloud compute, storage, LLM API calls, and DevOps time. According to Sirion AI, SaaS extraction delivers 35% cost savings versus on-prem TCO when you include infrastructure, personnel, and maintenance. A DevOps engineer averages $129K–$143K/year (Bureau of Labor Statistics, 2025). Parsli's $0–$499/month pricing includes everything — AI, hosting, integrations, and support.",
+          "Unstract's software is free, but you pay separately for cloud compute, storage, LLM API calls, and DevOps time. According to Sirion AI, SaaS extraction delivers 35% cost savings versus on-prem TCO when you include infrastructure, personnel, and maintenance. A DevOps engineer averages $129K–$143K/year (Bureau of Labor Statistics, 2025). Parsli's $0–$249/month pricing includes everything — AI, hosting, integrations, and support.",
       },
       {
         title: "99%+ accuracy out of the box vs. bring-your-own LLM tuning",
@@ -4645,7 +4645,7 @@ export const alternatives: AlternativeData[] = [
           },
           {
             feature: "Total cost of ownership",
-            parsli: "Predictable monthly fee from $0 to $499/month. All infrastructure, AI processing, integrations, and support included. No hidden costs.",
+            parsli: "Predictable monthly fee from $0 to $249/month. All infrastructure, AI processing, integrations, and support included. No hidden costs.",
             competitor: "Open-source is free, but self-hosting requires cloud compute ($200–500/mo minimum for production), LLM API fees ($0.01–0.03/page for GPT-4), DevOps time ($129K–$143K/yr average salary, BLS 2025), monitoring, and patching. A Qt Group TCO study found open-source TCO can reach 5x initial estimates with significant customization. Ponemon Institute reports 65% of organizations spend 10+ hours per week on patching alone.",
             parsliWins: true,
           },
@@ -4953,7 +4953,7 @@ export const alternatives: AlternativeData[] = [
       {
         title: "Published pricing vs. 'talk to sales'",
         description:
-          "Affinda requires a sales conversation for any pricing information. Parsli publishes all plans from free to $499/month — evaluate, test, and scale without ever talking to sales.",
+          "Affinda requires a sales conversation for any pricing information. Parsli publishes all plans from free to $249/month — evaluate, test, and scale without ever talking to sales.",
       },
     ],
     comparisonCategories: [
@@ -4968,7 +4968,7 @@ export const alternatives: AlternativeData[] = [
           },
           {
             feature: "Pricing transparency",
-            parsli: "Published pricing from $0 to $499/month. All features at every tier.",
+            parsli: "Published pricing from $0 to $249/month. All features at every tier.",
             competitor: "Consumption-based pricing. Must contact sales for rates. No published pricing page.",
             parsliWins: true,
           },
@@ -5141,7 +5141,7 @@ export const alternatives: AlternativeData[] = [
     ],
     keyTakeaways: [
       "Affinda offers pre-built document models and enterprise IDP features; Parsli offers flexible AI extraction with transparent pricing",
-      "Parsli publishes all pricing from $0 to $499/month; Affinda requires a sales call for any pricing information",
+      "Parsli publishes all pricing from $0 to $249/month; Affinda requires a sales call for any pricing information",
       "Affinda excels at resume parsing and pre-built document type models; Parsli excels at custom schema extraction for any document",
       "Parsli includes Google Sheets, Zapier, Make, and Gmail integrations out of the box; Affinda is API-first",
       "For teams that want self-service setup and transparent costs, Parsli is the simpler choice; for enterprise-scale IDP with pre-built models, Affinda is stronger",
@@ -5150,7 +5150,7 @@ export const alternatives: AlternativeData[] = [
       {
         title: "Transparent pricing vs. consumption-based quotes",
         description:
-          "Affinda uses consumption-based pricing that requires a sales conversation to learn costs. Parsli publishes every plan from free to $499/month. For budget-conscious teams, knowing your costs before committing matters — and Parsli lets you evaluate the platform without a sales call.",
+          "Affinda uses consumption-based pricing that requires a sales conversation to learn costs. Parsli publishes every plan from free to $249/month. For budget-conscious teams, knowing your costs before committing matters — and Parsli lets you evaluate the platform without a sales call.",
       },
       {
         title: "Custom schemas vs. pre-built models",
@@ -5208,7 +5208,7 @@ export const alternatives: AlternativeData[] = [
           },
           {
             feature: "Pricing transparency",
-            parsli: "Published pricing from $0 to $499/month. Self-service signup.",
+            parsli: "Published pricing from $0 to $249/month. Self-service signup.",
             competitor: "Published pricing tiers available. EU-based pricing.",
             parsliWins: false,
           },
@@ -5448,7 +5448,7 @@ export const alternatives: AlternativeData[] = [
           },
           {
             feature: "Pricing model",
-            parsli: "Page-based plans from $20 to $499/month. All document types, all features.",
+            parsli: "Page-based plans from $20 to $249/month. All document types, all features.",
             competitor: "Page-based pricing. Plans optimized for bank statement and financial document processing.",
             parsliWins: false,
           },
