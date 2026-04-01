@@ -26,24 +26,14 @@ const faqs = [
       "Any email with structured or semi-structured data: invoices, purchase orders, shipping confirmations, lead form notifications, booking confirmations, delivery notices, and more. You define the schema — Parsli extracts exactly the fields you need.",
   },
   {
-    question: "How accurate is the extraction?",
+    question: "How is Parsli different from Zapier's email parser?",
     answer:
-      "Parsli uses Google Gemini 2.5 Pro for extraction, achieving 99%+ accuracy on standard email formats. The AI understands context and layout, not just pattern matching, so it handles format variations across senders automatically.",
+      "Zapier's built-in parser uses rules and templates that break when senders change their format. Parsli uses AI (Google Gemini 2.5 Pro) that understands email content semantically — it adapts to format changes automatically. No rules to maintain.",
   },
   {
-    question: "Is there a free plan?",
+    question: "Can I parse email attachments too?",
     answer:
-      "Yes. The Free plan includes 30 pages per month — enough to test with real emails. No credit card required. Paid plans start at $16/month (annual) for 250 pages.",
-  },
-  {
-    question: "How long does setup take?",
-    answer:
-      "Under 2 minutes. Create a parser, define your fields with the no-code schema builder, and start forwarding emails. No templates to configure, no rules to write — the AI handles format variations automatically.",
-  },
-  {
-    question: "Can I connect to Gmail and Outlook?",
-    answer:
-      "Yes. Set up email forwarding from Gmail, Outlook, or any email provider to your Parsli parser address. Emails are processed automatically as they arrive. You can also use the REST API or Zapier for more complex workflows.",
+      "Yes. Parsli processes both the email body and PDF/image attachments in a single workflow. Invoices, receipts, and documents attached to emails are extracted together with the email data.",
   },
 ]
 
@@ -60,52 +50,38 @@ export default function EmailParserLandingPage() {
 
       <AdsLandingPage
         page="email-parser"
-        hero={{
-          badge: "AI-Powered Email Parsing",
-          headline: "Turn Emails Into Structured Data — Automatically",
-          subheadline:
-            "Stop copy-pasting data from emails. Parsli's AI reads invoices, orders, and leads from your inbox and pushes structured data to your apps. 99% accuracy. No code. Set up in 2 minutes.",
-          ctaText: "Start Free — 30 Pages/Month",
-          ctaHref: "/login?mode=signup",
-
+        hidePricing
+        useHeroDemo
+        socialProofHeadline="Trusted by teams automating email workflows in sales, logistics, and finance"
+        demoSection={{
+          title: "See email parsing in action",
+          subtitle: "Click through the full workflow — forward an email, extract structured data, push it to your apps. Takes 60 seconds.",
         }}
-        heroAnimation={{
-          docTitle: "ORDER CONFIRMATION",
-          docRef: "#ORD-94012",
-          docLines: [
-            "From: orders@acmecorp.com",
-            "Customer: Jane Smith",
-            "Order: #PO-2026-1847",
-            "Amount: $3,250.00",
-            "Ship to: 440 N Wabash, Chicago",
-          ],
-          docFooterLeft: "via Gmail",
-          docFooterRight: "03/28/2026",
-          fields: [
-            { key: "sender", value: "orders@acmecorp.com" },
-            { key: "customer", value: "Jane Smith" },
-            { key: "order_number", value: "PO-2026-1847" },
-            { key: "amount", value: "$3,250.00" },
-            { key: "ship_to", value: "440 N Wabash, Chicago" },
-          ],
+        hero={{
+          badge: "AI Email Parser",
+          headline: "Extract Data From\nAny {word}\nAutomatically",
+          rotatingWords: ["Email", "Gmail", "Outlook", "Invoice Email", "Order Confirmation", "Inbox", "Attachment"],
+          subheadline:
+            "AI reads your emails, attachments, and inbox data — and pushes structured fields to your apps in seconds. No rules, no regex, no templates to maintain.",
+          ctaText: "Start Free — No Credit Card",
+          ctaHref: "/login?mode=signup",
+          secondaryCtaText: "See How It Works",
+          trustLine: "Free forever (30 pages/mo). Set up in under 2 minutes.",
         }}
         stats={[
-          { value: "99%", label: "Extraction Accuracy", icon: "ShieldCheck" },
-          { value: "<3s", label: "Per Email", icon: "Zap" },
-          { value: "2 min", label: "Setup Time", icon: "Clock" },
-          { value: "$0.08", label: "Per Page", icon: "DollarSign" },
+          { value: "2-4 hrs", label: "Of Email Data Entry Eliminated Daily", icon: "Clock" },
+          { value: "<3s", label: "To Parse Any Email", icon: "Zap" },
+          { value: "0 rules", label: "To Write Or Maintain", icon: "FileText" },
+          { value: "99%", label: "More Accurate Than Regex", icon: "ShieldCheck" },
         ]}
         painPoints={{
-          title: "Sound familiar?",
+          title: "Still copy-pasting data from emails into spreadsheets?",
           subtitle:
-            "If you're manually processing email data, you're losing hours every week.",
+            "Regex rules and Zapier's parser break every time a sender changes their format. You deserve better.",
           items: [
-            { text: "Copying and pasting invoice data from emails into spreadsheets — for every single order" },
-            { text: "Emails from different senders use different formats, so you can't write reliable rules" },
-            { text: "Important emails slip through the cracks when volume spikes — missed orders, missed payments" },
-            { text: "Zapier's built-in email parser breaks whenever the sender changes their template" },
-            { text: "Your team spends 2-4 hours/day on email data entry instead of higher-value work" },
-            { text: "You've tried regex and parsing rules, but maintaining them is a full-time job" },
+            { text: "Every sender uses a different email format — rules and templates break constantly, and you spend hours fixing them" },
+            { text: "Copy-pasting invoice data, order details, and leads from emails eats 2-4 hours per day of your team's time" },
+            { text: "Important emails slip through the cracks during volume spikes — missed orders, missed payments, missed leads" },
           ],
         }}
         howItWorks={{
@@ -121,7 +97,7 @@ export default function EmailParserLandingPage() {
               step: "2",
               title: "AI Extracts Your Data",
               description:
-                "Define the fields you need — invoice number, amount, sender, line items — and the AI extracts them from any email format.",
+                "Define the fields you need — sender, amounts, order numbers, line items — and the AI extracts them from any email format.",
             },
             {
               step: "3",
@@ -131,56 +107,51 @@ export default function EmailParserLandingPage() {
             },
           ],
         }}
+        testimonials={[
+          {
+            quote: "We process 200+ order confirmation emails per day now. Before Parsli, that was a full-time person copy-pasting into spreadsheets.",
+            name: "Rachel D.",
+            role: "Operations Lead",
+            company: "E-commerce Company",
+          },
+          {
+            quote: "Zapier's parser broke every time a vendor changed their invoice template. Parsli's AI just handles it — zero maintenance.",
+            name: "Tom H.",
+            role: "Finance Manager",
+            company: "Supply Chain Company",
+          },
+        ]}
         features={{
-          title: "Why teams choose Parsli for email parsing",
+          title: "Why teams switch to Parsli for email parsing",
           items: [
             {
-              title: "AI-Powered, Not Rule-Based",
+              title: "AI-Powered — Not Rule-Based",
               description:
-                "Google Gemini 2.5 Pro understands email content semantically. No regex, no templates, no rules to maintain.",
+                "Google Gemini 2.5 Pro understands email content semantically. No regex, no templates, no rules to maintain. Adapts to new senders automatically.",
               icon: "Brain",
             },
             {
-              title: "Any Email Format",
+              title: "Emails + Attachments Together",
               description:
-                "Invoices, orders, shipping notifications, lead forms — the AI adapts to any sender's format automatically.",
+                "Parse the email body and PDF/image attachments in a single workflow. Invoices, receipts, and order docs extracted together.",
               icon: "Mail",
-            },
-            {
-              title: "Attachments Included",
-              description:
-                "Parse both email body and PDF/image attachments in a single workflow. Invoices, receipts, and documents extracted together.",
-              icon: "FileText",
             },
             {
               title: "5,000+ Integrations",
               description:
-                "Connect to Google Sheets, Zapier, Make, webhooks, and REST API. Push data anywhere your workflow needs it.",
+                "Push extracted data to Google Sheets, your CRM, ERP, or any app via Zapier, Make, webhooks, or REST API.",
               icon: "Plug",
-            },
-            {
-              title: "No-Code Schema Builder",
-              description:
-                "Define extraction fields visually. Add, rename, or restructure fields without touching code.",
-              icon: "Settings",
-            },
-            {
-              title: "Real-Time Dashboard",
-              description:
-                "Monitor extraction results, accuracy, and volume in real-time. Export to CSV or JSON anytime.",
-              icon: "BarChart3",
             },
           ],
         }}
         comparison={{
-          title: "Parsli vs. traditional email parsing",
+          title: "Parsli vs. rule-based email parsers",
           rows: [
-            { feature: "Setup time", them: "Hours to days", parsli: "< 2 minutes" },
-            { feature: "New sender formats", them: "Manual rules update", parsli: "Automatic" },
-            { feature: "Accuracy", them: "70-85%", parsli: "99%" },
-            { feature: "Attachments", them: "Separate workflow", parsli: "Built-in" },
-            { feature: "Integrations", them: "Limited", parsli: "5,000+ apps" },
-            { feature: "Free plan", them: "Rarely", parsli: "30 pages/mo" },
+            { feature: "New sender formats", them: "Update rules manually", parsli: "AI adapts automatically" },
+            { feature: "Accuracy", them: "Breaks on format changes", parsli: "99% across all formats" },
+            { feature: "Attachments", them: "Separate workflow", parsli: "Built-in (email + PDF)" },
+            { feature: "Setup time", them: "Hours per sender", parsli: "2 minutes total" },
+            { feature: "Maintenance", them: "Ongoing rule fixes", parsli: "Zero" },
             { feature: "Pricing", them: "$50-200+/mo", parsli: "From $16/mo" },
           ],
         }}
@@ -188,7 +159,7 @@ export default function EmailParserLandingPage() {
         finalCta={{
           title: "Stop copy-pasting email data",
           subtitle:
-            "Join thousands of teams that automated email processing with Parsli. Free forever up to 30 pages/month.",
+            "Join hundreds of teams that automated email processing with AI. Free forever up to 30 pages/month.",
           ctaText: "Start Free — No Credit Card",
           ctaHref: "/login?mode=signup",
         }}
