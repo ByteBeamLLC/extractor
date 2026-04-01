@@ -39,18 +39,23 @@ export const metadata: Metadata = {
   },
 }
 
-/* ───── Floating hero logos ───── */
-const heroLogos: { slug: string; className: string; imgSize: number }[] = [
-  { slug: "parseur", className: "top-20 left-[12%] h-16 w-16", imgSize: 36 },
-  { slug: "nanonets", className: "top-10 left-[28%] h-14 w-14", imgSize: 30 },
-  { slug: "docparser", className: "top-14 right-[12%] h-16 w-16", imgSize: 36 },
-  { slug: "abbyy", className: "top-8 right-[28%] h-14 w-14", imgSize: 30 },
-  { slug: "google-document-ai", className: "bottom-28 left-[14%] h-16 w-16", imgSize: 36 },
-  { slug: "uipath", className: "bottom-16 left-[28%] h-14 w-14", imgSize: 30 },
-  { slug: "textract", className: "bottom-24 right-[14%] h-16 w-16", imgSize: 36 },
-  { slug: "rossum", className: "bottom-14 right-[28%] h-14 w-14", imgSize: 30 },
-  { slug: "mindee", className: "top-[45%] left-[8%] h-14 w-14 -translate-y-1/2", imgSize: 30 },
-  { slug: "docsumo", className: "top-[45%] right-[8%] h-14 w-14 -translate-y-1/2", imgSize: 30 },
+/* ───── Floating hero logos — bare icons, no containers ───── */
+const heroLogos: { slug: string; className: string; size: number }[] = [
+  // Large foreground logos
+  { slug: "parseur", className: "top-16 left-[7%]", size: 64 },
+  { slug: "abbyy", className: "top-10 right-[8%]", size: 60 },
+  { slug: "google-document-ai", className: "bottom-20 left-[10%]", size: 56 },
+  { slug: "textract", className: "bottom-16 right-[7%]", size: 60 },
+  // Medium logos
+  { slug: "nanonets", className: "top-8 left-[25%]", size: 48 },
+  { slug: "docparser", className: "top-12 right-[24%]", size: 44 },
+  { slug: "uipath", className: "bottom-28 left-[26%]", size: 44 },
+  { slug: "rossum", className: "bottom-24 right-[22%]", size: 48 },
+  // Smaller background logos
+  { slug: "mindee", className: "top-[42%] left-[5%] -translate-y-1/2", size: 40 },
+  { slug: "docsumo", className: "top-[42%] right-[5%] -translate-y-1/2", size: 40 },
+  { slug: "klippa", className: "top-[60%] left-[18%]", size: 36 },
+  { slug: "base64ai", className: "top-[55%] right-[16%]", size: 36 },
 ]
 
 /* ───── Friendly card labels for raw feature names ───── */
@@ -132,21 +137,24 @@ export default function ComparePage() {
 
         {/* Floating logos — hidden on mobile */}
         <div className="hidden lg:block absolute inset-0 -z-10" aria-hidden="true">
-          {heroLogos.map(({ slug, className, imgSize }) => {
+          {heroLogos.map(({ slug, className, size }) => {
             const logo = getCompetitorLogo(slug)
             if (!logo) return null
             return (
               <div
                 key={slug}
-                className={`absolute rounded-2xl border bg-white shadow-md flex items-center justify-center animate-float-slow ${className}`}
+                className={`absolute animate-float-slow ${className}`}
+                style={{ width: size, height: size }}
               >
-                <Image
-                  src={logo}
-                  alt=""
-                  width={imgSize}
-                  height={imgSize}
-                  className="object-contain"
-                />
+                <div className="w-full h-full rounded-full bg-white shadow-lg flex items-center justify-center p-2.5">
+                  <Image
+                    src={logo}
+                    alt=""
+                    width={size}
+                    height={size}
+                    className="object-contain w-full h-full"
+                  />
+                </div>
               </div>
             )
           })}
