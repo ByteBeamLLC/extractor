@@ -31,19 +31,9 @@ const faqs = [
       "Yes. Set up auto-forwarding from Gmail, Outlook, Yahoo, or any email provider. Parsli processes emails as they arrive. You can also use Power Automate or Zapier to trigger Parsli from specific email rules.",
   },
   {
-    question: "Can I choose which fields go into the spreadsheet?",
-    answer:
-      "Absolutely. Use the no-code schema builder to define exactly which fields you want extracted — amount, date, vendor, PO number, line items, etc. Each field becomes a column in your spreadsheet.",
-  },
-  {
     question: "What if the email format changes?",
     answer:
       "Parsli uses AI, not templates. When a sender changes their email format, Parsli adapts automatically. No re-configuration needed — your data keeps flowing to your spreadsheet.",
-  },
-  {
-    question: "How much does it cost?",
-    answer:
-      "Free plan: 30 pages/month (no credit card). Starter: $16/month for 250 pages. Growth: $39/month for 1,000 pages. All plans include Google Sheets integration and unlimited spreadsheet connections.",
   },
 ]
 
@@ -63,52 +53,38 @@ export default function EmailToSpreadsheetLandingPage() {
 
       <AdsLandingPage
         page="email-to-spreadsheet"
+        hidePricing
+        useHeroDemo
+        socialProofHeadline="Trusted by teams automating email-to-spreadsheet workflows"
+        demoSection={{
+          title: "See how emails become spreadsheet rows",
+          subtitle: "Click through the workflow — forward an email, AI extracts the data, a new row appears in your sheet.",
+        }}
         hero={{
           badge: "Email to Spreadsheet — Automated",
-          headline: "Email Data to Spreadsheet in Under 3 Seconds",
+          headline: "Email Data to\n{word}\nIn 3 Seconds",
+          rotatingWords: ["Google Sheets", "Excel", "Spreadsheet", "Your Database", "CSV"],
           subheadline:
-            "Stop manually copying data from emails into Excel or Google Sheets. Parsli's AI reads every email and auto-fills your spreadsheet — invoices, orders, confirmations, anything.",
-          ctaText: "Start Free — 30 Pages/Month",
+            "Stop manually copying data from emails into spreadsheets. AI reads every email and auto-fills your sheet — invoices, orders, confirmations, attachments included.",
+          ctaText: "Start Free — No Credit Card",
           ctaHref: "/login?mode=signup",
-
-        }}
-        heroAnimation={{
-          docTitle: "INVOICE EMAIL",
-          docRef: "#INV-88432",
-          docLines: [
-            "From: billing@vendorco.com",
-            "Invoice: INV-2026-0847",
-            "Due Date: April 15, 2026",
-            "Amount: $1,875.00",
-            "Payment: Net 30",
-          ],
-          docFooterLeft: "→ Google Sheets",
-          docFooterRight: "03/29/2026",
-          fields: [
-            { key: "sender", value: "billing@vendorco.com" },
-            { key: "invoice_no", value: "INV-2026-0847" },
-            { key: "due_date", value: "2026-04-15" },
-            { key: "amount", value: "$1,875.00" },
-            { key: "terms", value: "Net 30" },
-          ],
+          secondaryCtaText: "See How It Works",
+          trustLine: "Free forever (30 pages/mo). Set up in under 2 minutes.",
         }}
         stats={[
-          { value: "<3s", label: "Email → Spreadsheet", icon: "Zap" },
-          { value: "99%", label: "Accuracy", icon: "ShieldCheck" },
-          { value: "2 min", label: "Setup Time", icon: "Clock" },
-          { value: "$0", label: "To Start", icon: "DollarSign" },
+          { value: "<3s", label: "Email → Row In Your Sheet", icon: "Zap" },
+          { value: "2-4 hrs", label: "Of Copy-Paste Eliminated Daily", icon: "Clock" },
+          { value: "99%", label: "More Accurate Than Manual Entry", icon: "ShieldCheck" },
+          { value: "$0", label: "To Start (30 pages/mo free)", icon: "DollarSign" },
         ]}
         painPoints={{
-          title: "Tired of copying email data into spreadsheets?",
+          title: "Still copying email data into spreadsheets by hand?",
           subtitle:
-            "Manual email-to-spreadsheet workflows waste hours and introduce errors.",
+            "Every email you process manually costs time and introduces errors.",
           items: [
-            { text: "Copying invoice amounts, dates, and vendor names from emails into Excel — one by one, every day" },
-            { text: "Order confirmation emails pile up faster than you can process them into your tracking sheet" },
-            { text: "Typos and missed fields from manual entry cause downstream billing and reporting errors" },
-            { text: "Power Automate and Zapier email-to-sheet recipes break when email formats change" },
-            { text: "You need data from attachments too, but that's a completely separate manual process" },
-            { text: "Different senders = different formats = no single automation works for everything" },
+            { text: "Copying invoice amounts, dates, and vendor names from emails into Excel — one by one, every day, eating hours of your week" },
+            { text: "Typos and missed fields from manual copy-paste cause billing errors and reporting mistakes downstream" },
+            { text: "Zapier and Power Automate email-to-sheet recipes break when email formats change — and attachments need a separate workflow" },
           ],
         }}
         howItWorks={{
@@ -134,56 +110,51 @@ export default function EmailToSpreadsheetLandingPage() {
             },
           ],
         }}
+        testimonials={[
+          {
+            quote: "We used to spend 2 hours every morning copying invoice data from emails into our tracking sheet. Now it's fully automatic — rows just appear.",
+            name: "Karen L.",
+            role: "AP Coordinator",
+            company: "Distribution Company",
+          },
+          {
+            quote: "The Google Sheets integration is seamless. 150+ vendor emails per week go straight into our spreadsheet with zero manual work.",
+            name: "Chris W.",
+            role: "Operations Analyst",
+            company: "Retail Brand",
+          },
+        ]}
         features={{
-          title: "Why Parsli for email to spreadsheet",
+          title: "Why teams use Parsli for email to spreadsheet",
           items: [
             {
-              title: "Google Sheets Integration",
+              title: "Native Google Sheets Integration",
               description:
-                "Native IMPORTDATA connection to Google Sheets. Each extraction becomes a new row automatically — no middleware needed.",
+                "Each extraction becomes a new row automatically — no middleware, no Zapier needed for Sheets. Excel supported via Zapier/Make.",
               icon: "FileSpreadsheet",
             },
             {
-              title: "Excel via Zapier/Make",
-              description:
-                "Push to Excel Online, Excel desktop (via OneDrive), or any spreadsheet app using Zapier, Make, or webhooks.",
-              icon: "Table2",
-            },
-            {
-              title: "AI Reads Any Format",
+              title: "AI Reads Any Email Format",
               description:
                 "Different senders, different layouts — doesn't matter. The AI extracts your fields from any email format automatically.",
               icon: "Brain",
             },
             {
-              title: "Includes Attachments",
+              title: "Attachments Included",
               description:
-                "PDF invoices, image receipts, document attachments — extracted alongside the email body in one flow.",
+                "PDF invoices, image receipts, document attachments — extracted alongside the email body into the same spreadsheet row.",
               icon: "Mail",
-            },
-            {
-              title: "Never Breaks",
-              description:
-                "Template changes? New senders? Parsli adapts automatically. No rules to update, no re-training.",
-              icon: "RefreshCw",
-            },
-            {
-              title: "5,000+ App Connections",
-              description:
-                "Beyond spreadsheets: push data to CRMs, ERPs, databases, Slack, or any app in your workflow.",
-              icon: "Plug",
             },
           ],
         }}
         comparison={{
           title: "Parsli vs. manual email-to-spreadsheet methods",
           rows: [
-            { feature: "Setup time", them: "Hours (rules/formulas)", parsli: "2 minutes" },
-            { feature: "Handles format changes", them: "No (breaks)", parsli: "Yes (AI adapts)" },
-            { feature: "Parse attachments", them: "No", parsli: "Yes" },
-            { feature: "Accuracy", them: "Depends on you", parsli: "99%" },
-            { feature: "Processing speed", them: "5-15 min/email", parsli: "< 3 seconds" },
-            { feature: "Google Sheets native", them: "Varies", parsli: "Built-in" },
+            { feature: "Processing speed", them: "5-15 min/email (manual)", parsli: "< 3 seconds" },
+            { feature: "Accuracy", them: "Depends on copy-paste", parsli: "99%" },
+            { feature: "Format changes", them: "Rules break", parsli: "AI adapts automatically" },
+            { feature: "Attachments", them: "Separate process", parsli: "Built-in" },
+            { feature: "Google Sheets", them: "Manual paste", parsli: "Native auto-fill" },
             { feature: "Free tier", them: "No", parsli: "30 pages/mo" },
           ],
         }}
@@ -191,8 +162,8 @@ export default function EmailToSpreadsheetLandingPage() {
         finalCta={{
           title: "Your spreadsheet fills itself — starting now",
           subtitle:
-            "Forward an email, watch the row appear. Free forever up to 30 pages/month. No credit card required.",
-          ctaText: "Start Free — Email to Sheet in 2 min",
+            "Forward an email, watch the row appear. Free forever up to 30 pages/month.",
+          ctaText: "Start Free — No Credit Card",
           ctaHref: "/login?mode=signup",
         }}
       />
