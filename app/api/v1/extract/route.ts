@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
   const creditCheck = await checkCredits(auth.userId!, pageCount, supabase)
   if (!creditCheck.allowed) {
     return NextResponse.json(
-      { error: "Monthly credit limit reached. Upgrade your plan for more pages." },
+      { error: creditCheck.reason || "Monthly credit limit reached. Upgrade your plan for more pages." },
       { status: 402 }
     )
   }
@@ -98,8 +98,11 @@ export async function POST(request: NextRequest) {
   // Strip __meta__ for API response
   const { __meta__, ...apiResults } = result.results
 
-  // Atomically deduct credits (DB-level guard prevents overshoot)
-  const { success: deducted } = await deductCredits(auth.userId!, pageCount, supabase)
+  // Atomically deduct credits (for first-document-free, only deduct what's available)
+  const v1CreditsUsed = creditCheck.firstDocumentFree
+    ? Math.min(pageCount, creditCheck.remaining)
+    : pageCount
+  const { success: deducted } = await deductCredits(auth.userId!, v1CreditsUsed, supabase)
   if (!deducted) {
     console.warn(`[v1/extract] Credit deduction failed for user ${auth.userId} — possible race condition`)
   }
