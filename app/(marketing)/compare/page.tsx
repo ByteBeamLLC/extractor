@@ -39,31 +39,25 @@ export const metadata: Metadata = {
   },
 }
 
-/* ───── Floating hero logos — ordered by keyword traffic, ~20% bigger ───── */
+/* ───── Floating hero logos — ordered by keyword traffic ───── */
 const heroLogos: { slug: string; className: string; size: number }[] = [
-  // Top traffic — largest & most prominent positions
-  { slug: "abbyy", className: "top-12 left-[7%]", size: 86 },           // 12,220/mo
-  { slug: "unstructured", className: "top-8 right-[7%]", size: 82 },    // 10,300/mo
-  { slug: "google-document-ai", className: "bottom-16 left-[8%]", size: 82 }, // 3,210/mo
-  { slug: "landing-ai", className: "bottom-20 right-[8%]", size: 78 },  // 2,900/mo
+  // Top traffic — largest & most prominent positions (pushed down to clear navbar)
+  { slug: "abbyy", className: "top-28 left-[7%]", size: 72 },           // 12,220/mo
+  { slug: "unstructured", className: "top-24 right-[7%]", size: 68 },   // 10,300/mo
+  { slug: "google-document-ai", className: "bottom-16 left-[8%]", size: 68 }, // 3,210/mo
+  { slug: "landing-ai", className: "bottom-20 right-[8%]", size: 64 },  // 2,900/mo
   // High traffic — large
-  { slug: "docparser", className: "top-6 left-[24%]", size: 68 },       // 1,500/mo
-  { slug: "parseur", className: "top-10 right-[22%]", size: 68 },       // 1,380/mo
+  { slug: "docparser", className: "top-20 left-[24%]", size: 56 },      // 1,500/mo
+  { slug: "parseur", className: "top-24 right-[22%]", size: 56 },       // 1,380/mo
   // Medium traffic
-  { slug: "pulse-ai", className: "top-[44%] left-[5%] -translate-y-1/2", size: 58 }, // 880/mo
-  { slug: "mailparser", className: "top-[44%] right-[5%] -translate-y-1/2", size: 58 }, // 520/mo
-  { slug: "nanonets", className: "bottom-28 left-[24%]", size: 58 },    // 430/mo
-  { slug: "upstage", className: "bottom-24 right-[22%]", size: 54 },    // 260/mo
+  { slug: "pulse-ai", className: "top-[48%] left-[5%] -translate-y-1/2", size: 48 }, // 880/mo
+  { slug: "mailparser", className: "top-[48%] right-[5%] -translate-y-1/2", size: 48 }, // 520/mo
+  { slug: "nanonets", className: "bottom-28 left-[24%]", size: 48 },    // 430/mo
+  { slug: "upstage", className: "bottom-24 right-[22%]", size: 44 },    // 260/mo
   // Lower traffic — smaller
-  { slug: "klippa", className: "top-[62%] left-[16%]", size: 48 },
-  { slug: "mindee", className: "top-[58%] right-[16%]", size: 48 },
+  { slug: "klippa", className: "top-[62%] left-[16%]", size: 40 },
+  { slug: "mindee", className: "top-[58%] right-[16%]", size: 40 },
 ]
-
-/** Logos that have their own brand background color — fill the circle */
-const brandColors: Record<string, string> = {
-  abbyy: "#FF1A1A",
-  parseur: "#1A73E8",
-}
 
 /* ───── Sort order by keyword search traffic ───── */
 const trafficRank: Record<string, number> = {
@@ -165,28 +159,19 @@ export default function ComparePage() {
           {heroLogos.map(({ slug, className, size }) => {
             const logo = getCompetitorLogo(slug)
             if (!logo) return null
-            const bg = brandColors[slug]
             return (
               <div
                 key={slug}
                 className={`absolute animate-float-slow ${className}`}
                 style={{ width: size, height: size }}
               >
-                <div
-                  className="w-full h-full rounded-full shadow-lg flex items-center justify-center"
-                  style={{
-                    backgroundColor: bg ?? "#ffffff",
-                    padding: bg ? size * 0.2 : size * 0.15,
-                  }}
-                >
-                  <Image
-                    src={logo}
-                    alt=""
-                    width={size}
-                    height={size}
-                    className={`object-contain w-full h-full ${bg ? "brightness-0 invert" : ""}`}
-                  />
-                </div>
+                <Image
+                  src={logo}
+                  alt=""
+                  width={size}
+                  height={size}
+                  className="object-contain w-full h-full drop-shadow-md"
+                />
               </div>
             )
           })}
