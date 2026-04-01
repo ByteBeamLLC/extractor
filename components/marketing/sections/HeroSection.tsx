@@ -1,136 +1,191 @@
-import { ArrowRight, FileText, Zap, Sheet, Mail, Webhook, Code } from "lucide-react"
+"use client"
+
+import { useEffect, useState } from "react"
 import Image from "next/image"
+import dynamic from "next/dynamic"
+import { ArrowRight, Play } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { HeroExtraction } from "./HeroExtraction"
-import { Marquee } from "@/components/ui/marquee"
 import { APP_URL } from "@/lib/config"
+import { AdHeroDemo } from "@/components/lp/AdHeroDemo"
 
-const stats = [
-  { value: "50,000+", label: "Documents Processed" },
-  { value: "95%+", label: "Extraction Accuracy" },
-  { value: "5,000+", label: "App Integrations" },
-  { value: "<3s", label: "Average Processing Time" },
-]
+const InteractiveDemo = dynamic(
+  () => import("@/components/marketing/InteractiveDemo").then((m) => m.InteractiveDemo),
+  { ssr: false, loading: () => <div className="h-[420px] rounded-xl border bg-muted/30 animate-pulse" /> }
+)
 
-const integrationItems = [
-  { icon: Sheet, label: "Google Sheets", color: "text-green-600" },
-  { icon: Zap, label: "Zapier", color: "text-orange-500" },
-  { icon: Mail, label: "Gmail", color: "text-red-500" },
-  { icon: Webhook, label: "Webhooks", color: "text-blue-500" },
-  { icon: Code, label: "REST API", color: "text-indigo-500" },
-  { icon: FileText, label: "PDF", color: "text-rose-500" },
-  { icon: Zap, label: "Make", color: "text-purple-500" },
-  { icon: FileText, label: "Word & Excel", color: "text-sky-500" },
+const WORDS = ["Email", "Invoice", "PDF", "Document", "Receipt", "Spreadsheet", "Image"]
+const HOLD_MS = 3000
+const FADE_MS = 400
+
+function RotatingWord() {
+  const [index, setIndex] = useState(0)
+  const [visible, setVisible] = useState(true)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setVisible(false)
+      setTimeout(() => {
+        setIndex((i) => (i + 1) % WORDS.length)
+        setVisible(true)
+      }, FADE_MS)
+    }, HOLD_MS)
+    return () => clearInterval(interval)
+  }, [])
+
+  return (
+    <span className="relative inline-block">
+      <span
+        className={`text-primary transition-all duration-400 inline-block ${
+          visible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2"
+        }`}
+      >
+        {WORDS[index]}
+      </span>
+    </span>
+  )
+}
+
+const logos = [
+  { src: "/logos/carrefour.png", alt: "Carrefour", h: "h-8" },
+  { src: "/logos/dld.png", alt: "Dubai Land Department", h: "h-16" },
+  { src: "/logos/infoquest.png", alt: "InfoQuest", h: "h-8" },
+  { src: "/logos/takhlees.png", alt: "Takhlees Government Services", h: "h-9" },
 ]
 
 export function HeroSection() {
+  const [showDemoModal, setShowDemoModal] = useState(false)
+
+  useEffect(() => {
+    if (showDemoModal) {
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = ""
+    }
+    return () => { document.body.style.overflow = "" }
+  }, [showDemoModal])
+
   return (
-    <section className="relative overflow-hidden pt-20 sm:pt-24 lg:pt-28">
-      {/* Background gradient */}
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute top-0 left-1/4 w-[600px] h-[400px] bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute top-20 right-0 w-[400px] h-[400px] bg-secondary/5 rounded-full blur-3xl" />
-      </div>
-
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* ─── Two-column hero ─── */}
-        <div className="grid lg:grid-cols-[2fr_3fr] gap-8 lg:gap-10 items-center">
-          {/* Left: Copy */}
-          <div className="max-w-xl">
-            <h1 className="text-4xl sm:text-5xl lg:text-[3.25rem] font-bold tracking-tight leading-[1.12] mb-4">
-              Extract Structured Data from{" "}
-              <span className="text-primary">Any Document</span> with AI
-            </h1>
-
-            <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-8">
-              Turn PDFs, invoices, emails, and images into structured fields.
-              Reduce manual entry time by up to 70% and cut processing costs
-              from $15 to under $3 per document. Set up in under 2 minutes.
-            </p>
-
-            {/* CTA */}
-            <Button size="lg" className="text-base px-7 h-11" asChild>
-              <a href={`${APP_URL}/dashboard`}>
-                Get Started Free
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </a>
-            </Button>
-
-            <p className="mt-4 text-sm text-muted-foreground">
-              No credit card required &middot; 30 free pages every month
-            </p>
-          </div>
-
-          {/* Right: Extraction visual */}
-          <div className="relative">
-            <HeroExtraction />
-            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-3/4 h-10 bg-primary/8 blur-2xl rounded-full" />
-          </div>
+    <>
+      <section className="relative overflow-hidden pt-20 sm:pt-24 lg:pt-28">
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute top-0 left-1/4 w-[600px] h-[400px] bg-primary/5 rounded-full blur-3xl" />
+          <div className="absolute top-20 right-0 w-[400px] h-[400px] bg-secondary/5 rounded-full blur-3xl" />
         </div>
 
-        {/* ─── Stats strip ─── */}
-        <div className="mt-10 lg:mt-12 pt-8 border-t">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {stats.map((stat) => (
-              <div key={stat.label} className="text-center">
-                <div className="text-xl sm:text-2xl font-bold text-primary">
-                  {stat.value}
-                </div>
-                <div className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                  {stat.label}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          {/* Two-column hero */}
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            {/* Left: Copy */}
+            <div className="max-w-xl">
+              <h1 className="text-4xl sm:text-5xl lg:text-[3.25rem] font-bold tracking-tight leading-[1.12] mb-4 whitespace-pre-line">
+                {"Extract Data From\nAny "}
+                <RotatingWord />
+                {"\nAutomatically"}
+              </h1>
 
-        {/* ─── Trusted by ─── */}
-        <div className="mt-8 pt-6 border-t">
-          <p className="text-xs text-muted-foreground text-center mb-4">
-            Trusted by leading organizations
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-12">
-            {[
-              { src: "/logos/carrefour.png", alt: "Carrefour", h: "h-8" },
-              { src: "/logos/dld.png", alt: "Dubai Land Department", h: "h-16" },
-              { src: "/logos/infoquest.png", alt: "InfoQuest", h: "h-8" },
-              { src: "/logos/takhlees.png", alt: "Takhlees Government Services", h: "h-9" },
-            ].map((logo) => (
-              <Image
-                key={logo.alt}
-                src={logo.src}
-                alt={logo.alt}
-                width={140}
-                height={40}
-                priority
-                className={`${logo.h} w-auto object-contain opacity-70 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-200`}
-              />
-            ))}
-          </div>
-        </div>
+              <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-8">
+                AI reads your documents, emails, and invoices like a human — and
+                pushes structured data to your apps in seconds. No templates, no
+                rules, no code.
+              </p>
 
-        {/* ─── Integration marquee ─── */}
-        <div className="mt-6 pb-8">
-          <p className="text-xs text-muted-foreground text-center mb-3">
-            Connects with the tools you already use
-          </p>
-          <div className="relative">
-            <Marquee pauseOnHover className="[--duration:30s] [--gap:0.75rem]">
-              {integrationItems.map((item) => (
-                <div
-                  key={item.label}
-                  className="flex items-center gap-2 rounded-full border bg-card px-3 py-1.5 shadow-sm"
+              <div className="flex flex-wrap items-center gap-3">
+                <Button size="lg" className="text-base px-7 h-11" asChild>
+                  <a href={`${APP_URL}/login?mode=signup`}>
+                    Start Free — No Credit Card
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </a>
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="text-base px-6 h-11"
+                  onClick={() => setShowDemoModal(true)}
                 >
-                  <item.icon className={`h-3.5 w-3.5 ${item.color}`} />
-                  <span className="text-xs font-medium whitespace-nowrap">{item.label}</span>
+                  <Play className="mr-2 h-4 w-4" />
+                  See How It Works
+                </Button>
+              </div>
+
+              <p className="mt-4 text-sm text-muted-foreground">
+                Free forever (30 pages/mo). Set up in under 2 minutes.
+              </p>
+            </div>
+
+            {/* Right: Live extraction demo */}
+            <div className="hidden lg:block relative">
+              <AdHeroDemo />
+              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-3/4 h-10 bg-primary/8 blur-2xl rounded-full" />
+            </div>
+          </div>
+
+          {/* Stats strip — outcome focused */}
+          <div className="mt-10 lg:mt-12 pt-8 border-t">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {[
+                { value: "90%", label: "Less Manual Work" },
+                { value: "<3s", label: "To Process Any Document" },
+                { value: "6+ hrs", label: "Saved Per Week" },
+                { value: "$0.08", label: "Per Page (vs $15 Manual)" },
+              ].map((stat) => (
+                <div key={stat.label} className="text-center">
+                  <div className="text-xl sm:text-2xl font-bold text-primary">
+                    {stat.value}
+                  </div>
+                  <div className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                    {stat.label}
+                  </div>
                 </div>
               ))}
-            </Marquee>
-            <div className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-background to-transparent" />
-            <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-background to-transparent" />
+            </div>
+          </div>
+
+          {/* Social proof */}
+          <div className="mt-8 pt-6 border-t pb-8">
+            <p className="text-xs text-muted-foreground text-center mb-4">
+              Trusted by teams in logistics, finance, and e-commerce
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-12">
+              {logos.map((logo) => (
+                <Image
+                  key={logo.alt}
+                  src={logo.src}
+                  alt={logo.alt}
+                  width={140}
+                  height={40}
+                  priority
+                  className={`${logo.h} w-auto object-contain opacity-70 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-200`}
+                />
+              ))}
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      {/* Demo Modal */}
+      {showDemoModal && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Interactive product tour"
+        >
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowDemoModal(false)}
+          />
+          <div className="relative w-full max-w-5xl animate-in zoom-in-95 fade-in duration-200">
+            <button
+              onClick={() => setShowDemoModal(false)}
+              className="absolute -top-10 right-0 sm:-top-2 sm:-right-10 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-md hover:bg-white transition-colors"
+              aria-label="Close tour"
+            >
+              ✕
+            </button>
+            <InteractiveDemo />
+          </div>
+        </div>
+      )}
+    </>
   )
 }
