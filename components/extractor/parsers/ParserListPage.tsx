@@ -89,7 +89,41 @@ export function ParserListPage() {
       if (parsersRes.error) throw parsersRes.error
       const loadedParsers = parsersRes.data ?? []
       setParsers(loadedParsers)
-      setSubscription(subRes.data)
+
+      // Ensure anonymous users have the correct tier
+      let sub = subRes.data
+      const isAnon = session.user.is_anonymous === true
+      if (isAnon && (!sub || sub.tier === "free")) {
+        const ONE_DAY_MS = 24 * 60 * 60 * 1000
+        const anonSub = {
+          tier: "anonymous" as const,
+          credits_free: 5,
+          credits_used: sub?.credits_used ?? 0,
+          max_parsers: 1,
+          credits_reset_at: sub
+            ? sub.credits_reset_at
+            : new Date(Date.now() + ONE_DAY_MS).toISOString(),
+          updated_at: new Date().toISOString(),
+        }
+        if (sub) {
+          await supabase
+            .from("extractor_subscriptions")
+            .update(anonSub)
+            .eq("user_id", session.user.id)
+          sub = { ...sub, ...anonSub }
+        } else {
+          const { data: created } = await supabase
+            .from("extractor_subscriptions")
+            .insert({
+              user_id: session.user.id,
+              ...anonSub,
+            })
+            .select("*")
+            .single()
+          sub = created
+        }
+      }
+      setSubscription(sub)
 
       // Load status breakdowns for all parsers
       if (loadedParsers.length > 0) {
