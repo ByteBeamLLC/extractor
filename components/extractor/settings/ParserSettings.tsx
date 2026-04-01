@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Loader2, Trash2, Copy, Check } from "lucide-react"
+import { Loader2, Trash2, Copy, Check, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { useSupabaseClient } from "@/lib/supabase/hooks"
+import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
 import type { Parser } from "@/lib/extractor/types"
 import { generateInboundEmail } from "@/lib/extractor/inbound-email"
 
@@ -27,6 +27,7 @@ interface ParserSettingsProps {
 }
 
 export function ParserSettings({ parser, onUpdate, onDeleted }: ParserSettingsProps) {
+  const session = useSession()
   const supabase = useSupabaseClient()
   const [name, setName] = useState(parser.name)
   const [description, setDescription] = useState(parser.description ?? "")
@@ -103,10 +104,20 @@ export function ParserSettings({ parser, onUpdate, onDeleted }: ParserSettingsPr
             Forward emails to this address to automatically parse attachments.
           </p>
           <div className="p-3 bg-muted/50 rounded-lg flex items-center justify-between gap-2">
-            <code className="text-sm font-mono">{parser.inbound_email}</code>
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={handleCopyEmail}>
-              {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-            </Button>
+            <code className="text-sm font-mono">
+              {session?.user?.is_anonymous
+                ? `••••••••@${parser.inbound_email.split("@")[1]}`
+                : parser.inbound_email}
+            </code>
+            {session?.user?.is_anonymous ? (
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Lock className="h-3 w-3" /> Sign up to reveal
+              </span>
+            ) : (
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={handleCopyEmail}>
+                {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            )}
           </div>
         </div>
       )}
