@@ -15,7 +15,7 @@ export function CTASection() {
           </div>
 
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
-            Start Extracting Data in Minutes
+            Stop Manual Data Entry Today
           </h2>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-4">
             Companies using document automation see an average{" "}
@@ -24,15 +24,15 @@ export function CTASection() {
             <span className="text-xs text-muted-foreground/70">
               (<cite>Forrester TEI, 2023</cite>)
             </span>
-            . Start free — no credit card required.
+            .
           </p>
           <p className="text-sm text-muted-foreground max-w-lg mx-auto mb-8">
-            30 free pages every month. Set up in under 2 minutes.
+            Free forever up to 30 pages/month. No credit card required. Set up in under 2 minutes.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button size="lg" className="text-base px-8 h-12" asChild>
-              <a href={`${APP_URL}/dashboard`}>
-                Get Started Free
+              <a href={`${APP_URL}/login?mode=signup`}>
+                Start Free — No Credit Card
                 <ArrowRight className="ml-2 h-4 w-4" />
               </a>
             </Button>
@@ -42,7 +42,7 @@ export function CTASection() {
               className="text-base px-8 h-12"
               asChild
             >
-              <Link href="/docs">Read the Docs</Link>
+              <Link href="/pricing">See Pricing</Link>
             </Button>
           </div>
         </div>

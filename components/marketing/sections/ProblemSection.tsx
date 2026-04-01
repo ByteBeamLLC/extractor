@@ -4,27 +4,27 @@ import { SectionWrapper } from "@/components/marketing/shared/SectionWrapper"
 const painPoints = [
   {
     icon: Clock,
-    title: "Hours Wasted on Manual Entry",
+    title: "Hours Lost to Manual Entry",
     stat: "6+ hrs/week",
-    statLabel: "lost to repetitive tasks",
+    statLabel: "spent on repetitive data entry",
     description:
-      "Nearly 60% of workers estimate they could save six or more hours per week if repetitive tasks like data entry were automated.",
-    source: "Smartsheet, 2017",
+      "Teams spend over 6 hours per week typing data from documents into spreadsheets and systems. That's $15,000+ per year in hidden labor costs per employee.",
+    source: "McKinsey Global Institute",
   },
   {
     icon: AlertTriangle,
-    title: "Costly Data Entry Errors",
-    stat: "$15",
-    statLabel: "cost per invoice, manually",
+    title: "Expensive Errors Add Up",
+    stat: "$53",
+    statLabel: "to fix a single data entry mistake",
     description:
-      "Manual invoice processing costs $15 per document on average. A single data entry error can cost up to $53.50 to rectify — and the average error rate is 1 in every 100 entries.",
+      "Manual processing costs $15 per document on average. A single data entry error costs up to $53.50 to rectify — and the average error rate is 1 in every 100 entries.",
     source: "IOFM / Aberdeen Group",
   },
   {
     icon: TrendingDown,
-    title: "Can't Scale Document Processing",
-    stat: "2x",
-    statLabel: "more invoices per FTE with automation",
+    title: "You Can't Hire Your Way Out",
+    stat: "4x",
+    statLabel: "more documents per person with AI",
     description:
       "Automated teams process 23,333 invoices per FTE annually versus 6,082 for manual teams. As volume grows, hiring more people isn't sustainable — automation is.",
     source: "IOFM",
@@ -36,19 +36,11 @@ export function ProblemSection() {
     <SectionWrapper id="problem">
       <div className="text-center mb-14">
         <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
-          Manual Data Entry is Killing Your Productivity
+          Still copying data from documents by hand?
         </h2>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          According to McKinsey, 45% of the activities employees are paid to do
-          can be automated with technologies that already exist. The U.S. Bureau
-          of Labor Statistics projects a{" "}
-          <strong className="text-foreground">25% decline</strong> in data entry
-          jobs by 2032 as automation replaces manual processes{" "}
-          <span className="text-xs text-muted-foreground/70">
-            (<cite>BLS.gov, Occupational Outlook Handbook</cite>)
-          </span>
-          . If you&apos;re still copying data from documents by hand,
-          you&apos;re losing time, money, and accuracy every single day.
+          Every document processed manually costs time, money, and accuracy.
+          Here&apos;s what it&apos;s really costing your team.
         </p>
       </div>
 
