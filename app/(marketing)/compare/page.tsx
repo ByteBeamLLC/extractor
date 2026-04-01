@@ -140,11 +140,19 @@ export default function ComparePage() {
   return (
     <>
       {/* Hero with floating competitor logos */}
-      <section className="relative pt-28 pb-16 sm:pt-36 sm:pb-20 overflow-hidden">
-        {/* Background glow */}
-        <div className="absolute inset-0 -z-20">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-primary/5 rounded-full blur-3xl" />
-        </div>
+      <section className="relative pt-40 pb-20 sm:pt-48 sm:pb-24 overflow-hidden">
+        {/* Dot grid background */}
+        <div
+          className="absolute inset-0 -z-20"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle, rgba(39,130,255,0.15) 1px, transparent 1px)",
+            backgroundSize: "24px 24px",
+          }}
+        />
+        {/* Fade edges of dot grid */}
+        <div className="absolute inset-0 -z-20 bg-gradient-to-b from-background via-transparent to-background" />
+        <div className="absolute inset-0 -z-20 bg-gradient-to-r from-background via-transparent to-background" />
 
         {/* Floating logos — hidden on mobile */}
         <div className="hidden lg:block absolute inset-0 -z-10" aria-hidden="true">
