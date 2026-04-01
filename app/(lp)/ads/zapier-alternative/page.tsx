@@ -35,16 +35,6 @@ const faqs = [
     answer:
       "Yes. Parsli parses both the email body and any PDF, image, or document attachments in a single workflow. Zapier Email Parser only handles the email body text.",
   },
-  {
-    question: "What about pricing compared to Zapier?",
-    answer:
-      "Parsli's Free plan includes 30 pages/month (no credit card required). Paid plans start at $16/month for 250 pages. Zapier's email parser is bundled with Zapier plans starting at $19.99/month — but extraction quality is limited to template matching.",
-  },
-  {
-    question: "Is Parsli compatible with Gmail and Outlook?",
-    answer:
-      "Yes. Set up auto-forwarding from Gmail, Outlook, or any email provider. Emails are processed automatically as they arrive, just like Zapier Email Parser but with AI-powered accuracy.",
-  },
 ]
 
 export default function ZapierAlternativeLandingPage() {
@@ -63,52 +53,38 @@ export default function ZapierAlternativeLandingPage() {
 
       <AdsLandingPage
         page="zapier-alternative"
+        hidePricing
+        useHeroDemo
+        socialProofHeadline="Trusted by teams that outgrew Zapier's email parser"
+        demoSection={{
+          title: "See why teams migrate from Zapier's parser",
+          subtitle: "Click through the full Parsli workflow — AI-powered parsing that never breaks when formats change.",
+        }}
         hero={{
           badge: "Zapier Email Parser Alternative",
-          headline: "Zapier Email Parser Keeps Breaking? There's a Better Way.",
+          headline: "Zapier's Parser\nKeeps {word}\nParsli Doesn't.",
+          rotatingWords: ["Breaking", "Failing", "Missing Data", "Needing Fixes"],
           subheadline:
-            "Parsli uses AI instead of templates. It doesn't break when email formats change, it parses attachments too, and it's 99% accurate. Migrate in under 5 minutes.",
-          ctaText: "Try Parsli Free",
+            "Parsli uses AI instead of templates. It handles format changes automatically, parses attachments too, and hits 99% accuracy. Migrate in under 5 minutes.",
+          ctaText: "Start Free — No Credit Card",
           ctaHref: "/login?mode=signup",
-
-        }}
-        heroAnimation={{
-          docTitle: "SHIPPING NOTIFICATION",
-          docRef: "#SHP-60291",
-          docLines: [
-            "From: shipping@supplier.io",
-            "Tracking: 1Z999AA10123456784",
-            "Carrier: UPS Ground",
-            "ETA: March 31, 2026",
-            "Items: 3 packages",
-          ],
-          docFooterLeft: "via Outlook",
-          docFooterRight: "03/27/2026",
-          fields: [
-            { key: "sender", value: "shipping@supplier.io" },
-            { key: "tracking", value: "1Z999AA10123456784" },
-            { key: "carrier", value: "UPS Ground" },
-            { key: "eta", value: "2026-03-31" },
-            { key: "package_count", value: "3" },
-          ],
+          secondaryCtaText: "See How It Works",
+          trustLine: "Free forever (30 pages/mo). Migrate in under 5 minutes.",
         }}
         stats={[
-          { value: "99%", label: "Extraction Accuracy", icon: "ShieldCheck" },
-          { value: "0", label: "Templates to Build", icon: "RefreshCw" },
-          { value: "<5 min", label: "Migration Time", icon: "Clock" },
-          { value: "$16", label: "Starting Price/mo", icon: "DollarSign" },
+          { value: "99%", label: "vs Zapier's ~75% Accuracy", icon: "ShieldCheck" },
+          { value: "0", label: "Templates To Build Or Maintain", icon: "RefreshCw" },
+          { value: "<5 min", label: "To Migrate From Zapier", icon: "Clock" },
+          { value: "Yes", label: "Parses Attachments (Zapier Can't)", icon: "FileText" },
         ]}
         painPoints={{
-          title: "Why Zapier Email Parser frustrates teams",
+          title: "Sound familiar?",
           subtitle:
-            "If any of these sound familiar, you've outgrown template-based parsing.",
+            "If you've used Zapier's email parser, you've hit these walls.",
           items: [
-            { text: "Parser breaks every time a sender updates their email template — and you have to re-train it manually" },
-            { text: "Highlighting fields in sample emails is tedious and error-prone — one missed click and data is wrong" },
-            { text: "Can't parse PDF or image attachments — you need a separate tool for invoices and receipts" },
-            { text: "Accuracy degrades with email format variations — 70-80% hit rate means constant manual review" },
-            { text: "No way to extract structured data from tables, line items, or nested content in emails" },
-            { text: "Debugging failed parses is painful — no clear error messages, just missing or wrong data" },
+            { text: "Parser breaks every time a sender updates their email template — you spend hours re-training it with new samples" },
+            { text: "Can't parse PDF or image attachments — invoices and receipts need a completely separate workflow" },
+            { text: "Accuracy hovers around 70-80% — you manually review every batch to catch what was missed or wrong" },
           ],
         }}
         howItWorks={{
@@ -134,8 +110,22 @@ export default function ZapierAlternativeLandingPage() {
             },
           ],
         }}
+        testimonials={[
+          {
+            quote: "Zapier's parser broke 3 times in one month when our vendors updated their invoice templates. Parsli has been zero-maintenance for 6 months.",
+            name: "Alex P.",
+            role: "Automation Lead",
+            company: "Logistics Firm",
+          },
+          {
+            quote: "The attachment parsing alone was worth switching. We no longer need a separate workflow for PDF invoices.",
+            name: "Maria S.",
+            role: "Finance Ops",
+            company: "E-commerce Brand",
+          },
+        ]}
         features={{
-          title: "Everything Zapier parser does — and everything it can't",
+          title: "Everything Zapier's parser does — and everything it can't",
           items: [
             {
               title: "AI, Not Templates",
@@ -146,54 +136,33 @@ export default function ZapierAlternativeLandingPage() {
             {
               title: "Attachments Included",
               description:
-                "Parse email body AND PDF/image attachments in one workflow. Invoices, receipts, POs — extracted together.",
+                "Parse email body AND PDF/image attachments in one workflow. Zapier's parser can't touch attachments.",
               icon: "FileText",
             },
             {
-              title: "Works With Zapier",
+              title: "Still Works With Zapier",
               description:
-                "Native Zapier integration. Trigger Zaps when data is extracted. Your existing workflows stay intact.",
+                "Native Zapier integration. Trigger Zaps when data is extracted. Your existing workflows stay intact — just swap the trigger.",
               icon: "Zap",
-            },
-            {
-              title: "5,000+ Integrations",
-              description:
-                "Beyond Zapier: connect via Make, webhooks, REST API, and Google Sheets. Push data anywhere.",
-              icon: "Plug",
-            },
-            {
-              title: "Never Breaks",
-              description:
-                "When senders change email formats, Parsli adapts automatically. No re-training, no downtime, no manual fixes.",
-              icon: "RefreshCw",
-            },
-            {
-              title: "Easy Migration",
-              description:
-                "Redirect email forwarding and swap your Zapier trigger. Full migration in under 5 minutes.",
-              icon: "ArrowRightLeft",
             },
           ],
         }}
         comparison={{
           title: "Parsli vs. Zapier Email Parser",
-          subtitle: "Side-by-side comparison of features that matter.",
           rows: [
             { feature: "Extraction method", them: "Template matching", parsli: "AI (Gemini 2.5 Pro)" },
             { feature: "Accuracy", them: "70-80%", parsli: "99%" },
             { feature: "Parse attachments", them: "No", parsli: "Yes (PDF, images)" },
             { feature: "Format changes", them: "Breaks (re-train)", parsli: "Automatic" },
             { feature: "Table/line item extraction", them: "No", parsli: "Yes" },
-            { feature: "Setup per email type", them: "10-30 min (template)", parsli: "0 min (AI adapts)" },
             { feature: "Zapier integration", them: "Built-in", parsli: "Native integration" },
-            { feature: "Free plan", them: "No (bundled with Zapier)", parsli: "30 pages/mo free" },
           ],
         }}
         faqs={faqs}
         finalCta={{
-          title: "Ready to stop re-training your email parser?",
+          title: "Stop re-training your email parser",
           subtitle:
-            "Switch to AI-powered parsing in under 5 minutes. Free plan included — no credit card required.",
+            "Switch to AI-powered parsing in under 5 minutes. Free forever up to 30 pages/month.",
           ctaText: "Start Free — Migrate in Minutes",
           ctaHref: "/login?mode=signup",
         }}
