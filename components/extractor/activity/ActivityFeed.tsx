@@ -87,12 +87,12 @@ export function ActivityFeed({ parserId }: ActivityFeedProps) {
       <h3 className="text-lg font-semibold">Recent Activity</h3>
 
       <div className="border rounded-lg overflow-hidden">
-        <div className="grid grid-cols-[1fr_100px_100px_80px_120px] gap-2 px-4 py-2 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
+        <div className="grid grid-cols-[1fr_100px] sm:grid-cols-[1fr_100px_100px_80px_120px] gap-2 px-4 py-2 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
           <span>Document</span>
-          <span>Source</span>
+          <span className="hidden sm:block">Source</span>
           <span>Status</span>
-          <span>Credits</span>
-          <span>Processed</span>
+          <span className="hidden sm:block">Credits</span>
+          <span className="hidden sm:block">Processed</span>
         </div>
 
         <div className="divide-y">
@@ -105,14 +105,14 @@ export function ActivityFeed({ parserId }: ActivityFeedProps) {
               <button
                 key={doc.id}
                 onClick={() => setSelectedDoc(selectedDoc?.id === doc.id ? null : doc)}
-                className="w-full grid grid-cols-[1fr_100px_100px_80px_120px] gap-2 px-4 py-3 text-left hover:bg-accent/30 transition-colors items-center"
+                className="w-full grid grid-cols-[1fr_100px] sm:grid-cols-[1fr_100px_100px_80px_120px] gap-2 px-4 py-3 text-left hover:bg-accent/30 transition-colors items-center"
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                   <span className="text-sm truncate">{doc.file_name}</span>
                 </div>
 
-                <div className="flex items-center gap-1.5">
+                <div className="hidden sm:flex items-center gap-1.5">
                   <SourceIcon className="h-3.5 w-3.5 text-muted-foreground" />
                   <span className="text-xs capitalize">{doc.source_type}</span>
                 </div>
@@ -122,11 +122,11 @@ export function ActivityFeed({ parserId }: ActivityFeedProps) {
                   {doc.status}
                 </Badge>
 
-                <span className="text-xs text-muted-foreground">
+                <span className="hidden sm:block text-xs text-muted-foreground">
                   {doc.credits_used} pg{doc.credits_used !== 1 ? "s" : ""}
                 </span>
 
-                <span className="text-xs text-muted-foreground">
+                <span className="hidden sm:block text-xs text-muted-foreground">
                   {doc.processed_at
                     ? formatDistanceToNow(new Date(doc.processed_at), { addSuffix: true })
                     : "—"}

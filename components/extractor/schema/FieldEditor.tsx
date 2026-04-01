@@ -109,7 +109,7 @@ export function FieldEditor({ field, onSave, onCancel }: FieldEditorProps) {
 
   return (
     <div className="border rounded-lg p-4 bg-card space-y-3">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label className="text-xs">Field Name</Label>
           <Input
@@ -166,7 +166,7 @@ export function FieldEditor({ field, onSave, onCancel }: FieldEditorProps) {
         </div>
       )}
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <Switch checked={required} onCheckedChange={setRequired} />
           <Label className="text-xs">Required</Label>

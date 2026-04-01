@@ -180,12 +180,12 @@ export function ApiKeyManager({ parser }: ApiKeyManagerProps) {
       {/* API Usage Example */}
       <div className="space-y-3">
         <h3 className="text-lg font-semibold">Quick Start</h3>
-        <div className="bg-muted/50 rounded-lg p-4 font-mono text-xs space-y-1 overflow-x-auto">
-          <p className="text-muted-foreground"># Extract data from a document</p>
-          <p>curl -X POST {baseUrl}/api/v1/extract \</p>
-          <p className="pl-4">-H &quot;Authorization: Bearer ext_YOUR_API_KEY&quot; \</p>
-          <p className="pl-4">-H &quot;Content-Type: application/json&quot; \</p>
-          <p className="pl-4">-d &apos;{`{"file":{"name":"invoice.pdf","type":"application/pdf","data":"BASE64_DATA"}}`}&apos;</p>
+        <div className="bg-muted/50 rounded-lg p-4 overflow-x-auto">
+          <pre className="font-mono text-xs whitespace-pre">{`# Extract data from a document
+curl -X POST ${baseUrl}/api/v1/extract \\
+    -H "Authorization: Bearer ext_YOUR_API_KEY" \\
+    -H "Content-Type: application/json" \\
+    -d '{"file":{"name":"invoice.pdf","type":"application/pdf","data":"BASE64_DATA"}}'`}</pre>
         </div>
       </div>
 
