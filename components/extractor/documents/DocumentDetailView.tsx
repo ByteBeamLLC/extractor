@@ -185,7 +185,7 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
             <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
             <h1 className="text-sm font-semibold truncate">{doc.file_name}</h1>
           </div>
-          <div className="flex items-center gap-4 mt-0.5 text-xs text-muted-foreground">
+          <div className="flex items-center gap-4 mt-0.5 text-xs text-muted-foreground flex-wrap">
             <span className="flex items-center gap-1">
               <SourceIcon className="h-3 w-3" />
               {doc.source_type}
@@ -206,9 +206,9 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
       </div>
 
       {/* Side-by-side content */}
-      <div className="flex-1 flex min-h-0">
+      <div className="flex-1 flex flex-col md:flex-row min-h-0">
         {/* Left: Document preview */}
-        <div className="mp-block w-1/2 border-r flex flex-col bg-muted/30 min-h-0">
+        <div className="mp-block w-full md:w-1/2 border-b md:border-b-0 md:border-r flex flex-col bg-muted/30 min-h-0 h-[40vh] md:h-auto">
           <div className="px-4 py-2 border-b bg-card flex items-center justify-between shrink-0">
             <span className="text-xs font-medium text-muted-foreground">Document Preview</span>
             {fileUrl && (
@@ -272,9 +272,9 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
         </div>
 
         {/* Right: Extraction results */}
-        <div className="w-1/2 flex flex-col min-h-0">
+        <div className="w-full md:w-1/2 flex flex-col min-h-0">
           {/* Actions bar */}
-          <div className="px-4 py-2 border-b bg-card flex items-center justify-between shrink-0">
+          <div className="px-4 py-2 border-b bg-card flex items-center justify-between shrink-0 gap-2 flex-wrap">
             <Tabs value={tab} onValueChange={(v) => setTab(v as "data" | "fields")}>
               <TabsList className="h-8">
                 <TabsTrigger value="data" className="text-xs h-7">Data</TabsTrigger>
@@ -292,7 +292,7 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
                 disabled={reprocessing || !fileUrl}
               >
                 <RotateCcw className={`h-3 w-3 mr-1 ${reprocessing ? "animate-spin" : ""}`} />
-                {reprocessing ? "Reprocessing..." : "Reprocess"}
+                <span className="hidden sm:inline">{reprocessing ? "Reprocessing..." : "Reprocess"}</span>
               </Button>
               <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleCopyJson} disabled={!displayResults}>
                 {copied ? (
@@ -300,7 +300,7 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
                 ) : (
                   <Copy className="h-3 w-3 mr-1" />
                 )}
-                {copied ? "Copied" : "Copy JSON"}
+                <span className="hidden sm:inline">{copied ? "Copied" : "Copy JSON"}</span>
               </Button>
             </div>
           </div>

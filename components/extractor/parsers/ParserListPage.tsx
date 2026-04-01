@@ -300,14 +300,14 @@ export function ParserListPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-bold">Parsers</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Create parsers to extract structured data from your documents
           </p>
         </div>
-        <Button onClick={handleCreateParser}>
+        <Button onClick={handleCreateParser} className="shrink-0 self-start sm:self-auto">
           <Plus className="h-4 w-4 mr-2" />
           New Parser
         </Button>
@@ -330,8 +330,8 @@ export function ParserListPage() {
 
       {/* Search + Sort */}
       {parsers.length > 0 && (
-        <div className="flex items-center gap-3 mb-6">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex flex-wrap items-center gap-3 mb-6">
+          <div className="relative flex-1 min-w-[180px] max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search parsers..."
@@ -341,7 +341,7 @@ export function ParserListPage() {
             />
           </div>
           <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <ArrowUpDown className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
               <SelectValue />
             </SelectTrigger>

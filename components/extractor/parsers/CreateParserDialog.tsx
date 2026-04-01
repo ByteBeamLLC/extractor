@@ -139,7 +139,7 @@ export function CreateParserDialog({ open, onOpenChange, onCreated }: CreatePars
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <div className="space-y-4 py-2 overflow-y-auto max-h-[60vh]">
           {/* Extraction type selection */}
           <div className="grid grid-cols-2 gap-3">
             <button
