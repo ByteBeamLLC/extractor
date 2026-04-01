@@ -98,7 +98,7 @@ export async function POST(
   const pageCount = await countDocumentPages(new Uint8Array(fileBuffer), fileData.name, fileData.type)
 
   // Check credits (with automatic reset if period elapsed)
-  const { allowed, reason } = await checkCredits(user.id, pageCount, supabase)
+  const { allowed, reason } = await checkCredits(user.id, pageCount, supabase, user.is_anonymous === true)
   if (!allowed) {
     return NextResponse.json(
       { error: reason || "Monthly credit limit reached. Upgrade your plan for more pages." },

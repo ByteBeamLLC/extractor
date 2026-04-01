@@ -7,6 +7,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { ActiveParserProvider } from "@/components/extractor/parser-context"
 import { TourProvider } from "@/components/tour/TourProvider"
 import { AnalyticsIdentifier } from "@/components/providers/AnalyticsIdentifier"
+import { AnonymousAuthGuard } from "@/components/auth/AnonymousAuthGuard"
 import {
   SidebarProvider,
   SidebarInset,
@@ -31,6 +32,7 @@ export default async function AppLayout({
       <SupabaseProvider initialSession={session}>
         <AnalyticsIdentifier />
         <AuthDialogProvider>
+          <AnonymousAuthGuard>
           <ActiveParserProvider>
             <TourProvider>
               <SidebarProvider defaultOpen={defaultOpen}>
@@ -44,6 +46,7 @@ export default async function AppLayout({
               </SidebarProvider>
             </TourProvider>
           </ActiveParserProvider>
+          </AnonymousAuthGuard>
         </AuthDialogProvider>
       </SupabaseProvider>
     </GlobalErrorBoundary>

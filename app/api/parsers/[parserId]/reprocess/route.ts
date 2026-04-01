@@ -99,7 +99,7 @@ export async function POST(
   const pageCount = await countDocumentPages(fileBytes, d.file_name, d.mime_type)
 
   // Check credits
-  const { allowed, reason } = await checkCredits(user.id, pageCount, supabase)
+  const { allowed, reason } = await checkCredits(user.id, pageCount, supabase, user.is_anonymous === true)
   if (!allowed) {
     return NextResponse.json(
       { error: reason || "Monthly credit limit reached." },

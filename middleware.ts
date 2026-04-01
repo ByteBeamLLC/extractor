@@ -79,15 +79,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL(pathname, siteUrl))
     }
 
-    // Protected route without session → show login page on app subdomain
-    if (isProtected && !session) {
-      const loginUrl = new URL("/login", request.url)
-      // Preserve query params (e.g. ?template=invoice-parsing) in redirect
-      const search = request.nextUrl.search
-      loginUrl.searchParams.set("next", pathname + search)
-      return NextResponse.redirect(loginUrl)
-    }
-
+    // Let unauthenticated users through — AnonymousAuthGuard will create a session client-side
     return res
   }
 
@@ -104,13 +96,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // ─── Development / fallback (localhost) ───
-  if (isProtected && !session) {
-    const redirectUrl = new URL("/login", request.url)
-    const search = request.nextUrl.search
-    redirectUrl.searchParams.set("next", pathname + search)
-    return NextResponse.redirect(redirectUrl)
-  }
-
+  // Let unauthenticated users through — AnonymousAuthGuard will create a session client-side
   return res
 }
 

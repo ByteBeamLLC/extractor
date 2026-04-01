@@ -2,6 +2,7 @@
 
 import { useActiveParser } from "@/components/extractor/parser-context"
 import { ApiKeyManager } from "@/components/extractor/api/ApiKeyManager"
+import { SignUpGate } from "@/components/auth/SignUpGate"
 
 export default function ApiPage() {
   const { parser } = useActiveParser()
@@ -14,7 +15,9 @@ export default function ApiPage() {
           Use API keys to submit documents programmatically.
         </p>
       </div>
-      <ApiKeyManager parser={parser} />
+      <SignUpGate feature="API Access">
+        <ApiKeyManager parser={parser} />
+      </SignUpGate>
     </div>
   )
 }
