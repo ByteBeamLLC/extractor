@@ -1,0 +1,39 @@
+/** Maps competitor slug → logo path under /logos/competitors/ */
+const logoMap: Record<string, string> = {
+  parseur: "/logos/competitors/parseur.svg",
+  docparser: "/logos/competitors/docparser.svg",
+  nanonets: "/logos/competitors/nanonets.png",
+  upstage: "/logos/competitors/upstage.png",
+  parsio: "/logos/competitors/parsio.webp",
+  docsumo: "/logos/competitors/docsumo.svg",
+  rossum: "/logos/competitors/rossum.png",
+  klippa: "/logos/competitors/klippa.avif",
+  "base64ai": "/logos/competitors/base64ai.webp",
+  textract: "/logos/competitors/textract.png",
+  "google-document-ai": "/logos/competitors/google-document-ai.jpg",
+  "azure-document-intelligence": "/logos/competitors/azure-document-intelligence.svg",
+  mailparser: "/logos/competitors/mailparser.svg",
+  abbyy: "/logos/competitors/abbyy.webp",
+  llamaparse: "/logos/competitors/llamaparse.png",
+  "landing-ai": "/logos/competitors/landing-ai.webp",
+  "pulse-ai": "/logos/competitors/pulse-ai.avif",
+  "cradl-ai": "/logos/competitors/cradl-ai.png",
+  airparser: "/logos/competitors/airparser.png",
+  mindee: "/logos/competitors/mindee.svg",
+  reducto: "/logos/competitors/reducto.png",
+  sensible: "/logos/competitors/sensible.png",
+  uipath: "/logos/competitors/uipath.png",
+  hyperscience: "/logos/competitors/hyperscience.png",
+  veryfi: "/logos/competitors/veryfi.avif",
+  unstructured: "/logos/competitors/unstructured.png",
+  "v7-labs": "/logos/competitors/v7-labs.avif",
+  "extend-ai": "/logos/competitors/extend-ai.png",
+  unstract: "/logos/competitors/unstract.webp",
+  affinda: "/logos/competitors/affinda.webp",
+  matil: "/logos/competitors/matil.svg",
+  docuclipper: "/logos/competitors/docuclipper.webp",
+}
+
+export function getCompetitorLogo(slug: string): string | null {
+  return logoMap[slug] ?? null
+}

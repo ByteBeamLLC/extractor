@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   id="eIdgBlUNjWF1"
+   viewBox="0 0 770 300"
+   shape-rendering="geometricPrecision"
+   text-rendering="geometricPrecision"
+   xmlns="http://www.w3.org/2000/svg">
+  <path
+     d="M92.10935,133.393257L40,162.585955v-59.190968L169.9,28.395l129.9,75.000004v59.502123l-51.81065-29.503853v0l-77.94-45.001735-77.94,45.001735M299.8,180.216624v73.178372c-50.693077,3.276341-116.131102,41.29125-129.9,75.000004-19.17686-33.437731-84.217045-70.837138-129.9-75.000004v-73.489457l52.10935-29.184904v72.676108c27.409766,2.497807,66.433891,24.938314,77.94,45.001735c8.261329-20.226022,47.524158-43.035861,77.94-45.001735v-72.676108L299.8,180.216624Z"
+     fill="#fafafa"
+     stroke-width="0"
+     transform="translate(-19.9-28.395)" />
+  <text
+     dx="0"
+     dy="0"
+     font-family="Montserrat, sans-serif"
+     font-size="170"
+     font-weight="700"
+     transform="translate(344.006868 203.956307)"
+     fill="#fafafa"
+     stroke-width="0"
+     shape-rendering="geometricPrecision">matil</text>
+  <style><![CDATA[
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap');
+  ]]></style>
+</svg>
