@@ -3,6 +3,11 @@ export type AnalyticsEventMap = {
   sign_up_completed: {
     user_id: string
     email: string
+    source: "login_page" | "auth_dialog" | "anonymous_conversion" | "google_oauth"
+  }
+  anonymous_converted: {
+    user_id: string
+    email: string
     source: "login_page" | "auth_dialog"
   }
   demo_started: { step_id: string }
