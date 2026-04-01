@@ -40,17 +40,17 @@ export const metadata: Metadata = {
 }
 
 /* ───── Floating hero logos ───── */
-const heroLogos: { slug: string; className: string }[] = [
-  { slug: "parseur", className: "top-12 left-[6%] h-11 w-11" },
-  { slug: "nanonets", className: "top-6 left-[22%] h-10 w-10" },
-  { slug: "docparser", className: "top-20 right-[8%] h-10 w-10" },
-  { slug: "abbyy", className: "top-8 right-[22%] h-11 w-11" },
-  { slug: "google-document-ai", className: "bottom-24 left-[10%] h-10 w-10" },
-  { slug: "uipath", className: "bottom-16 left-[24%] h-9 w-9" },
-  { slug: "textract", className: "bottom-20 right-[10%] h-11 w-11" },
-  { slug: "rossum", className: "bottom-12 right-[24%] h-10 w-10" },
-  { slug: "mindee", className: "top-1/2 left-[4%] h-9 w-9 -translate-y-1/2" },
-  { slug: "docsumo", className: "top-1/2 right-[4%] h-9 w-9 -translate-y-1/2" },
+const heroLogos: { slug: string; className: string; imgSize: number }[] = [
+  { slug: "parseur", className: "top-20 left-[12%] h-16 w-16", imgSize: 36 },
+  { slug: "nanonets", className: "top-10 left-[28%] h-14 w-14", imgSize: 30 },
+  { slug: "docparser", className: "top-14 right-[12%] h-16 w-16", imgSize: 36 },
+  { slug: "abbyy", className: "top-8 right-[28%] h-14 w-14", imgSize: 30 },
+  { slug: "google-document-ai", className: "bottom-28 left-[14%] h-16 w-16", imgSize: 36 },
+  { slug: "uipath", className: "bottom-16 left-[28%] h-14 w-14", imgSize: 30 },
+  { slug: "textract", className: "bottom-24 right-[14%] h-16 w-16", imgSize: 36 },
+  { slug: "rossum", className: "bottom-14 right-[28%] h-14 w-14", imgSize: 30 },
+  { slug: "mindee", className: "top-[45%] left-[8%] h-14 w-14 -translate-y-1/2", imgSize: 30 },
+  { slug: "docsumo", className: "top-[45%] right-[8%] h-14 w-14 -translate-y-1/2", imgSize: 30 },
 ]
 
 /* ───── Pre-compute card data ───── */
@@ -85,20 +85,20 @@ export default function ComparePage() {
 
         {/* Floating logos — hidden on mobile */}
         <div className="hidden lg:block absolute inset-0 -z-10" aria-hidden="true">
-          {heroLogos.map(({ slug, className }) => {
+          {heroLogos.map(({ slug, className, imgSize }) => {
             const logo = getCompetitorLogo(slug)
             if (!logo) return null
             return (
               <div
                 key={slug}
-                className={`absolute rounded-2xl border bg-white/80 backdrop-blur-sm shadow-sm flex items-center justify-center animate-float-slow ${className}`}
+                className={`absolute rounded-2xl border bg-white shadow-md flex items-center justify-center animate-float-slow ${className}`}
               >
                 <Image
                   src={logo}
                   alt=""
-                  width={24}
-                  height={24}
-                  className="object-contain opacity-60"
+                  width={imgSize}
+                  height={imgSize}
+                  className="object-contain"
                 />
               </div>
             )
