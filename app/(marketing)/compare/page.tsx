@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { AuthButton } from "@/components/marketing/shared/AuthButton"
+import { DemoModalButton } from "@/components/marketing/DemoModalButton"
 import { alternatives } from "@/lib/seo/alternatives"
 import { getCompetitorLogo } from "@/lib/seo/competitor-logos"
 import {
@@ -192,20 +193,9 @@ export default function ComparePage() {
             <AuthButton href="/login" className="text-base px-8 h-12" showArrow>
               Try free — 30 pages/mo
             </AuthButton>
-            <Button
-              variant="outline"
-              size="lg"
-              className="text-base px-8 h-12"
-              asChild
-            >
-              <a
-                href="https://calendly.com/talal-bytebeam/parsli-discovery-call"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Book a demo
-              </a>
-            </Button>
+            <DemoModalButton className="text-base px-8 h-12">
+              See How It Works
+            </DemoModalButton>
           </div>
         </div>
       </section>
