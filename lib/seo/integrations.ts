@@ -14,7 +14,7 @@ export const integrations: IntegrationData[] = [
   {
     slug: "google-sheets",
     name: "Google Sheets",
-    metaTitle: "Parsli + Google Sheets Integration - Auto-Fill Spreadsheets with Extracted Data",
+    metaTitle: "Google Sheets Integration — Auto-Fill Data",
     metaDescription:
       "Send extracted document data directly to Google Sheets. Auto-refresh with IMPORTDATA formula. No code, no manual entry. PDF to Google Sheets automatically.",
     h1: "Google Sheets Integration",
@@ -42,7 +42,7 @@ export const integrations: IntegrationData[] = [
   {
     slug: "zapier",
     name: "Zapier",
-    metaTitle: "Parsli + Zapier Integration - Connect Document Parsing to 5,000+ Apps",
+    metaTitle: "Parsli + Zapier — Connect to 5,000+ Apps",
     metaDescription:
       "Connect Parsli to 5,000+ apps with Zapier. Auto-send extracted document data to CRMs, spreadsheets, databases, and more. No code required.",
     h1: "Zapier Integration",
@@ -70,7 +70,7 @@ export const integrations: IntegrationData[] = [
   {
     slug: "make",
     name: "Make",
-    metaTitle: "Parsli + Make (Integromat) Integration - Visual Document Automation",
+    metaTitle: "Parsli + Make (Integromat) Integration",
     metaDescription:
       "Connect Parsli to Make (formerly Integromat) for powerful visual document processing automation. Send extracted data to any Make scenario via webhooks.",
     h1: "Make (Integromat) Integration",
@@ -98,7 +98,7 @@ export const integrations: IntegrationData[] = [
   {
     slug: "gmail",
     name: "Gmail",
-    metaTitle: "Parsli + Gmail Integration - Auto-Extract Data from Email Attachments",
+    metaTitle: "Parsli + Gmail — Extract Email Attachments",
     metaDescription:
       "Automatically extract data from Gmail email attachments. Connect your inbox and process invoices, receipts, and documents as they arrive. Read-only access.",
     h1: "Gmail Inbox Automation",
@@ -126,7 +126,7 @@ export const integrations: IntegrationData[] = [
   {
     slug: "webhooks",
     name: "Webhooks",
-    metaTitle: "Parsli Webhook Integration - Send & Receive Documents via HTTP",
+    metaTitle: "Parsli Webhooks — Send & Receive Docs",
     metaDescription:
       "Inbound webhooks to submit documents, outbound webhooks to receive extracted data. Connect Parsli to any HTTP endpoint. Bearer token and basic auth supported.",
     h1: "Webhook Integration",

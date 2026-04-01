@@ -14,13 +14,28 @@ export async function GET(request: Request) {
     const supabase = createRouteHandlerClient<Database>({ cookies })
     const { data } = await supabase.auth.exchangeCodeForSession(code)
 
-    // Track email confirmation (critical funnel event — server-side for reliability)
     if (data?.user) {
-      trackServerEvent("email_confirmed", {
-        distinct_id: data.user.id,
-        user_id: data.user.id,
-        email: data.user.email ?? "",
-      })
+      const isOAuth = data.user.app_metadata?.provider !== "email"
+      const isNewUser =
+        data.user.created_at &&
+        Date.now() - new Date(data.user.created_at).getTime() < 60_000
+
+      if (isOAuth && isNewUser) {
+        // Track OAuth signup (Google, etc.)
+        trackServerEvent("sign_up_completed", {
+          distinct_id: data.user.id,
+          user_id: data.user.id,
+          email: data.user.email ?? "",
+          source: "google_oauth",
+        })
+      } else if (!isOAuth) {
+        // Track email confirmation (critical funnel event — server-side for reliability)
+        trackServerEvent("email_confirmed", {
+          distinct_id: data.user.id,
+          user_id: data.user.id,
+          email: data.user.email ?? "",
+        })
+      }
     }
   }
 

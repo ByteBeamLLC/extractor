@@ -1,5 +1,5 @@
 ---
-title: "How to Extract Invoice Data to Excel (Without Retyping Everything)"
+title: "Extract Invoice Data to Excel Automatically"
 description: "Stop manually copying invoices into spreadsheets. Learn 4 methods to extract invoice data to Excel — from free tools to full automation — with real cost comparisons."
 slug: "extract-invoice-data-to-excel"
 type: "blog"

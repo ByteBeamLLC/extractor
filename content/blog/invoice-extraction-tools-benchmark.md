@@ -1,5 +1,5 @@
 ---
-title: "We Tested 6 Invoice Extraction Tools on 100 Real Invoices: Here Are the Results"
+title: "6 Invoice Extraction Tools Tested on 100 Invoices"
 description: "A side-by-side benchmark of Parsli, Nanonets, ABBYY Vantage, Google Document AI, Rossum, and Docparser across 100 real invoices — with field-level accuracy, speed, and cost-per-invoice numbers."
 slug: "invoice-extraction-tools-benchmark"
 type: "blog"

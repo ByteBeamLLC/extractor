@@ -69,7 +69,7 @@ export default function ZapierAlternativeLandingPage() {
           subheadline:
             "Parsli uses AI instead of templates. It doesn't break when email formats change, it parses attachments too, and it's 99% accurate. Migrate in under 5 minutes.",
           ctaText: "Try Parsli Free",
-          ctaHref: "/login",
+          ctaHref: "/login?mode=signup",
 
         }}
         heroAnimation={{
@@ -195,7 +195,7 @@ export default function ZapierAlternativeLandingPage() {
           subtitle:
             "Switch to AI-powered parsing in under 5 minutes. Free plan included — no credit card required.",
           ctaText: "Start Free — Migrate in Minutes",
-          ctaHref: "/login",
+          ctaHref: "/login?mode=signup",
         }}
       />
     </>

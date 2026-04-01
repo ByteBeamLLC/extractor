@@ -30,7 +30,7 @@ import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld"
 
 export const metadata: Metadata = {
-  title: "Image to Text (OCR) — Free, Instant, No Sign-Up | Parsli",
+  title: "Image to Text (OCR) — Free, Instant, No Sign-Up",
   description:
     "Extract text from images instantly using OCR in your browser. Free, no sign-up, no file uploads to servers. Supports JPG, PNG, GIF, BMP, WebP and 12 languages.",
   keywords: [

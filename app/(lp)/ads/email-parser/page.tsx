@@ -66,7 +66,7 @@ export default function EmailParserLandingPage() {
           subheadline:
             "Stop copy-pasting data from emails. Parsli's AI reads invoices, orders, and leads from your inbox and pushes structured data to your apps. 99% accuracy. No code. Set up in 2 minutes.",
           ctaText: "Start Free — 30 Pages/Month",
-          ctaHref: "/login",
+          ctaHref: "/login?mode=signup",
 
         }}
         heroAnimation={{
@@ -190,7 +190,7 @@ export default function EmailParserLandingPage() {
           subtitle:
             "Join thousands of teams that automated email processing with Parsli. Free forever up to 30 pages/month.",
           ctaText: "Start Free — No Credit Card",
-          ctaHref: "/login",
+          ctaHref: "/login?mode=signup",
         }}
       />
     </>

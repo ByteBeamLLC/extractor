@@ -39,7 +39,7 @@ import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld"
 
 export const metadata: Metadata = {
-  title: "Handwriting to Text Converter Online Free — AI-Powered | Parsli",
+  title: "Handwriting to Text — Free AI Converter",
   description:
     "Convert handwriting to text instantly with AI. Upload a photo, scan handwritten notes, cursive, or messy writing — get editable text in seconds. 100% free, no sign-up.",
   keywords: [
@@ -63,7 +63,7 @@ export const metadata: Metadata = {
     canonical: "https://parsli.co/tools/handwriting-to-text",
   },
   openGraph: {
-    title: "Handwriting to Text Converter — Free AI-Powered, No Sign-Up",
+    title: "Handwriting to Text — Free AI Converter",
     description:
       "Convert handwriting to text instantly with AI. Scan handwritten notes, cursive, or messy writing. Free, no sign-up.",
     url: "https://parsli.co/tools/handwriting-to-text",

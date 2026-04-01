@@ -29,7 +29,7 @@ import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld"
 
 export const metadata: Metadata = {
-  title: "Free PDF Table Extractor — Extract Tables from PDFs Online | Parsli",
+  title: "Free PDF Table Extractor — Online Tool",
   description:
     "Extract table data from PDFs instantly in your browser. Free, no sign-up, no file uploads to servers. Supports text-based and scanned PDFs. For structured table extraction, try Parsli AI.",
   keywords: [
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
     canonical: "https://parsli.co/tools/pdf-table-extractor",
   },
   openGraph: {
-    title: "Free PDF Table Extractor — Extract Tables from PDFs Online",
+    title: "Free PDF Table Extractor — Online Tool",
     description:
       "Extract table data from PDFs instantly in your browser. Free forever, no sign-up required, your data never leaves your device.",
     url: "https://parsli.co/tools/pdf-table-extractor",

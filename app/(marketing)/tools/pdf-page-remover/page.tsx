@@ -27,7 +27,7 @@ import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld"
 
 export const metadata: Metadata = {
-  title: "PDF Page Remover — Delete Pages from PDF Free | Parsli",
+  title: "PDF Page Remover — Delete Pages from PDF Free",
   description:
     "Remove pages from PDF files instantly in your browser. Delete unwanted pages, keep what you need. Free, no sign-up, no file uploads to servers.",
   keywords: [

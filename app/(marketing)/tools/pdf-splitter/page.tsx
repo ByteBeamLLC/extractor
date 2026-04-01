@@ -28,7 +28,7 @@ import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld"
 
 export const metadata: Metadata = {
-  title: "Split PDF — Free, Instant, No Sign-Up | Parsli",
+  title: "Split PDF — Free, Instant, No Sign-Up",
   description:
     "Split PDF files into individual pages or extract page ranges instantly in your browser. Free, no sign-up, no file uploads to servers. Download as a ZIP file.",
   keywords: [

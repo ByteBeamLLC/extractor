@@ -29,7 +29,7 @@ import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld"
 
 export const metadata: Metadata = {
-  title: "Screenshot to Text — Free OCR, Instant, No Sign-Up | Parsli",
+  title: "Screenshot to Text — Free OCR, Instant, No Sign-Up",
   description:
     "Extract text from screenshots instantly using OCR in your browser. Free, no sign-up, no file uploads to servers. Copy text from any screenshot in seconds.",
   keywords: [

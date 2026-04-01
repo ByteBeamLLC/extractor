@@ -24,7 +24,7 @@ import { breadcrumbJsonLd, faqJsonLd } from "@/lib/seo/json-ld"
 
 export const metadata: Metadata = {
   title:
-    "Document Automation for Columbus, Ohio 3PLs & Logistics Companies | Parsli",
+    "Document Automation for Columbus, OH 3PLs",
   description:
     "Automate BOL and freight invoice processing for Columbus 3PLs. AI-powered document extraction built for the I-70/I-71 logistics corridor. Handles faded thermal prints. Start free.",
   keywords: [
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
     canonical: "https://parsli.co/columbus",
   },
   openGraph: {
-    title: "Document Automation for Columbus, Ohio 3PLs & Logistics Companies",
+    title: "Document Automation for Columbus, OH 3PLs",
     description:
       "Automate BOL and freight invoice processing for Columbus 3PLs. AI extraction built for the I-70/I-71 logistics corridor.",
     url: "https://parsli.co/columbus",

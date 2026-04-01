@@ -29,7 +29,7 @@ import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld"
 
 export const metadata: Metadata = {
-  title: "PDF to Excel Converter — Free, Instant, No Sign-Up | Parsli",
+  title: "PDF to Excel Converter — Free, Instant, No Sign-Up",
   description:
     "Convert PDF tables to Excel (.xlsx) instantly in your browser. Free, no sign-up, no file uploads to servers. Your data stays private. Works with invoices, bank statements, reports, and more.",
   keywords: [

@@ -28,7 +28,7 @@ import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld"
 
 export const metadata: Metadata = {
-  title: "Free Invoice Parser — Extract Text from Invoices Online | Parsli",
+  title: "Free Invoice Parser — Extract Data Online",
   description:
     "Extract text from invoices instantly in your browser. Free, no sign-up, no file uploads to servers. Supports PDF and image invoices. For structured data extraction, try Parsli AI.",
   keywords: [
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     canonical: "https://parsli.co/tools/invoice-parser",
   },
   openGraph: {
-    title: "Free Invoice Parser — Extract Text from Invoices Online",
+    title: "Free Invoice Parser — Extract Data Online",
     description:
       "Extract text from invoices instantly in your browser. Free forever, no sign-up required, your data never leaves your device.",
     url: "https://parsli.co/tools/invoice-parser",
