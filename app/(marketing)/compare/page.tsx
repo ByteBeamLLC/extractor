@@ -39,25 +39,31 @@ export const metadata: Metadata = {
   },
 }
 
-/* ───── Floating hero logos — ordered by keyword traffic ───── */
+/* ───── Floating hero logos — ordered by keyword traffic, ~20% bigger ───── */
 const heroLogos: { slug: string; className: string; size: number }[] = [
   // Top traffic — largest & most prominent positions
-  { slug: "abbyy", className: "top-12 left-[7%]", size: 72 },           // 12,220/mo
-  { slug: "unstructured", className: "top-8 right-[7%]", size: 68 },    // 10,300/mo
-  { slug: "google-document-ai", className: "bottom-16 left-[8%]", size: 68 }, // 3,210/mo
-  { slug: "landing-ai", className: "bottom-20 right-[8%]", size: 64 },  // 2,900/mo
+  { slug: "abbyy", className: "top-12 left-[7%]", size: 86 },           // 12,220/mo
+  { slug: "unstructured", className: "top-8 right-[7%]", size: 82 },    // 10,300/mo
+  { slug: "google-document-ai", className: "bottom-16 left-[8%]", size: 82 }, // 3,210/mo
+  { slug: "landing-ai", className: "bottom-20 right-[8%]", size: 78 },  // 2,900/mo
   // High traffic — large
-  { slug: "docparser", className: "top-6 left-[24%]", size: 56 },       // 1,500/mo
-  { slug: "parseur", className: "top-10 right-[22%]", size: 56 },       // 1,380/mo
+  { slug: "docparser", className: "top-6 left-[24%]", size: 68 },       // 1,500/mo
+  { slug: "parseur", className: "top-10 right-[22%]", size: 68 },       // 1,380/mo
   // Medium traffic
-  { slug: "pulse-ai", className: "top-[44%] left-[5%] -translate-y-1/2", size: 48 }, // 880/mo
-  { slug: "mailparser", className: "top-[44%] right-[5%] -translate-y-1/2", size: 48 }, // 520/mo
-  { slug: "nanonets", className: "bottom-28 left-[24%]", size: 48 },    // 430/mo
-  { slug: "upstage", className: "bottom-24 right-[22%]", size: 44 },    // 260/mo
+  { slug: "pulse-ai", className: "top-[44%] left-[5%] -translate-y-1/2", size: 58 }, // 880/mo
+  { slug: "mailparser", className: "top-[44%] right-[5%] -translate-y-1/2", size: 58 }, // 520/mo
+  { slug: "nanonets", className: "bottom-28 left-[24%]", size: 58 },    // 430/mo
+  { slug: "upstage", className: "bottom-24 right-[22%]", size: 54 },    // 260/mo
   // Lower traffic — smaller
-  { slug: "klippa", className: "top-[62%] left-[16%]", size: 40 },
-  { slug: "mindee", className: "top-[58%] right-[16%]", size: 40 },
+  { slug: "klippa", className: "top-[62%] left-[16%]", size: 48 },
+  { slug: "mindee", className: "top-[58%] right-[16%]", size: 48 },
 ]
+
+/** Logos that have their own brand background color — fill the circle */
+const brandColors: Record<string, string> = {
+  abbyy: "#FF1A1A",
+  parseur: "#1A73E8",
+}
 
 /* ───── Sort order by keyword search traffic ───── */
 const trafficRank: Record<string, number> = {
@@ -140,30 +146,45 @@ export default function ComparePage() {
   return (
     <>
       {/* Hero with floating competitor logos */}
-      <section className="relative pt-28 pb-16 sm:pt-36 sm:pb-20 overflow-hidden">
-        {/* Background glow */}
-        <div className="absolute inset-0 -z-20">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-primary/5 rounded-full blur-3xl" />
-        </div>
+      <section className="relative pt-40 pb-20 sm:pt-48 sm:pb-24 overflow-hidden">
+        {/* Dot grid background */}
+        <div
+          className="absolute inset-0 -z-20"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle, rgba(39,130,255,0.15) 1px, transparent 1px)",
+            backgroundSize: "24px 24px",
+          }}
+        />
+        {/* Fade edges of dot grid */}
+        <div className="absolute inset-0 -z-20 bg-gradient-to-b from-background via-transparent to-background" />
+        <div className="absolute inset-0 -z-20 bg-gradient-to-r from-background via-transparent to-background" />
 
         {/* Floating logos — hidden on mobile */}
         <div className="hidden lg:block absolute inset-0 -z-10" aria-hidden="true">
           {heroLogos.map(({ slug, className, size }) => {
             const logo = getCompetitorLogo(slug)
             if (!logo) return null
+            const bg = brandColors[slug]
             return (
               <div
                 key={slug}
                 className={`absolute animate-float-slow ${className}`}
                 style={{ width: size, height: size }}
               >
-                <div className="w-full h-full rounded-full bg-white shadow-lg flex items-center justify-center p-2.5">
+                <div
+                  className="w-full h-full rounded-full shadow-lg flex items-center justify-center"
+                  style={{
+                    backgroundColor: bg ?? "#ffffff",
+                    padding: bg ? size * 0.2 : size * 0.15,
+                  }}
+                >
                   <Image
                     src={logo}
                     alt=""
                     width={size}
                     height={size}
-                    className="object-contain w-full h-full"
+                    className={`object-contain w-full h-full ${bg ? "brightness-0 invert" : ""}`}
                   />
                 </div>
               </div>
