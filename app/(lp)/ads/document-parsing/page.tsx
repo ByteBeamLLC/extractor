@@ -74,7 +74,7 @@ export default function DocumentParsingLandingPage() {
           subheadline:
             "Parse PDFs, scanned documents, invoices, and forms with AI. No templates, no rules — just define your fields and the AI extracts structured data from any format in seconds.",
           ctaText: "Start Free — 30 Pages/Month",
-          ctaHref: "/login",
+          ctaHref: "/login?mode=signup",
 
         }}
         heroAnimation={{
@@ -201,7 +201,7 @@ export default function DocumentParsingLandingPage() {
           subtitle:
             "Upload a PDF, see structured data. Free forever up to 30 pages/month. No credit card required.",
           ctaText: "Start Free — Try It Now",
-          ctaHref: "/login",
+          ctaHref: "/login?mode=signup",
         }}
       />
     </>

@@ -69,7 +69,7 @@ export default function EmailToSpreadsheetLandingPage() {
           subheadline:
             "Stop manually copying data from emails into Excel or Google Sheets. Parsli's AI reads every email and auto-fills your spreadsheet — invoices, orders, confirmations, anything.",
           ctaText: "Start Free — 30 Pages/Month",
-          ctaHref: "/login",
+          ctaHref: "/login?mode=signup",
 
         }}
         heroAnimation={{
@@ -193,7 +193,7 @@ export default function EmailToSpreadsheetLandingPage() {
           subtitle:
             "Forward an email, watch the row appear. Free forever up to 30 pages/month. No credit card required.",
           ctaText: "Start Free — Email to Sheet in 2 min",
-          ctaHref: "/login",
+          ctaHref: "/login?mode=signup",
         }}
       />
     </>

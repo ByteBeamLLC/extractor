@@ -66,7 +66,7 @@ export default function ParsingSoftwareLandingPage() {
           subheadline:
             "Extract structured data from emails, PDFs, invoices, and documents in seconds. No templates to build, no rules to maintain. AI handles any format automatically.",
           ctaText: "Start Free — 30 Pages/Month",
-          ctaHref: "/login",
+          ctaHref: "/login?mode=signup",
 
         }}
         heroAnimation={{
@@ -189,7 +189,7 @@ export default function ParsingSoftwareLandingPage() {
           subtitle:
             "No templates. No rules. No broken workflows. Just AI that reads documents like a human.",
           ctaText: "Start Free — No Credit Card",
-          ctaHref: "/login",
+          ctaHref: "/login?mode=signup",
         }}
       />
     </>

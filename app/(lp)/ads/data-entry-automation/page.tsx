@@ -69,7 +69,7 @@ export default function DataEntryAutomationLandingPage() {
           subheadline:
             "AI extracts data from invoices, PDFs, emails, and documents automatically. Cut processing costs from $15 to under $0.10 per document. No code. No templates. Set up in minutes.",
           ctaText: "Start Free — 30 Pages/Month",
-          ctaHref: "/login",
+          ctaHref: "/login?mode=signup",
 
         }}
         heroAnimation={{
@@ -193,7 +193,7 @@ export default function DataEntryAutomationLandingPage() {
           subtitle:
             "Automate with AI for $0.08/page. Free plan included — no credit card required.",
           ctaText: "Start Free — Automate Data Entry Now",
-          ctaHref: "/login",
+          ctaHref: "/login?mode=signup",
         }}
       />
     </>
