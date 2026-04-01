@@ -17,6 +17,7 @@ import {
   BarChart3,
   HelpCircle,
   Settings2,
+  Lock,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -203,16 +204,24 @@ export function ParserOverview({ parser, onUpdate }: ParserOverviewProps) {
           </p>
           <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
             <code className="text-sm font-mono flex-1 truncate">
-              {parser.inbound_email}
+              {session?.user?.is_anonymous
+                ? `••••••••@${parser.inbound_email.split("@")[1]}`
+                : parser.inbound_email}
             </code>
-            <Button variant="ghost" size="sm" onClick={handleCopyEmail}>
-              {copied ? (
-                <Check className="h-4 w-4 text-green-500" />
-              ) : (
-                <Copy className="h-4 w-4" />
-              )}
-              <span className="ml-1.5">{copied ? "Copied" : "Copy"}</span>
-            </Button>
+            {session?.user?.is_anonymous ? (
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Lock className="h-3 w-3" /> Sign up to reveal
+              </span>
+            ) : (
+              <Button variant="ghost" size="sm" onClick={handleCopyEmail}>
+                {copied ? (
+                  <Check className="h-4 w-4 text-green-500" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+                <span className="ml-1.5">{copied ? "Copied" : "Copy"}</span>
+              </Button>
+            )}
           </div>
         </div>
       )}

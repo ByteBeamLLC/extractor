@@ -12,6 +12,7 @@ import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
 import type { Parser, ProcessedDocument } from "@/lib/extractor/types"
 import { IntegrationList } from "@/components/extractor/integrations/IntegrationList"
 import { TourStep } from "@/components/tour/TourStep"
+import { SignUpGate } from "@/components/auth/SignUpGate"
 
 interface ExportPageProps {
   parser: Parser
@@ -256,9 +257,11 @@ export function ExportPage({ parser }: ExportPageProps) {
       </TourStep>
 
       {/* Integrations Section */}
-      <div className="border rounded-xl p-6 bg-card">
-        <IntegrationList parserId={parser.id} />
-      </div>
+      <SignUpGate feature="Integrations">
+        <div className="border rounded-xl p-6 bg-card">
+          <IntegrationList parserId={parser.id} />
+        </div>
+      </SignUpGate>
     </div>
   )
 }
