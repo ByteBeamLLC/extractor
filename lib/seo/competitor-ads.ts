@@ -27,7 +27,7 @@ export const competitorAds: CompetitorAdData[] = [
   {
     slug: "parseur",
     name: "Parseur",
-    logo: "/logos/parseur.svg",
+    logo: "/logos/competitors/parseur.svg",
     tagline: "Template-based email & document parser",
     headline: "Looking for a Parseur Alternative?",
     subheadline:
@@ -65,7 +65,7 @@ export const competitorAds: CompetitorAdData[] = [
   {
     slug: "docparser",
     name: "Docparser",
-    logo: "/logos/docparser.svg",
+    logo: "/logos/competitors/docparser.svg",
     tagline: "Rule-based document parser for PDFs",
     headline: "Looking for a Docparser Alternative?",
     subheadline:
@@ -103,7 +103,7 @@ export const competitorAds: CompetitorAdData[] = [
   {
     slug: "mailparser",
     name: "Mailparser",
-    logo: "/logos/mailparser.svg",
+    logo: "/logos/competitors/mailparser.svg",
     tagline: "Rule-based email parser",
     headline: "Looking for a Mailparser Alternative?",
     subheadline:
@@ -141,7 +141,7 @@ export const competitorAds: CompetitorAdData[] = [
   {
     slug: "airparser",
     name: "Airparser",
-    logo: "/logos/airparser.png",
+    logo: "/logos/competitors/airparser.png",
     tagline: "AI-assisted document parser",
     headline: "Looking for an Airparser Alternative?",
     subheadline:
@@ -179,7 +179,7 @@ export const competitorAds: CompetitorAdData[] = [
   {
     slug: "nanonets",
     name: "Nanonets",
-    logo: "/logos/nanonets.png",
+    logo: "/logos/competitors/nanonets.png",
     tagline: "Enterprise IDP platform",
     headline: "Looking for a Nanonets Alternative?",
     subheadline:
