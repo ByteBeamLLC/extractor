@@ -23,6 +23,23 @@ export async function getOrCreateSubscription(
     .maybeSingle()
 
   if (existing) {
+    // Fix tier mismatch: anonymous user with a "free" subscription (created before anonymous tier existed)
+    if (isAnonymous && existing.tier === "free") {
+      const anonPlan = PLANS.anonymous
+      await supabase
+        .from("extractor_subscriptions")
+        .update({
+          tier: "anonymous",
+          credits_free: anonPlan.pages,
+          max_parsers: anonPlan.maxParsers,
+          credits_used: 0,
+          credits_reset_at: new Date(Date.now() + ONE_DAY_MS).toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", userId)
+      return { ...existing, tier: "anonymous" as const, credits_free: anonPlan.pages, max_parsers: anonPlan.maxParsers, credits_used: 0, credits_reset_at: new Date(Date.now() + ONE_DAY_MS).toISOString() }
+    }
+
     // Atomically reset credits if period has elapsed (DB handles row locking)
     if (new Date(existing.credits_reset_at) < new Date()) {
       if (existing.tier === "anonymous") {
