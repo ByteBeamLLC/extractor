@@ -3,27 +3,21 @@ import { SectionWrapper } from "@/components/marketing/shared/SectionWrapper"
 const steps = [
   {
     number: "01",
-    title: "Create a Parser",
+    title: "Upload or Forward Documents",
     description:
-      "Give your parser a name like \"Invoice Parser\" or \"Receipt Scanner\". Each parser is a reusable template for a specific document type.",
+      "Upload PDFs, images, or emails. Or set up email forwarding and API ingestion to automate document intake from any source.",
   },
   {
     number: "02",
-    title: "Define Your Schema",
+    title: "AI Extracts Your Data",
     description:
-      "Tell the AI what data to extract. Add fields like invoice number, vendor name, total amount. Set types (text, number, date, table) for clean output.",
+      "Define your fields — amounts, dates, vendor names, line items — with the visual schema builder. The AI extracts them from any format automatically.",
   },
   {
     number: "03",
-    title: "Upload & Extract",
+    title: "Data Flows to Your Apps",
     description:
-      "Upload a document or connect Gmail for automatic processing. The AI extracts your data in seconds with high accuracy and confidence scoring.",
-  },
-  {
-    number: "04",
-    title: "Connect & Automate",
-    description:
-      "Send extracted data to Google Sheets, Zapier, Make, or your own app via webhooks and API. Automate your entire document workflow.",
+      "Extracted data pushes to Google Sheets, your CRM, ERP, or any app via Zapier, Make, webhooks, or REST API. Fully automated.",
   },
 ]
 
@@ -40,10 +34,9 @@ export function HowItWorksSection() {
         </p>
       </div>
 
-      <div className="grid md:grid-cols-4 gap-6 lg:gap-8">
+      <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
         {steps.map((step, index) => (
           <div key={step.number} className="relative">
-            {/* Connector line — extends from current icon to next icon across the grid gap */}
             {index < steps.length - 1 && (
               <div className="hidden md:block absolute top-8 h-px bg-border" style={{ left: "calc(50% + 2.5rem)", right: "calc(-50% + 0.5rem)" }} />
             )}

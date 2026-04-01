@@ -1,6 +1,8 @@
 import Link from "next/link"
 import { FileText, Mail, Receipt, FileSpreadsheet, Building2, ArrowRight } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { SectionWrapper } from "@/components/marketing/shared/SectionWrapper"
+import { APP_URL } from "@/lib/config"
 
 const useCases = [
   {
@@ -52,10 +54,10 @@ export function UseCasesSection() {
     <SectionWrapper id="use-cases" className="bg-muted/30">
       <div className="text-center mb-14">
         <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
-          Built for Every Document Workflow
+          Whatever you're extracting, Parsli handles it
         </h2>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          From invoices to emails to scanned receipts — Parsli handles it all.
+          Invoices, emails, receipts, PDFs — any document with data you need.
         </p>
       </div>
 
@@ -78,6 +80,15 @@ export function UseCasesSection() {
             </p>
           </Link>
         ))}
+      </div>
+
+      <div className="text-center mt-10">
+        <Button size="lg" className="text-base px-8 h-11" asChild>
+          <a href={`${APP_URL}/login?mode=signup`}>
+            Start Free — No Credit Card
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </a>
+        </Button>
       </div>
     </SectionWrapper>
   )
