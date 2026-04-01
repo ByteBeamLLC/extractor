@@ -1,17 +1,13 @@
 import type { Metadata } from "next"
 import { HeroSection } from "@/components/marketing/sections/HeroSection"
 import { ProblemSection } from "@/components/marketing/sections/ProblemSection"
-import { FeaturesSection } from "@/components/marketing/sections/FeaturesSection"
-import { UseCasesSection } from "@/components/marketing/sections/UseCasesSection"
+import { VideoSection } from "@/components/marketing/sections/VideoSection"
 import { HowItWorksSection } from "@/components/marketing/sections/HowItWorksSection"
-import { IntegrationsSection } from "@/components/marketing/sections/IntegrationsSection"
-import { FreeToolsSection } from "@/components/marketing/sections/FreeToolsSection"
-import { ExploreSection } from "@/components/marketing/sections/ExploreSection"
+import { UseCasesSection } from "@/components/marketing/sections/UseCasesSection"
 import { PricingSection } from "@/components/marketing/sections/PricingSection"
 import { FAQSection } from "@/components/marketing/sections/FAQSection"
-import { faqItems } from "@/lib/seo/faq-data"
 import { CTASection } from "@/components/marketing/sections/CTASection"
-import { VideoSection } from "@/components/marketing/sections/VideoSection"
+import { faqItems } from "@/lib/seo/faq-data"
 import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import {
   organizationJsonLd,
@@ -75,14 +71,10 @@ export default function LandingPage() {
       />
 
       <HeroSection />
-      <VideoSection />
       <ProblemSection />
-      <FeaturesSection />
-      <UseCasesSection />
+      <VideoSection />
       <HowItWorksSection />
-      <IntegrationsSection />
-      <FreeToolsSection />
-      <ExploreSection />
+      <UseCasesSection />
       <PricingSection />
       <FAQSection />
       <CTASection />
