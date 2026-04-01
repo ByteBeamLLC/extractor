@@ -172,18 +172,15 @@ export default function ComparePage() {
         </div>
 
         {/* Hero content */}
-        <div className="relative z-10 mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-sm font-medium text-emerald-700 mb-6 ring-1 ring-inset ring-emerald-600/20">
-            Starting at $20/mo &mdash; cheapest in the market
-          </div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.1] mb-5">
-            Same AI extraction.
+        <div className="relative z-10 mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
+          <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold tracking-tight leading-[1.08] mb-6">
+            Compare Parsli to
             <br />
-            <span className="text-primary">Half the price.</span>
+            every alternative
           </h1>
-          <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-8">
-            Compare Parsli to {alternatives.length}+ document parsing tools.
-            We show the data — you decide.
+          <p className="text-xl sm:text-2xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
+            Better accuracy with top-tier AI at every plan — starting at $20/mo,
+            the lowest price in the market.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <AuthButton href="/login" className="text-base px-8 h-12" showArrow>
