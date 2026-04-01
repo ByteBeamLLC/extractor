@@ -232,7 +232,7 @@ export default function ComparePage() {
                 <p className="text-muted-foreground leading-relaxed mb-4">
                   Parsli starts at $20/mo with 250 pages — most competitors
                   charge $39-$499/mo for the same volume. At scale, you pay as
-                  little as 2¢ per page. No hidden fees, no setup costs.
+                  little as 1¢ per page. No hidden fees, no setup costs.
                 </p>
                 <Link
                   href="/pricing"
