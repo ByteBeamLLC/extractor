@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { PasswordInput } from "@/components/ui/password-input"
 import { PasswordStrength, getStrength } from "@/components/ui/password-strength"
-import { useSupabaseClient } from "@/lib/supabase/hooks"
+import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
 import { cn } from "@/lib/utils"
 import { trackEvent } from "@/lib/analytics"
 import { getAttribution } from "@/lib/analytics/attribution"
@@ -34,6 +34,8 @@ export function AuthDialogProvider({ children }: { children: React.ReactNode }) 
   const [emailError, setEmailError] = useState<string | null>(null)
   const [passwordError, setPasswordError] = useState<string | null>(null)
 
+  const session = useSession()
+  const isAnonymous = session?.user?.is_anonymous === true
   const supabase = useSupabaseClient()
 
   const openAuthDialog = useCallback((nextMode?: AuthMode) => {
@@ -139,20 +141,29 @@ export function AuthDialogProvider({ children }: { children: React.ReactNode }) 
     setPasswordError(null)
 
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : undefined,
-        },
-      })
-      if (error) {
-        throw error
+      let data: { user: any }
+
+      if (isAnonymous) {
+        const result = await supabase.auth.updateUser({ email, password })
+        if (result.error) throw result.error
+        data = { user: result.data.user }
+        trackEvent("anonymous_converted", { user_id: data.user?.id ?? "", email, source: "auth_dialog" })
+      } else {
+        const result = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : undefined,
+          },
+        })
+        if (result.error) throw result.error
+        data = { user: result.data.user }
       }
+
       trackEvent("sign_up_completed", {
         user_id: data.user?.id ?? "",
         email,
-        source: "auth_dialog",
+        source: isAnonymous ? "anonymous_conversion" : "auth_dialog",
       })
 
       // Push Enhanced Conversion data + attribution for Google Ads optimization
@@ -176,7 +187,7 @@ export function AuthDialogProvider({ children }: { children: React.ReactNode }) 
     } finally {
       setIsSubmitting(false)
     }
-  }, [email, password, confirmPassword, supabase.auth, validateEmail])
+  }, [email, password, confirmPassword, supabase.auth, validateEmail, isAnonymous])
 
   const handleResetPassword = useCallback(async () => {
     if (!validateEmail(email)) return
@@ -235,7 +246,7 @@ export function AuthDialogProvider({ children }: { children: React.ReactNode }) 
   const description = useMemo(() => {
     switch (mode) {
       case "sign-up":
-        return "Start syncing your data across devices"
+        return "Keep your data and unlock 30 free pages/month."
       case "forgot-password":
         return "We'll send you a link to reset your password"
       case "check-email":

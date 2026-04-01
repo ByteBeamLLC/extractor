@@ -20,6 +20,7 @@ import {
   Share2,
   Code,
   Upload,
+  UserPlus,
 } from "lucide-react"
 
 import {
@@ -355,7 +356,7 @@ export function AppSidebar() {
         {/* User account */}
         <SidebarMenu>
           <SidebarMenuItem>
-            {session ? (
+            {session && !session.user.is_anonymous ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <SidebarMenuButton
@@ -408,12 +409,15 @@ export function AppSidebar() {
             ) : (
               <SidebarMenuButton
                 size="lg"
-                onClick={() => openAuthDialog("sign-in")}
+                onClick={() => openAuthDialog("sign-up")}
               >
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <LogOut className="size-4" />
+                  <UserPlus className="size-4" />
                 </div>
-                <span className="font-medium">Sign in</span>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-semibold text-xs">Guest</span>
+                  <span className="truncate text-xs text-primary">Sign up free</span>
+                </div>
               </SidebarMenuButton>
             )}
           </SidebarMenuItem>

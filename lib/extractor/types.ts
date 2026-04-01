@@ -117,7 +117,7 @@ export interface ProcessedDocument {
 export interface ExtractorSubscription {
   id: string
   user_id: string
-  tier: "free" | "starter" | "growth" | "pro" | "business"
+  tier: "anonymous" | "free" | "starter" | "growth" | "pro" | "business"
   credits_free: number
   credits_used: number
   credits_reset_at: string

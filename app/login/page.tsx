@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { PasswordInput } from "@/components/ui/password-input"
 import { PasswordStrength, getStrength } from "@/components/ui/password-strength"
-import { useSupabaseClient } from "@/lib/supabase/hooks"
+import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
 import { cn } from "@/lib/utils"
 import { trackEvent } from "@/lib/analytics"
 import { getAttribution } from "@/lib/analytics/attribution"
@@ -47,6 +47,8 @@ function LoginForm() {
 
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
 
+  const session = useSession()
+  const isAnonymous = session?.user?.is_anonymous === true
   const supabase = useSupabaseClient()
 
   const handleGoogleAuth = useCallback(() => {
@@ -129,20 +131,32 @@ function LoginForm() {
     setMessage(null)
     setPasswordError(null)
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: typeof window !== "undefined"
-            ? `${window.location.origin}/auth/callback`
-            : undefined,
-        },
-      })
-      if (error) throw error
+      let data: { user: any }
+
+      if (isAnonymous) {
+        // Convert anonymous account — keeps same user_id and all data
+        const result = await supabase.auth.updateUser({ email, password })
+        if (result.error) throw result.error
+        data = { user: result.data.user }
+        trackEvent("anonymous_converted", { user_id: data.user?.id ?? "", email, source: "login_page" })
+      } else {
+        const result = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: typeof window !== "undefined"
+              ? `${window.location.origin}/auth/callback`
+              : undefined,
+          },
+        })
+        if (result.error) throw result.error
+        data = { user: result.data.user }
+      }
+
       trackEvent("sign_up_completed", {
         user_id: data.user?.id ?? "",
         email,
-        source: "login_page",
+        source: isAnonymous ? "anonymous_conversion" : "login_page",
       })
 
       // Push Enhanced Conversion data + attribution for Google Ads optimization
@@ -167,7 +181,7 @@ function LoginForm() {
     } finally {
       setIsSubmitting(false)
     }
-  }, [email, password, confirmPassword, supabase.auth, validateEmail])
+  }, [email, password, confirmPassword, supabase.auth, validateEmail, isAnonymous])
 
   const handleResetPassword = useCallback(async () => {
     if (!validateEmail(email)) return

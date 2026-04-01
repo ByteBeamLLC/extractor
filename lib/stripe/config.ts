@@ -10,7 +10,7 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
  * After creating products + prices in the Stripe Dashboard,
  * paste the real price IDs into .env as shown in .env.example.
  */
-export type PlanTier = "free" | "starter" | "growth" | "pro" | "business"
+export type PlanTier = "anonymous" | "free" | "starter" | "growth" | "pro" | "business"
 
 export interface PlanDefinition {
   tier: PlanTier
@@ -28,6 +28,21 @@ export interface PlanDefinition {
 }
 
 export const PLANS: Record<PlanTier, PlanDefinition> = {
+  anonymous: {
+    tier: "anonymous",
+    name: "Guest",
+    pages: 5,
+    maxParsers: 1,
+    monthlyPrice: 0,
+    annualPricePerMonth: 0,
+    stripePriceIdMonthly: null,
+    stripePriceIdAnnual: null,
+    features: [
+      "5 pages per day",
+      "1 parser",
+      "AI-powered extraction",
+    ],
+  },
   free: {
     tier: "free",
     name: "Free",
