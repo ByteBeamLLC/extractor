@@ -99,10 +99,10 @@ export async function POST(
   const pageCount = await countDocumentPages(fileBytes, d.file_name, d.mime_type)
 
   // Check credits
-  const { allowed, reason } = await checkCredits(user.id, pageCount, supabase, user.is_anonymous === true)
-  if (!allowed) {
+  const creditCheck = await checkCredits(user.id, pageCount, supabase, user.is_anonymous === true)
+  if (!creditCheck.allowed) {
     return NextResponse.json(
-      { error: reason || "Monthly credit limit reached." },
+      { error: creditCheck.reason || "Monthly credit limit reached." },
       { status: 402 }
     )
   }
@@ -126,8 +126,11 @@ export async function POST(
     extractionType,
   })
 
-  // Deduct credits
-  const { success: deducted } = await deductCredits(user.id, pageCount, supabase)
+  // Deduct credits (for first-document-free, only deduct what's available)
+  const reprocessCredits = creditCheck.firstDocumentFree
+    ? Math.min(pageCount, creditCheck.remaining)
+    : pageCount
+  const { success: deducted } = await deductCredits(user.id, reprocessCredits, supabase)
   if (!deducted) {
     console.warn(`[reprocess] Credit deduction failed for user ${user.id}`)
   }

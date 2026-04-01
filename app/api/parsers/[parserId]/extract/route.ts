@@ -98,10 +98,10 @@ export async function POST(
   const pageCount = await countDocumentPages(new Uint8Array(fileBuffer), fileData.name, fileData.type)
 
   // Check credits (with automatic reset if period elapsed)
-  const { allowed, reason } = await checkCredits(user.id, pageCount, supabase, user.is_anonymous === true)
-  if (!allowed) {
+  const creditCheck = await checkCredits(user.id, pageCount, supabase, user.is_anonymous === true)
+  if (!creditCheck.allowed) {
     return NextResponse.json(
-      { error: reason || "Monthly credit limit reached. Upgrade your plan for more pages." },
+      { error: creditCheck.reason || "Monthly credit limit reached. Upgrade your plan for more pages." },
       { status: 402 }
     )
   }
@@ -172,7 +172,10 @@ export async function POST(
   })
 
   // Atomically deduct credits (DB-level guard prevents overshoot)
-  const creditsUsed = pageCount
+  // For first-document-free, only deduct what's available (caps out their quota)
+  const creditsUsed = creditCheck.firstDocumentFree
+    ? Math.min(pageCount, creditCheck.remaining)
+    : pageCount
   const { success: deducted } = await deductCredits(user.id, creditsUsed, supabase)
   if (!deducted) {
     // Race condition: credits exhausted between check and deduct
@@ -233,5 +236,9 @@ export async function POST(
     warnings: extractionResult.warnings,
     handledWithFallback: extractionResult.handledWithFallback,
     document_id: docId,
+    ...(creditCheck.firstDocumentFree && {
+      firstDocumentFree: true,
+      upgradeMessage: `Your first document is on us! This ${pageCount}-page document used your entire monthly quota. Upgrade for more pages.`,
+    }),
   })
 }

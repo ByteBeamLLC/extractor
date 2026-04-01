@@ -86,7 +86,7 @@ export async function POST(
   const creditCheck = await checkCredits(parser.user_id, pageCount, supabase)
   if (!creditCheck.allowed) {
     return NextResponse.json(
-      { error: "Parser owner has reached monthly credit limit" },
+      { error: creditCheck.reason || "Parser owner has reached monthly credit limit" },
       { status: 402 }
     )
   }
@@ -143,8 +143,11 @@ export async function POST(
 
   const { __meta__, ...apiResults } = result.results
 
-  // Atomically deduct credits (DB-level guard prevents overshoot)
-  const { success: deducted } = await deductCredits(parser.user_id, pageCount, supabase)
+  // Atomically deduct credits (for first-document-free, only deduct what's available)
+  const webhookCreditsUsed = creditCheck.firstDocumentFree
+    ? Math.min(pageCount, creditCheck.remaining)
+    : pageCount
+  const { success: deducted } = await deductCredits(parser.user_id, webhookCreditsUsed, supabase)
   if (!deducted) {
     console.warn(`[inbound/webhook] Credit deduction failed for user ${parser.user_id} — possible race condition`)
   }

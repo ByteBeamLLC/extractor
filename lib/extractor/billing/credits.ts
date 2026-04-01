@@ -90,28 +90,55 @@ export async function getOrCreateSubscription(
   return created!
 }
 
+/** Max pages allowed under the first-document-free policy */
+const FIRST_DOC_FREE_MAX_PAGES = 100
+
 /**
  * Check if user has available credits.
  * Also checks subscription status — blocks access if tier indicates payment issues.
+ *
+ * First Document Free: if the user has never completed an extraction and the
+ * document is ≤100 pages, allow it regardless of plan limits so they can
+ * experience the product before hitting a paywall.
  */
 export async function checkCredits(
   userId: string,
   pagesNeeded: number,
   supabase: AnySupabaseClient,
   isAnonymous: boolean = false
-): Promise<{ allowed: boolean; remaining: number; subscription: ExtractorSubscription; reason?: string }> {
+): Promise<{ allowed: boolean; remaining: number; subscription: ExtractorSubscription; reason?: string; firstDocumentFree?: boolean }> {
   const subscription = await getOrCreateSubscription(userId, supabase, isAnonymous)
   const remaining = Math.max(subscription.credits_free - subscription.credits_used, 0)
 
+  if (remaining >= pagesNeeded) {
+    return { allowed: true, remaining, subscription }
+  }
+
+  // First Document Free: let new users experience value before hitting the paywall
+  if (pagesNeeded <= FIRST_DOC_FREE_MAX_PAGES) {
+    const { count } = await supabase
+      .from("parser_processed_documents" as any)
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("status", "completed")
+
+    if (count === 0 || count === null) {
+      return {
+        allowed: true,
+        remaining,
+        subscription,
+        firstDocumentFree: true,
+      }
+    }
+  }
+
   return {
-    allowed: remaining >= pagesNeeded,
+    allowed: false,
     remaining,
     subscription,
-    reason: remaining < pagesNeeded
-      ? subscription.tier === "anonymous"
-        ? "Daily guest limit reached. Sign up free for 30 pages/month."
-        : "Monthly credit limit reached. Upgrade your plan for more pages."
-      : undefined,
+    reason: subscription.tier === "anonymous"
+      ? "Daily guest limit reached. Sign up free for 30 pages/month."
+      : `This document needs ${pagesNeeded} pages but you have ${remaining} remaining. Upgrade your plan for more pages.`,
   }
 }
 
