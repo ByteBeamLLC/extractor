@@ -198,12 +198,14 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
   }, [stepIndex, steps, navigateToStep])
 
   const skipTour = useCallback(() => {
-    trackEvent("demo_skipped", {
-      skipped_at_step: currentStep?.id ?? "",
-      skipped_at_step_index: stepIndex,
-    })
+    if (isActive) {
+      trackEvent("demo_skipped", {
+        skipped_at_step: currentStep?.id ?? "",
+        skipped_at_step_index: stepIndex,
+      })
+    }
     completeTour()
-  }, [completeTour, currentStep, stepIndex])
+  }, [completeTour, currentStep, stepIndex, isActive])
 
   return (
     <TourContext.Provider
