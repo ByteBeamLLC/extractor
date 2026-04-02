@@ -159,19 +159,6 @@ function LoginForm() {
         source: isAnonymous ? "anonymous_conversion" : "login_page",
       })
 
-      // Push Enhanced Conversion data + attribution for Google Ads optimization
-      const attr = getAttribution()
-      window.dataLayer = window.dataLayer || []
-      window.dataLayer.push({
-        event: "ads_conversion",
-        conversion_type: "sign_up",
-        user_id: data.user?.id ?? "",
-        enhanced_conversion_data: { email },
-        ...(attr?.gclid && { gclid: attr.gclid }),
-        ...(attr?.utm_campaign && { utm_campaign: attr.utm_campaign }),
-        ...(attr?.utm_term && { utm_term: attr.utm_term }),
-      })
-
       setMode("check-email")
     } catch (error) {
       setMessage({

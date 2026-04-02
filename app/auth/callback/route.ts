@@ -4,6 +4,7 @@ import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
 
 import type { Database } from "@/lib/supabase/types"
 import { trackServerEvent } from "@/lib/analytics/server"
+import { setNewSignupCookie } from "@/lib/analytics/signup-cookie"
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
@@ -28,6 +29,8 @@ export async function GET(request: Request) {
           email: data.user.email ?? "",
           source: "google_oauth",
         })
+        // Flag for client-side GA4/Google Ads conversion on next page load
+        await setNewSignupCookie()
       } else if (!isOAuth) {
         // Track email confirmation (critical funnel event — server-side for reliability)
         trackServerEvent("email_confirmed", {

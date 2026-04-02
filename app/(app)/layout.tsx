@@ -7,6 +7,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { ActiveParserProvider } from "@/components/extractor/parser-context"
 import { TourProvider } from "@/components/tour/TourProvider"
 import { AnalyticsIdentifier } from "@/components/providers/AnalyticsIdentifier"
+import { SignupConversionTracker } from "@/components/providers/SignupConversionTracker"
 import { AnonymousAuthGuard } from "@/components/auth/AnonymousAuthGuard"
 import {
   SidebarProvider,
@@ -32,6 +33,7 @@ export default async function AppLayout({
     <GlobalErrorBoundary>
       <SupabaseProvider initialSession={session}>
         <AnalyticsIdentifier />
+        <SignupConversionTracker />
         <AuthDialogProvider>
           <AnonymousAuthGuard>
           <ActiveParserProvider>

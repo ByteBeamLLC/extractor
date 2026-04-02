@@ -12,7 +12,6 @@ import { PasswordStrength, getStrength } from "@/components/ui/password-strength
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
 import { cn } from "@/lib/utils"
 import { trackEvent } from "@/lib/analytics"
-import { getAttribution } from "@/lib/analytics/attribution"
 
 type AuthMode = "sign-in" | "sign-up" | "forgot-password" | "check-email"
 
@@ -166,18 +165,6 @@ export function AuthDialogProvider({ children }: { children: React.ReactNode }) 
         source: isAnonymous ? "anonymous_conversion" : "auth_dialog",
       })
 
-      // Push Enhanced Conversion data + attribution for Google Ads optimization
-      const attr = getAttribution()
-      window.dataLayer = window.dataLayer || []
-      window.dataLayer.push({
-        event: "ads_conversion",
-        conversion_type: "sign_up",
-        user_id: data.user?.id ?? "",
-        enhanced_conversion_data: { email },
-        ...(attr?.gclid && { gclid: attr.gclid }),
-        ...(attr?.utm_campaign && { utm_campaign: attr.utm_campaign }),
-        ...(attr?.utm_term && { utm_term: attr.utm_term }),
-      })
       setMode("check-email")
     } catch (error) {
       setMessage({

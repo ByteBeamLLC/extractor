@@ -4,6 +4,7 @@ import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
 import { exchangeCodeForUser } from "@/lib/auth/google-oauth"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import { trackServerEvent } from "@/lib/analytics/server"
+import { setNewSignupCookie } from "@/lib/analytics/signup-cookie"
 import type { Database } from "@/lib/supabase/types"
 
 export const runtime = "nodejs"
@@ -53,6 +54,8 @@ export async function GET(request: NextRequest) {
         email,
         source: "google_oauth",
       })
+      // Flag for client-side GA4/Google Ads conversion on next page load
+      await setNewSignupCookie()
     } else if (createError && !createError.message.includes("already been registered")) {
       throw createError
     }
