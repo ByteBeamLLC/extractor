@@ -44,7 +44,7 @@ export default async function AppLayout({
                   </header>
                   <div className="flex-1">{children}</div>
                 </SidebarInset>
-                <ArloWrapper />
+                {/* <ArloWrapper /> — disabled: Arlo needs more work before re-enabling */}
               </SidebarProvider>
             </TourProvider>
           </ActiveParserProvider>
