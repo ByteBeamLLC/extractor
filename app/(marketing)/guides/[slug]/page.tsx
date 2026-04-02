@@ -22,6 +22,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { AuthButton } from "@/components/marketing/shared/AuthButton"
+import { DemoModalButton } from "@/components/marketing/DemoModalButton"
 import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import {
   breadcrumbJsonLd,
@@ -349,9 +350,14 @@ function renderBlock(block: GuideContentBlock, index: number) {
               __html: processInlineMarkup(block.text),
             }}
           />
-          <AuthButton href="/login" size="sm" className="shrink-0 shadow-sm" showArrow>
-            Try it for free
-          </AuthButton>
+          <div className="flex gap-2 shrink-0">
+            <AuthButton href="/login" size="sm" className="shrink-0 shadow-sm" showArrow>
+              Try it for free
+            </AuthButton>
+            <DemoModalButton className="h-9 text-xs px-3">
+              See demo
+            </DemoModalButton>
+          </div>
         </div>
       )
     case "cta":
@@ -382,23 +388,20 @@ function renderBlock(block: GuideContentBlock, index: number) {
               >
                 Try it for free
               </AuthButton>
-              <Button
-                variant="outline"
-                size="lg"
-                className="text-base px-8 h-12 border-white/30 text-white hover:bg-white/10"
-                asChild
-              >
-                <a
-                  href="https://calendly.com/talal-bytebeam/parsli-discovery-call"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Book a demo
-                </a>
-              </Button>
+              <DemoModalButton className="text-base px-8 h-12 border-white/30 text-white hover:bg-white/10 hover:text-white">
+                See How It Works
+              </DemoModalButton>
             </div>
             <p className="text-sm text-white/60 mt-4">
-              No credit card required.
+              No credit card required. &nbsp;·&nbsp;{" "}
+              <a
+                href="https://calendly.com/talal-bytebeam/parsli-discovery-call"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-white/80"
+              >
+                Or book a demo call
+              </a>
             </p>
           </div>
         </div>

@@ -310,7 +310,14 @@ export default function PdfTableExtractorPage() {
             >
               Bank Statement Parser
             </Link>{" "}
-            for specialized extraction.
+            for specialized extraction. Extracting carrier call logs? See our{" "}
+            <Link
+              href="/guides/call-log-excel-template"
+              className="text-primary hover:underline underline-offset-4"
+            >
+              Call Log Excel Template
+            </Link>{" "}
+            guide.
           </p>
         </div>
       </section>
@@ -714,6 +721,7 @@ export default function PdfTableExtractorPage() {
               { href: "/tools/pdf-to-excel", label: "PDF to Excel Converter" },
               { href: "/tools/invoice-parser", label: "Invoice Parser" },
               { href: "/tools/bank-statement-parser", label: "Bank Statement Parser" },
+              { href: "/guides/call-log-excel-template", label: "Call Log Excel Template" },
               { href: "/solutions/document-parsing-api", label: "Document Parsing API" },
               { href: "/pricing", label: "Pricing" },
             ].map((link) => (

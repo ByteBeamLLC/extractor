@@ -318,7 +318,14 @@ export default function PdfToExcelToolPage() {
             >
               Bank Statement Extraction
             </Link>{" "}
-            are built for that. Or see how Parsli compares to{" "}
+            are built for that. Extracting carrier call logs? See our{" "}
+            <Link
+              href="/guides/call-log-excel-template"
+              className="text-primary hover:underline underline-offset-4"
+            >
+              Call Log Excel Template
+            </Link>{" "}
+            guide. Or see how Parsli compares to{" "}
             <Link
               href="/compare/docparser"
               className="text-primary hover:underline underline-offset-4"
@@ -734,6 +741,7 @@ export default function PdfToExcelToolPage() {
               { href: "/use-cases/pdf-to-excel", label: "PDF to Excel Use Case" },
               { href: "/use-cases/pdf-data-extraction", label: "PDF Data Extraction" },
               { href: "/blog/extract-data-pdf-to-excel", label: "How to Extract PDF Data" },
+              { href: "/guides/call-log-excel-template", label: "Call Log Excel Template" },
               { href: "/docs", label: "Documentation" },
               { href: "/pricing", label: "Pricing" },
             ].map((link) => (

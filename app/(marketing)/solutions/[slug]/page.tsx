@@ -54,6 +54,7 @@ const solutionRelatedLinks: Record<
     { href: "/tools/pdf-table-extractor", label: "Free PDF Table Extractor" },
     { href: "/use-cases/pdf-to-excel", label: "PDF to Excel Use Case" },
     { href: "/blog/extract-data-pdf-to-excel", label: "How to Extract Data from PDF to Excel" },
+    { href: "/guides/call-log-excel-template", label: "Call Log Excel Template" },
     { href: "/compare/docparser", label: "Parsli vs Docparser" },
     { href: "/compare/textract", label: "Parsli vs Amazon Textract" },
   ],
