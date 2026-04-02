@@ -34,15 +34,17 @@ BEGIN
   END IF;
 
   -- Fire async HTTP POST (returns immediately, does not block the INSERT)
+  -- timeout_milliseconds = 300000 (5 minutes) to match the worker's maxDuration
   PERFORM net.http_post(
-    url     := worker_url,
-    headers := jsonb_build_object(
+    url                  := worker_url,
+    headers              := jsonb_build_object(
       'Content-Type',  'application/json',
       'Authorization', 'Bearer ' || worker_secret
     ),
-    body    := jsonb_build_object(
+    body                 := jsonb_build_object(
       'document_id', NEW.id::text
-    )
+    ),
+    timeout_milliseconds := 300000
   );
 
   RETURN NEW;
