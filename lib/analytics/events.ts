@@ -188,6 +188,14 @@ export type AnalyticsEventMap = {
     utm_term: string
     utm_campaign: string
   }
+
+  // ─── Product Hunt launch banner ───
+  ph_banner_shown: {
+    location: string
+  }
+  ph_banner_email_submitted: {
+    location: string
+  }
 }
 
 export type AnalyticsEvent = keyof AnalyticsEventMap

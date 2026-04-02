@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useRef } from "react"
+import { useState, useCallback, useRef, useEffect } from "react"
 import Image from "next/image"
 import { trackEvent } from "@/lib/analytics"
 import { getIdentity, incrementToolUses } from "@/lib/analytics/identity"
@@ -18,6 +18,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { ProductHuntLaunchBanner } from "./ProductHuntLaunchBanner"
 
 const ACCEPTED_TYPES = [
   "image/jpeg",
@@ -91,8 +92,17 @@ export function HandwritingToTextTool() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [extractionSource, setExtractionSource] = useState<"upload" | "sample">("upload")
   const [extractionFileType, setExtractionFileType] = useState<string>("image/jpeg")
+  const [showPHBanner, setShowPHBanner] = useState(false)
   const extractionStartRef = useRef<number>(0)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // Show PH banner for returning users who already have 2+ uses
+  useEffect(() => {
+    const identity = getIdentity()
+    if (identity && identity.tool_uses >= 2) {
+      setShowPHBanner(true)
+    }
+  }, [])
 
   const callApi = useCallback(
     async (base64: string, mimeType: string, name: string, source: "upload" | "sample", fileSize?: number) => {
@@ -144,6 +154,11 @@ export function HandwritingToTextTool() {
 
         setExtractedText(data.text)
         setStatus("done")
+
+        // Show Product Hunt launch banner after 2nd successful extraction
+        if (lifetimeUses >= 2) {
+          setShowPHBanner(true)
+        }
       } catch (e) {
         console.error("Handwriting extraction error:", e)
         trackEvent("hwt_extraction_error", {
@@ -470,6 +485,9 @@ export function HandwritingToTextTool() {
           </div>
         </div>
       )}
+
+      {/* Product Hunt launch banner */}
+      {showPHBanner && status === "done" && <ProductHuntLaunchBanner />}
 
       {/* Error state */}
       {status === "error" && (
