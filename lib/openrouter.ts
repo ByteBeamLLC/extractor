@@ -102,6 +102,7 @@ interface GenerateTextOptions {
     temperature?: number
     maxTokens?: number
     model?: string // Optional override
+    responseFormat?: { type: string } // e.g. { type: 'json_object' }
 }
 
 interface GenerateObjectOptions {
@@ -192,12 +193,17 @@ function formatMessages(messages: Message[]): FormattedMessage[] {
 export async function generateText(options: GenerateTextOptions): Promise<{ text: string }> {
     const model = getModel(options.model)
 
-    const { data } = await fetchOpenRouterWithRetry({
+    const body: Record<string, unknown> = {
         model,
         messages: formatMessages(options.messages),
         temperature: options.temperature ?? 0.7,
         max_tokens: options.maxTokens,
-    })
+    }
+    if (options.responseFormat) {
+        body.response_format = options.responseFormat
+    }
+
+    const { data } = await fetchOpenRouterWithRetry(body)
 
     const text = data.choices?.[0]?.message?.content || ''
     return { text }

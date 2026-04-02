@@ -256,6 +256,7 @@ export function ArloProvider({ children, isFirstTimeUser = false }: ArloProvider
         })
 
         const data: ArloBrainResponse = await res.json()
+        console.log("[Arlo] API response:", data)
 
         // Add Arlo's response
         const arloMsg: ArloMessage = {

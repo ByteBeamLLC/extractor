@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { generateFreeformJson, isOpenRouterConfigured } from "@/lib/openrouter"
+import { generateText, isOpenRouterConfigured } from "@/lib/openrouter"
 import { ARLO_SYSTEM_PROMPT } from "@/components/arlo/arlo-personality"
 
 interface ChatMessage {
@@ -80,23 +80,34 @@ export async function POST(req: NextRequest) {
         : message,
     })
 
-    // Use generateFreeformJson to enforce response_format: json_object
-    // This prevents the LLM from wrapping JSON in markdown code blocks
-    const { object } = await generateFreeformJson({
+    // Use generateText with JSON mode — single system prompt (Arlo's) so the
+    // model sees one clear schema instead of competing system messages.
+    const { text } = await generateText({
       messages,
       temperature: 0.7,
+      responseFormat: { type: "json_object" },
     })
+
+    // Parse the JSON response
+    let parsed: { message?: string; actions?: any[]; emotion?: string }
+    try {
+      parsed = JSON.parse(text)
+    } catch {
+      parsed = { message: text, actions: [] }
+    }
 
     // Validate actions
     const validTypes = ["navigate", "click", "type", "upload", "wait", "speak", "celebrate"]
-    const sanitizedActions = (object.actions || []).filter(
+    const sanitizedActions = (parsed.actions || []).filter(
       (a: any) => a && typeof a.type === "string" && validTypes.includes(a.type)
     )
 
+    console.log("[arlo/chat] Response:", JSON.stringify({ message: parsed.message, actions: sanitizedActions, emotion: parsed.emotion }))
+
     return NextResponse.json({
-      message: object.message || "Hmm, I got confused. Can you try again?",
+      message: parsed.message || "Hmm, I got confused. Can you try again?",
       actions: sanitizedActions,
-      emotion: object.emotion || "happy",
+      emotion: parsed.emotion || "happy",
     })
   } catch (error) {
     console.error("[arlo/chat] Error:", error)
