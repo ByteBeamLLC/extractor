@@ -11,6 +11,8 @@ const plans = [
   { name: "Growth", pages: 1_000, price: 39 },
   { name: "Pro", pages: 5_000, price: 79 },
   { name: "Business", pages: 25_000, price: 199 },
+  { name: "Scale 50k", pages: 50_000, price: 499 },
+  { name: "Scale 100k", pages: 100_000, price: 899 },
 ]
 
 function recommendPlan(totalPages: number) {

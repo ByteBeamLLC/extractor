@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Check, ArrowRight, Ban, Bot } from "lucide-react"
+import { Check, ArrowRight, Ban, Bot, HeadsetIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
@@ -9,110 +9,127 @@ import { cn } from "@/lib/utils"
 import { APP_URL } from "@/lib/config"
 
 /* ------------------------------------------------------------------ */
-/*  Plan definitions                                                   */
+/*  Plan definitions — ~30-60 % cheaper than Parseur at every tier     */
+/* ------------------------------------------------------------------ */
+/*  Parseur comparison (annual):                                       */
+/*    Parseur Micro  100pg  $39  → Parsli Starter 250pg  $16  (59%)   */
+/*    Parseur Starter 1kpg $99  → Parsli Growth  1kpg   $39  (61%)   */
+/*    Parseur Premium 3kpg $199 → Parsli Pro     5kpg   $79  (60%)   */
+/*    Parseur Pro    10kpg $399 → Parsli Biz    25kpg  $199  (50%)   */
+/*    Parseur 50k   50kpg $1499 → Parsli 50k   50kpg  $499  (67%)   */
+/*    Parseur 100k 100kpg $2799 → Parsli 100k 100kpg  $899  (68%)   */
 /* ------------------------------------------------------------------ */
 
-const allPlans = [
+interface Plan {
+  tier: string
+  name: string
+  pages: number
+  monthlyPrice: number
+  annualPricePerMonth: number
+  description: string
+  isCustom?: boolean
+  /** tier-index for feature gating: 0=free … 7=enterprise */
+  level: number
+}
+
+const sliderPlans: Plan[] = [
   {
-    tier: "free" as const,
+    tier: "free",
     name: "Free",
     pages: 30,
     monthlyPrice: 0,
     annualPricePerMonth: 0,
-    sliderDescription:
-      "Start on our free tier, which includes 30 pages every month.",
-    cardDescription: "Take Parsli for a spin. See what it can do.",
-    cardFeatures: [
-      "30 pages per month",
-      "Up to 3 parsers",
-      "AI extraction (Gemini 2.5 Pro)",
-      "All document types",
-      "REST API + webhooks",
-      "CSV & JSON export",
-    ],
+    description: "Start on our free tier, which includes 30 pages every month.",
+    level: 0,
   },
   {
-    tier: "starter" as const,
+    tier: "starter",
     name: "Starter",
     pages: 250,
     monthlyPrice: 20,
     annualPricePerMonth: 16,
-    sliderDescription:
-      "Our entry plan. Start automating your document extractions.",
-    cardDescription: "Start automating your extractions.",
-    prevTier: "Free",
-    cardFeatures: [
-      "250 pages per month",
-      "Up to 10 parsers",
-      "Google Sheets sync",
-      "Zapier & Make",
-      "Email support",
-    ],
+    description: "Our entry plan. Start automating your document extractions.",
+    level: 1,
   },
   {
-    tier: "growth" as const,
+    tier: "growth",
     name: "Growth",
     pages: 1_000,
     monthlyPrice: 49,
     annualPricePerMonth: 39,
-    sliderDescription:
+    description:
       "For growing teams with regular document processing needs.",
-    cardDescription: "For teams with regular document processing.",
-    highlight: true,
-    prevTier: "Starter",
-    cardFeatures: [
-      "1,000 pages per month",
-      "Up to 25 parsers",
-      "Priority support",
-    ],
+    level: 2,
   },
   {
-    tier: "pro" as const,
+    tier: "pro",
     name: "Pro",
     pages: 5_000,
     monthlyPrice: 99,
     annualPricePerMonth: 79,
-    sliderDescription:
-      "For high-volume operations. Lowest cost per page.",
-    cardDescription: "For high-volume operations.",
-    prevTier: "Growth",
-    cardFeatures: [
-      "5,000 pages per month",
-      "Up to 100 parsers",
-      "Team collaboration",
-      "Dedicated API",
-      "SLA guarantee",
-    ],
+    description: "For high-volume operations. Lowest cost per page.",
+    level: 3,
   },
   {
-    tier: "business" as const,
+    tier: "business",
     name: "Business",
     pages: 25_000,
     monthlyPrice: 249,
     annualPricePerMonth: 199,
-    sliderDescription:
-      "For large organizations. Custom plans available.",
-    cardDescription: "For enterprise needs.",
-    cardFeatures: [],
+    description: "For large teams processing tens of thousands of pages.",
+    level: 4,
+  },
+  {
+    tier: "scale50k",
+    name: "Scale 50k",
+    pages: 50_000,
+    monthlyPrice: 649,
+    annualPricePerMonth: 499,
+    description:
+      "Heavy-duty plan for operations teams. 67% cheaper than Parseur.",
+    level: 5,
+  },
+  {
+    tier: "scale100k",
+    name: "Scale 100k",
+    pages: 100_000,
+    monthlyPrice: 1_149,
+    annualPricePerMonth: 899,
+    description:
+      "Enterprise-grade volume at a fraction of the cost. 68% cheaper than Parseur.",
+    level: 6,
+  },
+  {
+    tier: "enterprise",
+    name: "Enterprise",
+    pages: Infinity,
+    monthlyPrice: 0,
+    annualPricePerMonth: 0,
+    description: "",
+    isCustom: true,
+    level: 7,
   },
 ]
 
-/* ------------------------------------------------------------------ */
-/*  Slider helpers                                                     */
-/* ------------------------------------------------------------------ */
+/* ---- page stops for the slider ---- */
 
 const pageStops = [
   20, 30, 50, 100, 150, 200, 250, 500, 750, 1_000, 2_000, 3_000, 5_000,
-  10_000, 25_000,
+  10_000, 15_000, 25_000, 35_000, 50_000, 75_000, 100_000, 150_000,
 ]
 
-function planForPages(pages: number) {
-  if (pages <= 30) return allPlans[0]
-  if (pages <= 250) return allPlans[1]
-  if (pages <= 1_000) return allPlans[2]
-  if (pages <= 5_000) return allPlans[3]
-  return allPlans[4]
+function planForPages(pages: number): Plan {
+  if (pages <= 30) return sliderPlans[0]
+  if (pages <= 250) return sliderPlans[1]
+  if (pages <= 1_000) return sliderPlans[2]
+  if (pages <= 5_000) return sliderPlans[3]
+  if (pages <= 25_000) return sliderPlans[4]
+  if (pages <= 50_000) return sliderPlans[5]
+  if (pages <= 100_000) return sliderPlans[6]
+  return sliderPlans[7] // enterprise
 }
+
+/* ---- "What's included?" features ---- */
 
 type FeatureStatus = "included" | "excluded" | "info"
 
@@ -121,10 +138,8 @@ interface IncludedFeature {
   status: FeatureStatus
 }
 
-function whatsIncluded(
-  tierIndex: number,
-  plan: (typeof allPlans)[number]
-): IncludedFeature[] {
+function whatsIncluded(plan: Plan): IncludedFeature[] {
+  const l = plan.level
   return [
     { label: "1 page = 1 credit", status: "included" },
     {
@@ -135,19 +150,65 @@ function whatsIncluded(
     { label: "Cancel at any time", status: "included" },
     {
       label: "Invite team members",
-      status: tierIndex >= 3 ? "included" : "excluded",
+      status: l >= 3 ? "included" : "excluded",
     },
     {
-      label: "Priority support",
-      status: tierIndex >= 2 ? "included" : "excluded",
+      label: "Advanced post-processing",
+      status: l >= 2 ? "included" : "excluded",
     },
-    { label: "AI and self-serve support", status: "info" },
+    {
+      label: l >= 4 ? "Priority support" : "AI and self-serve support",
+      status: "info",
+    },
   ]
 }
 
-/* ------------------------------------------------------------------ */
+/* ---- landing-page card tiers (first 4 only) ---- */
+
+const cardPlans = sliderPlans.slice(0, 4).map((p, i, arr) => ({
+  ...p,
+  highlight: p.tier === "growth",
+  prevTier: i > 0 ? arr[i - 1].name : undefined,
+  cardDescription:
+    p.tier === "free"
+      ? "Take Parsli for a spin. See what it can do."
+      : p.tier === "starter"
+        ? "Start automating your extractions."
+        : p.tier === "growth"
+          ? "For teams with regular document processing."
+          : "For high-volume operations.",
+  cardFeatures:
+    p.tier === "free"
+      ? [
+          "30 pages per month",
+          "Up to 3 parsers",
+          "AI extraction (Gemini 2.5 Pro)",
+          "All document types",
+          "REST API + webhooks",
+          "CSV & JSON export",
+        ]
+      : p.tier === "starter"
+        ? [
+            "250 pages per month",
+            "Up to 10 parsers",
+            "Google Sheets sync",
+            "Zapier & Make",
+            "Email support",
+          ]
+        : p.tier === "growth"
+          ? ["1,000 pages per month", "Up to 25 parsers", "Priority support"]
+          : [
+              "5,000 pages per month",
+              "Up to 100 parsers",
+              "Team collaboration",
+              "Dedicated API",
+              "SLA guarantee",
+            ],
+}))
+
+/* ================================================================== */
 /*  Component                                                          */
-/* ------------------------------------------------------------------ */
+/* ================================================================== */
 
 interface PricingSectionProps {
   asPage?: boolean
@@ -163,11 +224,12 @@ export function PricingSection({ asPage }: PricingSectionProps) {
   const pages = pageStops[sliderIndex]
   const plan = useMemo(() => planForPages(pages), [pages])
   const price = annual ? plan.annualPricePerMonth : plan.monthlyPrice
-  const tierIndex = allPlans.indexOf(plan)
-  const features = useMemo(
-    () => whatsIncluded(tierIndex, plan),
-    [tierIndex, plan]
-  )
+  const features = useMemo(() => whatsIncluded(plan), [plan])
+  const isFree = plan.level === 0
+  const isCustom = !!plan.isCustom
+  const perPage =
+    !isFree && !isCustom ? (price / plan.pages).toFixed(plan.pages >= 25_000 ? 3 : 2) : null
+  const isLastStop = sliderIndex === pageStops.length - 1
 
   return (
     <section
@@ -191,7 +253,7 @@ export function PricingSection({ asPage }: PricingSectionProps) {
             Simple volume-based pricing
           </Heading>
 
-          {/* Billing toggle with colored "Annually" pill */}
+          {/* Billing toggle */}
           <div className="relative inline-flex items-center justify-center gap-3">
             {annual && (
               <span className="absolute -top-8 right-0 text-xs font-bold text-teal-600 whitespace-nowrap">
@@ -241,7 +303,7 @@ export function PricingSection({ asPage }: PricingSectionProps) {
 
         {asPage ? (
           /* ============================================================ */
-          /*  PRICING PAGE — Slider + dynamic card + what's included      */
+          /*  PRICING PAGE — Slider + dynamic card                        */
           /* ============================================================ */
           <>
             {/* Slider */}
@@ -260,77 +322,154 @@ export function PricingSection({ asPage }: PricingSectionProps) {
                   className="w-full h-2 rounded-full appearance-none cursor-pointer bg-gradient-to-r from-teal-200 to-teal-100 [&::-webkit-slider-thumb]:h-7 [&::-webkit-slider-thumb]:w-7 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:border-[3px] [&::-webkit-slider-thumb]:border-teal-500 [&::-webkit-slider-thumb]:shadow-lg"
                 />
               </div>
-              <p className="text-lg font-bold tabular-nums">
-                {pages.toLocaleString()} pages / month
+              <p className="text-lg font-bold tabular-nums inline-block bg-muted/60 rounded px-3 py-1">
+                {isLastStop
+                  ? "100,000+ pages / month"
+                  : `${pages.toLocaleString()} pages / month`}
               </p>
             </div>
 
-            {/* Dynamic plan card + What's included panel */}
+            {/* Plan card + What's included */}
             <div className="grid md:grid-cols-2 gap-0 rounded-2xl overflow-hidden border max-w-3xl mx-auto shadow-sm">
-              {/* Left — Plan card */}
+              {/* ---- Left: Plan card ---- */}
               <div className="bg-card p-8 sm:p-10">
-                <div className="relative border rounded-xl px-8 pt-10 pb-8">
-                  <span className="absolute -top-3.5 left-6 bg-card px-3 text-sm font-bold text-muted-foreground">
-                    {plan.name} plan
-                  </span>
-
-                  <p className="text-6xl font-bold tracking-tight mb-1">
-                    ${price}
-                  </p>
-                  <p className="text-sm text-muted-foreground mb-5">
-                    {price === 0
-                      ? "Free forever"
-                      : annual
-                        ? "Monthly price in USD (billed annually)"
-                        : "Monthly price in USD"}
-                  </p>
-                  <p className="text-sm text-muted-foreground mb-6">
-                    {plan.sliderDescription}
-                  </p>
-
-                  <Button
-                    size="lg"
-                    className="w-full text-base font-semibold bg-amber-500 hover:bg-amber-600 text-white shadow-md"
-                    asChild
-                  >
-                    <a
-                      href={
-                        plan.tier === "business"
-                          ? "mailto:talal@bytebeam.co"
-                          : `${APP_URL}/dashboard?subscribe=${plan.tier}&billing=${annual ? "annual" : "monthly"}`
-                      }
+                {isCustom ? (
+                  /* High-volume card */
+                  <div className="flex flex-col justify-center h-full text-center">
+                    <h3 className="text-3xl sm:text-4xl font-bold mb-3">
+                      High volume?
+                    </h3>
+                    <p className="text-muted-foreground text-sm mb-6">
+                      Sign up to check our high-volume pricing options,
+                      including up to 1M pages per month.
+                    </p>
+                    <Button
+                      size="lg"
+                      className="w-full text-base font-semibold bg-amber-500 hover:bg-amber-600 text-white shadow-md"
+                      asChild
                     >
-                      {plan.tier === "business"
-                        ? "Contact sales"
-                        : "Get started"}
-                    </a>
-                  </Button>
+                      <a href="mailto:talal@bytebeam.co">Get started</a>
+                    </Button>
+                    <p className="text-sm text-muted-foreground mt-4">
+                      Start with 30 pages per month for free
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      All prices exclusive of VAT/GST, where applicable.
+                    </p>
+                  </div>
+                ) : (
+                  /* Standard plan card */
+                  <div className="relative border rounded-xl px-8 pt-10 pb-8">
+                    <span className="absolute -top-3.5 left-6 bg-card px-3 text-sm font-bold text-muted-foreground">
+                      {plan.name} plan
+                    </span>
 
-                  <p className="text-xs text-muted-foreground mt-4 text-center">
-                    All prices exclusive of VAT/GST, where applicable.
-                  </p>
-                </div>
+                    {/* Strikethrough monthly price when annual */}
+                    {annual && !isFree && (
+                      <p className="text-lg text-muted-foreground/50 line-through tabular-nums">
+                        ${plan.monthlyPrice}
+                      </p>
+                    )}
+
+                    <p className="text-6xl font-bold tracking-tight">
+                      ${isFree ? "0" : price.toLocaleString()}
+                    </p>
+                    <p className="text-sm text-muted-foreground mb-1">
+                      {isFree
+                        ? "Free forever"
+                        : annual
+                          ? "Monthly price in USD, when paid annually"
+                          : "Monthly price in USD"}
+                    </p>
+
+                    {/* $/page */}
+                    {perPage && (
+                      <p className="text-base font-bold mb-5 tabular-nums">
+                        ${perPage} / page
+                      </p>
+                    )}
+                    {isFree && <div className="mb-5" />}
+
+                    <Button
+                      size="lg"
+                      className="w-full text-base font-semibold bg-amber-500 hover:bg-amber-600 text-white shadow-md"
+                      asChild
+                    >
+                      <a
+                        href={
+                          plan.level >= 5
+                            ? "mailto:talal@bytebeam.co"
+                            : `${APP_URL}/dashboard?subscribe=${plan.tier}&billing=${annual ? "annual" : "monthly"}`
+                        }
+                      >
+                        {plan.level >= 5 ? "Contact sales" : "Get started"}
+                      </a>
+                    </Button>
+
+                    {!isFree && (
+                      <p className="text-sm text-muted-foreground mt-4 text-center">
+                        Start with 30 pages per month for free
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-1 text-center">
+                      All prices exclusive of VAT/GST, where applicable.
+                    </p>
+                  </div>
+                )}
               </div>
 
-              {/* Right — What's included (teal panel like Parseur) */}
-              <div className="bg-teal-600 text-white p-8 sm:p-10 flex flex-col justify-center">
+              {/* ---- Right: What's included ---- */}
+              <div
+                className={cn(
+                  "p-8 sm:p-10 flex flex-col justify-center text-white",
+                  isFree || isCustom
+                    ? "bg-teal-600"
+                    : "bg-sky-600"
+                )}
+              >
                 <h3 className="text-2xl sm:text-3xl font-bold mb-6">
                   What&apos;s included?
                 </h3>
                 <ul className="space-y-4">
-                  {features.map((f) => (
+                  {(isCustom
+                    ? /* enterprise features */
+                      [
+                        { label: "1 page = 1 credit", status: "included" as FeatureStatus },
+                        { label: "1,200,000+ credits valid for a year", status: "included" as FeatureStatus },
+                        { label: "Credits renew every year", status: "included" as FeatureStatus },
+                        { label: "Cancel at any time", status: "included" as FeatureStatus },
+                        { label: "Invite team members", status: "included" as FeatureStatus },
+                        { label: "Advanced post-processing", status: "included" as FeatureStatus },
+                        { label: "Priority support", status: "info" as FeatureStatus },
+                      ]
+                    : features
+                  ).map((f) => (
                     <li
                       key={f.label}
                       className="flex items-center gap-3 text-sm"
                     >
                       {f.status === "included" && (
-                        <Check className="h-5 w-5 text-teal-200 shrink-0" />
+                        <Check
+                          className={cn(
+                            "h-5 w-5 shrink-0",
+                            isFree || isCustom
+                              ? "text-teal-200"
+                              : "text-sky-200"
+                          )}
+                        />
                       )}
                       {f.status === "excluded" && (
                         <Ban className="h-5 w-5 text-white/40 shrink-0" />
                       )}
                       {f.status === "info" && (
-                        <Bot className="h-5 w-5 text-teal-200 shrink-0" />
+                        <HeadsetIcon
+                          className={cn(
+                            "h-5 w-5 shrink-0",
+                            isFree || isCustom
+                              ? "text-teal-200"
+                              : "text-sky-200"
+                          )}
+                        />
                       )}
                       <span
                         className={cn(
@@ -356,7 +495,7 @@ export function PricingSection({ asPage }: PricingSectionProps) {
             </p>
 
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {allPlans.slice(0, 4).map((tier) => {
+              {cardPlans.map((tier) => {
                 const cardPrice = annual
                   ? tier.annualPricePerMonth
                   : tier.monthlyPrice
@@ -393,19 +532,22 @@ export function PricingSection({ asPage }: PricingSectionProps) {
                         </>
                       ) : (
                         <>
+                          {annual && (
+                            <span className="text-sm text-muted-foreground/50 line-through mr-2">
+                              ${tier.monthlyPrice}
+                            </span>
+                          )}
                           <span className="text-4xl font-bold">
                             ${cardPrice}
                           </span>
                           <span className="text-base text-muted-foreground">
                             /mo
                           </span>
-                          {annual && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Billed ${tier.annualPricePerMonth * 12}/year
-                            </p>
-                          )}
-                          <p className="text-xs text-teal-600 font-medium mt-0.5">
-                            ${(cardPrice / tier.pages).toFixed(3)} per page
+                          <p className="text-xs text-teal-600 font-bold mt-0.5">
+                            ${(cardPrice / tier.pages).toFixed(
+                              tier.pages >= 1_000 ? 3 : 2
+                            )}{" "}
+                            / page
                           </p>
                         </>
                       )}
@@ -460,12 +602,11 @@ export function PricingSection({ asPage }: PricingSectionProps) {
                   Business &amp; Enterprise
                 </h3>
                 <p className="text-muted-foreground max-w-lg">
-                  Need more than 5,000 pages/month? Our Business plan starts
-                  at{" "}
+                  Need more than 5,000 pages/month? Plans up to 100,000+
+                  pages available.{" "}
                   <strong className="text-foreground">
-                    ${annual ? "199" : "249"}/month
-                  </strong>{" "}
-                  for 25,000 pages. Custom volumes available.
+                    Up to 68% cheaper than Parseur.
+                  </strong>
                 </p>
               </div>
               <Button
@@ -474,8 +615,8 @@ export function PricingSection({ asPage }: PricingSectionProps) {
                 className="shrink-0 whitespace-nowrap"
                 asChild
               >
-                <a href="mailto:talal@bytebeam.co">
-                  Contact Sales
+                <a href="/pricing">
+                  See All Plans
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </a>
               </Button>
