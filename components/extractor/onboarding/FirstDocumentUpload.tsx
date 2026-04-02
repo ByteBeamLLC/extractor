@@ -155,26 +155,41 @@ export function FirstDocumentUpload({ onParserCreated }: FirstDocumentUploadProp
       setFileName(file.name)
 
       try {
+        // Step 1: Create parser (lightweight, no extraction)
+        const parserResponse = await fetch("/api/onboarding/first-document", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        })
+
+        const parserData = await parserResponse.json()
+
+        if (!parserResponse.ok) {
+          if (parserResponse.status === 401) {
+            openAuthDialog("sign-in")
+            setState("idle")
+            return
+          }
+          throw new Error(parserData.error ?? "Failed to create parser")
+        }
+
+        const newParserId = parserData.parser_id
+        setParserId(newParserId)
+
+        // Step 2: Send file to extract endpoint (gets its own full timeout budget)
         const INLINE_THRESHOLD = 3 * 1024 * 1024 // 3MB
 
-        let response: Response
+        let extractBody: Record<string, any>
 
         if (file.size <= INLINE_THRESHOLD) {
-          // Small file: send inline as base64
           const arrayBuffer = await file.arrayBuffer()
           const base64 = btoa(
             new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), "")
           )
-
-          response = await fetch("/api/onboarding/first-document", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              file: { name: file.name, type: file.type, data: base64, size: file.size },
-            }),
-          })
+          extractBody = {
+            file: { name: file.name, type: file.type, data: base64, size: file.size },
+          }
         } else {
-          // Large file: upload to storage first
           const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_")
           const storagePath = `${session.user.id}/onboarding/pending/${crypto.randomUUID()}/${safeName}`
 
@@ -189,31 +204,32 @@ export function FirstDocumentUpload({ onParserCreated }: FirstDocumentUploadProp
             throw new Error(`Upload failed: ${storageError.message}`)
           }
 
-          response = await fetch("/api/onboarding/first-document", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              storage_path: storagePath,
-              file_name: file.name,
-              file_type: file.type,
-              file_size: file.size,
-            }),
-          })
+          extractBody = {
+            storage_path: storagePath,
+            file_name: file.name,
+            file_type: file.type,
+            file_size: file.size,
+          }
         }
 
-        const data = await response.json()
+        const extractResponse = await fetch(`/api/parsers/${newParserId}/extract`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(extractBody),
+        })
 
-        if (!response.ok) {
-          if (response.status === 402 && session?.user?.is_anonymous) {
+        const extractData = await extractResponse.json()
+
+        if (!extractResponse.ok) {
+          if (extractResponse.status === 402 && session?.user?.is_anonymous) {
             openAuthDialog("sign-up")
             setState("idle")
             return
           }
-          throw new Error(data.error ?? "Something went wrong")
+          throw new Error(extractData.error ?? "Something went wrong")
         }
 
-        setParserId(data.parser_id)
-        setDocumentId(data.document_id)
+        setDocumentId(extractData.document_id)
         setState("processing")
       } catch (err) {
         setError(err instanceof Error ? err.message : "Upload failed")
