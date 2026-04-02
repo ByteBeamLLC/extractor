@@ -35,6 +35,32 @@ import {
   mergeResultsWithMeta,
 } from "@/lib/extraction-results"
 
+/**
+ * Maps raw API/network errors to user-friendly messages.
+ * The raw error is already logged via console.error above — this is only for user-facing text.
+ */
+function sanitizeExtractionError(error: unknown): string {
+  const raw = error instanceof Error ? error.message : String(error)
+  if (
+    raw.includes('Unexpected end of JSON') ||
+    raw.includes('ECONNRESET') ||
+    raw.includes('socket hang up') ||
+    raw.includes('network') ||
+    raw.includes('UND_ERR') ||
+    raw.includes('fetch failed')
+  ) {
+    return 'Document processing failed due to a temporary service issue. Please try again.'
+  }
+  if (raw.includes('OpenRouter API error (429)') || raw.includes('rate limit')) {
+    return 'Our AI service is temporarily at capacity. Please try again in a moment.'
+  }
+  if (raw.includes('OpenRouter API error (5')) {
+    return 'Our AI service encountered an error. Please try again.'
+  }
+  // Pass through errors that are already user-friendly (e.g. "Credit limit reached.")
+  return raw
+}
+
 export interface ExtractionInput {
   /** Base64-encoded file data */
   fileData: string
@@ -164,7 +190,7 @@ async function runFullContentExtraction(input: ExtractionInput): Promise<Extract
         "Extraction failed. Please review and retry.",
       ],
       handledWithFallback: true,
-      error: modelError instanceof Error ? modelError.message : String(modelError),
+      error: sanitizeExtractionError(modelError),
     }
   }
 }
@@ -314,7 +340,7 @@ async function runFieldsExtraction(input: ExtractionInput): Promise<ExtractionOu
     const fallback = buildFallbackFromTree(schemaTree)
     const reviewMeta = computeInitialReviewMeta(fallback, {
       handledWithFallback: true,
-      fallbackReason: modelError instanceof Error ? modelError.message : String(modelError),
+      fallbackReason: sanitizeExtractionError(modelError),
     })
     const confidenceMap = Object.fromEntries(
       Object.entries(reviewMeta).map(([fieldId, meta]) => [
@@ -335,7 +361,7 @@ async function runFieldsExtraction(input: ExtractionInput): Promise<ExtractionOu
         "Automatic extraction failed, so we returned '-' for each field instead. Please review and retry.",
       ],
       handledWithFallback: true,
-      error: modelError instanceof Error ? modelError.message : String(modelError),
+      error: sanitizeExtractionError(modelError),
     }
   }
 }

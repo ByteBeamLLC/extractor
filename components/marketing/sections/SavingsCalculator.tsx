@@ -11,6 +11,8 @@ const plans = [
   { name: "Growth", pages: 1_000, price: 39 },
   { name: "Pro", pages: 5_000, price: 79 },
   { name: "Business", pages: 25_000, price: 199 },
+  { name: "Scale 50k", pages: 50_000, price: 499 },
+  { name: "Scale 100k", pages: 100_000, price: 899 },
 ]
 
 function recommendPlan(totalPages: number) {
@@ -123,7 +125,7 @@ export function SavingsCalculator() {
 
           {/* Right — results */}
           <div className="lg:sticky lg:top-24">
-            <div className="rounded-2xl bg-primary text-primary-foreground p-8 sm:p-10">
+            <div className="rounded-2xl bg-teal-600 text-white p-8 sm:p-10">
               <p className="text-sm font-medium opacity-80 mb-1">
                 With Parsli, you could save
               </p>
@@ -133,8 +135,8 @@ export function SavingsCalculator() {
               <p className="text-lg opacity-80 mb-8">per year</p>
 
               {/* Comparison breakdown */}
-              <div className="rounded-xl bg-primary-foreground/10 backdrop-blur-sm p-5 space-y-3 text-sm">
-                <div className="grid grid-cols-3 gap-2 pb-3 border-b border-primary-foreground/20">
+              <div className="rounded-xl bg-white/10 backdrop-blur-sm p-5 space-y-3 text-sm">
+                <div className="grid grid-cols-3 gap-2 pb-3 border-b border-white/20">
                   <div />
                   <p className="text-center font-medium opacity-70 text-xs uppercase tracking-wide">
                     Without Parsli
@@ -168,7 +170,7 @@ export function SavingsCalculator() {
                     ${calc.plan.price}/mo
                   </p>
                 </div>
-                <div className="grid grid-cols-3 gap-2 items-center pt-3 border-t border-primary-foreground/20 font-semibold">
+                <div className="grid grid-cols-3 gap-2 items-center pt-3 border-t border-white/20 font-semibold">
                   <p>Total cost</p>
                   <p className="text-center">
                     ${calc.manualCost.toLocaleString()}/mo
@@ -178,7 +180,7 @@ export function SavingsCalculator() {
                   </p>
                 </div>
                 <div className="text-center pt-2">
-                  <span className="text-xs font-medium bg-primary-foreground/20 rounded-full px-3 py-1">
+                  <span className="text-xs font-medium bg-white/20 rounded-full px-3 py-1">
                     {calc.savingsPercent}% savings &middot;{" "}
                     {calc.plan.name} plan
                   </span>
@@ -187,8 +189,7 @@ export function SavingsCalculator() {
 
               <Button
                 size="lg"
-                variant="secondary"
-                className="w-full mt-6 text-base font-semibold"
+                className="w-full mt-6 text-base font-semibold bg-amber-500 hover:bg-amber-600 text-white shadow-md"
                 asChild
               >
                 <a href={`${APP_URL}/login?mode=signup`}>
@@ -240,7 +241,7 @@ function RangeSlider({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full h-2 bg-muted rounded-full appearance-none cursor-pointer accent-primary [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:cursor-pointer"
+        className="w-full h-2 bg-teal-100 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-teal-500 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:shadow-md"
       />
       {sublabel && (
         <p className="text-xs text-muted-foreground mt-1.5">{sublabel}</p>
