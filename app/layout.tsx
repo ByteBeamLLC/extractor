@@ -3,6 +3,7 @@ import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
 import Script from "next/script"
 import { AnalyticsProvider } from "@/components/providers/AnalyticsProvider"
+import { ErrorReportingInit } from "@/components/ErrorReportingInit"
 import "./globals.css"
 
 export const viewport: Viewport = {
@@ -116,6 +117,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           </noscript>
         )}
         <AnalyticsProvider />
+        <ErrorReportingInit />
         {children}
         <Analytics />
       </body>

@@ -4,6 +4,7 @@ import { runExtraction } from "@/lib/extraction/runExtraction"
 import { countDocumentPages } from "@/lib/extraction/api"
 import { deliverToIntegrations } from "@/lib/extractor/integrations/orchestrator"
 import { checkCredits, deductCredits } from "@/lib/extractor/billing/credits"
+import { reportError } from "@/lib/errorReporting"
 import type { SchemaField } from "@/lib/schema"
 
 export const runtime = "nodejs"
@@ -173,7 +174,10 @@ export async function POST(
       result.results,
       { file_name: fileName, mime_type: fileMimeType, source_type: "webhook", page_count: pageCount },
       supabase as any
-    )
+    ).catch((err) => {
+      console.error("[inbound/webhook] Integration delivery failed:", err)
+      reportError(err, { route: "/api/inbound/webhook", extra: { parserId: parser.id, docId } })
+    })
   }
 
   // Update parser stats
