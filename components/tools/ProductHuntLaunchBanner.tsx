@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { trackEvent } from "@/lib/analytics"
+import { getAnonId } from "@/lib/analytics/identity"
 import { Rocket, Check, Loader2 } from "lucide-react"
 
-const LS_KEY_DISMISSED = "ph_launch_banner_dismissed"
 const LS_KEY_SUBMITTED = "ph_launch_email_submitted"
 
 export function ProductHuntLaunchBanner() {
@@ -14,16 +14,31 @@ export function ProductHuntLaunchBanner() {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    const dismissed = localStorage.getItem(LS_KEY_DISMISSED)
-    const submitted = localStorage.getItem(LS_KEY_SUBMITTED)
-    if (!dismissed && !submitted) {
-      setVisible(true)
-      trackEvent("ph_banner_shown", { location: "handwriting_tool" })
-    } else if (submitted) {
-      // Show the "already subscribed" state
+    // Fast path: localStorage already flagged
+    if (localStorage.getItem(LS_KEY_SUBMITTED)) {
       setVisible(true)
       setStatus("success")
+      return
     }
+
+    // Check server-side by IP + device_id (catches incognito, cleared storage, different email attempts)
+    const deviceId = getAnonId()
+    fetch(`/api/waitlist/product-hunt?device_id=${deviceId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.subscribed) {
+          localStorage.setItem(LS_KEY_SUBMITTED, "true")
+          setVisible(true)
+          setStatus("success")
+        } else {
+          setVisible(true)
+          trackEvent("ph_banner_shown", { location: "handwriting_tool" })
+        }
+      })
+      .catch(() => {
+        // On error, show the form anyway
+        setVisible(true)
+      })
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,15 +49,24 @@ export function ProductHuntLaunchBanner() {
     setErrorMsg("")
 
     try {
+      const deviceId = getAnonId()
       const res = await fetch("/api/waitlist/product-hunt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ email: email.trim(), device_id: deviceId }),
       })
 
+      const data = await res.json().catch(() => ({}))
+
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
         throw new Error(data.error || "Something went wrong")
+      }
+
+      if (data.already_subscribed) {
+        // IP or device already signed up — lock the banner
+        localStorage.setItem(LS_KEY_SUBMITTED, "true")
+        setStatus("success")
+        return
       }
 
       trackEvent("ph_banner_email_submitted", {
