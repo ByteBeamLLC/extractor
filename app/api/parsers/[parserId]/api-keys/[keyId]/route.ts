@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createSupabaseServerComponentClient } from "@/lib/supabase/server"
 
 export const runtime = "nodejs"
+export const maxDuration = 30
 
 // DELETE /api/parsers/[parserId]/api-keys/[keyId] — revoke key
 export async function DELETE(

@@ -3,6 +3,7 @@ import { createSupabaseServerComponentClient } from "@/lib/supabase/server"
 import { generateApiKey } from "@/lib/extractor/auth/apiKeyAuth"
 
 export const runtime = "nodejs"
+export const maxDuration = 30
 
 // GET /api/parsers/[parserId]/api-keys
 export async function GET(

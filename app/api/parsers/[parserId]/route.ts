@@ -3,6 +3,7 @@ import { createSupabaseServerComponentClient } from "@/lib/supabase/server"
 import { trackServerEvent } from "@/lib/analytics/server"
 
 export const runtime = "nodejs"
+export const maxDuration = 30
 
 // GET /api/parsers/[parserId]
 export async function GET(

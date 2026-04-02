@@ -5,6 +5,8 @@ import type { GmailInboxConfig } from "@/lib/extractor/types"
 
 export const runtime = "nodejs"
 
+export const maxDuration = 60
+
 // GET /api/auth/gmail/callback?code=...&state=...
 // Google redirects here after user grants consent.
 export async function GET(request: NextRequest) {

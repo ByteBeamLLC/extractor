@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export const runtime = "nodejs"
+export const maxDuration = 30
 
 // GET /api/parsers/[parserId]/feed?token=xxx&format=csv|json
 // Public endpoint for Google Sheets IMPORTDATA

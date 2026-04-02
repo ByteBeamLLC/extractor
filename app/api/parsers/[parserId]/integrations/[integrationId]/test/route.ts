@@ -5,6 +5,8 @@ import type { DocumentProcessedEvent } from "@/lib/extractor/integrations/types"
 
 export const runtime = "nodejs"
 
+export const maxDuration = 60
+
 // POST /api/parsers/[parserId]/integrations/[integrationId]/test
 export async function POST(
   _request: NextRequest,

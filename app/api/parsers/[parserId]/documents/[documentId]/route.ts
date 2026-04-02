@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createSupabaseServerComponentClient } from "@/lib/supabase/server"
 
+export const maxDuration = 30
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: { parserId: string; documentId: string } }

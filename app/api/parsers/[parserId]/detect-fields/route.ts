@@ -9,6 +9,8 @@ import {
 
 export const runtime = "nodejs"
 
+export const maxDuration = 60
+
 /**
  * POST /api/parsers/[parserId]/detect-fields
  *
