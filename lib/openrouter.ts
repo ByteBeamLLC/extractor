@@ -9,6 +9,84 @@ import { z } from 'zod'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions'
+const MAX_RETRIES = 2
+const RETRY_BASE_DELAY_MS = 1000
+
+/**
+ * Returns true for errors that are worth retrying (transient network/API issues).
+ */
+function isTransientError(error: unknown): boolean {
+    if (error instanceof TypeError) return true // fetch network failures
+    const msg = error instanceof Error ? error.message : String(error)
+    return (
+        msg.includes('Unexpected end of JSON input') ||
+        msg.includes('network') ||
+        msg.includes('ECONNRESET') ||
+        msg.includes('socket hang up') ||
+        msg.includes('UND_ERR')
+    )
+}
+
+/**
+ * Returns true for HTTP status codes that are worth retrying.
+ */
+function isRetryableStatus(status: number): boolean {
+    return status === 429 || status >= 500
+}
+
+/**
+ * Calls OpenRouter with automatic retry on transient failures.
+ * Retries on: network errors, truncated JSON responses, 5xx, 429.
+ */
+async function fetchOpenRouterWithRetry(
+    body: Record<string, unknown>,
+    retries = MAX_RETRIES,
+): Promise<{ data: any }> {
+    const apiKey = getApiKey()
+    const headers = {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+        'X-Title': 'Parsli',
+    }
+
+    let lastError: Error | null = null
+
+    for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+            const response = await fetch(OPENROUTER_API_URL, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(body),
+            })
+
+            if (!response.ok) {
+                const errorText = await response.text().catch(() => response.statusText)
+                if (isRetryableStatus(response.status) && attempt < retries) {
+                    const delay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt)
+                    console.warn(`[openrouter] Retryable ${response.status}, attempt ${attempt + 1}/${retries + 1}, waiting ${delay}ms`)
+                    await new Promise((r) => setTimeout(r, delay))
+                    continue
+                }
+                throw new Error(`OpenRouter API error (${response.status}): ${errorText}`)
+            }
+
+            const data = await response.json()
+            return { data }
+        } catch (error) {
+            lastError = error instanceof Error ? error : new Error(String(error))
+            if (isTransientError(error) && attempt < retries) {
+                const delay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt)
+                console.warn(`[openrouter] Transient error, attempt ${attempt + 1}/${retries + 1}, waiting ${delay}ms: ${lastError.message}`)
+                await new Promise((r) => setTimeout(r, delay))
+                continue
+            }
+            throw lastError
+        }
+    }
+
+    throw lastError ?? new Error('OpenRouter request failed after retries')
+}
 
 interface Message {
     role: 'user' | 'assistant' | 'system'
@@ -112,40 +190,22 @@ function formatMessages(messages: Message[]): FormattedMessage[] {
  * This replaces the AI SDK's generateText function
  */
 export async function generateText(options: GenerateTextOptions): Promise<{ text: string }> {
-    const apiKey = getApiKey()
     const model = getModel(options.model)
 
-    const response = await fetch(OPENROUTER_API_URL, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-            'X-Title': 'Parsli'
-        },
-        body: JSON.stringify({
-            model,
-            messages: formatMessages(options.messages),
-            temperature: options.temperature ?? 0.7,
-            max_tokens: options.maxTokens
-        })
+    const { data } = await fetchOpenRouterWithRetry({
+        model,
+        messages: formatMessages(options.messages),
+        temperature: options.temperature ?? 0.7,
+        max_tokens: options.maxTokens,
     })
 
-    if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(`OpenRouter API error (${response.status}): ${errorText}`)
-    }
-
-    const data = await response.json()
     const text = data.choices?.[0]?.message?.content || ''
-
     return { text }
 }
 
 export async function generateObject<T extends z.ZodSchema>(
     options: GenerateObjectOptions
 ): Promise<{ object: z.infer<T> }> {
-    const apiKey = getApiKey()
     const model = getModel(options.model)
 
     // Add JSON schema instruction to the system message
@@ -160,28 +220,13 @@ export async function generateObject<T extends z.ZodSchema>(
         ...options.messages
     ]
 
-    const response = await fetch(OPENROUTER_API_URL, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-            'X-Title': 'Parsli'
-        },
-        body: JSON.stringify({
-            model,
-            messages: formatMessages(enhancedMessages),
-            temperature: options.temperature ?? 0.1,
-            response_format: { type: 'json_object' }
-        })
+    const { data } = await fetchOpenRouterWithRetry({
+        model,
+        messages: formatMessages(enhancedMessages),
+        temperature: options.temperature ?? 0.1,
+        response_format: { type: 'json_object' },
     })
 
-    if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(`OpenRouter API error (${response.status}): ${errorText}`)
-    }
-
-    const data = await response.json()
     const content = data.choices?.[0]?.message?.content || '{}'
 
     // Parse JSON response
@@ -219,7 +264,6 @@ interface GenerateFreeformJsonOptions {
 export async function generateFreeformJson(
     options: GenerateFreeformJsonOptions
 ): Promise<{ object: Record<string, any> }> {
-    const apiKey = getApiKey()
     const model = getModel(options.model)
 
     const enhancedMessages = [
@@ -230,28 +274,13 @@ export async function generateFreeformJson(
         ...options.messages
     ]
 
-    const response = await fetch(OPENROUTER_API_URL, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-            'X-Title': 'Parsli'
-        },
-        body: JSON.stringify({
-            model,
-            messages: formatMessages(enhancedMessages),
-            temperature: options.temperature ?? 0.2,
-            response_format: { type: 'json_object' }
-        })
+    const { data } = await fetchOpenRouterWithRetry({
+        model,
+        messages: formatMessages(enhancedMessages),
+        temperature: options.temperature ?? 0.2,
+        response_format: { type: 'json_object' },
     })
 
-    if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(`OpenRouter API error (${response.status}): ${errorText}`)
-    }
-
-    const data = await response.json()
     const content = data.choices?.[0]?.message?.content || '{}'
 
     let parsedObject: Record<string, any>
