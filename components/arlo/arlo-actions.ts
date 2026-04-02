@@ -157,25 +157,26 @@ export async function typeIntoElement(arloId: string, text: string): Promise<boo
   return false
 }
 
-/** Programmatically trigger a file upload on a drop zone */
-export async function uploadToDropZone(arloId: string, file: File): Promise<boolean> {
-  const el = findArloElement(arloId)
-  if (!el) return false
+/** Upload a file directly via the extract API, bypassing DOM events */
+export async function uploadFileViaApi(parserId: string, file: File): Promise<boolean> {
+  const arrayBuffer = await file.arrayBuffer()
+  const base64 = btoa(
+    new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), "")
+  )
 
-  // Primary: simulate drag-and-drop (works reliably with React's onDrop)
-  const dt = createDataTransfer(file)
-  el.dispatchEvent(new DragEvent("dragenter", { bubbles: true, cancelable: true, dataTransfer: dt }))
-  el.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: dt }))
-  await sleep(100)
-  el.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: dt }))
-  return true
-}
+  const res = await fetch(`/api/parsers/${parserId}/extract`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      file: { name: file.name, type: file.type, data: base64, size: file.size },
+      file_name: file.name,
+      file_type: file.type,
+      file_size: file.size,
+      source_type: "upload",
+    }),
+  })
 
-/** Create a DataTransfer with a file */
-function createDataTransfer(file: File): DataTransfer {
-  const dt = new DataTransfer()
-  dt.items.add(file)
-  return dt
+  return res.ok
 }
 
 /** Sleep helper */
@@ -210,11 +211,16 @@ export async function executeActions(
     onSpeak: (message: string) => void
     onActionStart: (action: ArloAction, index: number) => void
     onActionEnd: (action: ArloAction, index: number) => void
+    onCloseChat: () => void
     getCurrentPosition: () => ArloPosition
     getDropZones: () => Map<string, ArloDropZone>
     pendingFile: File | null
+    parserId: string | null
   }
 ): Promise<void> {
+  // Close chat panel while executing actions
+  callbacks.onCloseChat()
+
   for (let i = 0; i < actions.length; i++) {
     const action = actions[i]
     callbacks.onActionStart(action, i)
@@ -275,42 +281,26 @@ export async function executeActions(
 
       case "upload": {
         const file = callbacks.pendingFile
-        if (file) {
-          // Wait for the drop zone to appear (may not be rendered yet after navigation)
-          let dropZone: HTMLElement | null = null
-          if (action.target) {
-            dropZone = await waitForElement(action.target)
-          } else {
-            // Poll for any page drop zone
-            const start = Date.now()
-            while (!dropZone && Date.now() - start < 5000) {
-              dropZone = findPageDropZone()
-              if (!dropZone) await sleep(200)
-            }
-          }
+        const parserId = callbacks.parserId
+        if (file && parserId) {
+          callbacks.onAnimationChange("carrying")
+          await sleep(600)
 
-          if (dropZone) {
-            const targetPos = getElementTopPosition(dropZone)
-            const walkTime = getWalkDuration(callbacks.getCurrentPosition(), targetPos)
-
-            // Pick up the document
-            callbacks.onAnimationChange("carrying")
-            await sleep(400)
-
-            // Walk to the drop zone
-            callbacks.onPositionChange(targetPos)
-            await sleep(walkTime)
-
-            // Drop the file
-            callbacks.onAnimationChange("clicking")
-            const arloId = dropZone.getAttribute("data-arlo-id")
-            if (arloId) {
-              await uploadToDropZone(arloId, file)
-            }
-            await sleep(500)
+          // Upload directly via the extract API
+          callbacks.onAnimationChange("thinking")
+          const ok = await uploadFileViaApi(parserId, file)
+          if (ok) {
             callbacks.onAnimationChange("celebrating")
+            callbacks.onSpeak("Document uploaded! Refreshing...")
+            await sleep(1000)
+            // Navigate to documents page to show the result
+            callbacks.onNavigate(`/parsers/${parserId}/documents`)
             await sleep(800)
             callbacks.onAnimationChange("idle")
+          } else {
+            callbacks.onAnimationChange("idle")
+            callbacks.onSpeak("Hmm, the upload didn't go through. Try uploading manually?")
+            await sleep(1500)
           }
         }
         break

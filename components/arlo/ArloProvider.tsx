@@ -274,7 +274,16 @@ export function ArloProvider({ children, isFirstTimeUser = false }: ArloProvider
 
           await executeActions(data.actions, {
             onNavigate: (path) => router.push(path),
-            onPositionChange: (pos) => setPosition(pos),
+            onPositionChange: (pos) => {
+              // Clamp to viewport bounds
+              const charSize = isMobile ? 48 : 64
+              const vw = window.innerWidth
+              const vh = window.innerHeight
+              setPosition({
+                x: Math.max(0, Math.min(vw - charSize, pos.x)),
+                y: Math.max(0, Math.min(vh - charSize, pos.y)),
+              })
+            },
             onAnimationChange: (anim) => setAnimation(anim as ArloAnimation),
             onSpeak: (message) => {
               setMessages((prev) => [
@@ -289,9 +298,11 @@ export function ArloProvider({ children, isFirstTimeUser = false }: ArloProvider
             },
             onActionStart: (action) => setCurrentAction(action),
             onActionEnd: () => setCurrentAction(null),
+            onCloseChat: () => setIsChatOpen(false),
             getCurrentPosition: () => positionRef.current,
             getDropZones: () => dropZonesRef.current,
             pendingFile: pendingFileRef.current,
+            parserId: parser?.id ?? null,
           })
 
           pendingFileRef.current = null
