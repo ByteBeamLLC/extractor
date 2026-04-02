@@ -727,12 +727,13 @@ export default function PdfToExcelToolPage() {
           <h2 className="text-lg font-semibold mb-6">Related Resources</h2>
           <div className="flex flex-wrap gap-3">
             {[
+              { href: "/tools/pdf-to-google-sheets", label: "PDF to Google Sheets" },
+              { href: "/tools/pdf-to-json", label: "PDF to JSON" },
+              { href: "/tools/pdf-to-xml", label: "PDF to XML" },
               { href: "/solutions/pdf-to-excel", label: "PDF to Excel Solution" },
               { href: "/use-cases/pdf-to-excel", label: "PDF to Excel Use Case" },
               { href: "/use-cases/pdf-data-extraction", label: "PDF Data Extraction" },
               { href: "/blog/extract-data-pdf-to-excel", label: "How to Extract PDF Data" },
-              { href: "/solutions/invoice-parsing", label: "Invoice Parsing" },
-              { href: "/solutions/bank-statement-extraction", label: "Bank Statement Extraction" },
               { href: "/docs", label: "Documentation" },
               { href: "/pricing", label: "Pricing" },
             ].map((link) => (

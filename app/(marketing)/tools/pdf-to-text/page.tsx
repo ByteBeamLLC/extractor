@@ -711,13 +711,13 @@ export default function PdfToTextToolPage() {
           <h2 className="text-lg font-semibold mb-6">Related Resources</h2>
           <div className="flex flex-wrap gap-3">
             {[
+              { href: "/tools/pdf-to-json", label: "PDF to JSON" },
+              { href: "/tools/pdf-to-xml", label: "PDF to XML" },
+              { href: "/tools/pdf-to-google-sheets", label: "PDF to Google Sheets" },
               { href: "/tools/pdf-to-excel", label: "PDF to Excel" },
+              { href: "/tools/ocr", label: "Free Online OCR" },
+              { href: "/tools/make-pdf-searchable", label: "Make PDF Searchable" },
               { href: "/tools/image-to-text", label: "Image to Text (OCR)" },
-              { href: "/tools/screenshot-to-text", label: "Screenshot to Text" },
-              { href: "/tools/photo-to-text", label: "Photo to Text" },
-              { href: "/solutions/pdf-data-extraction", label: "PDF Data Extraction" },
-              { href: "/use-cases/pdf-data-extraction", label: "PDF Extraction Use Case" },
-              { href: "/docs", label: "Documentation" },
               { href: "/pricing", label: "Pricing" },
             ].map((link) => (
               <Link

@@ -704,12 +704,12 @@ export default function ExcelToJsonToolPage() {
           <h2 className="text-lg font-semibold mb-6">Related Resources</h2>
           <div className="flex flex-wrap gap-3">
             {[
+              { href: "/tools/pdf-to-json", label: "PDF to JSON" },
               { href: "/tools/json-to-excel", label: "JSON to Excel Converter" },
               { href: "/tools/excel-to-csv", label: "Excel to CSV Converter" },
               { href: "/tools/csv-to-excel", label: "CSV to Excel Converter" },
               { href: "/tools/pdf-to-excel", label: "PDF to Excel Converter" },
               { href: "/solutions/document-parsing-api", label: "Document Parsing API" },
-              { href: "/docs", label: "Documentation" },
               { href: "/pricing", label: "Pricing" },
             ].map((link) => (
               <Link

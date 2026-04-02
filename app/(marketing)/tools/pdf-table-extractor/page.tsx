@@ -708,13 +708,13 @@ export default function PdfTableExtractorPage() {
           <h2 className="text-lg font-semibold mb-6">Related Resources</h2>
           <div className="flex flex-wrap gap-3">
             {[
+              { href: "/tools/pdf-to-google-sheets", label: "PDF to Google Sheets" },
+              { href: "/tools/pdf-to-json", label: "PDF to JSON" },
+              { href: "/tools/pdf-to-xml", label: "PDF to XML" },
               { href: "/tools/pdf-to-excel", label: "PDF to Excel Converter" },
               { href: "/tools/invoice-parser", label: "Invoice Parser" },
               { href: "/tools/bank-statement-parser", label: "Bank Statement Parser" },
-              { href: "/tools/ai-summarizer", label: "AI Document Summarizer" },
               { href: "/solutions/document-parsing-api", label: "Document Parsing API" },
-              { href: "/use-cases/pdf-data-extraction", label: "PDF Data Extraction" },
-              { href: "/docs", label: "Documentation" },
               { href: "/pricing", label: "Pricing" },
             ].map((link) => (
               <Link

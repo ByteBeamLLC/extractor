@@ -969,16 +969,14 @@ export default function HandwritingToTextToolPage() {
           <h2 className="text-lg font-semibold mb-6">Related Resources</h2>
           <div className="flex flex-wrap gap-3">
             {[
+              { href: "/tools/ocr", label: "Free Online OCR" },
+              { href: "/tools/scan-to-text", label: "Scan to Text" },
+              { href: "/tools/make-pdf-searchable", label: "Make PDF Searchable" },
               { href: "/tools/image-to-text", label: "Image to Text (OCR)" },
               { href: "/tools/photo-to-text", label: "Photo to Text" },
               { href: "/tools/screenshot-to-text", label: "Screenshot to Text" },
               { href: "/tools/pdf-to-text", label: "PDF to Text" },
-              { href: "/tools/pdf-to-excel", label: "PDF to Excel" },
-              { href: "/tools/invoice-parser", label: "Invoice Parser" },
-              { href: "/tools/receipt-scanner", label: "Receipt Scanner" },
-              { href: "/solutions/ai-ocr", label: "AI OCR Solution" },
-              { href: "/use-cases/invoice-parsing", label: "Invoice Parsing" },
-              { href: "/docs", label: "API Documentation" },
+              { href: "/solutions/handwriting-to-text", label: "Handwriting Solution" },
               { href: "/pricing", label: "Pricing" },
             ].map((link) => (
               <Link
