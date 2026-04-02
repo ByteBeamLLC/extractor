@@ -310,7 +310,7 @@ export function ParserListPage() {
             Create parsers to extract structured data from your documents
           </p>
         </div>
-        <Button onClick={handleCreateParser} className="shrink-0 self-start sm:self-auto">
+        <Button onClick={handleCreateParser} className="shrink-0 self-start sm:self-auto" data-arlo-id="create-parser-btn">
           <Plus className="h-4 w-4 mr-2" />
           New Parser
         </Button>
