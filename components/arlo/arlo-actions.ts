@@ -21,13 +21,26 @@ export function getElementCenter(el: HTMLElement): ArloPosition {
   }
 }
 
-/** Get a position just above an element (where Arlo would "land") */
+/** Get a position just above an element (where Arlo would "land"), clamped to viewport */
 export function getElementTopPosition(el: HTMLElement, arloSize: number = 64): ArloPosition {
   const rect = el.getBoundingClientRect()
-  return {
-    x: rect.left + rect.width / 2 - arloSize / 2,
-    y: rect.top - arloSize - 8,
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+
+  // Position above the element by default
+  let x = rect.left + rect.width / 2 - arloSize / 2
+  let y = rect.top - arloSize - 8
+
+  // If not enough room above, position to the side or below
+  if (y < 8) {
+    y = rect.bottom + 8
   }
+
+  // Clamp to viewport bounds with padding
+  x = Math.max(8, Math.min(vw - arloSize - 8, x))
+  y = Math.max(8, Math.min(vh - arloSize - 8, y))
+
+  return { x, y }
 }
 
 /** Calculate distance between two positions */

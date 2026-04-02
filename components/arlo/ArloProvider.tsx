@@ -29,6 +29,8 @@ import { useActiveParser } from "@/components/extractor/parser-context"
 const ARLO_GREETED_KEY = "arlo_has_greeted"
 const ARLO_VISIBLE_KEY = "arlo_visible"
 
+const MOBILE_BREAKPOINT = 640
+
 const ArloContext = createContext<ArloContextValue>({
   isVisible: true,
   isChatOpen: false,
@@ -44,6 +46,7 @@ const ArloContext = createContext<ArloContextValue>({
   hasGreeted: false,
   currentAction: null,
   isExecutingActions: false,
+  isMobile: false,
 })
 
 export const useArlo = () => useContext(ArloContext)
@@ -68,6 +71,7 @@ export function ArloProvider({ children, isFirstTimeUser = false }: ArloProvider
   const [hasGreeted, setHasGreeted] = useState(false)
   const [currentAction, setCurrentAction] = useState<ArloAction | null>(null)
   const [isExecutingActions, setIsExecutingActions] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
 
   // Drop zones registry
   const dropZonesRef = useRef<Map<string, ArloDropZone>>(new Map())
@@ -81,20 +85,45 @@ export function ArloProvider({ children, isFirstTimeUser = false }: ArloProvider
     positionRef.current = position
   }, [position])
 
-  // Initialize position to bottom-right of viewport
-  useEffect(() => {
-    const initPos = {
-      x: window.innerWidth - 100,
-      y: window.innerHeight - 100,
+  // Compute default resting position based on viewport
+  const getDefaultPosition = useCallback((): ArloPosition => {
+    const mobile = window.innerWidth < MOBILE_BREAKPOINT
+    const charSize = mobile ? 48 : 64
+    return {
+      x: window.innerWidth - charSize - 20,
+      y: window.innerHeight - charSize - 20,
     }
-    setPosition(initPos)
+  }, [])
+
+  // Initialize position + track viewport changes (resize, orientation)
+  useEffect(() => {
+    const updateViewport = () => {
+      const mobile = window.innerWidth < MOBILE_BREAKPOINT
+      setIsMobile(mobile)
+
+      // Only reposition if not mid-action
+      if (!isExecutingActions) {
+        setPosition(getDefaultPosition())
+      }
+    }
+
+    updateViewport()
 
     // Check visibility preference
     try {
       const hidden = localStorage.getItem(ARLO_VISIBLE_KEY) === "false"
       if (hidden) setIsVisible(false)
     } catch {}
-  }, [])
+
+    window.addEventListener("resize", updateViewport)
+    // visualViewport handles mobile keyboard open/close
+    window.visualViewport?.addEventListener("resize", updateViewport)
+
+    return () => {
+      window.removeEventListener("resize", updateViewport)
+      window.visualViewport?.removeEventListener("resize", updateViewport)
+    }
+  }, [isExecutingActions, getDefaultPosition])
 
   // Sleep timer — Arlo falls asleep after 2 minutes of no interaction
   const sleepTimerRef = useRef<ReturnType<typeof setTimeout>>()
@@ -270,10 +299,7 @@ export function ArloProvider({ children, isFirstTimeUser = false }: ArloProvider
 
           // Return to default position after actions
           setTimeout(() => {
-            setPosition({
-              x: window.innerWidth - 100,
-              y: window.innerHeight - 100,
-            })
+            setPosition(getDefaultPosition())
           }, 1000)
         }
       } catch (error) {
@@ -311,6 +337,7 @@ export function ArloProvider({ children, isFirstTimeUser = false }: ArloProvider
         hasGreeted,
         currentAction,
         isExecutingActions,
+        isMobile,
       }}
     >
       {children}

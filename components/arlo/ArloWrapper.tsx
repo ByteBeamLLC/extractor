@@ -28,8 +28,8 @@ export function ArloWrapper() {
       .from("parsers")
       .select("id", { count: "exact", head: true })
       .eq("user_id", session.user.id)
-      .then(({ count }) => {
-        setIsFirstTimeUser(count === 0)
+      .then(({ count }: { count: number | null }) => {
+        setIsFirstTimeUser(count === 0 || count === null)
         setChecked(true)
       })
   }, [session?.user?.id, supabase])

@@ -222,14 +222,29 @@ export const ArloCharacter = memo(function ArloCharacter({
           position: relative;
           user-select: none;
           -webkit-user-select: none;
+          -webkit-tap-highlight-color: transparent;
           filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
           transition: transform 0.2s ease;
+          /* Ensure minimum 44px touch target even at small sizes */
+          min-width: 44px;
+          min-height: 44px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
         .arlo-character:hover {
           transform: scale(1.05);
         }
         .arlo-character:active {
           transform: scale(0.95);
+        }
+        @media (hover: none) and (pointer: coarse) {
+          .arlo-character:hover {
+            transform: none;
+          }
+          .arlo-character:active {
+            transform: scale(0.9);
+          }
         }
 
         /* === IDLE === */

@@ -11,9 +11,10 @@ interface ArloChatProps {
   isProcessing: boolean
   onSendMessage: (content: string, file?: File) => Promise<void>
   onClose: () => void
+  mobile?: boolean
 }
 
-export function ArloChat({ messages, isProcessing, onSendMessage, onClose }: ArloChatProps) {
+export function ArloChat({ messages, isProcessing, onSendMessage, onClose, mobile = false }: ArloChatProps) {
   const [input, setInput] = useState("")
   const [attachedFile, setAttachedFile] = useState<File | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -63,7 +64,12 @@ export function ArloChat({ messages, isProcessing, onSendMessage, onClose }: Arl
   }
 
   return (
-    <div className="flex flex-col w-80 h-[420px] bg-background border rounded-xl shadow-xl overflow-hidden">
+    <div className={cn(
+      "flex flex-col bg-background border shadow-xl overflow-hidden",
+      mobile
+        ? "w-full h-full rounded-t-xl"
+        : "w-80 h-[420px] rounded-xl"
+    )}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b bg-primary/5">
         <div className="flex items-center gap-2">
@@ -143,7 +149,13 @@ export function ArloChat({ messages, isProcessing, onSendMessage, onClose }: Arl
       )}
 
       {/* Input */}
-      <form onSubmit={handleSubmit} className="flex items-center gap-1.5 px-3 py-2.5 border-t">
+      <form
+        onSubmit={handleSubmit}
+        className={cn(
+          "flex items-center gap-1.5 border-t",
+          mobile ? "px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]" : "px-3 py-2.5"
+        )}
+      >
         <input
           ref={fileInputRef}
           type="file"
@@ -154,10 +166,13 @@ export function ArloChat({ messages, isProcessing, onSendMessage, onClose }: Arl
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="p-1.5 rounded-md hover:bg-muted transition-colors"
+          className={cn(
+            "rounded-md hover:bg-muted transition-colors shrink-0",
+            mobile ? "p-2" : "p-1.5"
+          )}
           aria-label="Attach file"
         >
-          <Paperclip className="h-4 w-4 text-muted-foreground" />
+          <Paperclip className={cn(mobile ? "h-5 w-5" : "h-4 w-4", "text-muted-foreground")} />
         </button>
         <input
           ref={inputRef}
@@ -167,13 +182,17 @@ export function ArloChat({ messages, isProcessing, onSendMessage, onClose }: Arl
           onKeyDown={handleKeyDown}
           placeholder="Ask Arlo anything..."
           disabled={isProcessing}
-          className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
+          className={cn(
+            "flex-1 bg-transparent outline-none placeholder:text-muted-foreground/50",
+            mobile ? "text-base" : "text-sm"
+          )}
         />
         <button
           type="submit"
           disabled={isProcessing || (!input.trim() && !attachedFile)}
           className={cn(
-            "p-1.5 rounded-md transition-colors",
+            "rounded-md transition-colors shrink-0",
+            mobile ? "p-2" : "p-1.5",
             input.trim() || attachedFile
               ? "bg-primary text-primary-foreground hover:bg-primary/90"
               : "text-muted-foreground"
@@ -181,9 +200,9 @@ export function ArloChat({ messages, isProcessing, onSendMessage, onClose }: Arl
           aria-label="Send message"
         >
           {isProcessing ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className={cn(mobile ? "h-5 w-5" : "h-4 w-4", "animate-spin")} />
           ) : (
-            <Send className="h-4 w-4" />
+            <Send className={cn(mobile ? "h-5 w-5" : "h-4 w-4")} />
           )}
         </button>
       </form>

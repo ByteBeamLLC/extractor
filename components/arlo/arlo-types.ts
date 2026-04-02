@@ -70,4 +70,7 @@ export interface ArloContextValue {
   // Actions queue
   currentAction: ArloAction | null
   isExecutingActions: boolean
+
+  // Responsive
+  isMobile: boolean
 }
