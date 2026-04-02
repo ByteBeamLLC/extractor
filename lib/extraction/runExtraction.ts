@@ -16,6 +16,7 @@ import type { SchemaField } from "@/lib/schema"
 import type { ExtractionType } from "@/lib/extractor/types"
 import {
   extractTextFromDocument,
+  countDocumentPages,
   isImageFile,
   isPdfFile,
   buildObjectFromTree,
@@ -34,6 +35,10 @@ import {
   sanitizeResultsFromTree,
   mergeResultsWithMeta,
 } from "@/lib/extraction-results"
+import {
+  runChunkedPdfExtraction,
+  CHUNKED_PAGE_THRESHOLD,
+} from "./chunkedExtraction"
 
 /**
  * Maps raw API/network errors to user-friendly messages.
@@ -89,12 +94,32 @@ export interface ExtractionOutput {
 }
 
 /**
- * Runs the full extraction pipeline in a single AI request.
- * Delegates to schema-driven or full-content extraction based on extractionType.
+ * Runs the full extraction pipeline.
+ *
+ * For large PDFs (>CHUNKED_PAGE_THRESHOLD pages), splits into per-page
+ * extraction with parallel requests, then consolidates with a lighter model.
+ * Small documents use a single AI request as before.
  */
 export async function runExtraction(input: ExtractionInput): Promise<ExtractionOutput> {
   const extractionType = input.extractionType ?? "fields"
 
+  // Large PDFs: chunked per-page extraction + consolidation
+  if (isPdfFile(input.mimeType, input.fileName)) {
+    const buffer = Buffer.from(input.fileData, "base64")
+    const pageCount = await countDocumentPages(
+      new Uint8Array(buffer),
+      input.fileName,
+      input.mimeType
+    )
+    if (pageCount > CHUNKED_PAGE_THRESHOLD) {
+      console.log(
+        `[extraction] Large PDF detected: ${pageCount} pages, routing to chunked extraction`
+      )
+      return runChunkedPdfExtraction(input, pageCount)
+    }
+  }
+
+  // Small documents: single-request extraction (unchanged)
   if (extractionType === "full_content") {
     return runFullContentExtraction(input)
   }
