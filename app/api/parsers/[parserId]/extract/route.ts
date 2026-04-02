@@ -7,6 +7,7 @@ import type { SchemaField } from "@/lib/schema"
 import { deliverToIntegrations } from "@/lib/extractor/integrations/orchestrator"
 import { checkCredits, deductCredits } from "@/lib/extractor/billing/credits"
 import { trackServerEvent } from "@/lib/analytics/server"
+import { reportError } from "@/lib/errorReporting"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
@@ -233,7 +234,7 @@ export async function POST(
     waitUntil(
       performExtraction().catch((err) => {
         console.error("[extract] Background extraction failed:", err)
-        // Mark document as error so the UI can show it
+        reportError(err, { route: "/api/parsers/extract", method: "POST", userId: user.id, extra: { parserId: p.id, docId } })
         if (docId) {
           supabase
             .from("parser_processed_documents" as any)
