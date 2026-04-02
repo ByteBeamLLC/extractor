@@ -85,6 +85,24 @@ const categories = [
         description:
           "Convert photographed documents, signs, and printed text into editable text.",
       },
+      {
+        slug: "ocr",
+        title: "Free Online OCR",
+        description:
+          "Extract text from any image with optical character recognition. Supports 12 languages.",
+      },
+      {
+        slug: "scan-to-text",
+        title: "Scan to Text",
+        description:
+          "Convert scanned documents and photos to editable, searchable text.",
+      },
+      {
+        slug: "make-pdf-searchable",
+        title: "Make PDF Searchable",
+        description:
+          "Run OCR on scanned PDFs to extract searchable text. Supports multi-page documents.",
+      },
     ],
   },
   {
@@ -113,6 +131,24 @@ const categories = [
         title: "CSV to Excel",
         description:
           "Convert CSV files into formatted Excel spreadsheets with proper columns.",
+      },
+      {
+        slug: "pdf-to-json",
+        title: "PDF to JSON",
+        description:
+          "Convert PDF documents to structured JSON data. Perfect for developers and data pipelines.",
+      },
+      {
+        slug: "pdf-to-xml",
+        title: "PDF to XML",
+        description:
+          "Convert PDF documents to structured XML format for enterprise data integration.",
+      },
+      {
+        slug: "pdf-to-google-sheets",
+        title: "PDF to Google Sheets",
+        description:
+          "Extract PDF tables and data into Google Sheets format. Download as CSV and import.",
       },
     ],
   },

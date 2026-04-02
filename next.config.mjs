@@ -17,6 +17,11 @@ const nextConfig = {
         destination: "/compare/:slug",
         permanent: true,
       },
+      {
+        source: "/lp/handwriting-to-text",
+        destination: "/solutions/handwriting-to-text",
+        permanent: true,
+      },
     ]
   },
   async rewrites() {
