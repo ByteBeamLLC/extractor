@@ -1,5 +1,8 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import Image from "next/image"
+import fs from "fs"
+import path from "path"
 import { notFound } from "next/navigation"
 import {
   ArrowRight,
@@ -47,6 +50,13 @@ export async function generateMetadata({
   const guide = getGuideBySlug(params.slug)
   if (!guide) return {}
 
+  const bannerExists = fs.existsSync(
+    path.join(process.cwd(), "public", "images", "guides", `${guide.slug}.webp`)
+  )
+  const ogImage = bannerExists
+    ? `https://parsli.co/images/guides/${guide.slug}.webp`
+    : "https://parsli.co/parsli-og.png"
+
   return {
     title: guide.metaTitle,
     description: guide.metaDescription,
@@ -63,7 +73,7 @@ export async function generateMetadata({
       authors: [guide.author],
       images: [
         {
-          url: "https://parsli.co/parsli-og.png",
+          url: ogImage,
           width: 1200,
           height: 630,
           alt: guide.metaTitle,
@@ -74,7 +84,7 @@ export async function generateMetadata({
       card: "summary_large_image",
       title: guide.metaTitle,
       description: guide.metaDescription,
-      images: ["https://parsli.co/parsli-og.png"],
+      images: [ogImage],
     },
   }
 }
@@ -596,6 +606,10 @@ export default function GuidePage({
     .filter((g) => g.slug !== guide.slug)
     .slice(0, 3)
 
+  const hasBanner = fs.existsSync(
+    path.join(process.cwd(), "public", "images", "guides", `${guide.slug}.webp`)
+  )
+
   return (
     <>
       <JsonLd
@@ -680,39 +694,51 @@ export default function GuidePage({
               </div>
             </div>
 
-            {/* Right — featured image card with gradient + product UI mockup */}
-            <div className="rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 border border-primary/10 p-8 sm:p-10 hidden lg:flex flex-col items-center justify-center min-h-[280px] relative overflow-hidden">
-              <div className="absolute top-3 right-3 w-20 h-20 border border-primary/10 rounded-xl rotate-12 opacity-40" />
-              <div className="absolute bottom-3 left-3 w-16 h-16 border border-primary/10 rounded-lg -rotate-6 opacity-30" />
-              <Badge className="mb-4 bg-white/80 dark:bg-white/10 text-primary border-0 shadow-sm">
-                {guide.category}
-              </Badge>
-              <p className="text-2xl font-bold text-center mb-6">{guide.imageTitle}</p>
-              {/* Product UI mockup */}
-              <div className="w-full max-w-[280px] rounded-lg border bg-white dark:bg-card shadow-lg overflow-hidden">
-                <div className="flex items-center gap-1.5 px-3 py-2 bg-muted/50 border-b">
-                  <div className="w-2.5 h-2.5 rounded-full bg-red-400/60" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-400/60" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-green-400/60" />
-                  <span className="text-[10px] text-muted-foreground ml-2">parsli.co</span>
-                </div>
-                <div className="p-3 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-3.5 w-3.5 text-primary" />
-                    <div className="h-2 w-20 bg-primary/20 rounded" />
+            {/* Right — featured banner image */}
+            {hasBanner ? (
+              <div className="rounded-2xl overflow-hidden hidden lg:block min-h-[280px] relative border border-primary/10">
+                <Image
+                  src={`/images/guides/${guide.slug}.webp`}
+                  alt={guide.imageTitle}
+                  width={560}
+                  height={315}
+                  className="w-full h-full object-cover"
+                  priority
+                />
+              </div>
+            ) : (
+              <div className="rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 border border-primary/10 p-8 sm:p-10 hidden lg:flex flex-col items-center justify-center min-h-[280px] relative overflow-hidden">
+                <div className="absolute top-3 right-3 w-20 h-20 border border-primary/10 rounded-xl rotate-12 opacity-40" />
+                <div className="absolute bottom-3 left-3 w-16 h-16 border border-primary/10 rounded-lg -rotate-6 opacity-30" />
+                <Badge className="mb-4 bg-white/80 dark:bg-white/10 text-primary border-0 shadow-sm">
+                  {guide.category}
+                </Badge>
+                <p className="text-2xl font-bold text-center mb-6">{guide.imageTitle}</p>
+                <div className="w-full max-w-[280px] rounded-lg border bg-white dark:bg-card shadow-lg overflow-hidden">
+                  <div className="flex items-center gap-1.5 px-3 py-2 bg-muted/50 border-b">
+                    <div className="w-2.5 h-2.5 rounded-full bg-red-400/60" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-400/60" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-green-400/60" />
+                    <span className="text-[10px] text-muted-foreground ml-2">parsli.co</span>
                   </div>
-                  <div className="space-y-1.5">
-                    <div className="h-1.5 w-full bg-muted rounded" />
-                    <div className="h-1.5 w-4/5 bg-muted rounded" />
-                    <div className="h-1.5 w-3/5 bg-muted rounded" />
-                  </div>
-                  <div className="flex gap-1.5 pt-1">
-                    <div className="h-5 w-16 bg-primary/20 rounded text-[8px] text-primary flex items-center justify-center font-medium">Extract</div>
-                    <div className="h-5 w-16 bg-muted rounded text-[8px] text-muted-foreground flex items-center justify-center">Export</div>
+                  <div className="p-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-3.5 w-3.5 text-primary" />
+                      <div className="h-2 w-20 bg-primary/20 rounded" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="h-1.5 w-full bg-muted rounded" />
+                      <div className="h-1.5 w-4/5 bg-muted rounded" />
+                      <div className="h-1.5 w-3/5 bg-muted rounded" />
+                    </div>
+                    <div className="flex gap-1.5 pt-1">
+                      <div className="h-5 w-16 bg-primary/20 rounded text-[8px] text-primary flex items-center justify-center font-medium">Extract</div>
+                      <div className="h-5 w-16 bg-muted rounded text-[8px] text-muted-foreground flex items-center justify-center">Export</div>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </section>

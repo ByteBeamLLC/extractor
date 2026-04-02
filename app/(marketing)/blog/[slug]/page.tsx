@@ -1,5 +1,8 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import Image from "next/image"
+import fs from "fs"
+import path from "path"
 import { notFound, redirect } from "next/navigation"
 import { ArrowLeft, ArrowRight, ChevronRight, Check } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
@@ -776,6 +779,13 @@ export async function generateMetadata({
   const post = getBlogPostBySlug(params.slug)
   if (!post) return {}
 
+  const bannerExists = fs.existsSync(
+    path.join(process.cwd(), "public", "images", "blog", `${post.slug}.webp`)
+  )
+  const ogImage = bannerExists
+    ? `https://parsli.co/images/blog/${post.slug}.webp`
+    : "https://parsli.co/parsli-og.png"
+
   return {
     title: post.metaTitle,
     description: post.metaDescription,
@@ -792,7 +802,7 @@ export async function generateMetadata({
       authors: [post.author],
       images: [
         {
-          url: "https://parsli.co/parsli-og.png",
+          url: ogImage,
           width: 1200,
           height: 630,
           alt: post.metaTitle,
@@ -803,7 +813,7 @@ export async function generateMetadata({
       card: "summary_large_image",
       title: post.metaTitle,
       description: post.metaDescription,
-      images: ["https://parsli.co/parsli-og.png"],
+      images: [ogImage],
     },
   }
 }
@@ -916,6 +926,9 @@ export default function BlogPostPage({
   if (!post) notFound()
 
   const relatedPosts = getRelatedPosts(post.slug, post.relatedSlugs)
+  const hasBanner = fs.existsSync(
+    path.join(process.cwd(), "public", "images", "blog", `${post.slug}.webp`)
+  )
 
   return (
     <>
@@ -992,6 +1005,20 @@ export default function BlogPostPage({
               <span>{post.readTime}</span>
             </div>
           </header>
+
+          {/* Banner image */}
+          {hasBanner && (
+            <div className="rounded-2xl overflow-hidden mb-10 border border-primary/10">
+              <Image
+                src={`/images/blog/${post.slug}.webp`}
+                alt={post.title}
+                width={768}
+                height={432}
+                className="w-full h-auto object-cover"
+                priority
+              />
+            </div>
+          )}
 
           {/* Key Takeaways */}
           {post.keyTakeaways.length > 0 && (
