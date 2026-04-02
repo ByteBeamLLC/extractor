@@ -253,40 +253,13 @@ export function PricingSection({ asPage }: PricingSectionProps) {
             Simple volume-based pricing
           </Heading>
 
-          {/* "Get 2+ months free!" callout + billing toggle */}
           {annual && (
-            <div className="flex justify-center mb-2">
-              <div className="relative ml-32 sm:ml-40">
-                <span className="text-sm font-bold text-teal-600 leading-tight block text-center">
-                  Get 2+ months
-                  <br />
-                  for free!
-                </span>
-                <svg
-                  className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-8 h-8 text-teal-600"
-                  viewBox="0 0 32 32"
-                  fill="none"
-                >
-                  <path
-                    d="M16 4c-2 8-8 14-8 18"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M5 19l3 5 3-4"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-            </div>
+            <p className="text-base font-bold text-teal-600 mb-1">
+              Get 2+ months for free!
+            </p>
           )}
-          {!annual && <div className="h-14" />}
 
-          <div className="inline-flex items-center justify-center gap-3 mt-4">
+          <div className="inline-flex items-center justify-center gap-3 mt-2">
             <span
               className={cn(
                 "text-sm font-medium transition-colors",
