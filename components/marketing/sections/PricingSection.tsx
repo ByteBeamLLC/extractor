@@ -253,32 +253,40 @@ export function PricingSection({ asPage }: PricingSectionProps) {
             Simple volume-based pricing
           </Heading>
 
-          {/* Billing toggle */}
-          <div className="relative inline-flex items-center justify-center gap-3">
-            {annual && (
-              <span className="absolute -top-8 right-0 text-xs font-bold text-teal-600 whitespace-nowrap">
-                Get 2+ months free!
+          {/* "Get 2+ months free!" callout + billing toggle */}
+          {annual && (
+            <div className="flex justify-center mb-2">
+              <div className="relative ml-32 sm:ml-40">
+                <span className="text-sm font-bold text-teal-600 leading-tight block text-center">
+                  Get 2+ months
+                  <br />
+                  for free!
+                </span>
                 <svg
-                  className="absolute -bottom-3 right-6 w-5 h-4 text-teal-600"
-                  viewBox="0 0 20 16"
+                  className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-8 h-8 text-teal-600"
+                  viewBox="0 0 32 32"
                   fill="none"
                 >
                   <path
-                    d="M10 14c0-6-4-10-8-12"
+                    d="M16 4c-2 8-8 14-8 18"
                     stroke="currentColor"
                     strokeWidth="2"
                     strokeLinecap="round"
                   />
                   <path
-                    d="M2 2l-1 4 4-1"
+                    d="M5 19l3 5 3-4"
                     stroke="currentColor"
                     strokeWidth="1.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />
                 </svg>
-              </span>
-            )}
+              </div>
+            </div>
+          )}
+          {!annual && <div className="h-14" />}
+
+          <div className="inline-flex items-center justify-center gap-3 mt-4">
             <span
               className={cn(
                 "text-sm font-medium transition-colors",
