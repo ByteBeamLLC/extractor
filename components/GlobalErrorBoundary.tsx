@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { reportError } from '@/lib/errorReporting'
 
 export class GlobalErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -13,8 +14,11 @@ export class GlobalErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    // Log with component stack to help isolate prod-only errors
     console.error('[GlobalErrorBoundary] error', error, 'stack', error.stack, 'componentStack', info.componentStack)
+    reportError(error, {
+      route: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
+      extra: { componentStack: info.componentStack ?? undefined },
+    })
   }
 
   handleReset = () => {
