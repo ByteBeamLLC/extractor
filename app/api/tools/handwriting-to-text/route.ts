@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
+import { waitUntil } from "@vercel/functions"
 import { generateText } from "@/lib/openrouter"
 import { trackServerEvent } from "@/lib/analytics/server"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
+
+export const maxDuration = 60
 
 const PRIMARY_MODEL = "google/gemini-3-flash-preview"
 const FALLBACK_MODEL = "google/gemini-2.5-flash"
@@ -129,56 +132,68 @@ export async function POST(req: NextRequest) {
     const durationMs = Date.now() - startTime
 
     if (text === "[NO_TEXT_FOUND]") {
-      trackServerEvent("hwt_server_extraction", {
-        distinct_id: distinctId,
-        file_type: mimeType,
-        success: false,
-        word_count: 0,
-        duration_ms: durationMs,
-        error_type: "no_text",
-      })
-
-      if (isUserUpload) {
-        storeUpload({
-          distinctId, image, mimeType, fileName, fileSize,
-          extractedText: null, wordCount: 0, success: false,
-          durationMs, ip, userAgent: ua,
-        })
-      }
+      // Return response immediately — background tasks via waitUntil
+      waitUntil(
+        (async () => {
+          trackServerEvent("hwt_server_extraction", {
+            distinct_id: distinctId,
+            file_type: mimeType,
+            success: false,
+            word_count: 0,
+            duration_ms: durationMs,
+            error_type: "no_text",
+          })
+          if (isUserUpload) {
+            await storeUpload({
+              distinctId, image, mimeType, fileName, fileSize,
+              extractedText: null, wordCount: 0, success: false,
+              durationMs, ip, userAgent: ua,
+            })
+          }
+        })()
+      )
 
       return NextResponse.json({ text: "", error: "no_text" })
     }
 
     const wordCount = text.split(/\s+/).filter(Boolean).length
 
-    trackServerEvent("hwt_server_extraction", {
-      distinct_id: distinctId,
-      file_type: mimeType,
-      success: true,
-      word_count: wordCount,
-      duration_ms: durationMs,
-    })
-
-    if (isUserUpload) {
-      storeUpload({
-        distinctId, image, mimeType, fileName, fileSize,
-        extractedText: text, wordCount, success: true,
-        durationMs, ip, userAgent: ua,
-      })
-    }
+    // Return response immediately — analytics + storage run in background
+    waitUntil(
+      (async () => {
+        trackServerEvent("hwt_server_extraction", {
+          distinct_id: distinctId,
+          file_type: mimeType,
+          success: true,
+          word_count: wordCount,
+          duration_ms: durationMs,
+        })
+        if (isUserUpload) {
+          await storeUpload({
+            distinctId, image, mimeType, fileName, fileSize,
+            extractedText: text, wordCount, success: true,
+            durationMs, ip, userAgent: ua,
+          })
+        }
+      })()
+    )
 
     return NextResponse.json({ text })
   } catch (error) {
     console.error("Handwriting extraction error:", error)
 
-    trackServerEvent("hwt_server_extraction", {
-      distinct_id: distinctId,
-      file_type: "unknown",
-      success: false,
-      word_count: 0,
-      duration_ms: Date.now() - startTime,
-      error_type: "server_error",
-    })
+    waitUntil(
+      Promise.resolve(
+        trackServerEvent("hwt_server_extraction", {
+          distinct_id: distinctId,
+          file_type: "unknown",
+          success: false,
+          word_count: 0,
+          duration_ms: Date.now() - startTime,
+          error_type: "server_error",
+        })
+      )
+    )
 
     return NextResponse.json(
       { error: "Failed to extract text from image" },
