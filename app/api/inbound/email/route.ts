@@ -5,6 +5,7 @@ import { runExtraction } from "@/lib/extraction/runExtraction"
 import { countDocumentPages } from "@/lib/extraction/api"
 import { deliverToIntegrations } from "@/lib/extractor/integrations/orchestrator"
 import { checkCredits, deductCredits } from "@/lib/extractor/billing/credits"
+import { reportError } from "@/lib/errorReporting"
 import type { SchemaField } from "@/lib/schema"
 
 export const runtime = "nodejs"
@@ -298,6 +299,7 @@ async function processEmail(
     }
   } catch (err) {
     console.error(`[inbound/email] Background processing error:`, err)
+    reportError(err, { route: "/api/inbound/email", extra: { parserId: parser.id } })
   }
 }
 
