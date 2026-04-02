@@ -243,6 +243,31 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.8,
     },
+    // Fundamental pages (2026-04-03)
+    {
+      url: `${BASE_URL}/features`,
+      lastModified: new Date("2026-04-03"),
+      changeFrequency: "monthly",
+      priority: 0.9,
+    },
+    {
+      url: `${BASE_URL}/email-parser`,
+      lastModified: new Date("2026-04-03"),
+      changeFrequency: "monthly",
+      priority: 0.9,
+    },
+    {
+      url: `${BASE_URL}/pdf-parser`,
+      lastModified: new Date("2026-04-03"),
+      changeFrequency: "monthly",
+      priority: 0.9,
+    },
+    {
+      url: `${BASE_URL}/ocr-software`,
+      lastModified: new Date("2026-04-03"),
+      changeFrequency: "monthly",
+      priority: 0.9,
+    },
     {
       url: `${BASE_URL}/use-cases`,
       lastModified: staticDate,

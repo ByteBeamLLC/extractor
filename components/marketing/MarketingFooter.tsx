@@ -3,10 +3,11 @@ import Image from "next/image"
 
 const footerLinks = {
   Product: [
-    { href: "/solutions/pdf-to-excel", label: "PDF to Excel" },
-    { href: "/solutions/invoice-parsing", label: "Invoice Parsing" },
-    { href: "/solutions/bank-statement-extraction", label: "Bank Statement Extraction" },
-    { href: "/solutions/no-code-document-parser", label: "No-Code Parser" },
+    { href: "/features", label: "Features" },
+    { href: "/email-parser", label: "Email Parser" },
+    { href: "/pdf-parser", label: "PDF Parser" },
+    { href: "/ocr-software", label: "OCR Software" },
+    { href: "/integrations", label: "Integrations" },
     { href: "/solutions/document-parsing-api", label: "Document Parsing API" },
   ],
   Tools: [
