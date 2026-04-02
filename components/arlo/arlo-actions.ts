@@ -162,25 +162,12 @@ export async function uploadToDropZone(arloId: string, file: File): Promise<bool
   const el = findArloElement(arloId)
   if (!el) return false
 
-  // Find the file input within or near the drop zone
-  const fileInput = el.querySelector('input[type="file"]') as HTMLInputElement | null
-  if (fileInput) {
-    // Create a DataTransfer to set files
-    const dt = new DataTransfer()
-    dt.items.add(file)
-    fileInput.files = dt.files
-    fileInput.dispatchEvent(new Event("change", { bubbles: true }))
-    return true
-  }
-
-  // Fallback: simulate a drop event
-  const dropEvent = new DragEvent("drop", {
-    bubbles: true,
-    cancelable: true,
-    dataTransfer: createDataTransfer(file),
-  })
-  el.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true }))
-  el.dispatchEvent(dropEvent)
+  // Primary: simulate drag-and-drop (works reliably with React's onDrop)
+  const dt = createDataTransfer(file)
+  el.dispatchEvent(new DragEvent("dragenter", { bubbles: true, cancelable: true, dataTransfer: dt }))
+  el.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: dt }))
+  await sleep(100)
+  el.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: dt }))
   return true
 }
 
@@ -194,6 +181,21 @@ function createDataTransfer(file: File): DataTransfer {
 /** Sleep helper */
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/** Poll for a DOM element by data-arlo-id until it appears or timeout */
+export async function waitForElement(
+  arloId: string,
+  timeoutMs: number = 5000,
+  intervalMs: number = 200
+): Promise<HTMLElement | null> {
+  const start = Date.now()
+  while (Date.now() - start < timeoutMs) {
+    const el = findArloElement(arloId)
+    if (el && el.offsetParent !== null) return el
+    await sleep(intervalMs)
+  }
+  return findArloElement(arloId) // last attempt
 }
 
 /**
@@ -231,7 +233,7 @@ export async function executeActions(
 
       case "click": {
         if (action.target) {
-          const el = findArloElement(action.target)
+          const el = await waitForElement(action.target)
           if (el) {
             // Walk to the element
             const targetPos = getElementTopPosition(el)
@@ -252,7 +254,7 @@ export async function executeActions(
 
       case "type": {
         if (action.target && action.value) {
-          const el = findArloElement(action.target)
+          const el = await waitForElement(action.target)
           if (el) {
             // Walk to the input
             const targetPos = getElementTopPosition(el)
@@ -274,10 +276,18 @@ export async function executeActions(
       case "upload": {
         const file = callbacks.pendingFile
         if (file) {
-          // Find the nearest drop zone
-          const dropZone = action.target
-            ? findArloElement(action.target)
-            : findPageDropZone()
+          // Wait for the drop zone to appear (may not be rendered yet after navigation)
+          let dropZone: HTMLElement | null = null
+          if (action.target) {
+            dropZone = await waitForElement(action.target)
+          } else {
+            // Poll for any page drop zone
+            const start = Date.now()
+            while (!dropZone && Date.now() - start < 5000) {
+              dropZone = findPageDropZone()
+              if (!dropZone) await sleep(200)
+            }
+          }
 
           if (dropZone) {
             const targetPos = getElementTopPosition(dropZone)
