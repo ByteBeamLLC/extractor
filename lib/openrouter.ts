@@ -62,9 +62,10 @@ async function fetchOpenRouterWithRetry(
 
             if (!response.ok) {
                 const errorText = await response.text().catch(() => response.statusText)
+                console.error(`[openrouter] API error ${response.status} (attempt ${attempt + 1}/${retries + 1}): ${errorText}`)
                 if (isRetryableStatus(response.status) && attempt < retries) {
                     const delay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt)
-                    console.warn(`[openrouter] Retryable ${response.status}, attempt ${attempt + 1}/${retries + 1}, waiting ${delay}ms`)
+                    console.warn(`[openrouter] Retrying in ${delay}ms...`)
                     await new Promise((r) => setTimeout(r, delay))
                     continue
                 }
