@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { generateText, isOpenRouterConfigured } from "@/lib/openrouter"
+import { generateFreeformJson, isOpenRouterConfigured } from "@/lib/openrouter"
 import { ARLO_SYSTEM_PROMPT } from "@/components/arlo/arlo-personality"
 
 interface ChatMessage {
@@ -80,38 +80,23 @@ export async function POST(req: NextRequest) {
         : message,
     })
 
-    const { text } = await generateText({
+    // Use generateFreeformJson to enforce response_format: json_object
+    // This prevents the LLM from wrapping JSON in markdown code blocks
+    const { object } = await generateFreeformJson({
       messages,
       temperature: 0.7,
-      maxTokens: 500,
     })
-
-    // Parse the JSON response
-    let parsed: { message: string; actions: any[]; emotion?: string }
-    try {
-      // Try to extract JSON from the response (LLM might wrap it in markdown)
-      const jsonMatch = text.match(/\{[\s\S]*\}/)
-      if (jsonMatch) {
-        parsed = JSON.parse(jsonMatch[0])
-      } else {
-        // Fallback: treat the whole response as a message
-        parsed = { message: text, actions: [] }
-      }
-    } catch {
-      // If JSON parsing fails, use the raw text as a message
-      parsed = { message: text, actions: [] }
-    }
 
     // Validate actions
     const validTypes = ["navigate", "click", "type", "upload", "wait", "speak", "celebrate"]
-    const sanitizedActions = (parsed.actions || []).filter(
+    const sanitizedActions = (object.actions || []).filter(
       (a: any) => a && typeof a.type === "string" && validTypes.includes(a.type)
     )
 
     return NextResponse.json({
-      message: parsed.message || "Hmm, I got confused. Can you try again?",
+      message: object.message || "Hmm, I got confused. Can you try again?",
       actions: sanitizedActions,
-      emotion: parsed.emotion || "happy",
+      emotion: object.emotion || "happy",
     })
   } catch (error) {
     console.error("[arlo/chat] Error:", error)
