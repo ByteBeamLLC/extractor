@@ -1,5 +1,4 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { waitUntil } from "@vercel/functions"
 import { createSupabaseServerComponentClient, createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import { runExtraction } from "@/lib/extraction/runExtraction"
 import { countDocumentPages } from "@/lib/extraction/api"
@@ -110,62 +109,71 @@ export async function POST(
     )
   }
 
-  // Create processing log entry
-  const { data: processedDoc } = await supabase
-    .from("parser_processed_documents" as any)
-    .insert({
-      parser_id: p.id,
-      user_id: user.id,
-      source_type: sourceType,
-      file_name: fileData.name ?? "uploaded",
-      mime_type: fileData.type,
-      file_size: fileData.size,
-      status: "processing",
-    } as any)
-    .select("id")
-    .single()
+  // Pre-generate document ID so we can store the file before the INSERT.
+  // This ensures the file is in Storage before the pg_net trigger fires.
+  const docId = crypto.randomUUID()
 
-  const docId = (processedDoc as any)?.id
-
-  // Store/move file to final storage path
-  // When inline data is provided with a storage_path (parallel upload), the client's
-  // storage upload may still be in-flight — upload from server-side data instead to avoid race.
+  // Store file FIRST — the background worker downloads from this path.
   const hasInlineData = !!inlineFile?.data
-  if (docId && hasInlineData) {
-    // Upload from the inline data we already have (avoids race with client's parallel storage upload)
-    const safeName = (fileData.name ?? "uploaded").replace(/[^a-zA-Z0-9._-]/g, "_")
-    const storagePath = `${user.id}/${params.parserId}/${docId}/${safeName}`
-    const fileBuffer = Buffer.from(fileData.data, "base64")
-    try {
-      const adminClient = createSupabaseServiceRoleClient()
-      await adminClient.storage.createBucket("parser-documents", {
-        public: false,
-        fileSizeLimit: 50 * 1024 * 1024, // 50MB
-      }).catch(() => {})
+  const safeName = (fileData.name ?? "uploaded").replace(/[^a-zA-Z0-9._-]/g, "_")
+  const storagePath = `${user.id}/${params.parserId}/${docId}/${safeName}`
+
+  try {
+    const adminClient = createSupabaseServiceRoleClient()
+    await adminClient.storage.createBucket("parser-documents", {
+      public: false,
+      fileSizeLimit: 50 * 1024 * 1024, // 50MB
+    }).catch(() => {})
+
+    if (hasInlineData) {
       await adminClient.storage
         .from("parser-documents")
         .upload(storagePath, fileBuffer, {
           contentType: fileData.type || "application/octet-stream",
           upsert: true,
         })
-    } catch (err) {
-      console.error("[extract] File storage error:", err)
-    }
-  } else if (docId && body.storage_path) {
-    // Large file: client uploaded to storage first, just move to final path
-    const adminClient = createSupabaseServiceRoleClient()
-    const safeFinalName = (fileData.name ?? "uploaded").replace(/[^a-zA-Z0-9._-]/g, "_")
-    const finalPath = `${user.id}/${params.parserId}/${docId}/${safeFinalName}`
-    if (body.storage_path !== finalPath) {
+    } else if (body.storage_path && body.storage_path !== storagePath) {
       await adminClient.storage
         .from("parser-documents")
-        .move(body.storage_path, finalPath)
+        .move(body.storage_path, storagePath)
         .catch(() => {})
     }
+  } catch (err) {
+    console.error("[extract] File storage error:", err)
   }
 
-  // --- Background extraction function (shared by both sync and async paths) ---
-  const performExtraction = async () => {
+  // Create document record — this INSERT triggers pg_net → worker endpoint
+  await supabase
+    .from("parser_processed_documents" as any)
+    .insert({
+      id: docId,
+      parser_id: p.id,
+      user_id: user.id,
+      source_type: sourceType,
+      file_name: fileData.name ?? "uploaded",
+      mime_type: fileData.type,
+      file_size: fileData.size,
+      page_count: pageCount,
+      status: "processing",
+    } as any)
+
+  // --- Async mode: return immediately, extraction handled by pg_net trigger → worker ---
+  if (async_) {
+    return NextResponse.json({
+      success: true,
+      document_id: docId,
+      status: "processing",
+      ...(creditCheck.firstDocumentFree && {
+        firstDocumentFree: true,
+        upgradeMessage: `Your first document is on us! This ${pageCount}-page document used your entire monthly quota. Upgrade for more pages.`,
+      }),
+    })
+  }
+
+  // --- Sync mode: extract inline (for public API, reprocessing) ---
+  // The worker will also receive the trigger, but it checks status="processing"
+  // before starting. By the time it arrives, we've already updated to completed/error.
+  try {
     const extractionResult = await runExtraction({
       fileData: fileData.data,
       fileName: fileData.name ?? "uploaded",
@@ -180,21 +188,22 @@ export async function POST(
       : pageCount
     const { success: deducted } = await deductCredits(user.id, creditsUsed, supabase)
     if (!deducted) {
-      console.warn(`[extract] Credit deduction failed for user ${user.id} — possible race condition`)
+      console.warn(`[extract] Credit deduction failed for user ${user.id}`)
     }
 
-    if (docId) {
-      await supabase
-        .from("parser_processed_documents" as any)
-        .update({
-          status: extractionResult.handledWithFallback && extractionResult.error ? "error" : "completed",
-          results: extractionResult.results,
-          processed_at: new Date().toISOString(),
-          credits_used: creditsUsed,
-          error_message: extractionResult.error ?? null,
-        } as any)
-        .eq("id", docId)
-    }
+    const finalStatus =
+      extractionResult.handledWithFallback && extractionResult.error ? "error" : "completed"
+
+    await supabase
+      .from("parser_processed_documents" as any)
+      .update({
+        status: finalStatus,
+        results: extractionResult.results,
+        processed_at: new Date().toISOString(),
+        credits_used: creditsUsed,
+        error_message: extractionResult.error ?? null,
+      } as any)
+      .eq("id", docId)
 
     await supabase
       .from("parsers" as any)
@@ -204,7 +213,7 @@ export async function POST(
       } as any)
       .eq("id", p.id)
 
-    if (docId && extractionResult.success && (p.document_count ?? 0) === 0) {
+    if (extractionResult.success && (p.document_count ?? 0) === 0) {
       trackServerEvent("first_value", {
         distinct_id: user.id,
         user_id: user.id,
@@ -215,7 +224,7 @@ export async function POST(
       })
     }
 
-    if (docId) {
+    if (finalStatus === "completed") {
       deliverToIntegrations(
         p.id,
         p.name,
@@ -223,55 +232,36 @@ export async function POST(
         extractionResult.results,
         { file_name: fileData.name ?? "uploaded", mime_type: fileData.type ?? "", source_type: sourceType, page_count: pageCount },
         supabase as any
-      ).catch((err) => console.error("[extractor] Integration delivery failed:", err))
+      ).catch((err) => console.error("[extract] Integration delivery failed:", err))
     }
 
-    return extractionResult
-  }
-
-  // --- Async mode: return immediately, extract in background ---
-  if (async_) {
-    waitUntil(
-      performExtraction().catch((err) => {
-        console.error("[extract] Background extraction failed:", err)
-        reportError(err, { route: "/api/parsers/extract", method: "POST", userId: user.id, extra: { parserId: p.id, docId } })
-        if (docId) {
-          supabase
-            .from("parser_processed_documents" as any)
-            .update({
-              status: "error",
-              error_message: err instanceof Error ? err.message : "Extraction failed",
-              processed_at: new Date().toISOString(),
-            } as any)
-            .eq("id", docId)
-            .then(() => {})
-        }
-      })
-    )
-
     return NextResponse.json({
-      success: true,
+      success: extractionResult.success,
+      results: extractionResult.results,
+      warnings: extractionResult.warnings,
+      handledWithFallback: extractionResult.handledWithFallback,
       document_id: docId,
-      status: "processing",
       ...(creditCheck.firstDocumentFree && {
         firstDocumentFree: true,
         upgradeMessage: `Your first document is on us! This ${pageCount}-page document used your entire monthly quota. Upgrade for more pages.`,
       }),
     })
+  } catch (err) {
+    console.error("[extract] Sync extraction failed:", err)
+    reportError(err, { route: "/api/parsers/extract", method: "POST", userId: user.id, extra: { parserId: p.id, docId } })
+
+    await supabase
+      .from("parser_processed_documents" as any)
+      .update({
+        status: "error",
+        error_message: err instanceof Error ? err.message : "Extraction failed",
+        processed_at: new Date().toISOString(),
+      } as any)
+      .eq("id", docId)
+
+    return NextResponse.json(
+      { error: "Extraction failed", document_id: docId },
+      { status: 500 }
+    )
   }
-
-  // --- Sync mode: wait for extraction (used by public API, reprocessing, etc.) ---
-  const extractionResult = await performExtraction()
-
-  return NextResponse.json({
-    success: extractionResult.success,
-    results: extractionResult.results,
-    warnings: extractionResult.warnings,
-    handledWithFallback: extractionResult.handledWithFallback,
-    document_id: docId,
-    ...(creditCheck.firstDocumentFree && {
-      firstDocumentFree: true,
-      upgradeMessage: `Your first document is on us! This ${pageCount}-page document used your entire monthly quota. Upgrade for more pages.`,
-    }),
-  })
 }
