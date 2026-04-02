@@ -1,11 +1,14 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { ArrowRight, ChevronRight, BookOpen } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
+import Image from "next/image"
+import fs from "fs"
+import path from "path"
+import { ArrowRight } from "lucide-react"
 import { AuthButton } from "@/components/marketing/shared/AuthButton"
 import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld"
 import { getAllGuides } from "@/lib/seo/guides"
+import { GuideGrid } from "@/components/marketing/GuideGrid"
 
 export const metadata: Metadata = {
   title: "Guides — Document Extraction Tutorials & How-Tos | Parsli",
@@ -22,27 +25,31 @@ export const metadata: Metadata = {
   },
 }
 
-const categoryColors: Record<string, { text: string; bg: string }> = {
-  "Document Extraction": {
-    text: "text-blue-700 dark:text-blue-400",
-    bg: "bg-blue-50 dark:bg-blue-950/50",
-  },
-  "Workflow Automation": {
-    text: "text-purple-700 dark:text-purple-400",
-    bg: "bg-purple-50 dark:bg-purple-950/50",
-  },
-  "Integration Guide": {
-    text: "text-green-700 dark:text-green-400",
-    bg: "bg-green-50 dark:bg-green-950/50",
-  },
-  "Data Conversion": {
-    text: "text-orange-700 dark:text-orange-400",
-    bg: "bg-orange-50 dark:bg-orange-950/50",
-  },
-}
-
 export default function GuidesHubPage() {
   const guides = getAllGuides()
+
+  const hasImage = (slug: string) =>
+    fs.existsSync(
+      path.join(process.cwd(), "public", "images", "guides", `${slug}.webp`)
+    )
+
+  // Featured = most recent guide
+  const featured = guides[0]
+  const featuredHasImage = featured ? hasImage(featured.slug) : false
+
+  // Unique categories in display order
+  const categories = Array.from(new Set(guides.map((g) => g.category)))
+
+  // Data for client component
+  const cardData = guides.map((g) => ({
+    slug: g.slug,
+    title: g.h1,
+    description: g.metaDescription,
+    category: g.category,
+    publishedAt: g.publishedAt,
+    readTime: g.readTime,
+    hasImage: hasImage(g.slug),
+  }))
 
   return (
     <>
@@ -54,89 +61,86 @@ export default function GuidesHubPage() {
       />
 
       {/* Hero */}
-      <section className="relative pt-28 pb-16 sm:pt-36 sm:pb-20">
+      <section className="relative pt-28 pb-12 sm:pt-36 sm:pb-16">
         <div className="absolute inset-0 -z-10">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-primary/5 rounded-full blur-3xl" />
         </div>
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
-          <Badge variant="secondary" className="mb-6">
-            Guides
-          </Badge>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.1] mb-6">
-            Document Extraction Guides
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.1] mb-4">
+            Parsli Guides
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Step-by-step tutorials on extracting data from invoices, bank
-            statements, receipts, PDFs, and more. Learn manual, Python, and
-            AI-powered methods.
+            statements, receipts, PDFs, and more.
           </p>
         </div>
       </section>
 
-      {/* Guide Grid */}
-      <section className="pb-20">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-6">
-            {guides.map((guide) => {
-              const colors = categoryColors[guide.category] ?? {
-                text: "text-primary",
-                bg: "bg-primary/5",
-              }
-              return (
-                <Link
-                  key={guide.slug}
-                  href={`/guides/${guide.slug}`}
-                  className="group rounded-xl border bg-card p-6 sm:p-8 hover:border-primary/30 hover:shadow-md transition-all duration-200"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-3">
-                        <Badge
-                          variant="secondary"
-                          className={`text-xs ${colors.text} ${colors.bg} border-0`}
-                        >
-                          {guide.category}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          {guide.readTime}
-                        </span>
-                      </div>
-                      <h2 className="text-lg sm:text-xl font-semibold mb-2 group-hover:text-primary transition-colors">
-                        {guide.h1}
-                      </h2>
-                      <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
-                        {guide.metaDescription}
-                      </p>
-                      <div className="flex items-center gap-3 mt-4 text-sm text-muted-foreground">
-                        <span>{guide.author}</span>
-                        <span aria-hidden="true">&middot;</span>
-                        <time dateTime={guide.publishedAt}>
-                          {new Date(guide.publishedAt).toLocaleDateString(
-                            "en-US",
-                            {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                            }
-                          )}
-                        </time>
-                      </div>
-                    </div>
-                    <ArrowRight className="h-5 w-5 text-muted-foreground shrink-0 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 mt-1 hidden sm:block" />
-                  </div>
-                </Link>
-              )
-            })}
+      {/* Featured guide */}
+      {featured && (
+        <section className="pb-12">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+            <Link
+              href={`/guides/${featured.slug}`}
+              className="group grid lg:grid-cols-2 gap-0 rounded-2xl border bg-card overflow-hidden hover:border-primary/30 hover:shadow-lg transition-all duration-200"
+            >
+              {/* Left — text */}
+              <div className="flex flex-col justify-center p-8 sm:p-10 lg:p-12 order-2 lg:order-1">
+                <span className="text-xs font-medium text-primary uppercase tracking-wider mb-4">
+                  {featured.category}
+                </span>
+                <h2 className="text-2xl sm:text-3xl font-bold leading-snug mb-4 group-hover:text-primary transition-colors">
+                  {featured.h1}
+                </h2>
+                <p className="text-muted-foreground leading-relaxed mb-6 line-clamp-3">
+                  {featured.metaDescription}
+                </p>
+                <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <time dateTime={featured.publishedAt}>
+                    {new Date(featured.publishedAt).toLocaleDateString(
+                      "en-US",
+                      {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      }
+                    )}
+                  </time>
+                  <span aria-hidden="true">&middot;</span>
+                  <span>{featured.readTime}</span>
+                </div>
+              </div>
+              {/* Right — image */}
+              <div className="aspect-[16/9] lg:aspect-auto overflow-hidden bg-muted order-1 lg:order-2">
+                {featuredHasImage ? (
+                  <Image
+                    src={`/images/guides/${featured.slug}.webp`}
+                    alt={featured.h1}
+                    width={720}
+                    height={405}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    priority
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5" />
+                )}
+              </div>
+            </Link>
           </div>
+        </section>
+      )}
+
+      {/* Filter + grid */}
+      <section className="pb-20">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <GuideGrid guides={cardData} categories={categories} />
         </div>
       </section>
 
       {/* Explore More */}
       <section className="py-16 sm:py-20 bg-muted/30">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl font-bold text-center mb-8">
-            Explore More
-          </h2>
+          <h2 className="text-2xl font-bold text-center mb-8">Explore More</h2>
           <div className="flex flex-wrap justify-center gap-3">
             <Link
               href="/blog"
