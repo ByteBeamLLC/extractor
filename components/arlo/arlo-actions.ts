@@ -158,25 +158,39 @@ export async function typeIntoElement(arloId: string, text: string): Promise<boo
 }
 
 /** Upload a file directly via the extract API, bypassing DOM events */
-export async function uploadFileViaApi(parserId: string, file: File): Promise<boolean> {
-  const arrayBuffer = await file.arrayBuffer()
-  const base64 = btoa(
-    new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), "")
-  )
+export async function uploadFileViaApi(parserId: string, file: File): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const arrayBuffer = await file.arrayBuffer()
+    const base64 = btoa(
+      new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), "")
+    )
 
-  const res = await fetch(`/api/parsers/${parserId}/extract`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      file: { name: file.name, type: file.type, data: base64, size: file.size },
-      file_name: file.name,
-      file_type: file.type,
-      file_size: file.size,
-      source_type: "upload",
-    }),
-  })
+    const res = await fetch(`/api/parsers/${parserId}/extract`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        file: { name: file.name, type: file.type, data: base64, size: file.size },
+        file_name: file.name,
+        file_type: file.type,
+        file_size: file.size,
+        source_type: "upload",
+      }),
+    })
 
-  return res.ok
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      return { ok: false, error: data.error || `Upload failed (${res.status})` }
+    }
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Upload failed" }
+  }
+}
+
+/** Extract parserId from the current URL path (/parsers/{id}/...) */
+export function getParserIdFromUrl(): string | null {
+  const match = window.location.pathname.match(/\/parsers\/([^/]+)/)
+  return match?.[1] ?? null
 }
 
 /** Sleep helper */
@@ -281,17 +295,18 @@ export async function executeActions(
 
       case "upload": {
         const file = callbacks.pendingFile
-        const parserId = callbacks.parserId
+        // Get parserId from URL (reliable after navigation) or fallback to context
+        const parserId = getParserIdFromUrl() || callbacks.parserId
         if (file && parserId) {
           callbacks.onAnimationChange("carrying")
           await sleep(600)
 
           // Upload directly via the extract API
           callbacks.onAnimationChange("thinking")
-          const ok = await uploadFileViaApi(parserId, file)
-          if (ok) {
+          const result = await uploadFileViaApi(parserId, file)
+          if (result.ok) {
             callbacks.onAnimationChange("celebrating")
-            callbacks.onSpeak("Document uploaded! Refreshing...")
+            callbacks.onSpeak("Document uploaded! Processing it now...")
             await sleep(1000)
             // Navigate to documents page to show the result
             callbacks.onNavigate(`/parsers/${parserId}/documents`)
@@ -299,9 +314,12 @@ export async function executeActions(
             callbacks.onAnimationChange("idle")
           } else {
             callbacks.onAnimationChange("idle")
-            callbacks.onSpeak("Hmm, the upload didn't go through. Try uploading manually?")
+            callbacks.onSpeak(result.error || "Upload failed. Try uploading manually?")
             await sleep(1500)
           }
+        } else if (file && !parserId) {
+          callbacks.onSpeak("I need to know which parser to upload to. Navigate to a parser first!")
+          await sleep(1500)
         }
         break
       }
