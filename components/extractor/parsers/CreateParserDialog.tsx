@@ -144,6 +144,7 @@ export function CreateParserDialog({ open, onOpenChange, onCreated }: CreatePars
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
+              data-arlo-id="extraction-type-fields"
               onClick={() => {
                 setExtractionType("fields")
                 setSelectedTemplate(null)
@@ -168,6 +169,7 @@ export function CreateParserDialog({ open, onOpenChange, onCreated }: CreatePars
 
             <button
               type="button"
+              data-arlo-id="extraction-type-full"
               onClick={() => {
                 setExtractionType("full_content")
                 setSelectedTemplate(null)
@@ -242,6 +244,7 @@ export function CreateParserDialog({ open, onOpenChange, onCreated }: CreatePars
             <Label htmlFor="parser-name">Name</Label>
             <Input
               id="parser-name"
+              data-arlo-id="parser-name-input"
               placeholder={
                 extractionType === "full_content"
                   ? "e.g. Contract Scanner, Receipt Digitizer"
@@ -255,6 +258,7 @@ export function CreateParserDialog({ open, onOpenChange, onCreated }: CreatePars
             <Label htmlFor="parser-desc">Description (optional)</Label>
             <Textarea
               id="parser-desc"
+              data-arlo-id="parser-desc-input"
               placeholder="What kind of documents will this parser handle?"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -271,6 +275,7 @@ export function CreateParserDialog({ open, onOpenChange, onCreated }: CreatePars
           <Button
             onClick={handleCreate}
             disabled={!name.trim() || isCreating}
+            data-arlo-id="create-parser-submit"
           >
             {isCreating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Create Parser

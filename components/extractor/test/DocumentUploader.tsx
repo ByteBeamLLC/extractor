@@ -68,6 +68,7 @@ export function DocumentUploader({ onFileSelected }: DocumentUploaderProps) {
 
   return (
     <div
+      data-arlo-id="main-upload-zone"
       onDrop={handleDrop}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}

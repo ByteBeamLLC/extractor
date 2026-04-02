@@ -214,7 +214,7 @@ export function AppSidebar() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip="Back to Parsers">
+                    <SidebarMenuButton asChild tooltip="Back to Parsers" data-arlo-id="back-to-parsers">
                       <Link href="/dashboard">
                         <ArrowLeft />
                         <span>Back to Parsers</span>
@@ -258,6 +258,7 @@ export function AppSidebar() {
                         asChild
                         isActive={isParserNavActive(item)}
                         tooltip={item.label}
+                        data-arlo-id={`nav-${item.key}`}
                       >
                         <Link href={item.href}>
                           <item.icon />
@@ -279,6 +280,7 @@ export function AppSidebar() {
             <SidebarGroup className="group-data-[collapsible=icon]:hidden">
               <SidebarGroupContent>
                 <div
+                  data-arlo-id="sidebar-upload-zone"
                   onDrop={(e) => {
                     e.preventDefault()
                     const file = e.dataTransfer.files?.[0]
@@ -326,6 +328,7 @@ export function AppSidebar() {
                       asChild
                       isActive={isMainNavActive(item)}
                       tooltip={item.label}
+                      data-arlo-id={`nav-${item.key}`}
                     >
                       {"external" in item && item.external ? (
                         <a href={item.href}>

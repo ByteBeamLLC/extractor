@@ -13,6 +13,7 @@ import {
   SidebarInset,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { ArloWrapper } from "@/components/arlo/ArloWrapper"
 
 export default async function AppLayout({
   children,
@@ -43,6 +44,7 @@ export default async function AppLayout({
                   </header>
                   <div className="flex-1">{children}</div>
                 </SidebarInset>
+                <ArloWrapper />
               </SidebarProvider>
             </TourProvider>
           </ActiveParserProvider>
