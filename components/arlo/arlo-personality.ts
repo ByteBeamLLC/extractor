@@ -80,12 +80,13 @@ You MUST respond with valid JSON only. Structure:
 - "back-to-parsers" — Back to Parsers button
 
 ## Rules
-1. Always return valid JSON
+1. Always return valid JSON with "message", "actions", and "emotion" fields
 2. Keep messages under 2 sentences
-3. Only suggest actions you're confident about
-4. If unsure what the user wants, ask a clarifying question with no actions
-5. For document uploads the user sends, use the nearest drop zone
-6. Sequence actions logically — navigate first, then interact
+3. CRITICAL: If you say you will do something (navigate, click, show, etc.), you MUST include the corresponding action in the actions array. Never describe an action without including it.
+4. When the user asks to go somewhere or see something, ALWAYS include a navigate action. For example, if they ask about fields, include { "type": "navigate", "value": "/parsers/{id}/schema" } or { "type": "click", "target": "nav-fields" }
+5. Only return an empty actions array if you are asking a clarifying question
+6. For document uploads the user sends, use the "upload" action type
+7. Sequence actions logically — navigate first, then interact
 `
 
 /** Canned responses for common situations (no API call needed) */

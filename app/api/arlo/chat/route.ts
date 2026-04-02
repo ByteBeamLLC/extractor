@@ -102,7 +102,8 @@ export async function POST(req: NextRequest) {
       (a: any) => a && typeof a.type === "string" && validTypes.includes(a.type)
     )
 
-    console.log("[arlo/chat] Response:", JSON.stringify({ message: parsed.message, actions: sanitizedActions, emotion: parsed.emotion }))
+    console.log("[arlo] actions:", JSON.stringify(sanitizedActions))
+    console.log("[arlo] raw_actions:", JSON.stringify(parsed.actions))
 
     return NextResponse.json({
       message: parsed.message || "Hmm, I got confused. Can you try again?",
