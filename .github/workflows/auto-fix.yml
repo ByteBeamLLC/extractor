@@ -1,0 +1,80 @@
+name: "Claude Code On-Call: Investigate & Fix Production Errors"
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  investigate-and-fix:
+    # Only run on issues created by the error reporting system
+    if: contains(github.event.issue.labels.*.name, 'auto-bug')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Claude Code to investigate and fix
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          direct_prompt: |
+            You are an on-call production engineer for Parsli, a live SaaS application used by customers worldwide.
+            A production error has been automatically detected and filed as this GitHub issue.
+
+            ## Your mission
+            Investigate the root cause of this error and create a PROPER fix — not a workaround.
+
+            ## Issue details
+            Title: ${{ github.event.issue.title }}
+            Body:
+            ${{ github.event.issue.body }}
+
+            ## Critical rules — YOU ARE WORKING ON A LIVE PRODUCTION APP
+
+            ### Investigation first
+            1. Read the error message and stack trace carefully
+            2. Trace the error to its source file and line
+            3. Understand the FULL context — read the entire file, understand the data flow
+            4. Check if this is a regression (git log the file), an edge case, or a systemic issue
+            5. Look at related files that interact with the broken code
+
+            ### Fix standards
+            1. Fix the ROOT CAUSE, not the symptom. No try/catch swallowing. No silent fallbacks that hide data loss.
+            2. Follow the existing code patterns in this codebase exactly — same style, same error handling patterns, same naming conventions
+            3. Your fix must handle the error case gracefully for the end user (proper error message, not a crash)
+            4. Do NOT introduce new dependencies
+            5. Do NOT refactor unrelated code
+            6. Do NOT add comments explaining the fix — the PR description covers that
+            7. Keep the change as SMALL and FOCUSED as possible
+            8. Make sure your fix doesn't break other code paths — trace callers/consumers of any function you modify
+
+            ### What to do if you CAN'T fix it safely
+            If the fix is too risky, too complex, or you're not confident it won't cause regressions:
+            - Do NOT submit a broken fix
+            - Instead, comment on this issue explaining:
+              - What you found (root cause analysis)
+              - Why an automated fix is too risky
+              - Suggested approach for a human engineer
+            - This is the RESPONSIBLE thing to do. A bad fix on a live app is worse than no fix.
+
+            ### PR requirements
+            - Branch name: fix/auto-{issue_number}
+            - PR title: Short, clear description of what was fixed
+            - PR body must include:
+              - **Root cause**: What went wrong and why
+              - **Fix**: What you changed and why this is the correct fix
+              - **Risk assessment**: What could this change affect? (Low/Medium/High)
+              - **Testing notes**: How to verify this fix works
+            - Link the PR to this issue (closes #issue_number)
+
+          allowed_tools: "Read,Glob,Grep,Edit,Write,Bash(git log:*),Bash(git diff:*),Bash(git show:*),Bash(npm run lint),Bash(npx tsc --noEmit)"
+          max_turns: 30

@@ -7,6 +7,7 @@ import { deliverToIntegrations } from "@/lib/extractor/integrations/orchestrator
 import { checkCredits, deductCredits } from "@/lib/extractor/billing/credits"
 import type { SchemaField } from "@/lib/schema"
 import { trackServerEvent } from "@/lib/analytics/server"
+import { reportError } from "@/lib/errorReporting"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
