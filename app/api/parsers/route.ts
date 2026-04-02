@@ -4,6 +4,7 @@ import { generateInboundEmail } from "@/lib/extractor/inbound-email"
 import { trackServerEvent } from "@/lib/analytics/server"
 
 export const runtime = "nodejs"
+export const maxDuration = 30
 
 // GET /api/parsers — list user's parsers
 export async function GET() {

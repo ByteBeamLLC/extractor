@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { buildGoogleAuthUrl } from "@/lib/auth/google-oauth"
 
 export const runtime = "nodejs"
+export const maxDuration = 30
 
 // GET /api/auth/google/connect?next=/dashboard
 // Redirects user to Google OAuth consent screen.

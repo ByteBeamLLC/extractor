@@ -5,6 +5,8 @@ import type { GoogleDocsConfig } from "@/lib/extractor/types"
 
 export const runtime = "nodejs"
 
+export const maxDuration = 60
+
 // GET /api/auth/google-docs/callback?code=...&state=...
 // Google redirects here after user grants Drive consent.
 export async function GET(request: NextRequest) {

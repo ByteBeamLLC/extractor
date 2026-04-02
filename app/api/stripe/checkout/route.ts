@@ -3,6 +3,8 @@ import { stripe, PLANS, type PlanTier } from "@/lib/stripe/config"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
+export const maxDuration = 60
+
 export async function POST(request: Request) {
   try {
     const supabase = createSupabaseServerClient()

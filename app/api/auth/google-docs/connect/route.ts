@@ -3,6 +3,7 @@ import { createSupabaseServerComponentClient } from "@/lib/supabase/server"
 import { buildGoogleDocsAuthUrl } from "@/lib/extractor/google-docs/oauth"
 
 export const runtime = "nodejs"
+export const maxDuration = 30
 
 // GET /api/auth/google-docs/connect?parserId=xxx
 // Redirects user to Google's OAuth consent screen for Drive access.

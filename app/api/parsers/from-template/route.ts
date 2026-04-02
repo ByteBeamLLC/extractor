@@ -5,6 +5,7 @@ import { generateInboundEmail } from "@/lib/extractor/inbound-email"
 import { trackServerEvent } from "@/lib/analytics/server"
 
 export const runtime = "nodejs"
+export const maxDuration = 30
 
 // POST /api/parsers/from-template — create a parser from a predefined template
 export async function POST(request: NextRequest) {

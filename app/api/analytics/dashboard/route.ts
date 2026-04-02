@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { queryInsights, queryFunnel, type DateRange } from "@/lib/analytics/mixpanel-query"
 
+export const maxDuration = 60
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const days = parseInt(searchParams.get("days") || "30", 10)

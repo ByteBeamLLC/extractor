@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createSupabaseServerComponentClient, createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
 export const runtime = "nodejs"
+export const maxDuration = 30
 
 /**
  * GET /api/parsers/[parserId]/documents/[documentId]/file

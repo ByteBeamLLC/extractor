@@ -3,6 +3,7 @@ import { createSupabaseServerComponentClient } from "@/lib/supabase/server"
 import { buildGmailAuthUrl } from "@/lib/extractor/gmail/oauth"
 
 export const runtime = "nodejs"
+export const maxDuration = 30
 
 // GET /api/auth/gmail/connect?parserId=xxx
 // Redirects user to Google's OAuth consent screen.

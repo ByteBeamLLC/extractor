@@ -8,6 +8,8 @@ import type { Database } from "@/lib/supabase/types"
 
 export const runtime = "nodejs"
 
+export const maxDuration = 60
+
 // GET /api/auth/google/callback?code=...&state=...
 // Google redirects here after user grants consent.
 // Creates or finds the Supabase user, verifies OTP server-side to set session cookies.

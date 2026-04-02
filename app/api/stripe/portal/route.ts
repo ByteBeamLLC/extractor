@@ -3,6 +3,8 @@ import { stripe } from "@/lib/stripe/config"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
+export const maxDuration = 60
+
 export async function POST() {
   try {
     const supabase = createSupabaseServerClient()

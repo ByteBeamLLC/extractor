@@ -2,7 +2,10 @@ import { NextResponse } from "next/server"
 import { headers } from "next/headers"
 import { stripe, planFromPriceId, PLANS } from "@/lib/stripe/config"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
+import { reportError } from "@/lib/errorReporting"
 import type Stripe from "stripe"
+
+export const maxDuration = 60
 
 // Helper: resolve user ID from subscription metadata or customer lookup
 async function resolveUserId(
@@ -421,6 +424,7 @@ export async function POST(request: Request) {
     }
   } catch (err) {
     console.error("[stripe/webhook] Error handling event:", err)
+    reportError(err, { route: "/api/stripe/webhook", method: "POST", extra: { eventType: event.type, eventId: event.id } })
     return NextResponse.json(
       { error: "Webhook handler failed" },
       { status: 500 }
