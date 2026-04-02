@@ -20,8 +20,7 @@ import { CreateParserDialog } from "./CreateParserDialog"
 import { CreditUsageBar } from "@/components/extractor/dashboard/CreditUsageBar"
 import { getTemplateById } from "@/lib/parser-templates"
 import { generateInboundEmail } from "@/lib/extractor/inbound-email"
-import { TourStep } from "@/components/tour/TourStep"
-import { useTour } from "@/components/tour/TourProvider"
+import { FirstDocumentUpload } from "@/components/extractor/onboarding/FirstDocumentUpload"
 
 type SortOption = "last_updated" | "name" | "created" | "documents"
 
@@ -62,9 +61,6 @@ export function ParserListPage() {
   // Track whether we've already handled the template param (prevent double-create)
   const templateHandled = useRef(false)
 
-  // Product tour
-  const { startTour, nextStep, hasCompletedTour, isActive: tourActive } = useTour()
-  const tourStartAttempted = useRef(false)
 
   const loadData = useCallback(async () => {
     if (!session?.user?.id) {
@@ -202,18 +198,10 @@ export function ParserListPage() {
     createFromTemplate()
   }, [session?.user?.id, router, supabase])
 
-  // Auto-start tour for first-time users with 0 parsers
-  useEffect(() => {
-    if (tourStartAttempted.current) return
-    if (!session?.user?.id || loading || creatingFromTemplate) return
-    tourStartAttempted.current = true
-
-    if (tourActive || hasCompletedTour()) return
-    if (parsers.length > 0) return
-
-    const timer = setTimeout(() => startTour(), 400)
-    return () => clearTimeout(timer)
-  }, [session?.user?.id, loading, creatingFromTemplate, parsers.length, tourActive, hasCompletedTour, startTour])
+  // Tour auto-start disabled — the FirstDocumentUpload component replaces
+  // the tour's welcome step for new users with 0 parsers.
+  // The tour is marked as completed via skipTour() after the first document
+  // is successfully processed, so it won't interfere later.
 
   const handleCreateParser = () => {
     if (!session?.user?.id) {
@@ -297,6 +285,21 @@ export function ParserListPage() {
     )
   }
 
+  // Clean onboarding for new users — no header, no clutter
+  if (parsers.length === 0) {
+    return (
+      <>
+        <FirstDocumentUpload onParserCreated={loadData} />
+        {/* Keep dialog available for ?template= URL path */}
+        <CreateParserDialog
+          open={showCreateDialog}
+          onOpenChange={setShowCreateDialog}
+          onCreated={handleParserCreated}
+        />
+      </>
+    )
+  }
+
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
@@ -356,31 +359,7 @@ export function ParserListPage() {
       )}
 
       {/* Parser grid */}
-      {parsers.length === 0 ? (
-        <TourStep
-          stepId="welcome"
-          side="top"
-          align="center"
-          nextLabel="Create a Parser"
-          onNext={() => {
-            nextStep()
-            handleCreateParser()
-          }}
-        >
-          <div className="border-2 border-dashed rounded-xl p-12 text-center">
-            <FileText className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No parsers yet</h3>
-            <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
-              Create your first parser to start extracting data from documents.
-              Define the fields you want to extract and let AI do the rest.
-            </p>
-            <Button onClick={handleCreateParser}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Your First Parser
-            </Button>
-          </div>
-        </TourStep>
-      ) : filteredParsers.length === 0 ? (
+      {filteredParsers.length === 0 ? (
         <div className="border-2 border-dashed rounded-xl p-8 text-center">
           <Search className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />
           <p className="text-sm text-muted-foreground">
