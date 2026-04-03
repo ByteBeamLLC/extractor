@@ -7,12 +7,16 @@ author: "Parsli Team"
 publishedAt: "2026-04-03"
 readTime: "14 min read"
 keywords:
-  - "LLM OCR cost"
-  - "scanned PDF data extraction"
-  - "Gemini PDF extraction"
-  - "OCR pipeline architecture"
-  - "document extraction at scale"
-  - "reduce LLM extraction cost"
+  - "Gemini PDF timeout 502 error"
+  - "OpenRouter 502 bad gateway Gemini fix"
+  - "LLM PDF extraction stuck processing"
+  - "scanned PDF extraction serverless timeout"
+  - "reduce LLM OCR cost per page"
+  - "Vercel waitUntil timeout extraction"
+  - "multimodal LLM document extraction slow"
+  - "Gemini base64 PDF 503 GOAWAY"
+  - "OCR model benchmark comparison 2026"
+  - "two phase OCR LLM extraction pipeline"
 citations:
   - source: "Google AI Developers Forum"
     url: "https://discuss.ai.google.dev/t/gemini-2-0-flash-api-long-response-times-and-503-goaway-errors-with-pdf-base64-input/86197"
@@ -96,15 +100,17 @@ The output token count was the killer — 8,000 to 19,000 tokens per page becaus
 
 ---
 
-## What Else Goes Wrong at Scale
+## Every Way This Fails at Scale (And How to Fix Each One)
 
-Cost wasn't our only problem. We encountered three other failure modes that every team building on multimodal LLMs will eventually hit.
+Cost wasn't our only problem. We encountered five distinct failure modes that every team building on multimodal LLMs will eventually hit. If you're searching for any of these errors, you're in the right place.
 
-### 1. Provider 502 Errors
+### Gemini 502 Bad Gateway Error via OpenRouter
 
-Google Vertex AI (one of OpenRouter's providers for Gemini) intermittently returns [502 Bad Gateway errors on large PDF base64 payloads](https://discuss.ai.google.dev/t/gemini-2-0-flash-api-long-response-times-and-503-goaway-errors-with-pdf-base64-input/86197). This is a known issue. It doesn't show up in OpenRouter's logs as a failed "generation" — it just silently fails.
+**Symptom:** Intermittent `502 Bad Gateway` when sending PDFs to Gemini 2.5 Pro via OpenRouter. The request connects (DNS + TCP handshake succeeds) but the response never comes. OpenRouter logs show no "generation" entry for the failed request — it's invisible.
 
-We fixed this by using [OpenRouter's provider routing](https://openrouter.ai/docs/guides/routing/provider-selection) to prefer Google AI Studio over Vertex:
+**Root cause:** Google Vertex AI (one of OpenRouter's backend providers for Gemini) intermittently [fails on large PDF base64 payloads](https://discuss.ai.google.dev/t/gemini-2-0-flash-api-long-response-times-and-503-goaway-errors-with-pdf-base64-input/86197). The error happens at the provider level before OpenRouter can log it as a generation.
+
+**Fix:** Use [OpenRouter's provider routing](https://openrouter.ai/docs/guides/routing/provider-selection) to prefer Google AI Studio over Vertex. Add this to your request body:
 
 ```json
 {
@@ -115,19 +121,58 @@ We fixed this by using [OpenRouter's provider routing](https://openrouter.ai/doc
 }
 ```
 
-This eliminated the 502s entirely. If you're hitting intermittent failures with Gemini via OpenRouter, check which provider is serving your requests.
+This eliminated the 502s for us immediately. Google AI Studio handles large payloads more reliably than Vertex. If AI Studio fails for any reason, OpenRouter auto-falls back to Vertex — but for most requests, AI Studio serves without error.
 
-### 2. Serverless Timeout Starvation
+**How to debug:** Check your OpenRouter Activity page. Each request shows which provider served it (Google AI Studio vs Google Vertex). If you see mostly Vertex and intermittent failures, provider routing is your fix.
 
-Our initial architecture ran extraction inside a Vercel serverless function using `waitUntil()`. The function had 60 seconds total for authentication, file handling, database writes, **and** the AI extraction. The synchronous work consumed 30+ seconds, leaving the AI call with barely enough time to start before the function was killed.
+### Gemini PDF Timeout: 503 GOAWAY and Base64 Payload Limits
 
-The fix: decouple the extraction into a separate worker triggered by a database insert (using Supabase `pg_net` to fire an async HTTP call to a dedicated endpoint with a 600-second budget).
+**Symptom:** Requests with large PDF base64 payloads hang for 2-5 minutes, then return `503 GOAWAY` or simply disconnect. Your OpenRouter logs show the request was sent but no response was received.
 
-### 3. Silent Failures with No Recovery
+**Root cause:** Gemini's vision encoder has to process every page of the PDF as an image. A 24-page scanned PDF creates a massive base64 payload (10-35MB) that overwhelms the model's processing pipeline. Google's own developers forum [confirms this is a known limitation](https://discuss.ai.google.dev/t/gemini-2-0-flash-api-long-response-times-and-503-goaway-errors-with-pdf-base64-input/86197).
 
-When a serverless function is killed mid-extraction, there's no catch block, no error log, no cleanup. The document row stays in "processing" status forever. The user sees an infinite spinner. The server-side analytics events never fire.
+**Fix:** Never send a whole multi-page PDF as one base64 blob. Split into individual pages first, send each page separately, then merge the results. A single page is small enough (~200KB-1MB) that Gemini processes it in 5-30 seconds without issue.
 
-This is the worst failure mode because it's invisible. You only discover it when a customer emails asking why their document never finished.
+### Vercel waitUntil() Timeout Killing Background Extraction
+
+**Symptom:** Your extraction API returns 200 to the client, but the background extraction via `waitUntil()` never completes. Documents stay stuck in "processing" status. No error logs. The Vercel function log shows the 200 response but nothing else.
+
+**Root cause:** `waitUntil()` runs within the same `maxDuration` budget as the main request. If your synchronous work (auth, file upload, database writes) consumes 30 of your 60 seconds, the AI call only gets 30 seconds — not enough for a multi-page PDF.
+
+**Fix:** Decouple the extraction entirely. Your API endpoint should:
+1. Store the file
+2. Create a document record with status "processing"
+3. Return 200 immediately
+
+Then use a **database trigger** (Supabase `pg_net`, or a webhook) to fire an async HTTP call to a dedicated extraction worker endpoint with its own `maxDuration` (we use 600 seconds).
+
+**Important `pg_net` gotcha:** The default timeout for `net.http_post()` is 5,000ms. If your worker takes longer than 5 seconds (it will), the connection is dropped and the worker might not receive the request. Set `timeout_milliseconds := 600000` to match your worker's budget.
+
+### Documents Stuck in "Processing" Forever
+
+**Symptom:** Users upload a document and see an infinite loading spinner. The database row shows `status: "processing"`, `results: null`, `processed_at: null`. No error message. This can persist indefinitely.
+
+**Root cause:** Multiple possible causes:
+- The `waitUntil()` background work was killed by the serverless timeout (see above)
+- The AI call returned a 502/503 and the error handler was also killed before it could update the database
+- A retry loop exhausted all attempts and the final error was never written to the DB
+
+**Fix:** Three layers of defense:
+1. **Decouple extraction from the HTTP request** so the worker has its own timeout
+2. **Wrap extraction in try/catch** with a guaranteed `UPDATE status = 'error'` in the catch block
+3. **Add a cleanup mechanism** — a cron job or scheduled check that finds documents stuck in "processing" for more than N minutes and marks them as "error" with a timeout message
+
+### LLM Output Token Explosion: $0.13 Per Page
+
+**Symptom:** Your OpenRouter bills are much higher than expected. Each page extraction costs $0.08-$0.14. Output tokens are 8,000-19,000 per page — far more than the actual content on the page.
+
+**Root cause:** You're asking the LLM to both OCR the page AND produce structured JSON in one call. A prompt like "extract all data as structured JSON" causes the model to generate verbose output with full key names, formatting, confidence metadata, and repetitive structure for every row of tabular data.
+
+**Fix:** Separate reading from structuring:
+- **Phase 1 (Read):** Ask the model to "convert this page to clean markdown." Output: ~200-500 tokens of raw text.
+- **Phase 2 (Think):** Send all page texts to a cheaper model to produce structured JSON. One call instead of N.
+
+This dropped our per-page cost from $0.13 to effectively nothing for the OCR step, with one consolidation call at the end.
 
 ---
 
@@ -315,25 +360,41 @@ Parsli handles all of this automatically. Upload a PDF, scanned document, or ima
 
 ## FAQ
 
-### How does Parsli handle scanned PDFs?
+### How do I fix Gemini 502 errors when processing PDFs through OpenRouter?
 
-We split multi-page scanned PDFs into individual pages, OCR each page in parallel using vision-language models, then consolidate the results. For "full content" extraction, we return clean markdown. For structured extraction, an LLM maps the text to your defined schema.
+Add provider routing to your OpenRouter request body: `"provider": { "order": ["google", "google-vertex"], "allow_fallbacks": true }`. This prefers Google AI Studio (more reliable for large payloads) and falls back to Vertex automatically. The 502s come from Vertex AI struggling with large base64 PDF payloads.
 
-### What accuracy can I expect from AI document extraction?
+### Why does my PDF extraction get stuck in "processing" on Vercel?
 
-On standard business documents (invoices, receipts, call logs), modern VLM-OCR models achieve 83-94% on benchmark suites like olmOCR-Bench and OmniDocBench. Accuracy depends on scan quality, document complexity, and whether the content is printed or handwritten.
+Most likely your `waitUntil()` background work is being killed by `maxDuration`. The serverless function timeout applies to the entire invocation including background work. Decouple extraction into a separate worker endpoint triggered by a database event, with its own timeout budget (300-600 seconds).
 
-### Why not just use Gemini or GPT-4o directly?
+### How much does it cost to extract data from a scanned PDF using Gemini?
 
-They work great for single pages. For multi-page scanned documents, they're too slow (4+ minutes), too expensive ($0.13/page), and unreliable (502 errors, timeouts). Purpose-built OCR models are faster, cheaper, and more accurate at the "reading" step.
+Sending a scanned page directly to Gemini 2.5 Pro costs ~$0.13 per page ($1.25/M input + $10/M output tokens). A 24-page document costs ~$3.12. Using a two-phase approach (dedicated OCR model + cheaper LLM for structuring) reduces this to ~$0.05 per document — about 60x cheaper.
 
-### What's the cheapest way to extract data from scanned PDFs at scale?
+### What's the best OCR model for scanned document extraction in 2026?
 
-Mistral OCR 3 on Google Vertex AI at $1-2 per 1,000 pages for the OCR step, combined with GPT-5.4 Nano ($0.20/M tokens) for structuring. Total cost: under $0.01 per page for most documents.
+For text fidelity: dots.ocr-1.5 (3B params, 83.9 on olmOCR-Bench). For structured documents (tables, receipts, invoices): HunyuanOCR (0.9B params, 94.1 on OmniDocBench). For easiest integration: Mistral OCR 3 ($1-2 per 1,000 pages, managed API on Vertex AI). For speed: PaddleOCR-VL (0.9B, 253% faster than dots.ocr).
+
+### Why not just use Gemini or GPT-4o directly for OCR?
+
+They work great for single pages. For multi-page scanned documents, they're too slow (4+ minutes), too expensive ($0.13/page), and unreliable (502/503 errors, timeouts). Purpose-built VLM-OCR models (0.9-3B params) produce better text fidelity at a fraction of the cost. Save general-purpose LLMs for reasoning and structuring, not pixel reading.
+
+### How do I handle multi-page PDFs with LLM extraction?
+
+Split the PDF into individual pages server-side (pdf-lib works for this), OCR each page in parallel using a lightweight vision model, then either return the concatenated markdown (for full-content extraction) or send all text to an LLM for structured field extraction (one call). Never send the whole multi-page PDF as one request.
+
+### What is Supabase pg_net and how do I use it for background jobs?
+
+`pg_net` is a PostgreSQL extension that makes async HTTP calls from inside database triggers. When a row is inserted, a trigger function fires `net.http_post()` to your worker endpoint. The HTTP call is non-blocking — it doesn't slow down the INSERT. Set `timeout_milliseconds` to match your worker's max duration. This replaces `waitUntil()` for serverless background processing.
 
 ### How fast is Parsli's PDF processing?
 
 Small documents (1-5 pages): under 15 seconds. Large scanned documents (20+ pages): 60-90 seconds. We process pages in parallel with up to 10 concurrent OCR requests.
+
+### How does Parsli handle scanned PDFs?
+
+We split multi-page scanned PDFs into individual pages, OCR each page in parallel using vision-language models, then consolidate the results. For "full content" extraction, we return clean markdown that preserves the document layout. For structured extraction, an LLM maps the text to your defined schema and returns JSON.
 
 ---
 
