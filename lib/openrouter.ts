@@ -13,6 +13,16 @@ const MAX_RETRIES = 2
 const RETRY_BASE_DELAY_MS = 1000
 
 /**
+ * Provider routing preferences.
+ * Prefer Google AI Studio first (more reliable for large payloads),
+ * then Vertex AI as fallback. OpenRouter auto-falls back on 5xx.
+ */
+const PROVIDER_PREFERENCES = {
+    order: ['google', 'google-vertex'],
+    allow_fallbacks: true,
+}
+
+/**
  * Returns true for errors that are worth retrying (transient network/API issues).
  */
 function isTransientError(error: unknown): boolean {
@@ -50,6 +60,12 @@ async function fetchOpenRouterWithRetry(
         'X-Title': 'Parsli',
     }
 
+    // Apply provider routing preferences to all requests
+    const bodyWithProvider = {
+        ...body,
+        provider: { ...PROVIDER_PREFERENCES, ...(body.provider as object || {}) },
+    }
+
     let lastError: Error | null = null
 
     for (let attempt = 0; attempt <= retries; attempt++) {
@@ -57,7 +73,7 @@ async function fetchOpenRouterWithRetry(
             const response = await fetch(OPENROUTER_API_URL, {
                 method: 'POST',
                 headers,
-                body: JSON.stringify(body),
+                body: JSON.stringify(bodyWithProvider),
             })
 
             if (!response.ok) {
