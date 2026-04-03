@@ -10,17 +10,12 @@
  */
 
 import { PDFDocument } from "pdf-lib"
-import { generateObject, generateFreeformJson } from "@/lib/openrouter"
-import { flattenFields } from "@/lib/schema"
+import { generateObject, generateFreeformJson, generateText } from "@/lib/openrouter"
 import type { SchemaField } from "@/lib/schema"
 import type { ExtractionInput, ExtractionOutput } from "./runExtraction"
 import {
-  extractTextFromDocument,
-  buildPdfPrompt,
-  buildFullContentPdfPrompt,
   buildObjectFromTree,
   buildFallbackFromTree,
-  MAX_SUPPLEMENTAL_TEXT_CHARS,
 } from "@/lib/extraction/api"
 import {
   extractResultsMeta,
@@ -118,89 +113,45 @@ async function splitPdfToPageBuffers(
 // Per-page extraction
 // ---------------------------------------------------------------------------
 
+/**
+ * Extracts raw markdown text from a single PDF page using Gemini Pro.
+ * This is the "Read" step — no structuring, no JSON, just faithful
+ * text conversion. Structuring happens in the consolidation step.
+ */
 async function extractSinglePage(
   pageBuffer: Uint8Array,
   pageNumber: number,
   totalPages: number,
   input: ExtractionInput
 ): Promise<PageExtractionResult> {
-  const extractionType = input.extractionType ?? "fields"
   const base64 = Buffer.from(pageBuffer).toString("base64")
   const mimeType = "application/pdf"
 
-  // Extract supplemental text for this single page
-  let supplementalText: string | null = null
-  try {
-    const extraction = await extractTextFromDocument(
-      pageBuffer,
-      input.fileName,
-      mimeType
-    )
-    supplementalText = extraction.text.trim() || null
-    if (
-      supplementalText &&
-      supplementalText.length > MAX_SUPPLEMENTAL_TEXT_CHARS
-    ) {
-      supplementalText = supplementalText.slice(0, MAX_SUPPLEMENTAL_TEXT_CHARS)
-    }
-  } catch {
-    // Supplemental text is optional — proceed without it
-  }
-
-  const pageContext = `This is page ${pageNumber} of ${totalPages} of the document "${input.fileName}". Extract only what appears on this page.`
+  const prompt = `Convert this scanned document page to clean markdown text. Preserve the original structure faithfully:
+- Reproduce all text exactly as it appears
+- Use markdown tables for any tabular data
+- Preserve headings, lists, and formatting
+- Include every number, date, name, and data point — do not skip anything
+- Do not add commentary or interpretation — just convert what you see`
 
   try {
-    if (extractionType === "full_content") {
-      // Build prompt and prepend page context
-      const content = buildFullContentPdfPrompt(
-        base64,
-        mimeType,
-        supplementalText,
-        input.extractionPromptOverride || undefined
-      )
-      // Prepend page context to the first text item
-      if (content[0]?.type === "text") {
-        content[0] = {
-          type: "text",
-          text: `${pageContext}\n\n${content[0].text}`,
-        }
-      }
+    const result = await generateText({
+      temperature: 0.1,
+      messages: [
+        {
+          role: "user" as const,
+          content: [
+            { type: "text", text: `Page ${pageNumber} of ${totalPages}.\n\n${prompt}` },
+            { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64}` } },
+          ] as any,
+        },
+      ],
+    })
 
-      const result = await generateFreeformJson({
-        temperature: 0.2,
-        messages: [{ role: "user" as const, content: content as any }],
-      })
-
-      return { pageNumber, success: true, data: result.object }
-    } else {
-      // Fields mode
-      const schemaTree: SchemaField[] = input.schemaTree ?? []
-      const { zodSchema, schemaLines } = buildObjectFromTree(schemaTree, {
-        includeMeta: true,
-      })
-      const schemaSummary = `Schema Fields:\n${schemaLines.join("\n")}`
-
-      const content = buildPdfPrompt(
-        base64,
-        mimeType,
-        schemaSummary,
-        supplementalText,
-        input.extractionPromptOverride || undefined
-      )
-      if (content[0]?.type === "text") {
-        content[0] = {
-          type: "text",
-          text: `${pageContext}\n\n${content[0].text}`,
-        }
-      }
-
-      const result = await generateObject({
-        temperature: 0.2,
-        messages: [{ role: "user" as const, content: content as any }],
-        schema: zodSchema,
-      })
-
-      return { pageNumber, success: true, data: result.object as Record<string, any> }
+    return {
+      pageNumber,
+      success: true,
+      data: { markdown: result.text },
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
@@ -258,7 +209,7 @@ async function consolidateFieldsResults(
     console.warn(
       `[chunked-extraction] Consolidation failed, falling back to naive merge: ${err instanceof Error ? err.message : err}`
     )
-    return naiveMergeFieldsResults(pageResults, schemaTree)
+    return naiveMergeResults(pageResults)
   }
 }
 
@@ -279,7 +230,7 @@ async function consolidateFullContentResults(
     console.warn(
       `[chunked-extraction] Consolidation failed, falling back to naive merge: ${err instanceof Error ? err.message : err}`
     )
-    return naiveMergeFullContentResults(pageResults)
+    return naiveMergeResults(pageResults)
   }
 }
 
@@ -287,66 +238,22 @@ async function consolidateFullContentResults(
 // Naive fallback merges (when consolidation LLM call fails)
 // ---------------------------------------------------------------------------
 
-function naiveMergeFieldsResults(
-  pageResults: PageExtractionResult[],
-  schemaTree: SchemaField[]
-): ExtractionOutput {
-  const fields = flattenFields(schemaTree)
-  const merged: Record<string, any> = {}
-
-  for (const field of fields) {
-    if (!field?.id || field.id.startsWith("__")) continue
-    for (const page of pageResults) {
-      if (!page.success || !page.data) continue
-      const val = page.data[field.id]
-      if (val !== undefined && val !== null && val !== "-") {
-        // For arrays, concatenate across pages
-        if (Array.isArray(val)) {
-          if (!merged[field.id]) merged[field.id] = []
-          merged[field.id] = merged[field.id].concat(val)
-        } else if (!(field.id in merged)) {
-          merged[field.id] = val
-        }
-      }
-    }
-    if (!(field.id in merged)) merged[field.id] = "-"
-  }
-
-  const reviewMeta = computeInitialReviewMeta(merged, {
-    handledWithFallback: true,
-    fallbackReason: "Consolidation failed, used naive per-page merge",
-  })
-  const resultsWithMeta = mergeResultsWithMeta(merged, { review: reviewMeta })
-
-  return {
-    success: true,
-    results: resultsWithMeta,
-    warnings: ["Consolidation failed. Results were merged using a basic strategy."],
-    handledWithFallback: true,
-  }
-}
-
-function naiveMergeFullContentResults(
+/**
+ * Fallback when consolidation LLM fails: return concatenated raw markdown.
+ * Not ideal, but better than nothing — the user at least sees the text.
+ */
+function naiveMergeResults(
   pageResults: PageExtractionResult[]
 ): ExtractionOutput {
-  const merged: Record<string, any> = {}
-
-  for (const page of pageResults) {
-    if (!page.success || !page.data) continue
-    for (const [key, val] of Object.entries(page.data)) {
-      if (Array.isArray(val)) {
-        if (!merged[key]) merged[key] = []
-        merged[key] = merged[key].concat(val)
-      } else if (!(key in merged) || merged[key] === null || merged[key] === "-") {
-        merged[key] = val
-      }
-    }
-  }
+  const allText = pageResults
+    .filter((r) => r.success && r.data?.markdown)
+    .map((r) => `--- Page ${r.pageNumber} ---\n${r.data!.markdown}`)
+    .join("\n\n")
 
   return {
     success: true,
-    results: merged,
-    warnings: ["Consolidation failed. Results were merged using a basic strategy."],
+    results: { raw_text: allText },
+    warnings: ["Consolidation failed. Returning raw extracted text from all pages."],
     handledWithFallback: true,
   }
 }
