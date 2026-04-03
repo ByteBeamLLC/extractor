@@ -98,7 +98,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // OCR & Text Extraction Tools
     {
       url: `${BASE_URL}/tools/image-to-text`,
-      lastModified: staticDate,
+      lastModified: new Date("2026-04-03"),
       changeFrequency: "monthly",
       priority: 0.8,
     },
@@ -154,7 +154,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // AI Extraction Tools
     {
       url: `${BASE_URL}/tools/invoice-parser`,
-      lastModified: staticDate,
+      lastModified: new Date("2026-04-03"),
       changeFrequency: "monthly",
       priority: 0.8,
     },
