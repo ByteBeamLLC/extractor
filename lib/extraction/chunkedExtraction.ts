@@ -35,8 +35,14 @@ export const CHUNKED_PAGE_THRESHOLD = 5
 /** Max parallel OpenRouter requests */
 const MAX_CONCURRENCY = 10
 
-/** Model used for Phase 2 consolidation (text-only, fast, cheap) */
-const CONSOLIDATION_MODEL = "google/gemini-2.5-flash"
+/** Token threshold for consolidation model selection */
+const CONSOLIDATION_SIMPLE_TOKEN_LIMIT = 10_000
+
+/** Cheap/fast model for simple consolidation (≤10K tokens, ~5-10 pages) */
+const CONSOLIDATION_MODEL_SIMPLE = "openai/gpt-5.4-nano"
+
+/** Reliable model for complex consolidation (>10K tokens, large docs) */
+const CONSOLIDATION_MODEL_COMPLEX = "anthropic/claude-haiku-4.5"
 
 /** Stop submitting new pages if less than this time remains */
 const TIMEOUT_SAFETY_MARGIN_MS = 30_000
@@ -179,10 +185,20 @@ async function consolidateFieldsResults(
     input.extractionPromptOverride || undefined
   )
 
+  // Pick model based on input size: cheap/fast for small, reliable for large
+  const estimatedTokens = Math.ceil(prompt.length / 4)
+  const model = estimatedTokens <= CONSOLIDATION_SIMPLE_TOKEN_LIMIT
+    ? CONSOLIDATION_MODEL_SIMPLE
+    : CONSOLIDATION_MODEL_COMPLEX
+
+  console.log(
+    `[chunked-extraction] Consolidation: ~${estimatedTokens} tokens → using ${model}`
+  )
+
   try {
     const result = await generateObject({
       temperature: 0.1,
-      model: CONSOLIDATION_MODEL,
+      model,
       messages: [{ role: "user" as const, content: prompt }],
       schema: zodSchema,
     })
