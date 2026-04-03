@@ -294,3 +294,4 @@ Document AI sits in between. Its pre-trained processors use specialized ML model
 - [PDF Table Extractor](/tools/pdf-table-extractor) — Test table extraction on your documents
 - [What Is Intelligent Document Processing?](/guides/what-is-intelligent-document-processing) — IDP architecture explained
 - [Parsli vs AWS Textract](/compare/textract) — Direct feature and pricing comparison
+- [The Real Cost of Using LLMs for OCR](/blog/real-cost-llm-ocr-document-extraction) — How we cut document extraction cost by 60x with a two-phase pipeline

@@ -287,3 +287,4 @@ If this benchmark helped narrow your options, these resources go deeper on speci
 - **[How to Automate Invoice Data Extraction](/guides/automate-invoice-data-extraction)** — Step-by-step setup guide for AP teams.
 - **[Extract Line Items from Invoices](/guides/extract-line-items-from-invoices)** — Deep dive on the hardest part of invoice extraction.
 - **[Parsli Pricing](/pricing)** — Full plan comparison with page volumes and features.
+- **[The Real Cost of Using LLMs for OCR](/blog/real-cost-llm-ocr-document-extraction)** — Our engineering deep-dive on why LLMs cost $0.13/page for OCR and how we fixed it.

@@ -400,3 +400,4 @@ A virtual assistant costs $10–$25/hour and processes documents at human speed 
 - [Free PDF to Excel Converter](/tools/pdf-to-excel) — Try extraction instantly, no signup
 - [Data Entry Statistics: The Real Cost of Manual Processing](/blog/data-entry-statistics) — The numbers behind automation ROI
 - [What Is Intelligent Document Processing?](/guides/what-is-intelligent-document-processing) — Deep dive into IDP technology
+- [The Real Cost of Using LLMs for OCR](/blog/real-cost-llm-ocr-document-extraction) — Why multimodal LLMs are 2.4x worse at OCR than 0.9B specialized models

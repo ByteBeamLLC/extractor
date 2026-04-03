@@ -222,6 +222,7 @@ const categoryMap: Record<string, string> = {
   "extract-table-data-from-pdfs": "Guide",
   "email-parser-vs-virtual-assistant": "Comparison",
   "invoice-extraction-tools-benchmark": "Comparison",
+  "real-cost-llm-ocr-document-extraction": "Engineering",
 }
 
 /** Parse a single markdown file into a BlogPost */

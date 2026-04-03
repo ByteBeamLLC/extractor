@@ -100,6 +100,7 @@ const solutionRelatedLinks: Record<
     { href: "/compare/textract", label: "Parsli vs Amazon Textract" },
     { href: "/compare/google-document-ai", label: "Parsli vs Google Document AI" },
     { href: "/docs#api", label: "API Documentation" },
+    { href: "/blog/real-cost-llm-ocr-document-extraction", label: "The Real Cost of Using LLMs for OCR" },
   ],
   "logistics-document-automation": [
     { href: "/tools/bol-parser", label: "Free BOL Parser" },

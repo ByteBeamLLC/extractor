@@ -320,3 +320,4 @@ It depends on the tool. Free online converters often have unclear data retention
 - [OCR vs AI Document Extraction](/blog/ocr-vs-ai-document-extraction) — Why AI outperforms traditional OCR on tables
 - [No-Code Document Parser](/solutions/no-code-document-parser) — Set up extraction without writing any code
 - [Google Sheets Integration](/integrations/google-sheets) — Auto-export extracted data to spreadsheets
+- [The Real Cost of Using LLMs for OCR](/blog/real-cost-llm-ocr-document-extraction) — Benchmarks of 8 OCR models for scanned PDF table extraction
