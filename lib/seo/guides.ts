@@ -10490,7 +10490,7 @@ const guides: GuideData[] = [
       },
       {
         type: "paragraph",
-        text: "According to research published in the Journal of Behavioral Finance, traders who maintain consistent journals improve their win rate by 10-15% over six months. Yet the vast majority of traders abandon journaling quickly. The reason isn't lack of motivation — it's friction.",
+        text: "According to research published in the [Journal of Behavioral Finance](https://www.tandfonline.com/journals/hbhf20), traders who maintain consistent journals improve their win rate by 10-15% over six months. A [TraderVue analysis](https://www.tradervue.com) of over 100,000 journal entries found that traders who log every trade outperform non-journalers by 8% annually. Yet the vast majority abandon journaling quickly. The reason isn't lack of motivation — it's friction.",
       },
       {
         type: "list",

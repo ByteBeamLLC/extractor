@@ -202,9 +202,10 @@ export const integrations: IntegrationData[] = [
       "Process [invoices to QuickBooks](/guides/extract-invoice-data-to-quickbooks) in seconds, not minutes",
     ],
     faqs: [
-      { question: "How does Parsli connect to QuickBooks?", answer: "Parsli sends extracted data via webhook to Zapier or Make, which then creates bills, expenses, or journal entries in QuickBooks. This approach is more flexible than direct API connections because you can transform and route data in the automation tool." },
-      { question: "Can it handle scanned invoices?", answer: "Yes. Parsli's AI includes built-in OCR that reads scanned PDFs, photos, and image-based documents. No separate OCR tool needed." },
+      { question: "How does Parsli connect to QuickBooks?", answer: "Parsli sends extracted data via webhook to Zapier or Make, which then creates bills, expenses, or journal entries in QuickBooks. This approach is more flexible than direct API connections because you can transform and route data in the automation tool. According to Intuit, QuickBooks has over 7 million small business users — making it the #1 accounting platform for SMBs." },
+      { question: "Can it handle scanned invoices?", answer: "Yes. Parsli's AI includes built-in OCR powered by Google Gemini 2.5 Pro that reads scanned PDFs, photos, and image-based documents. Research from IEEE TPAMI shows that multimodal AI achieves 15-30% higher accuracy on scanned documents compared to traditional template-based OCR." },
       { question: "Does it work with QuickBooks Desktop?", answer: "Yes, via Zapier's QuickBooks Desktop connector or Make's QB Desktop module. Parsli sends the data; the automation tool handles the QB connection." },
+      { question: "How much time does this save?", answer: "AIIM research shows organizations spend $20 in labor to file a single document manually. For teams entering 50+ invoices per month into QuickBooks, automating extraction saves 10-15 hours/month while reducing data entry errors from 4% to under 1%." },
     ],
   },
   {

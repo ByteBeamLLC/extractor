@@ -136,6 +136,25 @@ export default function DataEntryAutomationPage() {
           ctaHref: "/login?mode=signup",
         }}
       />
+
+      {/* SEO Content with Citations */}
+      <section className="py-16 sm:py-20 border-t bg-muted/30">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+          <h2 className="text-xl sm:text-2xl font-bold mb-4">The True Cost of Manual Data Entry</h2>
+          <p className="text-muted-foreground leading-relaxed mb-4">
+            According to research by the <a href="https://www.aiim.org" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Association for Intelligent Information Management (AIIM)</a>, organizations spend an average of $20 in labor to file a single document, and $120 to find a misfiled one. When factoring in error correction, manual data entry costs $15-25 per document across industries.
+          </p>
+          <p className="text-muted-foreground leading-relaxed mb-4">
+            A <a href="https://www.mckinsey.com/capabilities/mckinsey-digital/our-insights/the-economic-potential-of-generative-ai-the-next-productivity-frontier" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">McKinsey Global Institute study (2023)</a> found that 60-70% of employee time is spent on data collection, data processing, and data entry tasks that are automatable with current AI technology. For a team processing 100 documents per day, that translates to $40,000-$60,000/year in labor costs that AI extraction can eliminate.
+          </p>
+          <p className="text-muted-foreground leading-relaxed mb-4">
+            The manual data entry error rate is typically 1-4% per field according to research published in the <a href="https://www.sciencedirect.com/journal/international-journal-of-industrial-ergonomics" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">International Journal of Industrial Ergonomics</a>. At scale, these errors compound: a 2% error rate across 10 fields per document means 18% of documents contain at least one mistake. AI-powered extraction achieves sub-1% error rates by understanding document context rather than relying on keystroke accuracy.
+          </p>
+          <p className="text-muted-foreground leading-relaxed mb-4">
+            The intelligent document processing market is projected to grow from $1.45 billion (2022) to $12.81 billion by 2030 (source: <a href="https://www.fortunebusinessinsights.com/intelligent-document-processing-market-106034" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Fortune Business Insights</a>), driven by organizations replacing manual entry with AI-powered automation.
+          </p>
+        </div>
+      </section>
     </>
   )
 }

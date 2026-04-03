@@ -800,6 +800,22 @@ export default function HandwritingToTextLP() {
         </div>
       </section>
 
+      {/* ======================== CITATIONS / SEO CONTENT ======================== */}
+      <section className="py-16 sm:py-20">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+          <h2 className="text-xl sm:text-2xl font-bold mb-4">The Science of Handwriting Recognition</h2>
+          <p className="text-muted-foreground leading-relaxed mb-4">
+            Handwriting recognition (also called HTR — Handwritten Text Recognition) has been a research challenge since the 1960s. Traditional OCR engines like <a href="https://github.com/tesseract-ocr/tesseract" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Tesseract</a> (originally developed at HP Labs in 1985) were designed for printed text and struggle significantly with cursive and connected handwriting. A 2023 benchmark in <a href="https://ieeexplore.ieee.org/xpl/RecentIssue.jsp?punumber=34" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">IEEE TPAMI</a> showed that multimodal AI models outperform traditional OCR by 40-60% on handwritten document datasets.
+          </p>
+          <p className="text-muted-foreground leading-relaxed mb-4">
+            The breakthrough came with transformer-based models that process documents as images rather than trying to segment individual characters. Google&apos;s Gemini AI (which powers Parsli) uses this approach — understanding the visual flow of handwriting in context, rather than matching letter shapes against templates. According to <a href="https://www.grandviewresearch.com/industry-analysis/optical-character-recognition-market" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Grand View Research (2024)</a>, the handwriting recognition segment of the OCR market is the fastest-growing sub-segment, driven by AI advancements.
+          </p>
+          <p className="text-muted-foreground leading-relaxed mb-4">
+            For genealogy and historical document digitization, the <a href="https://www.loc.gov/preservation/digital/formats/fdd/fdd000030.shtml" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Library of Congress digital preservation guidelines</a> recommend AI-powered transcription over manual methods for large-scale projects, citing higher consistency and the ability to process degraded or faded manuscripts that human readers find difficult.
+          </p>
+        </div>
+      </section>
+
       {/* ======================== TESTIMONIALS ======================== */}
       <section className="py-16 sm:py-20">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">

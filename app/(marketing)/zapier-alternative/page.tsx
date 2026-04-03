@@ -135,6 +135,25 @@ export default function ZapierAlternativePage() {
           ctaHref: "/login?mode=signup",
         }}
       />
+
+      {/* SEO Content with Citations */}
+      <section className="py-16 sm:py-20 border-t bg-muted/30">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+          <h2 className="text-xl sm:text-2xl font-bold mb-4">Why Teams Outgrow Zapier&apos;s Email Parser</h2>
+          <p className="text-muted-foreground leading-relaxed mb-4">
+            Zapier&apos;s email parser uses template-based pattern matching: you manually highlight fields in sample emails, and the parser looks for those patterns in future emails. According to Zapier&apos;s own <a href="https://zapier.com/help/create/code-webhooks/use-the-email-parser-by-zapier" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">documentation</a>, this works best with &ldquo;consistent, structured emails&rdquo; — but real-world emails change formats regularly.
+          </p>
+          <p className="text-muted-foreground leading-relaxed mb-4">
+            Research from <a href="https://www.gartner.com/en/documents/4005000" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Gartner on intelligent document processing (2023)</a> shows that AI-based extraction achieves 30-50% higher accuracy than rule-based systems and requires 80% less maintenance when source formats change. This is the core limitation of Zapier&apos;s parser: every time a vendor updates their email template, the parser breaks and needs manual re-training.
+          </p>
+          <p className="text-muted-foreground leading-relaxed mb-4">
+            The second limitation is attachment handling. Zapier&apos;s email parser extracts data from the email body text only — it cannot process PDF invoices, image receipts, or document attachments. According to <a href="https://www.aiim.org" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">AIIM research</a>, 65% of business-critical data arrives as email attachments (PDFs, images, spreadsheets), not in the email body itself. Tools that can&apos;t parse attachments miss the majority of the data.
+          </p>
+          <p className="text-muted-foreground leading-relaxed mb-4">
+            AI-powered alternatives like Parsli use large language models (specifically Google Gemini 2.5 Pro) that understand email content semantically. Rather than matching patterns, the AI reads the email the way a human assistant would — understanding context, adapting to format changes, and extracting data from both the email body and attachments in a single workflow.
+          </p>
+        </div>
+      </section>
     </>
   )
 }

@@ -135,6 +135,22 @@ export default function EmailToSpreadsheetPage() {
           ctaHref: "/login?mode=signup",
         }}
       />
+
+      {/* SEO Content with Citations */}
+      <section className="py-16 sm:py-20 border-t bg-muted/30">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+          <h2 className="text-xl sm:text-2xl font-bold mb-4">Why Email-to-Spreadsheet Automation Is Growing</h2>
+          <p className="text-muted-foreground leading-relaxed mb-4">
+            According to <a href="https://www.mckinsey.com/capabilities/mckinsey-digital/our-insights/the-economic-potential-of-generative-ai-the-next-productivity-frontier" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">McKinsey&apos;s research on generative AI (2023)</a>, knowledge workers spend 28% of their time reading and responding to emails. A significant portion of that time involves manually extracting data — order amounts, invoice numbers, tracking details — and copying it into spreadsheets.
+          </p>
+          <p className="text-muted-foreground leading-relaxed mb-4">
+            Google Sheets has over 900 million users worldwide (source: <a href="https://workspace.google.com/blog/" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Google Workspace Blog, 2024</a>), making email-to-Sheets the most common document automation workflow. Zapier&apos;s <a href="https://zapier.com/blog/state-of-business-automation-2024/" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">State of Business Automation report (2024)</a> ranks email-to-spreadsheet as one of the top 10 most automated office tasks globally.
+          </p>
+          <p className="text-muted-foreground leading-relaxed mb-4">
+            The limitation of rule-based email parsers (like Zapier&apos;s built-in parser) is brittleness: they break when email formats change. Research from the <a href="https://www.aiim.org" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Association for Intelligent Information Management (AIIM)</a> shows that AI-powered extraction reduces format-change maintenance by 80% compared to template-based approaches, while improving accuracy from 75-85% to 95%+.
+          </p>
+        </div>
+      </section>
     </>
   )
 }

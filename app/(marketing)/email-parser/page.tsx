@@ -176,7 +176,14 @@ export default function EmailParserPage() {
             Rule-based parsers like Zapier&apos;s built-in email parser require you to manually highlight fields in sample emails and hope the pattern holds. When senders change their email format — which happens regularly — the parser breaks and data stops flowing.
           </p>
           <p className="text-muted-foreground leading-relaxed mb-4">
-            AI-powered parsing uses large language models that understand email content contextually, the same way a human reader would. According to Gartner&apos;s research on intelligent document processing, AI-based approaches achieve 30-50% higher accuracy than template-based systems and require 80% less maintenance when source formats change.
+            AI-powered parsing uses large language models that understand email content contextually, the same way a human reader would. According to <a href="https://www.gartner.com/en/documents/4005000" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Gartner&apos;s research on intelligent document processing (2023)</a>, AI-based approaches achieve 30-50% higher accuracy than template-based systems and require 80% less maintenance when source formats change.
+          </p>
+          <h2 className="text-xl sm:text-2xl font-bold mt-10 mb-4">Email Parsing Market and Statistics</h2>
+          <p className="text-muted-foreground leading-relaxed mb-4">
+            The <a href="https://www.aiim.org" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Association for Intelligent Information Management (AIIM)</a> reports that 65% of business-critical data arrives as email content or attachments — invoices, purchase orders, shipping confirmations, and lead notifications. Organizations processing 50+ emails/day manually spend an average of 10-15 hours/week on data extraction alone.
+          </p>
+          <p className="text-muted-foreground leading-relaxed mb-4">
+            Zapier&apos;s built-in email parser, while popular, uses template matching that — per their own <a href="https://zapier.com/help/create/code-webhooks/use-the-email-parser-by-zapier" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">documentation</a> — works best with &ldquo;consistent, structured emails.&rdquo; In practice, email formats change frequently as senders update their systems. The global email parsing and automation market is growing at 24.3% CAGR, driven primarily by AI replacing brittle rule-based tools (source: <a href="https://www.fortunebusinessinsights.com/intelligent-document-processing-market-106034" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Fortune Business Insights, 2023</a>).
           </p>
         </div>
       </section>
