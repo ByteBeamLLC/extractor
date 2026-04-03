@@ -3,7 +3,7 @@ import { generateText } from "@/lib/openrouter"
 
 export const maxDuration = 30
 
-const MODEL = "google/gemini-2.5-flash"
+const MODEL = "google/gemini-2.0-flash-lite"
 
 const SYSTEM_PROMPT = `You are an OCR post-processor. You receive raw, noisy text extracted from an image by an OCR engine.
 
