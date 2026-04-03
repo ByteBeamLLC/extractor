@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import type { OCRLanguage, OCRProgress } from "@/lib/tools/ocr-utils"
+import { cleanupWithLLM } from "@/lib/tools/ocr-utils"
 
 const SUPPORTED_LANGUAGES: Record<OCRLanguage, string> = {
   eng: "English",
@@ -94,7 +95,16 @@ export function ImageToTextTool() {
           return
         }
 
-        setExtractedText(result.text)
+        // Clean up raw OCR output with LLM
+        setProgress({ status: "cleaning up text", progress: 95 })
+        let cleanedText = result.text
+        try {
+          cleanedText = await cleanupWithLLM(result.text)
+        } catch {
+          // Fall back to raw OCR text if LLM cleanup fails
+        }
+
+        setExtractedText(cleanedText)
         setConfidence(result.confidence)
         setStatus("done")
       } catch (e) {

@@ -109,23 +109,16 @@ function preprocessImage(imageSource: File | Blob | string): Promise<string> {
   })
 }
 
-/** Clean up OCR output: remove junk lines, normalize whitespace */
-function postprocessText(text: string): string {
-  return text
-    .split("\n")
-    // Remove lines that are only symbols/single chars (OCR noise)
-    .filter((line) => {
-      const trimmed = line.trim()
-      if (!trimmed) return false
-      // Remove lines that are just punctuation/symbols with no real words
-      const alphanumeric = trimmed.replace(/[^a-zA-Z0-9\u00C0-\u024F\u0400-\u04FF\u0600-\u06FF\u4E00-\u9FFF\u3040-\u309F\u30A0-\u30FF\uAC00-\uD7AF]/g, "")
-      if (alphanumeric.length === 0 && trimmed.length < 4) return false
-      return true
-    })
-    // Normalize multiple blank lines
-    .join("\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim()
+/** Send raw OCR text to LLM for cleanup */
+export async function cleanupWithLLM(rawText: string): Promise<string> {
+  const res = await fetch("/api/tools/ocr-cleanup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ rawText }),
+  })
+  if (!res.ok) throw new Error("LLM cleanup failed")
+  const data = await res.json()
+  return data.text
 }
 
 /** Perform OCR on an image file */
@@ -164,7 +157,7 @@ export async function performOCR(
     const data = result.data as any
 
     return {
-      text: postprocessText(data.text),
+      text: data.text,
       confidence: data.confidence,
     }
   } finally {
