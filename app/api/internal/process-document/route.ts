@@ -9,7 +9,7 @@ import { reportError } from "@/lib/errorReporting"
 import type { SchemaField } from "@/lib/schema"
 
 export const runtime = "nodejs"
-export const maxDuration = 300
+export const maxDuration = 600
 
 /**
  * POST /api/internal/process-document

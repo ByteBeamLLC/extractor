@@ -44,7 +44,7 @@ BEGIN
     body                 := jsonb_build_object(
       'document_id', NEW.id::text
     ),
-    timeout_milliseconds := 300000
+    timeout_milliseconds := 600000
   );
 
   RETURN NEW;

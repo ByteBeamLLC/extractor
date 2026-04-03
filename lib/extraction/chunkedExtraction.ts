@@ -41,7 +41,7 @@ import {
 export const CHUNKED_PAGE_THRESHOLD = 5
 
 /** Max parallel OpenRouter requests */
-const MAX_CONCURRENCY = 5
+const MAX_CONCURRENCY = 10
 
 /** Model used for Phase 2 consolidation (text-only, fast, cheap) */
 const CONSOLIDATION_MODEL = "google/gemini-2.5-flash"
@@ -50,7 +50,7 @@ const CONSOLIDATION_MODEL = "google/gemini-2.5-flash"
 const TIMEOUT_SAFETY_MARGIN_MS = 30_000
 
 /** Assumed max worker duration (matches process-document route maxDuration) */
-const MAX_DURATION_MS = 300_000
+const MAX_DURATION_MS = 600_000
 
 // ---------------------------------------------------------------------------
 // Types
