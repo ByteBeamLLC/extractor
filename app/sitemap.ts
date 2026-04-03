@@ -244,6 +244,25 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     // Fundamental pages (2026-04-03)
+    // SEO versions of ads landing pages (2026-04-03)
+    {
+      url: `${BASE_URL}/email-to-spreadsheet`,
+      lastModified: new Date("2026-04-03"),
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE_URL}/data-entry-automation`,
+      lastModified: new Date("2026-04-03"),
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE_URL}/zapier-alternative`,
+      lastModified: new Date("2026-04-03"),
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
     {
       url: `${BASE_URL}/features`,
       lastModified: new Date("2026-04-03"),
