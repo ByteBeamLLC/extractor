@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef } from "react"
 import { trackEvent } from "@/lib/analytics"
-import { getIdentity, incrementToolUses } from "@/lib/analytics/identity"
+import { incrementToolUses } from "@/lib/analytics/identity"
 import {
   Upload,
   Download,
@@ -64,57 +64,32 @@ export function ImageToTextTool() {
   const [progress, setProgress] = useState<OCRProgress | null>(null)
   const [copied, setCopied] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
-  const extractionStartRef = useRef<number>(0)
 
   const processFile = useCallback(
-    async (file: File, source: "upload" | "drag_drop" = "upload") => {
+    async (file: File) => {
       if (!ACCEPTED_TYPES.includes(file.type)) {
-        trackEvent("itt_extraction_error", {
-          source,
-          error_type: "invalid_file",
-          file_type: file.type || "unknown",
-        })
         setError("Please upload an image file (JPG, PNG, GIF, BMP, or WebP).")
         setStatus("error")
         return
       }
 
       if (file.size > 20 * 1024 * 1024) {
-        trackEvent("itt_extraction_error", {
-          source,
-          error_type: "file_too_large",
-          file_type: file.type,
-        })
         setError("File too large. Maximum size is 20 MB.")
         setStatus("error")
         return
       }
-
-      trackEvent("itt_upload", {
-        file_type: file.type,
-        file_size_kb: Math.round(file.size / 1024),
-        language,
-        source,
-      })
 
       setFileName(file.name)
       setStatus("processing")
       setError(null)
       setExtractedText("")
       setProgress(null)
-      extractionStartRef.current = Date.now()
 
       try {
         const { performOCR } = await import("@/lib/tools/ocr-utils")
         const result = await performOCR(file, language, (p) => setProgress(p))
 
         if (!result.text.trim()) {
-          trackEvent("itt_extraction_error", {
-            source,
-            error_type: "no_text",
-            file_type: file.type,
-            language,
-          })
           setError(
             "No text found in this image. The image might be too blurry, low-resolution, or contain no readable text."
           )
@@ -131,16 +106,10 @@ export function ImageToTextTool() {
           // Fall back to raw OCR text if LLM cleanup fails
         }
 
-        const wordCount = cleanedText.split(/\s+/).filter(Boolean).length
-        const lifetimeUses = incrementToolUses()
-        trackEvent("itt_extraction_success", {
-          source,
-          word_count: wordCount,
-          confidence: Math.round(result.confidence),
-          duration_ms: Date.now() - extractionStartRef.current,
-          file_type: file.type,
+        incrementToolUses()
+        trackEvent("tool_used", {
+          tool: "image-to-text",
           language,
-          lifetime_tool_uses: lifetimeUses,
         })
 
         setExtractedText(cleanedText)
@@ -148,12 +117,6 @@ export function ImageToTextTool() {
         setStatus("done")
       } catch (e) {
         console.error("OCR error:", e)
-        trackEvent("itt_extraction_error", {
-          source,
-          error_type: "ocr_error",
-          file_type: file.type,
-          language,
-        })
         setError(
           "Failed to extract text from this image. Please try again with a clearer image."
         )
@@ -166,16 +129,10 @@ export function ImageToTextTool() {
   const handleCopy = useCallback(async () => {
     await navigator.clipboard.writeText(extractedText)
     setCopied(true)
-    trackEvent("itt_copy", {
-      word_count: extractedText.split(/\s+/).filter(Boolean).length,
-    })
     setTimeout(() => setCopied(false), 2000)
   }, [extractedText])
 
   const handleDownload = useCallback(() => {
-    trackEvent("itt_download", {
-      word_count: extractedText.split(/\s+/).filter(Boolean).length,
-    })
     const blob = new Blob([extractedText], { type: "text/plain" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
@@ -190,7 +147,7 @@ export function ImageToTextTool() {
       e.preventDefault()
       setDragOver(false)
       const file = e.dataTransfer.files[0]
-      if (file) processFile(file, "drag_drop")
+      if (file) processFile(file)
     },
     [processFile]
   )
@@ -198,13 +155,12 @@ export function ImageToTextTool() {
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0]
-      if (file) processFile(file, "upload")
+      if (file) processFile(file)
     },
     [processFile]
   )
 
   const reset = useCallback(() => {
-    trackEvent("itt_reset", { had_result: status === "done" })
     setStatus("idle")
     setExtractedText("")
     setConfidence(0)
@@ -213,7 +169,7 @@ export function ImageToTextTool() {
     setProgress(null)
     setCopied(false)
     if (inputRef.current) inputRef.current.value = ""
-  }, [status])
+  }, [])
 
   return (
     <div className="w-full max-w-2xl mx-auto">
