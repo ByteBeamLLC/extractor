@@ -23,10 +23,7 @@ import {
   sanitizeResultsFromTree,
   mergeResultsWithMeta,
 } from "@/lib/extraction-results"
-import {
-  buildFieldsConsolidationPrompt,
-  buildFullContentConsolidationPrompt,
-} from "./consolidationPrompts"
+import { buildFieldsConsolidationPrompt } from "./consolidationPrompts"
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -209,51 +206,29 @@ async function consolidateFieldsResults(
     console.warn(
       `[chunked-extraction] Consolidation failed, falling back to naive merge: ${err instanceof Error ? err.message : err}`
     )
-    return naiveMergeResults(pageResults)
-  }
-}
-
-async function consolidateFullContentResults(
-  pageResults: PageExtractionResult[]
-): Promise<ExtractionOutput> {
-  const prompt = buildFullContentConsolidationPrompt(pageResults)
-
-  try {
-    const result = await generateFreeformJson({
-      temperature: 0.1,
-      model: CONSOLIDATION_MODEL,
-      messages: [{ role: "user" as const, content: prompt }],
-    })
-
-    return { success: true, results: result.object, warnings: [] }
-  } catch (err) {
-    console.warn(
-      `[chunked-extraction] Consolidation failed, falling back to naive merge: ${err instanceof Error ? err.message : err}`
-    )
-    return naiveMergeResults(pageResults)
+    return fallbackMergeResults(pageResults)
   }
 }
 
 // ---------------------------------------------------------------------------
-// Naive fallback merges (when consolidation LLM call fails)
+// Fallback for fields consolidation failure
 // ---------------------------------------------------------------------------
 
 /**
- * Fallback when consolidation LLM fails: return concatenated raw markdown.
- * Not ideal, but better than nothing — the user at least sees the text.
+ * Fallback when fields consolidation LLM fails: return concatenated markdown.
  */
-function naiveMergeResults(
+function fallbackMergeResults(
   pageResults: PageExtractionResult[]
 ): ExtractionOutput {
-  const allText = pageResults
+  const markdown = pageResults
     .filter((r) => r.success && r.data?.markdown)
-    .map((r) => `--- Page ${r.pageNumber} ---\n${r.data!.markdown}`)
+    .map((r) => r.data!.markdown)
     .join("\n\n")
 
   return {
     success: true,
-    results: { raw_text: allText },
-    warnings: ["Consolidation failed. Returning raw extracted text from all pages."],
+    results: { markdown },
+    warnings: ["Consolidation failed. Returning raw extracted text."],
     handledWithFallback: true,
   }
 }
@@ -370,7 +345,13 @@ export async function runChunkedPdfExtraction(
   let output: ExtractionOutput
 
   if (extractionType === "full_content") {
-    output = await consolidateFullContentResults(succeeded)
+    // Full-content mode: return clean markdown directly — no LLM consolidation needed.
+    // The per-page markdown already preserves text and layout faithfully.
+    const markdown = succeeded
+      .map((r) => r.data?.markdown ?? "")
+      .join("\n\n")
+
+    output = { success: true, results: { markdown }, warnings: [] }
   } else {
     output = await consolidateFieldsResults(succeeded, input)
   }
@@ -379,7 +360,7 @@ export async function runChunkedPdfExtraction(
   const totalDuration = Date.now() - startTime
 
   console.log(
-    `[chunked-extraction] Consolidation complete (${consolidationDuration}ms)`
+    `[chunked-extraction] ${extractionType === "full_content" ? "Merged markdown" : "Consolidation complete"} (${consolidationDuration}ms)`
   )
   console.log(
     `[chunked-extraction] Done: ${totalDuration}ms total, ${succeeded.length}/${totalPages} pages`
