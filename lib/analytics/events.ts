@@ -196,6 +196,19 @@ export type AnalyticsEventMap = {
   ph_banner_email_submitted: {
     location: string
   }
+
+  // ─── Structure detection bridge banner ───
+  bridge_banner_shown: {
+    location: string
+    structure_type: string
+    structure_count: number
+    lifetime_tool_uses: number
+  }
+  bridge_banner_cta_clicked: {
+    location: string
+    structure_type: string
+    lifetime_tool_uses: number
+  }
 }
 
 export type AnalyticsEvent = keyof AnalyticsEventMap

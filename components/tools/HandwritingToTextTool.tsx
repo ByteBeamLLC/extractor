@@ -18,7 +18,8 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { ProductHuntLaunchBanner } from "./ProductHuntLaunchBanner"
+import { analyzeStructure, type StructureSignal } from "@/lib/tools/analyze-structure"
+import { StructureBridgeBanner } from "./StructureBridgeBanner"
 
 const ACCEPTED_TYPES = [
   "image/jpeg",
@@ -92,15 +93,18 @@ export function HandwritingToTextTool() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [extractionSource, setExtractionSource] = useState<"upload" | "sample">("upload")
   const [extractionFileType, setExtractionFileType] = useState<string>("image/jpeg")
-  const [showPHBanner, setShowPHBanner] = useState(false)
+  const [showBridge, setShowBridge] = useState(false)
+  const [structureSignal, setStructureSignal] = useState<StructureSignal | null>(null)
+  const [bridgeLifetimeUses, setBridgeLifetimeUses] = useState(0)
   const extractionStartRef = useRef<number>(0)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Show PH banner for returning users who already have 2+ uses
+  // Enable bridge banner for returning users who already have 2+ uses
   useEffect(() => {
     const identity = getIdentity()
     if (identity && identity.tool_uses >= 2) {
-      setShowPHBanner(true)
+      setShowBridge(true)
+      setBridgeLifetimeUses(identity.tool_uses)
     }
   }, [])
 
@@ -155,9 +159,11 @@ export function HandwritingToTextTool() {
         setExtractedText(data.text)
         setStatus("done")
 
-        // Show Product Hunt launch banner after 2nd successful extraction
+        // Show bridge banner after 2nd successful extraction
         if (lifetimeUses >= 2) {
-          setShowPHBanner(true)
+          setStructureSignal(analyzeStructure(data.text))
+          setShowBridge(true)
+          setBridgeLifetimeUses(lifetimeUses)
         }
       } catch (e) {
         console.error("Handwriting extraction error:", e)
@@ -282,6 +288,7 @@ export function HandwritingToTextTool() {
     setFileName(null)
     setCopied(false)
     setPreviewUrl(null)
+    setStructureSignal(null)
     if (inputRef.current) inputRef.current.value = ""
   }, [status])
 
@@ -483,11 +490,16 @@ export function HandwritingToTextTool() {
               Extract Another
             </Button>
           </div>
+
+          {/* Bridge to Parsli app */}
+          {showBridge && (
+            <StructureBridgeBanner
+              structureSignal={structureSignal}
+              lifetimeUses={bridgeLifetimeUses}
+            />
+          )}
         </div>
       )}
-
-      {/* Product Hunt launch banner */}
-      {showPHBanner && status === "done" && <ProductHuntLaunchBanner />}
 
       {/* Error state */}
       {status === "error" && (
