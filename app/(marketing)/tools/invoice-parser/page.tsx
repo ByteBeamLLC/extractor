@@ -20,36 +20,59 @@ import {
   Lightbulb,
   Star,
   ScanLine,
+  Globe,
+  ShieldCheck,
+  PenLine,
 } from "lucide-react"
 import { InvoiceParserTool } from "@/components/tools/InvoiceParserTool"
+import { ToolPageTracker } from "@/components/tools/ToolPageTracker"
 import { Button } from "@/components/ui/button"
 import { AuthButton } from "@/components/marketing/shared/AuthButton"
 import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 
 export const metadata: Metadata = {
-  title: "Free Invoice Parser — Extract Data Online",
+  title: "Free Invoice Parser & Scanner — Extract Invoice Data Online | Parsli",
   description:
-    "Extract text from invoices instantly in your browser. Free, no sign-up, no file uploads to servers. Supports PDF and image invoices. For structured data extraction, try Parsli AI.",
+    "Parse invoices and extract data instantly with AI. Upload invoice PDFs or photos — get text, line items, and totals. Free invoice scanner, no sign-up required. Powered by AI.",
   keywords: [
     "invoice parser",
-    "invoice text extraction",
-    "extract text from invoice",
-    "invoice ocr free",
+    "invoice parsing",
+    "invoice scanner",
+    "scan invoices",
+    "invoice ocr",
     "invoice data extraction",
+    "extract invoice data",
+    "invoice processing",
+    "invoice ai",
+    "free invoice parser",
+    "invoice text extraction",
     "parse invoice pdf",
     "invoice scanner online",
-    "free invoice parser",
     "invoice reader",
     "invoice to text",
+    "ai invoice processing",
+    "invoice scanning software",
+    "automated invoice processing",
+    "invoice imaging",
+    "invoice capture software",
+    "ocr invoice processing",
+    "invoice automation",
+    "invoice processing software",
+    "receipt ocr",
+    "ocr receipt scanner",
+    "ai invoice",
+    "invoice approval",
+    "invoice management system",
   ],
   alternates: {
     canonical: "https://parsli.co/tools/invoice-parser",
   },
   openGraph: {
-    title: "Free Invoice Parser — Extract Data Online",
+    title: "Free Invoice Parser & Scanner — Extract Invoice Data Online | Parsli",
     description:
-      "Extract text from invoices instantly in your browser. Free forever, no sign-up required, your data never leaves your device.",
+      "Free AI invoice parser and scanner. Extract text and data from invoice PDFs and photos instantly. No sign-up required.",
     url: "https://parsli.co/tools/invoice-parser",
   },
 }
@@ -163,6 +186,38 @@ const faqs = [
     q: "Can I use this on my phone?",
     a: "Yes. This tool works on iPhone, iPad, and Android devices. Open the page in your mobile browser, upload a photo of your invoice, and extract the text instantly.",
   },
+  {
+    q: "Can I scan a paper invoice and extract the text?",
+    a: "Yes. Take a clear, well-lit photo of your paper invoice with your phone camera, then upload the image. The OCR engine will extract all readable text from the invoice photo automatically.",
+  },
+  {
+    q: "Does this work as an AI invoice parser?",
+    a: "This free tool extracts raw text from invoices using PDF parsing and OCR. For AI-powered structured extraction — where the AI understands invoice layouts and pulls out specific fields like vendor name, line items, totals, and dates — try Parsli AI which uses Google Gemini.",
+  },
+  {
+    q: "Can I extract data from scanned invoice PDFs?",
+    a: "Yes. If your invoice PDF is a scanned image (not selectable text), the tool uses OCR to extract the text. For best results with scanned invoices, ensure the scan is clear and high-resolution. For complex scanned invoices, Parsli AI provides significantly better accuracy.",
+  },
+  {
+    q: "Is this invoice scanner free with no limits?",
+    a: "Yes, completely free with no usage limits, no watermarks, and no sign-up required. Parse as many invoices as you need. For automated invoice processing at scale with structured data output, check out Parsli AI's free tier.",
+  },
+  {
+    q: "Can AI read and extract data from invoices?",
+    a: "Yes. AI can read invoices with significantly higher accuracy than traditional OCR, understanding layouts, tables, and context. This free tool extracts raw text. Parsli AI goes further — it uses Google Gemini to extract structured data like vendor name, line items, totals, tax, and dates from any invoice format, even scanned or photographed invoices.",
+  },
+  {
+    q: "What is the best invoice processing software?",
+    a: "For quick text extraction from individual invoices, this free tool works great. For automated invoice processing at scale — structured data extraction, custom schemas, batch processing, and integrations with Google Sheets, QuickBooks, Zapier, and 5,000+ apps — Parsli AI is built for that. It starts free with 30 pages/month.",
+  },
+  {
+    q: "How do I automate invoice data extraction?",
+    a: "This free tool handles one-off invoice text extraction. To automate invoice processing — forward invoices via email, upload in bulk via API, and get structured JSON output automatically — use Parsli AI. It connects to Google Sheets, Zapier, Make, webhooks, and your own systems.",
+  },
+  {
+    q: "Can I use OCR to scan and digitize invoices?",
+    a: "Yes. Upload a photo or scan of your paper invoice and the OCR engine extracts all readable text. For best results, use good lighting, flatten the invoice, and take a clear photo. This works on any phone or computer browser — no app needed.",
+  },
 ]
 
 export default function InvoiceParserPage() {
@@ -208,6 +263,42 @@ export default function InvoiceParserPage() {
           })),
         }}
       />
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "HowTo",
+          name: "How to Parse Invoices and Extract Data Online",
+          description:
+            "Extract text and data from invoice PDFs and photos using a free AI-powered invoice parser. No sign-up required.",
+          step: [
+            {
+              "@type": "HowToStep",
+              name: "Upload your invoice",
+              text: "Upload your invoice PDF or take a photo of a paper invoice. Drag and drop or click to browse. Supports PDF, JPG, PNG, and WebP.",
+              position: 1,
+            },
+            {
+              "@type": "HowToStep",
+              name: "Text is extracted automatically",
+              text: "The tool extracts all text from your invoice using PDF parsing or OCR for image invoices.",
+              position: 2,
+            },
+            {
+              "@type": "HowToStep",
+              name: "Copy or download the extracted text",
+              text: "Copy the extracted invoice text to your clipboard or download it as a .txt file. Use it for data entry, bookkeeping, or further processing.",
+              position: 3,
+            },
+          ],
+          tool: {
+            "@type": "HowToTool",
+            name: "Parsli Invoice Parser",
+          },
+          totalTime: "PT30S",
+        }}
+      />
+
+      <ToolPageTracker toolName="invoice-parser" />
 
       {/* 1. Hero + Tool */}
       <section className="relative pt-24 sm:pt-28 pb-16">
@@ -222,21 +313,25 @@ export default function InvoiceParserPage() {
           </div>
 
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-[1.1] mb-4">
-            Extract Text from Invoices
+            Invoice Parser & Scanner Online Free
           </h1>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-3">
-            Free, instant, no sign-up
+            Extract invoice data instantly with AI — free, no sign-up
           </p>
 
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-10">
-            <div className="flex items-center gap-0.5 text-yellow-500">
-              <Star className="h-3.5 w-3.5 fill-current" />
-              <Star className="h-3.5 w-3.5 fill-current" />
-              <Star className="h-3.5 w-3.5 fill-current" />
-              <Star className="h-3.5 w-3.5 fill-current" />
-              <Star className="h-3.5 w-3.5 fill-current" />
-            </div>
-            <span>Trusted by thousands of users</span>
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground mb-10">
+            <span className="inline-flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              AI-powered extraction
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Globe className="h-3.5 w-3.5 text-primary" />
+              PDF &amp; image invoices
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+              Private &amp; secure
+            </span>
           </div>
 
           <InvoiceParserTool />
@@ -325,7 +420,7 @@ export default function InvoiceParserPage() {
       <section className="py-16 sm:py-20 bg-muted/30">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
-            Why use this invoice parser
+            Why Use This Free Invoice Parser & Scanner
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
             {features.map((f) => (
@@ -350,7 +445,7 @@ export default function InvoiceParserPage() {
       <section className="py-16 sm:py-20">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
-            How it works
+            How to Parse Invoices Online
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
             {steps.map((step, i) => (
@@ -554,36 +649,40 @@ export default function InvoiceParserPage() {
       <section className="py-16 sm:py-20 bg-muted/30 border-t">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-xl sm:text-2xl font-bold mb-4">
-            How to Parse Invoices for Free
+            How to Parse and Scan Invoices for Free
           </h2>
           <p className="text-muted-foreground leading-relaxed mb-4">
-            Parsing invoices is one of the most common document processing
-            tasks for businesses. Whether you need to extract data from
-            supplier invoices, validate payment details, or digitize paper
-            invoices, a reliable invoice parser saves hours of manual work.
+            Invoice processing is one of the most common document tasks for
+            businesses. Whether you need to scan invoices and extract data from
+            supplier documents, validate payment details, or digitize paper
+            invoices with an invoice scanner, a reliable invoice parser saves
+            hours of manual data entry and invoice processing workflow.
           </p>
           <p className="text-muted-foreground leading-relaxed mb-4">
-            Most invoice parsing tools require you to upload your files to
+            Most invoice processing software requires you to upload files to
             their servers, create an account, or pay for a subscription. This
-            tool is different — it runs entirely in your browser. Your invoice
-            is processed on your own device and never sent anywhere. It&apos;s
-            completely free, with no limits.
+            free invoice OCR tool is different &mdash; it runs entirely in your
+            browser. Your invoice is processed on your own device and never
+            sent anywhere. Use it as an invoice scanner online, invoice reader,
+            or receipt OCR tool &mdash; completely free, with no limits.
           </p>
 
           <h2 className="text-xl sm:text-2xl font-bold mt-10 mb-4">
-            When Do You Need AI-Powered Invoice Parsing?
+            Can AI Read and Extract Data from Invoices?
           </h2>
           <p className="text-muted-foreground leading-relaxed mb-4">
             This free tool extracts raw text from invoices. But if you need
-            structured data — line items, totals, tax amounts, vendor details
-            — you need AI that understands invoice layouts.
+            automated invoice processing with structured data &mdash; line items,
+            totals, tax amounts, vendor details &mdash; you need AI invoice
+            processing that understands invoice layouts.
           </p>
           <p className="text-muted-foreground leading-relaxed mb-4">
             Parsli uses Google&apos;s Gemini AI to understand invoice
             structure. You define a schema with the exact fields you want, and
-            the AI extracts structured data from any invoice format. The data
+            the AI extracts structured data from any invoice format &mdash;
+            replacing manual invoice data extraction entirely. The data
             flows automatically to Google Sheets, Zapier, Make, webhooks, or
-            your own API.
+            your own API for automated invoice processing at scale.
           </p>
 
           <h2 className="text-xl sm:text-2xl font-bold mt-10 mb-4">

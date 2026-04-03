@@ -22,36 +22,65 @@ import {
   ScanText,
   Languages,
   Briefcase,
+  Globe,
+  ShieldCheck,
 } from "lucide-react"
 import { ImageToTextTool } from "@/components/tools/ImageToTextTool"
+import { ToolPageTracker } from "@/components/tools/ToolPageTracker"
 import { AuthButton } from "@/components/marketing/shared/AuthButton"
 import { Button } from "@/components/ui/button"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { JsonLd } from "@/components/marketing/shared/JsonLd"
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld"
 
 export const metadata: Metadata = {
-  title: "Image to Text (OCR) — Free, Instant, No Sign-Up",
+  title: "Image to Text Converter — Free OCR, No Sign-Up | Parsli",
   description:
-    "Extract text from images instantly using OCR in your browser. Free, no sign-up, no file uploads to servers. Supports JPG, PNG, GIF, BMP, WebP and 12 languages.",
+    "Convert images to text instantly with free OCR. Extract text from pictures, photos, screenshots, and scanned documents in your browser. No sign-up, no file uploads to servers. Supports 12 languages.",
   keywords: [
     "image to text",
-    "ocr online free",
     "image to text converter",
+    "image text to text converter",
     "extract text from image",
-    "ocr free",
+    "extract text from picture",
+    "picture extract text",
+    "ocr online free",
+    "image to text converter free",
+    "ocr image text",
+    "photo to text",
+    "photo to text generator",
     "image ocr",
     "picture to text",
     "text from image",
     "ocr online",
     "image text extractor",
+    "free ocr",
+    "picture to text converter free",
+    "convert image to text free",
+    "picture reader to text",
+    "fetch text from image",
+    "ocr photo to text",
+    "text scanner from image",
+    "grab text from image",
+    "copy paste text from image",
+    "scan text on image",
+    "convert picture text to text",
+    "scanner to text",
+    "converting image to text",
+    "picture to text scanner",
+    "scan picture to text",
+    "scan photo to text",
+    "jpeg image to text converter",
+    "convert photo to text free",
+    "free picture to text converter",
   ],
   alternates: {
     canonical: "https://parsli.co/tools/image-to-text",
   },
   openGraph: {
-    title: "Image to Text (OCR) — Free, Instant, No Sign-Up",
+    title: "Image to Text Converter — Free OCR, No Sign-Up | Parsli",
     description:
-      "Extract text from images instantly using OCR in your browser. Free forever, no sign-up required, your data never leaves your device.",
+      "Free image to text converter using OCR. Extract text from pictures, photos, and scanned documents instantly in your browser. No sign-up required.",
     url: "https://parsli.co/tools/image-to-text",
   },
 }
@@ -166,6 +195,50 @@ const faqs = [
     q: "Can I use this on my phone?",
     a: "Yes. This tool works on iPhone, iPad, and Android devices. Open the page in your mobile browser, upload your image, and copy or download the extracted text.",
   },
+  {
+    q: "Can I extract text from a picture on my phone?",
+    a: "Yes. Take a photo with your phone camera or select an existing picture from your gallery, then upload it. The OCR will extract all readable text. Works on iPhone, iPad, and Android in any mobile browser.",
+  },
+  {
+    q: "Does this image to text converter work with screenshots?",
+    a: "Yes. Screenshots with clear, readable text produce excellent results. This works great for extracting text from social media posts, chat messages, error messages, web pages, and any on-screen content you've captured.",
+  },
+  {
+    q: "Is this a free image to text converter with no limits?",
+    a: "Yes, completely free with no usage limits, no watermarks, and no sign-up required. Convert as many images to text as you need. Everything runs in your browser — your images are never uploaded to any server.",
+  },
+  {
+    q: "How do I extract text from a picture or photo?",
+    a: "Upload your picture or photo to this tool, select the language of the text, and click extract. The OCR engine will detect and convert all readable text in the image to editable digital text you can copy or download.",
+  },
+  {
+    q: "Can I use this as a picture reader to text?",
+    a: "Yes. This tool works as a picture reader that converts any image containing text into editable digital text. Upload a picture of a document, sign, label, book page, or any text — the OCR reads it and gives you copyable text instantly.",
+  },
+  {
+    q: "How do I grab or fetch text from an image?",
+    a: "Upload your image to this tool and the OCR engine automatically detects and extracts all text. You can then copy it to your clipboard with one click or download it as a .txt file. No manual selection needed — it grabs all readable text automatically.",
+  },
+  {
+    q: "Can I scan text on an image and copy paste it?",
+    a: "Yes. Upload any image containing text, and the tool scans and extracts it. Click the copy button to copy the extracted text to your clipboard, then paste it anywhere — documents, emails, spreadsheets, or any application.",
+  },
+  {
+    q: "Can AI extract text from images?",
+    a: "Yes. AI-powered OCR can extract text from images with high accuracy, even from complex layouts, low-quality photos, and mixed languages. This free tool uses Tesseract OCR which works well for clear printed text. For more complex images — handwriting, tables, structured data — Parsli uses Google Gemini AI for 99%+ accuracy.",
+  },
+  {
+    q: "How do I convert a picture to text on my computer?",
+    a: "Open this page in your browser, drag and drop your picture, and the OCR engine converts it to text automatically. No software to install — it works directly in Chrome, Firefox, Safari, or Edge on any computer. Copy the text or download as a .txt file.",
+  },
+  {
+    q: "What is the best free image to text converter?",
+    a: "This tool is a completely free image to text converter that runs in your browser with no sign-up. It supports 12 languages, handles JPG, PNG, GIF, BMP, and WebP, and never uploads your files to any server. For advanced needs like handwriting, tables, or batch processing, Parsli AI offers a free tier with 30 pages/month.",
+  },
+  {
+    q: "Can I convert a JPEG image to text?",
+    a: "Yes. Upload any JPEG/JPG image and the OCR will extract all readable text. This also works with PNG, GIF, BMP, and WebP images. For best results, use clear, high-resolution images with good contrast between text and background.",
+  },
 ]
 
 export default function ImageToTextToolPage() {
@@ -211,6 +284,41 @@ export default function ImageToTextToolPage() {
           })),
         }}
       />
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "HowTo",
+          name: "How to Extract Text from Images Online for Free",
+          description:
+            "Convert images to text using free OCR. Extract text from pictures, photos, screenshots, and scanned documents in your browser.",
+          step: [
+            {
+              "@type": "HowToStep",
+              name: "Upload your image",
+              text: "Drag and drop your image or click to browse. Supports JPG, PNG, GIF, BMP, and WebP formats up to 20 MB.",
+              position: 1,
+            },
+            {
+              "@type": "HowToStep",
+              name: "OCR extracts all text",
+              text: "Optical Character Recognition detects and extracts all readable text from your image. Supports 12 languages including English, Arabic, Chinese, and Japanese.",
+              position: 2,
+            },
+            {
+              "@type": "HowToStep",
+              name: "Copy or download your text",
+              text: "Copy the extracted text to your clipboard or download it as a .txt file. Ready to paste into any document, email, or application.",
+              position: 3,
+            },
+          ],
+          tool: {
+            "@type": "HowToTool",
+            name: "Parsli Image to Text Converter",
+          },
+          totalTime: "PT15S",
+        }}
+      />
+      <ToolPageTracker toolName="image-to-text" />
 
       {/* 1. Hero + Tool */}
       <section className="relative pt-24 sm:pt-28 pb-16">
@@ -225,22 +333,26 @@ export default function ImageToTextToolPage() {
           </div>
 
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-[1.1] mb-4">
-            Extract Text from Images
+            Image to Text Converter Online Free
           </h1>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-3">
-            Free OCR — instant, no sign-up
+            Extract text from images and pictures instantly — free OCR, no sign-up
           </p>
 
-          {/* Social proof */}
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-10">
-            <div className="flex items-center gap-0.5 text-yellow-500">
-              <Star className="h-3.5 w-3.5 fill-current" />
-              <Star className="h-3.5 w-3.5 fill-current" />
-              <Star className="h-3.5 w-3.5 fill-current" />
-              <Star className="h-3.5 w-3.5 fill-current" />
-              <Star className="h-3.5 w-3.5 fill-current" />
-            </div>
-            <span>Trusted by thousands of users</span>
+          {/* Trust badges */}
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground mb-10">
+            <span className="inline-flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              Powered by Tesseract OCR
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Globe className="h-3.5 w-3.5 text-primary" />
+              12 languages supported
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+              100% private — runs in browser
+            </span>
           </div>
 
           <ImageToTextTool />
@@ -329,7 +441,7 @@ export default function ImageToTextToolPage() {
       <section className="py-16 sm:py-20 bg-muted/30">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
-            Why use this image to text converter
+            Why Use This Free Image to Text Converter
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
             {features.map((f) => (
@@ -354,7 +466,7 @@ export default function ImageToTextToolPage() {
       <section className="py-16 sm:py-20">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">
-            How it works
+            How to Convert Images to Text Online
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
             {steps.map((step, i) => (
@@ -560,32 +672,33 @@ export default function ImageToTextToolPage() {
       <section className="py-16 sm:py-20 bg-muted/30 border-t">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-xl sm:text-2xl font-bold mb-4">
-            How to Extract Text from Images for Free
+            How to Convert Images to Text for Free
           </h2>
           <p className="text-muted-foreground leading-relaxed mb-4">
-            Extracting text from images &mdash; known as OCR (Optical Character
+            Converting pictures to text &mdash; known as OCR (Optical Character
             Recognition) &mdash; is one of the most common document digitization
-            tasks. Whether you need to grab text from a photo of a whiteboard,
-            convert a scanned receipt into editable text, or extract content from
+            tasks. Whether you need to grab text from a photo, scan a picture to
+            text, fetch text from an image of a whiteboard, or extract content from
             a screenshot, a reliable image to text converter saves you from
             tedious manual retyping.
           </p>
           <p className="text-muted-foreground leading-relaxed mb-4">
-            Most online OCR tools require you to upload your files to their
-            servers, create an account, or pay for a subscription. This tool is
-            different &mdash; it runs entirely in your browser using Tesseract.js.
-            Your image is processed on your own device and never sent anywhere.
-            It&apos;s completely free, with no limits on the number of
-            extractions.
+            This free picture reader to text tool works as an OCR image scanner
+            that runs entirely in your browser using Tesseract.js. Unlike most
+            online OCR tools that require uploads to their servers, accounts, or
+            subscriptions &mdash; your image is processed on your own device and
+            never sent anywhere. Convert JPEG images to text, scan photos to text,
+            or copy and paste text from any image &mdash; completely free, with no
+            limits.
           </p>
 
           <h2 className="text-xl sm:text-2xl font-bold mt-10 mb-4">
-            When Do You Need AI-Powered OCR?
+            Can AI Extract Text from Images?
           </h2>
           <p className="text-muted-foreground leading-relaxed mb-4">
-            This free OCR tool handles clear images with printed text well. But
-            real-world documents are often more complex &mdash; poor lighting,
-            skewed angles, mixed languages, or structured data you need
+            This free OCR photo to text tool handles clear images with printed text
+            well. But real-world documents are often more complex &mdash; poor
+            lighting, skewed angles, mixed languages, or structured data you need
             extracted into specific fields. That&apos;s where AI-powered
             extraction comes in.
           </p>
