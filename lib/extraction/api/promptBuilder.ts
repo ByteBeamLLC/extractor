@@ -170,7 +170,7 @@ Guidelines:
 - Every field defined in the schema must appear exactly once in the confidence array. Use 1.0 only when you are highly certain; use 0.0 when the value is "-" or uncertain.`
 
   const fileContent: ContentItem = fileUrl
-    ? { type: "file", filename: "document.pdf", fileUrl }
+    ? { type: "image", image: fileUrl }
     : { type: "image", image: `data:${mimeType};base64,${base64}` }
 
   const contents: ContentItem[] = [
@@ -244,7 +244,7 @@ export function buildFullContentPdfPrompt(
     : FULL_CONTENT_INSTRUCTIONS
 
   const fileContent: ContentItem = fileUrl
-    ? { type: "file", filename: "document.pdf", fileUrl }
+    ? { type: "image", image: fileUrl }
     : { type: "image", image: `data:${mimeType};base64,${base64}` }
 
   const contents: ContentItem[] = [
