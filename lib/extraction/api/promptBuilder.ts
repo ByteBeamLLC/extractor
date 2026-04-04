@@ -9,12 +9,10 @@ import { isTextLikeMimeType } from "./documentParser"
  * Content item for multimodal prompts.
  * - "text": plain text
  * - "image": base64 data-URI or public URL for images
- * - "file": URL-based file reference (PDFs, large files) — avoids base64 bloat
  */
 export type ContentItem =
   | { type: "text"; text: string }
   | { type: "image"; image: string }
-  | { type: "file"; filename: string; fileUrl: string }
 
 /**
  * Builds the extraction prompt for multi-document mode
@@ -152,8 +150,7 @@ export function buildPdfPrompt(
   mimeType: string,
   schemaSummary: string,
   supplementalText: string | null,
-  extractionPromptOverride?: string,
-  fileUrl?: string | null
+  extractionPromptOverride?: string
 ): ContentItem[] {
   const baseInstructions = extractionPromptOverride
     ? `${extractionPromptOverride}\n\nSchema Fields (for reference):\n${schemaSummary}`
@@ -169,13 +166,9 @@ Guidelines:
 - Provide a "__meta__" object with a "confidence" array. Each entry must contain a "fieldId" and a "value" between 0 and 1 describing your confidence in that field.
 - Every field defined in the schema must appear exactly once in the confidence array. Use 1.0 only when you are highly certain; use 0.0 when the value is "-" or uncertain.`
 
-  const fileContent: ContentItem = fileUrl
-    ? { type: "image", image: fileUrl }
-    : { type: "image", image: `data:${mimeType};base64,${base64}` }
-
   const contents: ContentItem[] = [
     { type: "text", text: baseInstructions },
-    fileContent,
+    { type: "image", image: `data:${mimeType};base64,${base64}` },
   ]
 
   if (supplementalText && supplementalText.trim().length > 0) {
@@ -192,7 +185,7 @@ Guidelines:
 // Full-content extraction prompts (no predefined schema)
 // ---------------------------------------------------------------------------
 
-const FULL_CONTENT_INSTRUCTIONS = `You are a specialized AI model for comprehensive document extraction. Your purpose is to extract the FULL content of the given document and return it as clean, well-formatted Markdown.
+export const FULL_CONTENT_INSTRUCTIONS = `You are a specialized AI model for comprehensive document extraction. Your purpose is to extract the FULL content of the given document and return it as clean, well-formatted Markdown.
 
 Guidelines:
 - Preserve the original document layout and structure as faithfully as possible.
@@ -236,20 +229,15 @@ export function buildFullContentPdfPrompt(
   base64: string,
   mimeType: string,
   supplementalText: string | null,
-  extractionPromptOverride?: string,
-  fileUrl?: string | null
+  extractionPromptOverride?: string
 ): ContentItem[] {
   const baseText = extractionPromptOverride
     ? `${extractionPromptOverride}\n\nExtract the FULL content of this PDF as clean Markdown, preserving layout and structure.`
     : FULL_CONTENT_INSTRUCTIONS
 
-  const fileContent: ContentItem = fileUrl
-    ? { type: "image", image: fileUrl }
-    : { type: "image", image: `data:${mimeType};base64,${base64}` }
-
   const contents: ContentItem[] = [
     { type: "text", text: baseText },
-    fileContent,
+    { type: "image", image: `data:${mimeType};base64,${base64}` },
   ]
 
   if (supplementalText && supplementalText.trim().length > 0) {

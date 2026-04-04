@@ -72,6 +72,7 @@ export {
   buildFullContentImagePrompt,
   buildFullContentPdfPrompt,
   buildFullContentTextPrompt,
+  FULL_CONTENT_INSTRUCTIONS,
   type ContentItem,
 } from "./promptBuilder"
 
