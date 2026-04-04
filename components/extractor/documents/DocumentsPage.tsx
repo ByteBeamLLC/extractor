@@ -97,8 +97,11 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
           setDocuments((prev) =>
             prev.map((doc) => (doc.id === updated.id ? { ...doc, ...updated } : doc))
           )
-          // Auto-show inline results when a just-uploaded doc completes
+          // Auto-show inline results when enriching starts or doc completes
           if (updated.status === "completed" || updated.status === "error") {
+            setCompletedDocId(updated.id)
+          } else if (updated.results && updated.enriching_fields) {
+            // Show partial results during waterfall enrichment
             setCompletedDocId(updated.id)
           }
         }
@@ -170,80 +173,41 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
       setUploadError(null)
       setCompletedDocId(null)
 
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_")
+      const storagePath = `${session?.user?.id}/${parser.id}/pending/${crypto.randomUUID()}/${safeName}`
+
       try {
-        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_")
-        const storagePath = `${session?.user?.id}/${parser.id}/pending/${crypto.randomUUID()}/${safeName}`
-
-        // For small files (≤3MB): send inline base64 to extract API AND upload to storage in parallel
-        // For large files: upload to storage first (bypasses Vercel 4.5MB body limit), then call extract
-        const INLINE_THRESHOLD = 3 * 1024 * 1024 // 3MB
-
-        let response: Response
-
-        if (file.size <= INLINE_THRESHOLD) {
-          // Convert to base64 for inline extraction
-          const arrayBuffer = await file.arrayBuffer()
-          const base64 = btoa(
-            new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), "")
-          )
-
-          // Run storage upload and extract API call in parallel
-          const [storageResult, extractResult] = await Promise.all([
-            // Background storage upload (for backup/preview — don't block on it)
-            supabase.storage
-              .from("parser-documents")
-              .upload(storagePath, file, {
-                contentType: file.type || "application/octet-stream",
-                upsert: true,
-              }),
-            // Extract with inline base64 (no need to wait for storage)
-            fetch(`/api/parsers/${parser.id}/extract`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                file: { name: file.name, type: file.type, data: base64, size: file.size },
-                storage_path: storagePath,
-                file_name: file.name,
-                file_type: file.type,
-                file_size: file.size,
-                source_type: "upload",
-              }),
-            }),
-          ])
-
-          if (storageResult.error) {
-            console.warn("[upload] Storage backup failed:", storageResult.error.message)
-          }
-          response = extractResult
-        } else {
-          // Large file: upload to storage first, then call extract with storage_path
-          const { error: storageError } = await supabase.storage
-            .from("parser-documents")
-            .upload(storagePath, file, {
-              contentType: file.type || "application/octet-stream",
-              upsert: true,
-            })
-
-          if (storageError) {
-            throw new Error(`Upload failed: ${storageError.message}`)
-          }
-
-          response = await fetch(`/api/parsers/${parser.id}/extract`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              storage_path: storagePath,
-              file_name: file.name,
-              file_type: file.type,
-              file_size: file.size,
-              source_type: "upload",
-            }),
+        // Always upload to Supabase Storage first (bypasses Vercel 4.5MB body limit).
+        // This supports files up to 50MB and avoids base64 inflation issues.
+        const { error: storageError } = await supabase.storage
+          .from("parser-documents")
+          .upload(storagePath, file, {
+            contentType: file.type || "application/octet-stream",
+            upsert: true,
           })
+
+        if (storageError) {
+          throw new Error(`File upload failed: ${storageError.message}`)
         }
+
+        // Call extract API with storage path only — no file bytes in the request body
+        const response = await fetch(`/api/parsers/${parser.id}/extract`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            storage_path: storagePath,
+            file_name: file.name,
+            file_type: file.type,
+            file_size: file.size,
+            source_type: "upload",
+          }),
+        })
 
         const data = await response.json()
 
         if (!response.ok) {
+          // Clean up orphaned storage file since the API rejected the request
+          supabase.storage.from("parser-documents").remove([storagePath]).catch(() => {})
           throw new Error(data.error ?? "Extraction failed")
         }
 
@@ -270,6 +234,7 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
                 processed_at: null,
                 created_at: new Date().toISOString(),
                 expires_at: "",
+                enriching_fields: null,
               } satisfies ProcessedDocument,
               ...prev,
             ]
@@ -288,8 +253,11 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
         setUploadState("idle")
         setShowUploader(false)
       } catch (err) {
-        setUploadError(err instanceof Error ? err.message : "Extraction failed")
+        const message = err instanceof Error ? err.message : "Upload failed"
+        setUploadError(message)
         setUploadState("error")
+        // Best-effort cleanup of any orphaned storage file
+        supabase.storage.from("parser-documents").remove([storagePath]).catch(() => {})
       }
     },
     [parser.id, parser.fields.length, isFullContent, session?.user?.id, supabase, documents.length]
@@ -349,13 +317,21 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
         </div>
       )}
 
-      {/* Inline results banner for most recently completed doc */}
-      {completedDoc && completedDoc.status === "completed" && completedDoc.results && (
+      {/* Inline results banner — show during enrichment (partial) and after completion */}
+      {completedDoc && completedDoc.results && (completedDoc.status === "completed" || (completedDoc.status === "processing" && completedDoc.enriching_fields)) && (
         <div className="border rounded-xl p-5 bg-card space-y-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm text-green-600">
-              <CheckCircle2 className="h-4 w-4" />
-              Extraction complete
+            <div className="flex items-center gap-2 text-sm">
+              {completedDoc.status === "completed" ? (
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+              ) : (
+                <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+              )}
+              <span className={completedDoc.status === "completed" ? "text-green-600" : "text-blue-600"}>
+                {completedDoc.status === "completed"
+                  ? "Extraction complete"
+                  : "Enriching fields..."}
+              </span>
               <span className="text-muted-foreground">
                 ({completedDoc.file_name})
               </span>
@@ -377,6 +353,7 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
             fields={parser.fields}
             parserId={parser.id}
             extractionType={parser.extraction_type}
+            enrichingFields={completedDoc.enriching_fields ?? undefined}
           />
         </div>
       )}

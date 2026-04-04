@@ -152,6 +152,8 @@ export interface ExtractionJob {
   // Multi-document support: keyed by input field ID
   // For backward compatibility: if undefined, treat originalFileUrl as implicit default input
   inputDocuments?: Record<string, InputDocument>
+  // Waterfall enrichments: IDs of fields currently being enriched (transformation in progress)
+  enrichingFields?: string[]
 }
 
 export interface VisualGroup {

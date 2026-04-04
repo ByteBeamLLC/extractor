@@ -7,6 +7,11 @@ import { deliverToIntegrations } from "@/lib/extractor/integrations/orchestrator
 import { trackServerEvent } from "@/lib/analytics/server"
 import { reportError } from "@/lib/errorReporting"
 import type { SchemaField } from "@/lib/schema"
+import {
+  getTransformationFields,
+  buildWaves,
+  runTransformation,
+} from "@/lib/extraction/transformations"
 
 export const runtime = "nodejs"
 export const maxDuration = 600
@@ -142,7 +147,71 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // --- Update document with results ---
+  // --- Waterfall enrichments: run transformation fields in waves ---
+  const transformationFields = getTransformationFields(schemaTree)
+  const waves = buildWaves(transformationFields)
+  let enrichedResults = { ...extractionResult.results }
+
+  if (waves.length > 0 && extractionResult.success) {
+    // Publish base extraction results immediately (before enrichments start)
+    const allTransformationIds = transformationFields.map((tf) => tf.id)
+    await supabase
+      .from("parser_processed_documents")
+      .update({
+        results: enrichedResults,
+        enriching_fields: allTransformationIds,
+      })
+      .eq("id", documentId)
+
+    // Process each wave sequentially; fields within a wave run in parallel
+    for (let waveIdx = 0; waveIdx < waves.length; waveIdx++) {
+      const wave = waves[waveIdx]
+      const waveFieldIds = wave.map((tf) => tf.id)
+
+      // Mark which fields are actively being enriched in this wave
+      await supabase
+        .from("parser_processed_documents")
+        .update({ enriching_fields: waveFieldIds })
+        .eq("id", documentId)
+
+      // Run all transformations in this wave in parallel
+      const waveResults = await Promise.allSettled(
+        wave.map(async (tf) => ({
+          id: tf.id,
+          value: await runTransformation(tf, enrichedResults),
+        }))
+      )
+
+      // Merge successful results into the enriched results object
+      for (const result of waveResults) {
+        if (result.status === "fulfilled") {
+          enrichedResults[result.value.id] = result.value.value
+        } else {
+          console.warn(
+            `[process-document] Transformation failed in wave ${waveIdx}:`,
+            result.reason
+          )
+        }
+      }
+
+      // Publish updated results after this wave completes
+      // Remaining enriching_fields = fields in subsequent waves
+      const remainingFieldIds = waves
+        .slice(waveIdx + 1)
+        .flat()
+        .map((tf) => tf.id)
+
+      await supabase
+        .from("parser_processed_documents")
+        .update({
+          results: enrichedResults,
+          enriching_fields: remainingFieldIds.length > 0 ? remainingFieldIds : null,
+        })
+        .eq("id", documentId)
+    }
+  }
+
+  // --- Update document with final results ---
   const finalStatus =
     extractionResult.handledWithFallback && extractionResult.error
       ? "error"
@@ -152,11 +221,12 @@ export async function POST(request: NextRequest) {
     .from("parser_processed_documents")
     .update({
       status: finalStatus,
-      results: extractionResult.results,
+      results: enrichedResults,
       processed_at: new Date().toISOString(),
       credits_used: creditsUsed,
       error_message: extractionResult.error ?? null,
       page_count: pageCount,
+      enriching_fields: null,
     })
     .eq("id", documentId)
 
@@ -187,7 +257,7 @@ export async function POST(request: NextRequest) {
       parser.id,
       parser.name,
       documentId,
-      extractionResult.results,
+      enrichedResults,
       {
         file_name: doc.file_name ?? "uploaded",
         mime_type: doc.mime_type ?? "",
@@ -201,7 +271,7 @@ export async function POST(request: NextRequest) {
   }
 
   console.log(
-    `[process-document] ${finalStatus} doc=${documentId} parser=${parser.id} pages=${pageCount} credits=${creditsUsed}`
+    `[process-document] ${finalStatus} doc=${documentId} parser=${parser.id} pages=${pageCount} credits=${creditsUsed} waves=${waves.length}`
   )
 
   return NextResponse.json({ status: finalStatus, document_id: documentId })

@@ -110,6 +110,30 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
     loadDocument()
   }, [loadDocument])
 
+  // Realtime subscription for enrichment updates
+  useEffect(() => {
+    const channel = supabase
+      .channel(`doc-detail-${documentId}`)
+      .on(
+        "postgres_changes" as any,
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "parser_processed_documents",
+          filter: `id=eq.${documentId}`,
+        },
+        (payload: any) => {
+          const updated = payload.new as ProcessedDocument
+          setDoc((prev) => (prev ? { ...prev, ...updated } : updated))
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [documentId, supabase])
+
   const handleReprocess = async () => {
     setReprocessing(true)
     try {
@@ -319,7 +343,11 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
             )}
 
             {tab === "fields" && (
-              <FieldsView fields={parser.fields} results={displayResults} />
+              <FieldsView
+                fields={parser.fields}
+                results={displayResults}
+                enrichingFields={doc.enriching_fields ?? undefined}
+              />
             )}
 
             {!displayResults && doc.status !== "error" && (
@@ -424,11 +452,14 @@ function JsonTree({ data, indent }: { data: any; indent: number }) {
 function FieldsView({
   fields,
   results,
+  enrichingFields,
 }: {
   fields: SchemaField[]
   results: Record<string, any> | null
+  enrichingFields?: string[]
 }) {
   const extractionFields = fields.filter((f) => f.type !== "input")
+  const enrichingSet = new Set(enrichingFields ?? [])
 
   return (
     <div className="mp-mask divide-y">
@@ -436,9 +467,10 @@ function FieldsView({
         const value = results?.[field.id]
         const isEmpty =
           value === null || value === undefined || value === "-" || value === ""
+        const isEnriching = enrichingSet.has(field.id)
 
         return (
-          <div key={field.id} className="px-4 py-3 flex items-start gap-4">
+          <div key={field.id} className={`px-4 py-3 flex items-start gap-4 ${isEnriching ? "bg-blue-50/50 dark:bg-blue-950/20" : ""}`}>
             <div className="w-2/5 shrink-0">
               <p className="text-sm font-medium">{field.name}</p>
               {field.description && (
@@ -451,7 +483,12 @@ function FieldsView({
               </Badge>
             </div>
             <div className="flex-1 min-w-0 text-sm">
-              {isEmpty ? (
+              {isEnriching ? (
+                <span className="inline-flex items-center gap-1.5 text-blue-600">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span className="text-xs">enriching...</span>
+                </span>
+              ) : isEmpty ? (
                 <span className="text-muted-foreground italic">--</span>
               ) : typeof value === "object" ? (
                 <pre className="text-xs bg-muted rounded p-2 overflow-x-auto whitespace-pre-wrap break-words">

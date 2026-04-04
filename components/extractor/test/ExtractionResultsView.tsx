@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Copy, Check, Code, Table2, Pencil, RotateCcw } from "lucide-react"
+import { Copy, Check, Code, Table2, Pencil, RotateCcw, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -22,6 +22,8 @@ interface ExtractionResultsViewProps {
   isReprocessing?: boolean
   /** Extraction type — controls display mode */
   extractionType?: ExtractionType
+  /** Field IDs currently being enriched (waterfall transformations in progress) */
+  enrichingFields?: string[]
 }
 
 export function ExtractionResultsView({
@@ -32,10 +34,12 @@ export function ExtractionResultsView({
   onReprocess,
   isReprocessing,
   extractionType,
+  enrichingFields,
 }: ExtractionResultsViewProps) {
   const isFullContent = extractionType === "full_content"
   const [copied, setCopied] = useState(false)
   const [view, setView] = useState<"table" | "json">(isFullContent ? "json" : "table")
+  const enrichingSet = new Set(enrichingFields ?? [])
 
   // Strip __meta__ from results for display
   const { __meta__, ...displayResults } = results
@@ -175,19 +179,29 @@ export function ExtractionResultsView({
 
       {view === "table" ? (
         <div className="mp-mask divide-y">
-          {fieldEntries.map((entry) => (
-            <div key={entry.id} className="flex items-start gap-4 p-3">
-              <div className="w-1/3 shrink-0">
-                <span className="text-sm font-medium capitalize">{entry.name}</span>
-                <Badge variant="outline" className="text-[10px] ml-2">
-                  {entry.type}
-                </Badge>
+          {fieldEntries.map((entry) => {
+            const isEnriching = enrichingSet.has(entry.id)
+            return (
+              <div key={entry.id} className={`flex items-start gap-4 p-3 ${isEnriching ? "bg-blue-50/50 dark:bg-blue-950/20" : ""}`}>
+                <div className="w-1/3 shrink-0">
+                  <span className="text-sm font-medium capitalize">{entry.name}</span>
+                  <Badge variant="outline" className="text-[10px] ml-2">
+                    {entry.type}
+                  </Badge>
+                </div>
+                <div className="flex-1 text-sm break-words min-w-0">
+                  {isEnriching ? (
+                    <span className="inline-flex items-center gap-1.5 text-blue-600">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <span className="text-xs">enriching...</span>
+                    </span>
+                  ) : (
+                    renderValue(entry.value)
+                  )}
+                </div>
               </div>
-              <div className="flex-1 text-sm break-words min-w-0">
-                {renderValue(entry.value)}
-              </div>
-            </div>
-          ))}
+            )
+          })}
           {fieldEntries.length === 0 && (
             <div className="p-6 text-center text-sm text-muted-foreground">
               No data to display

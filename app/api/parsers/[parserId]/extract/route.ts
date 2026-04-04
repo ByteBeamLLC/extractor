@@ -7,6 +7,11 @@ import { deliverToIntegrations } from "@/lib/extractor/integrations/orchestrator
 import { checkCredits, deductCredits } from "@/lib/extractor/billing/credits"
 import { trackServerEvent } from "@/lib/analytics/server"
 import { reportError } from "@/lib/errorReporting"
+import {
+  getTransformationFields,
+  buildWaves,
+  runTransformation,
+} from "@/lib/extraction/transformations"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
@@ -63,37 +68,46 @@ export async function POST(
   // If client requests synchronous mode (e.g. public API), run blocking
   const async_ = body.async !== false
 
+  const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
+
   // Support upload modes (in priority order):
-  // 1. file.data — base64 inline (small files sent in parallel with storage, or API)
-  // 2. storage_path — file already uploaded to Supabase Storage (large files)
+  // 1. storage_path — file already in Supabase Storage (recommended, used by browser uploads)
+  // 2. file.data — base64 inline (backward compat for REST API consumers)
   let fileData: { name: string; type: string; data: string; size?: number }
   const inlineFile = body.file as { name?: string; type?: string; data?: string; size?: number } | undefined
 
-  if (inlineFile?.data) {
-    // Prefer inline data — avoids redundant storage download round-trip
-    fileData = {
-      name: inlineFile.name ?? body.file_name ?? "uploaded",
-      type: inlineFile.type ?? body.file_type ?? "application/octet-stream",
-      data: inlineFile.data,
-      size: inlineFile.size ?? body.file_size,
-    }
-  } else if (body.storage_path) {
+  if (body.storage_path) {
     const adminClient = createSupabaseServiceRoleClient()
     const { data: fileBytes, error: downloadError } = await adminClient.storage
       .from("parser-documents")
       .download(body.storage_path)
     if (downloadError || !fileBytes) {
-      return NextResponse.json({ error: "Failed to read uploaded file" }, { status: 400 })
+      return NextResponse.json({ error: "Failed to read uploaded file from storage" }, { status: 400 })
     }
     const buffer = Buffer.from(await fileBytes.arrayBuffer())
+    if (buffer.length > MAX_FILE_SIZE) {
+      return NextResponse.json({ error: "File exceeds the 50MB size limit" }, { status: 413 })
+    }
     fileData = {
       name: body.file_name ?? body.storage_path.split("/").pop() ?? "uploaded",
       type: body.file_type ?? "application/octet-stream",
       data: buffer.toString("base64"),
       size: body.file_size ?? buffer.length,
     }
+  } else if (inlineFile?.data) {
+    // Inline base64 path — kept for backward compatibility with REST API consumers
+    const estimatedSize = inlineFile.size ?? Math.ceil((inlineFile.data.length * 3) / 4)
+    if (estimatedSize > MAX_FILE_SIZE) {
+      return NextResponse.json({ error: "File exceeds the 50MB size limit" }, { status: 413 })
+    }
+    fileData = {
+      name: inlineFile.name ?? body.file_name ?? "uploaded",
+      type: inlineFile.type ?? body.file_type ?? "application/octet-stream",
+      data: inlineFile.data,
+      size: inlineFile.size ?? body.file_size,
+    }
   } else {
-    return NextResponse.json({ error: "No file provided" }, { status: 400 })
+    return NextResponse.json({ error: "No file provided. Send storage_path or file.data." }, { status: 400 })
   }
 
   // Count actual pages in the document
@@ -120,12 +134,9 @@ export async function POST(
 
   try {
     const adminClient = createSupabaseServiceRoleClient()
-    await adminClient.storage.createBucket("parser-documents", {
-      public: false,
-      fileSizeLimit: 50 * 1024 * 1024, // 50MB
-    }).catch(() => {})
 
     if (hasInlineData) {
+      // Inline upload from REST API — store file for the background worker
       await adminClient.storage
         .from("parser-documents")
         .upload(storagePath, fileBuffer, {
@@ -133,6 +144,7 @@ export async function POST(
           upsert: true,
         })
     } else if (body.storage_path && body.storage_path !== storagePath) {
+      // Browser upload — move from pending path to canonical document path
       await adminClient.storage
         .from("parser-documents")
         .move(body.storage_path, storagePath)
@@ -191,6 +203,27 @@ export async function POST(
       console.warn(`[extract] Credit deduction failed for user ${user.id}`)
     }
 
+    // Run waterfall enrichments for transformation fields (sync mode)
+    let enrichedResults = { ...extractionResult.results }
+    const transformationFields = getTransformationFields(schemaTree)
+    const waves = buildWaves(transformationFields)
+
+    if (waves.length > 0 && extractionResult.success) {
+      for (const wave of waves) {
+        const waveResults = await Promise.allSettled(
+          wave.map(async (tf) => ({
+            id: tf.id,
+            value: await runTransformation(tf, enrichedResults),
+          }))
+        )
+        for (const result of waveResults) {
+          if (result.status === "fulfilled") {
+            enrichedResults[result.value.id] = result.value.value
+          }
+        }
+      }
+    }
+
     const finalStatus =
       extractionResult.handledWithFallback && extractionResult.error ? "error" : "completed"
 
@@ -198,10 +231,11 @@ export async function POST(
       .from("parser_processed_documents" as any)
       .update({
         status: finalStatus,
-        results: extractionResult.results,
+        results: enrichedResults,
         processed_at: new Date().toISOString(),
         credits_used: creditsUsed,
         error_message: extractionResult.error ?? null,
+        enriching_fields: null,
       } as any)
       .eq("id", docId)
 
@@ -229,7 +263,7 @@ export async function POST(
         p.id,
         p.name,
         docId,
-        extractionResult.results,
+        enrichedResults,
         { file_name: fileData.name ?? "uploaded", mime_type: fileData.type ?? "", source_type: sourceType, page_count: pageCount },
         supabase as any
       ).catch((err) => console.error("[extract] Integration delivery failed:", err))
@@ -237,7 +271,7 @@ export async function POST(
 
     return NextResponse.json({
       success: extractionResult.success,
-      results: extractionResult.results,
+      results: enrichedResults,
       warnings: extractionResult.warnings,
       handledWithFallback: extractionResult.handledWithFallback,
       document_id: docId,

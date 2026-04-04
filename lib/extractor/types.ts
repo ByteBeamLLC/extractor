@@ -112,6 +112,8 @@ export interface ProcessedDocument {
   processed_at: string | null
   created_at: string
   expires_at: string
+  // Waterfall enrichments: IDs of fields currently being enriched
+  enriching_fields: string[] | null
 }
 
 export interface ExtractorSubscription {
