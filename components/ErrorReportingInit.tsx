@@ -18,8 +18,52 @@ import { reportError } from "@/lib/errorReporting"
  */
 export function ErrorReportingInit() {
   useEffect(() => {
+    // ─── Chunk error detection & recovery ───
+    function isChunkLoadError(error: unknown): boolean {
+      const msg = error instanceof Error ? error.message : String(error ?? '')
+      return (
+        msg.includes('ChunkLoadError') ||
+        msg.includes('Loading chunk') ||
+        msg.includes('Loading CSS chunk') ||
+        (msg.includes('Failed to fetch dynamically imported module') && msg.includes('/_next/'))
+      )
+    }
+
+    function handleChunkLoadRecovery(): void {
+      const STORAGE_KEY = 'parsli_chunk_reload'
+      const MAX_RELOADS = 2
+      const WINDOW_MS = 30_000
+
+      try {
+        const raw = sessionStorage.getItem(STORAGE_KEY)
+        const state = raw ? JSON.parse(raw) : { count: 0, firstAt: 0 }
+        const now = Date.now()
+
+        if (now - state.firstAt > WINDOW_MS) {
+          state.count = 0
+          state.firstAt = now
+        }
+
+        state.count++
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+
+        if (state.count <= MAX_RELOADS) {
+          window.location.reload()
+          return
+        }
+        // Exceeded max reloads — fall through to error boundary
+      } catch {
+        // sessionStorage unavailable — reload once
+        window.location.reload()
+      }
+    }
+
     // ─── 1. JS runtime errors ───
     function handleError(event: ErrorEvent) {
+      if (isChunkLoadError(event.error ?? event.message)) {
+        handleChunkLoadRecovery()
+        return
+      }
       reportError(event.error ?? event.message, {
         route: window.location.pathname,
         extra: {
@@ -33,6 +77,10 @@ export function ErrorReportingInit() {
 
     // ─── 2. Unhandled promise rejections ───
     function handleRejection(event: PromiseRejectionEvent) {
+      if (isChunkLoadError(event.reason)) {
+        handleChunkLoadRecovery()
+        return
+      }
       reportError(event.reason, {
         route: window.location.pathname,
         extra: { type: "unhandledrejection" },

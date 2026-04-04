@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { generateText } from "@/lib/openrouter"
 
-export const maxDuration = 30
+export const maxDuration = 60
 
 const MODEL = "google/gemini-2.0-flash-lite"
 
@@ -16,6 +16,10 @@ Your job:
 - Return ONLY the cleaned text — no explanations, no commentary, no markdown code fences.`
 
 export async function POST(req: NextRequest) {
+  const startTime = Date.now()
+  const SAFETY_MARGIN_MS = 3_000
+  const deadlineMs = startTime + (maxDuration * 1000) - SAFETY_MARGIN_MS
+
   try {
     const { rawText } = await req.json()
 
@@ -40,14 +44,22 @@ export async function POST(req: NextRequest) {
         },
       ],
       temperature: 0.1,
+      timeoutMs: 25_000,
+      deadlineMs,
     })
 
     return NextResponse.json({ text: result.text.trim() })
   } catch (error) {
     console.error("OCR cleanup error:", error)
+    const message = error instanceof Error ? error.message : "Unknown error"
+    const isTimeout = message.includes('time budget') || message.includes('TimeoutError') || message.includes('aborted') || message.includes('timed out')
     return NextResponse.json(
-      { error: "Failed to clean up text" },
-      { status: 500 }
+      {
+        error: isTimeout
+          ? "OCR cleanup timed out — the text may be too long. Try a shorter excerpt."
+          : `OCR cleanup failed: ${message}`
+      },
+      { status: isTimeout ? 504 : 500 }
     )
   }
 }

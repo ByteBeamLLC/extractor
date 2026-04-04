@@ -16,7 +16,6 @@ import {
   Code,
   AlertCircle,
   ChevronRight,
-  Plus,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -53,7 +52,6 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
   const supabase = useSupabaseClient()
   const [documents, setDocuments] = useState<ProcessedDocument[]>([])
   const [loading, setLoading] = useState(true)
-  const [showUploader, setShowUploader] = useState(false)
 
   // Upload state (simplified — no more "extracting" or "completed" blocking states)
   const [uploadState, setUploadState] = useState<UploadState>("idle")
@@ -251,7 +249,6 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
 
         // Reset uploader — user can upload another file immediately
         setUploadState("idle")
-        setShowUploader(false)
       } catch (err) {
         const message = err instanceof Error ? err.message : "Upload failed"
         setUploadError(message)
@@ -279,43 +276,35 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-6">
       {/* Header */}
       <TourStep stepId="documents" side="bottom" align="center">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold">Documents</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Upload documents and view extraction results.
-            </p>
-          </div>
-          <Button onClick={() => setShowUploader(!showUploader)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Upload Document
-          </Button>
+        <div>
+          <h1 className="text-xl font-bold">Documents</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Upload documents and view extraction results.
+          </p>
         </div>
       </TourStep>
 
-      {/* Upload Area */}
-      {(showUploader || uploadState !== "idle") && (
-        <div className="border rounded-xl p-5 bg-card space-y-4">
-          {(uploadState === "idle" || uploadState === "error") && (
-            <>
-              <DocumentUploader onFileSelected={handleFileSelected} />
-              {uploadError && (
-                <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                  {uploadError}
-                </div>
-              )}
-            </>
-          )}
+      {/* Upload Area — always visible */}
+      <div className="border rounded-xl p-5 bg-card space-y-4">
+        {(uploadState === "idle" || uploadState === "error") && (
+          <>
+            <DocumentUploader onFileSelected={handleFileSelected} />
+            {uploadError && (
+              <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                {uploadError}
+              </div>
+            )}
+          </>
+        )}
 
-          {uploadState === "uploading" && (
-            <div className="py-8 text-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
-              <p className="text-sm font-medium">Uploading document...</p>
-            </div>
-          )}
-        </div>
-      )}
+        {uploadState === "uploading" && (
+          <div className="py-8 text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
+            <p className="text-sm font-medium">Uploading document...</p>
+          </div>
+        )}
+      </div>
 
       {/* Inline results banner — show during enrichment (partial) and after completion */}
       {completedDoc && completedDoc.results && (completedDoc.status === "completed" || (completedDoc.status === "processing" && completedDoc.enriching_fields)) && (
@@ -380,19 +369,7 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
       )}
 
       {/* Document List */}
-      {documents.length === 0 && !showUploader ? (
-        <div className="border-2 border-dashed rounded-xl p-8 text-center">
-          <FileText className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
-          <p className="text-sm font-medium mb-1">No documents yet</p>
-          <p className="text-sm text-muted-foreground mb-4">
-            Upload a document to start extracting data.
-          </p>
-          <Button variant="outline" onClick={() => setShowUploader(true)}>
-            <Upload className="h-4 w-4 mr-2" />
-            Upload Your First Document
-          </Button>
-        </div>
-      ) : documents.length > 0 ? (
+      {documents.length > 0 ? (
         <div className="border rounded-xl overflow-hidden">
           <div className="grid grid-cols-[1fr_100px] sm:grid-cols-[1fr_100px_100px_80px_120px] gap-2 px-4 py-2.5 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
             <span>Document</span>

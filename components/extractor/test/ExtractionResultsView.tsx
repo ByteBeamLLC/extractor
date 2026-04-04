@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Copy, Check, Code, Table2, Pencil, RotateCcw, Loader2 } from "lucide-react"
+import Markdown from "react-markdown"
+import { Copy, Check, Code, Table2, Pencil, RotateCcw, Loader2, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -38,14 +39,18 @@ export function ExtractionResultsView({
 }: ExtractionResultsViewProps) {
   const isFullContent = extractionType === "full_content"
   const [copied, setCopied] = useState(false)
-  const [view, setView] = useState<"table" | "json">(isFullContent ? "json" : "table")
+  const [view, setView] = useState<"table" | "json" | "markdown">(isFullContent ? "markdown" : "table")
   const enrichingSet = new Set(enrichingFields ?? [])
 
   // Strip __meta__ from results for display
   const { __meta__, ...displayResults } = results
 
-  const handleCopyJson = async () => {
-    await navigator.clipboard.writeText(JSON.stringify(displayResults, null, 2))
+  // For full_content, extract the markdown string
+  const markdownContent = isFullContent ? (displayResults.markdown ?? "") : ""
+
+  const handleCopy = async () => {
+    const text = isFullContent ? markdownContent : JSON.stringify(displayResults, null, 2)
+    await navigator.clipboard.writeText(text)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -133,18 +138,33 @@ export function ExtractionResultsView({
   return (
     <div className="border rounded-lg overflow-hidden">
       <div className="flex items-center justify-between p-3 border-b bg-muted/30">
-        <Tabs value={view} onValueChange={(v) => setView(v as "table" | "json")}>
-          <TabsList className="h-8">
-            <TabsTrigger value="table" className="text-xs h-7">
-              <Table2 className="h-3.5 w-3.5 mr-1" />
-              Table
-            </TabsTrigger>
-            <TabsTrigger value="json" className="text-xs h-7">
-              <Code className="h-3.5 w-3.5 mr-1" />
-              JSON
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        {isFullContent ? (
+          <Tabs value={view} onValueChange={(v) => setView(v as "table" | "json" | "markdown")}>
+            <TabsList className="h-8">
+              <TabsTrigger value="markdown" className="text-xs h-7">
+                <FileText className="h-3.5 w-3.5 mr-1" />
+                Preview
+              </TabsTrigger>
+              <TabsTrigger value="json" className="text-xs h-7">
+                <Code className="h-3.5 w-3.5 mr-1" />
+                Source
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        ) : (
+          <Tabs value={view} onValueChange={(v) => setView(v as "table" | "json" | "markdown")}>
+            <TabsList className="h-8">
+              <TabsTrigger value="table" className="text-xs h-7">
+                <Table2 className="h-3.5 w-3.5 mr-1" />
+                Table
+              </TabsTrigger>
+              <TabsTrigger value="json" className="text-xs h-7">
+                <Code className="h-3.5 w-3.5 mr-1" />
+                JSON
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        )}
 
         <div className="flex items-center gap-1">
           {onReprocess && (
@@ -166,18 +186,28 @@ export function ExtractionResultsView({
               </Link>
             </Button>
           )}
-          <Button variant="ghost" size="sm" onClick={handleCopyJson}>
+          <Button variant="ghost" size="sm" onClick={handleCopy}>
             {copied ? (
               <Check className="h-3.5 w-3.5 mr-1 text-green-600" />
             ) : (
               <Copy className="h-3.5 w-3.5 mr-1" />
             )}
-            {copied ? "Copied" : "Copy JSON"}
+            {copied ? "Copied" : isFullContent ? "Copy Markdown" : "Copy JSON"}
           </Button>
         </div>
       </div>
 
-      {view === "table" ? (
+      {isFullContent ? (
+        view === "markdown" ? (
+          <div className="mp-mask p-4 prose prose-sm max-w-none dark:prose-invert overflow-auto max-h-[600px]">
+            <Markdown>{markdownContent}</Markdown>
+          </div>
+        ) : (
+          <pre className="mp-mask p-4 text-xs overflow-auto max-h-[600px] bg-muted/20 whitespace-pre-wrap">
+            {markdownContent}
+          </pre>
+        )
+      ) : view === "table" ? (
         <div className="mp-mask divide-y">
           {fieldEntries.map((entry) => {
             const isEnriching = enrichingSet.has(entry.id)

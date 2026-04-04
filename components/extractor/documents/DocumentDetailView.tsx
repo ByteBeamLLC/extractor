@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import Markdown from "react-markdown"
 import { formatDistanceToNow, format } from "date-fns"
 import {
   ArrowLeft,
@@ -339,7 +340,7 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
             )}
 
             {displayResults && tab === "data" && (
-              <DataView results={displayResults} />
+              <DataView results={displayResults} isFullContent={isFullContent} />
             )}
 
             {tab === "fields" && (
@@ -380,8 +381,19 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
   )
 }
 
-/** Tree-style JSON data view (like Parseur's Data tab) */
-function DataView({ results }: { results: Record<string, any> }) {
+const JSON_TREE_MAX_DEPTH = 20
+const JSON_TREE_MAX_ARRAY_DISPLAY = 50
+
+/** Tree-style data view — renders Markdown for full_content, JSON tree for fields mode */
+function DataView({ results, isFullContent }: { results: Record<string, any>; isFullContent?: boolean }) {
+  if (isFullContent && results.markdown) {
+    return (
+      <div className="mp-mask p-4 prose prose-sm max-w-none dark:prose-invert">
+        <Markdown>{results.markdown}</Markdown>
+      </div>
+    )
+  }
+
   return (
     <div className="mp-mask p-4">
       <pre className="text-xs leading-relaxed font-mono whitespace-pre-wrap break-words">
@@ -410,17 +422,31 @@ function JsonTree({ data, indent }: { data: any; indent: number }) {
     return <span className="text-amber-600 dark:text-amber-400">{String(data)}</span>
   }
 
+  // Safety: depth limit prevents stack overflow on deeply nested data
+  if (indent >= JSON_TREE_MAX_DEPTH) {
+    return <span className="text-amber-500 italic">[...nested data truncated]</span>
+  }
+
   if (Array.isArray(data)) {
     if (data.length === 0) return <span>{"[]"}</span>
+    const displayItems = data.length > JSON_TREE_MAX_ARRAY_DISPLAY
+      ? data.slice(0, JSON_TREE_MAX_ARRAY_DISPLAY)
+      : data
+    const remaining = data.length - displayItems.length
     return (
       <>
         {"[\n"}
-        {data.map((item, i) => (
+        {displayItems.map((item, i) => (
           <span key={i}>
             {pad}{"  "}<JsonTree data={item} indent={indent + 1} />
-            {i < data.length - 1 ? ",\n" : "\n"}
+            {i < displayItems.length - 1 || remaining > 0 ? ",\n" : "\n"}
           </span>
         ))}
+        {remaining > 0 && (
+          <span>
+            {pad}{"  "}<span className="text-muted-foreground italic">...and {remaining} more items</span>{"\n"}
+          </span>
+        )}
         {pad}{"]"}
       </>
     )

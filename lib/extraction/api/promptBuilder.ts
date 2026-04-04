@@ -178,18 +178,19 @@ Guidelines:
 // Full-content extraction prompts (no predefined schema)
 // ---------------------------------------------------------------------------
 
-const FULL_CONTENT_INSTRUCTIONS = `You are a specialized AI model for comprehensive document data extraction. Your purpose is to extract ALL meaningful data from the given document and return it as a well-structured JSON object.
+const FULL_CONTENT_INSTRUCTIONS = `You are a specialized AI model for comprehensive document extraction. Your purpose is to extract the FULL content of the given document and return it as clean, well-formatted Markdown.
 
 Guidelines:
-- Extract every piece of meaningful data: names, dates, amounts, addresses, line items, tables, reference numbers, etc.
-- Organize the data logically using descriptive, snake_case keys (e.g., "invoice_number", "vendor_name", "line_items").
-- For tabular data, return arrays of objects with consistent keys across rows.
-- For grouped data (e.g., sender info, recipient info), nest them in sub-objects.
-- Use appropriate data types: numbers for amounts/quantities, strings for text, booleans for yes/no, arrays for lists.
-- Format dates as YYYY-MM-DD when possible.
-- Do not skip any data. If it's in the document, it should be in the output.
-- Do not add commentary or explanations — return only the JSON object.
-- Do not invent data. Only extract what is actually present in the document.`
+- Preserve the original document layout and structure as faithfully as possible.
+- Use appropriate Markdown formatting: headings (#, ##, ###), bold, italic, lists, blockquotes, horizontal rules, etc.
+- Reproduce tables using Markdown table syntax (| col1 | col2 |).
+- Preserve all text content — do not skip, summarize, or paraphrase anything.
+- Maintain the reading order of the document.
+- For forms or key-value data, use bold for labels (e.g., **Invoice Number:** 12345).
+- For multi-column layouts, linearize into a logical reading order.
+- Do not add commentary, explanations, or metadata — return only the Markdown content.
+- Do not wrap the output in code fences or any container — return raw Markdown directly.
+- Do not invent content. Only include what is actually present in the document.`
 
 /**
  * Builds the full-content extraction prompt for image files
@@ -200,7 +201,7 @@ export function buildFullContentImagePrompt(
   extractionPromptOverride?: string
 ): ContentItem[] {
   const baseText = extractionPromptOverride
-    ? `${extractionPromptOverride}\n\nExtract ALL data from this image as a structured JSON object. Use descriptive snake_case keys.`
+    ? `${extractionPromptOverride}\n\nExtract the FULL content of this image as clean Markdown, preserving layout and structure.`
     : FULL_CONTENT_INSTRUCTIONS
 
   return [
@@ -219,7 +220,7 @@ export function buildFullContentPdfPrompt(
   extractionPromptOverride?: string
 ): ContentItem[] {
   const baseText = extractionPromptOverride
-    ? `${extractionPromptOverride}\n\nExtract ALL data from this PDF as a structured JSON object. Use descriptive snake_case keys.`
+    ? `${extractionPromptOverride}\n\nExtract the FULL content of this PDF as clean Markdown, preserving layout and structure.`
     : FULL_CONTENT_INSTRUCTIONS
 
   const contents: ContentItem[] = [
@@ -245,7 +246,7 @@ export function buildFullContentTextPrompt(
   extractionPromptOverride?: string
 ): string {
   const instructions = extractionPromptOverride
-    ? `${extractionPromptOverride}\n\nExtract ALL data from this document as a structured JSON object. Use descriptive snake_case keys.`
+    ? `${extractionPromptOverride}\n\nExtract the FULL content of this document as clean Markdown, preserving layout and structure.`
     : FULL_CONTENT_INSTRUCTIONS
 
   return `${instructions}
@@ -253,7 +254,7 @@ export function buildFullContentTextPrompt(
 Here is the document to process:
 ${documentText}
 
-Extract ALL information from the document as a structured JSON object.`
+Extract the FULL content as clean Markdown.`
 }
 
 /**

@@ -17,7 +17,7 @@ Rules:
 - If you can read partial words, include your best guess.
 - If the image contains no handwritten text, respond with exactly: [NO_TEXT_FOUND]`
 
-async function extractWithModel(model: string, image: string, mimeType: string) {
+async function extractWithModel(model: string, image: string, mimeType: string, deadlineMs?: number) {
   return generateText({
     model,
     messages: [
@@ -39,6 +39,8 @@ async function extractWithModel(model: string, image: string, mimeType: string) 
       },
     ],
     temperature: 0.1,
+    timeoutMs: 25_000,
+    deadlineMs,
   })
 }
 
@@ -116,16 +118,22 @@ export async function POST(req: NextRequest) {
     }
 
     const isUserUpload = source === "upload"
+    const SAFETY_MARGIN_MS = 3_000
+    const deadlineMs = startTime + (maxDuration * 1000) - SAFETY_MARGIN_MS
 
     let result: { text: string }
     let modelUsed = PRIMARY_MODEL
 
     try {
-      result = await extractWithModel(PRIMARY_MODEL, image, mimeType)
-    } catch {
-      // Primary model failed — fall back to stable model
+      result = await extractWithModel(PRIMARY_MODEL, image, mimeType, deadlineMs)
+    } catch (primaryError) {
+      // Check if there's enough time for fallback (at least 10s)
+      const remaining = deadlineMs - Date.now()
+      if (remaining < 10_000) {
+        throw new Error(`Primary model timed out with ${Math.round(remaining / 1000)}s remaining — insufficient time for fallback`)
+      }
       modelUsed = FALLBACK_MODEL
-      result = await extractWithModel(FALLBACK_MODEL, image, mimeType)
+      result = await extractWithModel(FALLBACK_MODEL, image, mimeType, deadlineMs)
     }
 
     const text = result.text.trim()

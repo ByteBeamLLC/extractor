@@ -10,7 +10,7 @@
  *   - "full_content": Extract ALL data from the document, AI determines the structure
  */
 
-import { generateObject, generateFreeformJson } from "@/lib/openrouter"
+import { generateObject, generateText } from "@/lib/openrouter"
 import { flattenFields } from "@/lib/schema"
 import type { SchemaField } from "@/lib/schema"
 import type { ExtractionType } from "@/lib/extractor/types"
@@ -192,16 +192,30 @@ async function runFullContentExtraction(input: ExtractionInput): Promise<Extract
   }
 
   try {
-    const result = await generateFreeformJson({
+    const result = await generateText({
       temperature: 0.2,
       messages: documentContent
         ? [{ role: "user" as const, content: documentContent as any }]
         : [{ role: "user" as const, content: extractionPrompt }],
     })
 
+    // Strip code fences if the model wrapped the output
+    let markdown = result.text.trim()
+    if (markdown.startsWith("```markdown")) {
+      markdown = markdown.slice("```markdown".length)
+    } else if (markdown.startsWith("```md")) {
+      markdown = markdown.slice("```md".length)
+    } else if (markdown.startsWith("```")) {
+      markdown = markdown.slice(3)
+    }
+    if (markdown.endsWith("```")) {
+      markdown = markdown.slice(0, -3)
+    }
+    markdown = markdown.trim()
+
     return {
       success: true,
-      results: result.object,
+      results: { markdown },
       warnings,
     }
   } catch (modelError) {

@@ -11,6 +11,7 @@ import { zodToJsonSchema } from 'zod-to-json-schema'
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions'
 const MAX_RETRIES = 2
 const RETRY_BASE_DELAY_MS = 1000
+const DEFAULT_TIMEOUT_MS = 45_000 // 45s per-request fetch timeout
 
 /**
  * Provider routing preferences.
@@ -24,16 +25,23 @@ const PROVIDER_PREFERENCES = {
 
 /**
  * Returns true for errors that are worth retrying (transient network/API issues).
+ * Timeout errors (from AbortSignal.timeout) are retryable — the model was slow.
  */
 function isTransientError(error: unknown): boolean {
     if (error instanceof TypeError) return true // fetch network failures
+    // AbortSignal.timeout: Node 18 throws AbortError, Node 20+ throws TimeoutError
+    if (error instanceof DOMException) {
+        return error.name === 'TimeoutError' || error.name === 'AbortError'
+    }
     const msg = error instanceof Error ? error.message : String(error)
     return (
         msg.includes('Unexpected end of JSON input') ||
         msg.includes('network') ||
         msg.includes('ECONNRESET') ||
         msg.includes('socket hang up') ||
-        msg.includes('UND_ERR')
+        msg.includes('UND_ERR') ||
+        msg.includes('timed out') ||
+        msg.includes('time budget exhausted')
     )
 }
 
@@ -44,14 +52,26 @@ function isRetryableStatus(status: number): boolean {
     return status === 429 || status >= 500
 }
 
+interface FetchOptions {
+    retries?: number
+    /** Per-request fetch timeout in milliseconds (default 45s). */
+    timeoutMs?: number
+    /** Absolute deadline (Date.now()-based). Prevents starting requests/retries that would exceed the route's maxDuration. */
+    deadlineMs?: number
+}
+
 /**
  * Calls OpenRouter with automatic retry on transient failures.
  * Retries on: network errors, truncated JSON responses, 5xx, 429.
+ * Respects per-request timeout and absolute deadline to prevent 504s.
  */
 async function fetchOpenRouterWithRetry(
     body: Record<string, unknown>,
-    retries = MAX_RETRIES,
+    options: FetchOptions = {},
 ): Promise<{ data: any }> {
+    const retries = options.retries ?? MAX_RETRIES
+    const perRequestTimeout = options.timeoutMs ?? DEFAULT_TIMEOUT_MS
+
     const apiKey = getApiKey()
     const headers = {
         'Authorization': `Bearer ${apiKey}`,
@@ -69,11 +89,22 @@ async function fetchOpenRouterWithRetry(
     let lastError: Error | null = null
 
     for (let attempt = 0; attempt <= retries; attempt++) {
+        // Check deadline before starting a request
+        let effectiveTimeout = perRequestTimeout
+        if (options.deadlineMs) {
+            const remaining = options.deadlineMs - Date.now()
+            if (remaining <= 0) {
+                throw new Error('OpenRouter request aborted: time budget exhausted')
+            }
+            effectiveTimeout = Math.min(perRequestTimeout, remaining)
+        }
+
         try {
             const response = await fetch(OPENROUTER_API_URL, {
                 method: 'POST',
                 headers,
                 body: JSON.stringify(bodyWithProvider),
+                signal: AbortSignal.timeout(effectiveTimeout),
             })
 
             if (!response.ok) {
@@ -81,6 +112,10 @@ async function fetchOpenRouterWithRetry(
                 console.error(`[openrouter] API error ${response.status} (attempt ${attempt + 1}/${retries + 1}): ${errorText}`)
                 if (isRetryableStatus(response.status) && attempt < retries) {
                     const delay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt)
+                    // Check if retry + delay would exceed deadline
+                    if (options.deadlineMs && (Date.now() + delay) >= options.deadlineMs) {
+                        throw new Error(`OpenRouter API error (${response.status}): ${errorText} [no time for retry]`)
+                    }
                     console.warn(`[openrouter] Retrying in ${delay}ms...`)
                     await new Promise((r) => setTimeout(r, delay))
                     continue
@@ -94,6 +129,10 @@ async function fetchOpenRouterWithRetry(
             lastError = error instanceof Error ? error : new Error(String(error))
             if (isTransientError(error) && attempt < retries) {
                 const delay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt)
+                // Check if retry + delay would exceed deadline
+                if (options.deadlineMs && (Date.now() + delay) >= options.deadlineMs) {
+                    throw new Error(`${lastError.message} [no time for retry]`)
+                }
                 console.warn(`[openrouter] Transient error, attempt ${attempt + 1}/${retries + 1}, waiting ${delay}ms: ${lastError.message}`)
                 await new Promise((r) => setTimeout(r, delay))
                 continue
@@ -120,6 +159,8 @@ interface GenerateTextOptions {
     maxTokens?: number
     model?: string // Optional override
     responseFormat?: { type: string } // e.g. { type: 'json_object' }
+    timeoutMs?: number   // Per-request fetch timeout
+    deadlineMs?: number  // Absolute time budget
 }
 
 interface GenerateObjectOptions {
@@ -127,6 +168,8 @@ interface GenerateObjectOptions {
     schema: z.ZodSchema
     temperature?: number
     model?: string // Optional override
+    timeoutMs?: number   // Per-request fetch timeout
+    deadlineMs?: number  // Absolute time budget
 }
 
 /**
@@ -220,7 +263,10 @@ export async function generateText(options: GenerateTextOptions): Promise<{ text
         body.response_format = options.responseFormat
     }
 
-    const { data } = await fetchOpenRouterWithRetry(body)
+    const { data } = await fetchOpenRouterWithRetry(body, {
+        timeoutMs: options.timeoutMs,
+        deadlineMs: options.deadlineMs,
+    })
 
     const text = data.choices?.[0]?.message?.content || ''
     return { text }
@@ -248,6 +294,9 @@ export async function generateObject<T extends z.ZodSchema>(
         messages: formatMessages(enhancedMessages),
         temperature: options.temperature ?? 0.1,
         response_format: { type: 'json_object' },
+    }, {
+        timeoutMs: options.timeoutMs,
+        deadlineMs: options.deadlineMs,
     })
 
     const content = data.choices?.[0]?.message?.content || '{}'
@@ -278,6 +327,8 @@ interface GenerateFreeformJsonOptions {
     messages: Message[]
     temperature?: number
     model?: string
+    timeoutMs?: number   // Per-request fetch timeout
+    deadlineMs?: number  // Absolute time budget
 }
 
 /**
@@ -302,6 +353,9 @@ export async function generateFreeformJson(
         messages: formatMessages(enhancedMessages),
         temperature: options.temperature ?? 0.2,
         response_format: { type: 'json_object' },
+    }, {
+        timeoutMs: options.timeoutMs,
+        deadlineMs: options.deadlineMs,
     })
 
     const content = data.choices?.[0]?.message?.content || '{}'
