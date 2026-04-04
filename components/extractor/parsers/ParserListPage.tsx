@@ -2,22 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Plus, FileText, Loader2, AlertCircle, Search, ArrowUpDown } from "lucide-react"
+import { Plus, FileText, Loader2, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
 import { useAuthDialog } from "@/components/auth/AuthDialogContext"
 import type { Parser, ExtractorSubscription } from "@/lib/extractor/types"
 import { ParserCard } from "./ParserCard"
 import { CreateParserDialog } from "./CreateParserDialog"
-import { CreditUsageBar } from "@/components/extractor/dashboard/CreditUsageBar"
 import { getTemplateById } from "@/lib/parser-templates"
 import { generateInboundEmail } from "@/lib/extractor/inbound-email"
 import { FirstDocumentUpload } from "@/components/extractor/onboarding/FirstDocumentUpload"
@@ -50,10 +41,6 @@ export function ParserListPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [creatingFromTemplate, setCreatingFromTemplate] = useState(false)
   const [templateError, setTemplateError] = useState<string | null>(null)
-
-  // Search and sort
-  const [searchQuery, setSearchQuery] = useState("")
-  const [sortBy, setSortBy] = useState<SortOption>("last_updated")
 
   // Status breakdowns per parser
   const [statusBreakdowns, setStatusBreakdowns] = useState<Record<string, StatusBreakdown>>({})
@@ -198,11 +185,6 @@ export function ParserListPage() {
     createFromTemplate()
   }, [session?.user?.id, router, supabase])
 
-  // Tour auto-start disabled — the FirstDocumentUpload component replaces
-  // the tour's welcome step for new users with 0 parsers.
-  // The tour is marked as completed via skipTour() after the first document
-  // is successfully processed, so it won't interfere later.
-
   const handleCreateParser = () => {
     if (!session?.user?.id) {
       openAuthDialog("sign-in")
@@ -215,40 +197,6 @@ export function ParserListPage() {
     setShowCreateDialog(false)
     loadData()
   }
-
-  // Filter and sort parsers
-  const filteredParsers = useMemo(() => {
-    let result = parsers
-
-    // Search filter
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase()
-      result = result.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          (p.description && p.description.toLowerCase().includes(q)) ||
-          (p.inbound_email && p.inbound_email.toLowerCase().includes(q))
-      )
-    }
-
-    // Sort
-    result = [...result].sort((a, b) => {
-      switch (sortBy) {
-        case "last_updated":
-          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-        case "name":
-          return a.name.localeCompare(b.name)
-        case "created":
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        case "documents":
-          return (b.document_count ?? 0) - (a.document_count ?? 0)
-        default:
-          return 0
-      }
-    })
-
-    return result
-  }, [parsers, searchQuery, sortBy])
 
   // Check for template param on initial mount (before session is available)
   const hasTemplateParam = useRef(typeof window !== "undefined" && !!getTemplateFromUrl())
@@ -285,12 +233,11 @@ export function ParserListPage() {
     )
   }
 
-  // Clean onboarding for new users — no header, no clutter
+  // Clean onboarding for new users
   if (parsers.length === 0) {
     return (
       <>
         <FirstDocumentUpload onParserCreated={loadData} />
-        {/* Keep dialog available for ?template= URL path */}
         <CreateParserDialog
           open={showCreateDialog}
           onOpenChange={setShowCreateDialog}
@@ -302,26 +249,8 @@ export function ParserListPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">Parsers</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Create parsers to extract structured data from your documents
-          </p>
-        </div>
-        <Button onClick={handleCreateParser} className="shrink-0 self-start sm:self-auto" data-arlo-id="create-parser-btn">
-          <Plus className="h-4 w-4 mr-2" />
-          New Parser
-        </Button>
-      </div>
-
-      {/* Credit usage */}
-      {subscription && (
-        <div className="mb-6">
-          <CreditUsageBar subscription={subscription} />
-        </div>
-      )}
+      {/* Page title */}
+      <h1 className="text-2xl font-bold mb-6">Document Extraction</h1>
 
       {/* Error */}
       {(error || templateError) && (
@@ -331,53 +260,43 @@ export function ParserListPage() {
         </div>
       )}
 
-      {/* Search + Sort */}
-      {parsers.length > 0 && (
-        <div className="flex flex-wrap items-center gap-3 mb-6">
-          <div className="relative flex-1 min-w-[180px] max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search parsers..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <ArrowUpDown className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="last_updated">Last updated</SelectItem>
-              <SelectItem value="name">Name</SelectItem>
-              <SelectItem value="created">Date created</SelectItem>
-              <SelectItem value="documents">Most documents</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+      {/* Your Parsers section */}
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold">Your Parsers</h2>
+        {parsers.length > 3 && (
+          <button
+            onClick={() => {/* could scroll or expand */}}
+            className="text-sm text-muted-foreground hover:text-[#2782ff] transition-colors"
+          >
+            View all
+          </button>
+        )}
+      </div>
 
-      {/* Parser grid */}
-      {filteredParsers.length === 0 ? (
-        <div className="border-2 border-dashed rounded-xl p-8 text-center">
-          <Search className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">
-            No parsers match &ldquo;{searchQuery}&rdquo;
-          </p>
-        </div>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredParsers.map((parser) => (
-            <ParserCard
-              key={parser.id}
-              parser={parser}
-              statusBreakdown={statusBreakdowns[parser.id]}
-              onDeleted={loadData}
-            />
-          ))}
-        </div>
-      )}
+      {/* Parser cards - responsive grid */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Create custom parser card */}
+        <button
+          onClick={handleCreateParser}
+          className="border-2 border-dashed rounded-xl p-5 bg-card hover:border-[#2782ff]/50 hover:bg-[#2782ff]/[0.02] transition-all flex flex-col items-center justify-center text-center min-h-[220px] cursor-pointer"
+        >
+          <div className="w-12 h-12 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center mb-4">
+            <Plus className="h-6 w-6 text-muted-foreground" />
+          </div>
+          <p className="font-medium text-sm">Create custom parser</p>
+          <p className="text-xs text-muted-foreground mt-1">Define fields to extract</p>
+        </button>
+
+        {/* Parser cards */}
+        {parsers.map((parser) => (
+          <ParserCard
+            key={parser.id}
+            parser={parser}
+            statusBreakdown={statusBreakdowns[parser.id]}
+            onDeleted={loadData}
+          />
+        ))}
+      </div>
 
       {/* Create dialog */}
       <CreateParserDialog

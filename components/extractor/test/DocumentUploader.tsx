@@ -1,14 +1,16 @@
 "use client"
 
 import { useCallback, useRef, useState } from "react"
-import { Upload, FileText } from "lucide-react"
+import { Upload, FileText, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface DocumentUploaderProps {
   onFileSelected: (file: File) => void
 }
 
-const ACCEPTED_TYPES = [
+export const MAX_UPLOAD_FILE_SIZE = 50 * 1024 * 1024 // 50MB
+
+export const ACCEPTED_TYPES = [
   "application/pdf",
   "image/png",
   "image/jpeg",
@@ -31,14 +33,40 @@ const ACCEPTED_TYPES = [
   "application/xml",
 ]
 
-const ACCEPTED_EXTENSIONS = ".pdf,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tif,.tiff,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.txt,.csv,.json,.html,.htm,.xml"
+export const ACCEPTED_EXTENSIONS = ".pdf,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tif,.tiff,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.txt,.csv,.json,.html,.htm,.xml"
+
+/** Validate file type and size. Returns an error string or null if valid. */
+export function validateUploadFile(file: File): string | null {
+  if (file.size > MAX_UPLOAD_FILE_SIZE) {
+    const sizeMB = (file.size / 1024 / 1024).toFixed(1)
+    return `File is too large (${sizeMB}MB). Maximum file size is 50MB.`
+  }
+  if (file.size === 0) {
+    return "File is empty."
+  }
+  const ext = file.name.split(".").pop()?.toLowerCase()
+  const allowedExts = ACCEPTED_EXTENSIONS.split(",").map((e) => e.replace(".", ""))
+  const typeMatch = ACCEPTED_TYPES.includes(file.type)
+  const extMatch = ext ? allowedExts.includes(ext) : false
+  if (!typeMatch && !extMatch) {
+    return `Unsupported file type "${ext ?? file.type}". Supported: PDF, images, Word, Excel, PowerPoint, HTML, XML, text files.`
+  }
+  return null
+}
 
 export function DocumentUploader({ onFileSelected }: DocumentUploaderProps) {
   const [isDragging, setIsDragging] = useState(false)
+  const [validationError, setValidationError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const handleFile = useCallback(
     (file: File) => {
+      const error = validateUploadFile(file)
+      if (error) {
+        setValidationError(error)
+        return
+      }
+      setValidationError(null)
       onFileSelected(file)
     },
     [onFileSelected]
@@ -94,6 +122,13 @@ export function DocumentUploader({ onFileSelected }: DocumentUploaderProps) {
       <p className="text-xs text-muted-foreground">
         Supports PDF, images (PNG, JPG, WebP, TIFF), Word, Excel, PowerPoint, HTML, XML, text files
       </p>
+      <p className="text-xs text-muted-foreground mt-1">Max file size: 50MB</p>
+      {validationError && (
+        <div className="flex items-center justify-center gap-1.5 mt-3 text-sm text-destructive">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {validationError}
+        </div>
+      )}
     </div>
   )
 }
