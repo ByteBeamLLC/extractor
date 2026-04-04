@@ -11,7 +11,7 @@ import { zodToJsonSchema } from 'zod-to-json-schema'
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions'
 const MAX_RETRIES = 2
 const RETRY_BASE_DELAY_MS = 1000
-const DEFAULT_TIMEOUT_MS = 45_000 // 45s per-request fetch timeout
+const DEFAULT_TIMEOUT_MS = 120_000 // 120s per-request fetch timeout
 
 /**
  * Provider routing preferences.

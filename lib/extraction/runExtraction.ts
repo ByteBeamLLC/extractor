@@ -26,7 +26,6 @@ import {
   buildFullContentImagePrompt,
   buildFullContentPdfPrompt,
   buildFullContentTextPrompt,
-  FULL_CONTENT_INSTRUCTIONS,
   buildFallbackFromTree,
   MAX_SUPPLEMENTAL_TEXT_CHARS,
 } from "@/lib/extraction/api"
@@ -40,7 +39,6 @@ import {
   runChunkedPdfExtraction,
   CHUNKED_PAGE_THRESHOLD,
 } from "./chunkedExtraction"
-import { convertPdfToImages } from "./pdfToImage"
 
 /**
  * Maps raw API/network errors to user-friendly messages.
@@ -162,30 +160,24 @@ async function runFullContentExtraction(input: ExtractionInput): Promise<Extract
     const base64 = fileUrl ? "" : Buffer.from(bytes).toString("base64")
     documentContent = buildFullContentImagePrompt(base64, fileMimeType || "image/png", promptOverride, fileUrl)
   } else if (isPdf) {
-    // Convert PDF pages to PNG images — Gemini handles images natively
-    // and this avoids base64 PDF bloat that causes timeouts on large scanned docs
-    const pageImages = await convertPdfToImages(bytes)
-    const imageContents: Array<{ type: string; text?: string; image?: string }> = [
-      { type: "text", text: promptOverride
-        ? `${promptOverride}\n\nExtract the FULL content of this document as clean Markdown, preserving layout and structure.`
-        : FULL_CONTENT_INSTRUCTIONS },
-    ]
-    for (const page of pageImages) {
-      imageContents.push({ type: "image", image: page.dataUri })
-    }
+    // Send PDF as base64 data URI — Gemini handles PDFs natively this way
+    const base64 = Buffer.from(bytes).toString("base64")
 
     const extraction = await extractTextFromDocument(bytes, fileName, fileMimeType)
     warnings.push(...extraction.warnings)
+
     let supplemental = extraction.text.trim()
     if (supplemental.length > MAX_SUPPLEMENTAL_TEXT_CHARS) {
       supplemental = `${supplemental.slice(0, MAX_SUPPLEMENTAL_TEXT_CHARS)}\n\n[Truncated]`
       warnings.push(`Supplemental text truncated to ${MAX_SUPPLEMENTAL_TEXT_CHARS} characters.`)
     }
-    if (supplemental.length > 0) {
-      imageContents.push({ type: "text", text: `Supplemental extracted text (may be incomplete OCR):\n${supplemental}` })
-    }
 
-    documentContent = imageContents as any
+    documentContent = buildFullContentPdfPrompt(
+      base64,
+      fileMimeType || "application/pdf",
+      supplemental.length > 0 ? supplemental : null,
+      promptOverride
+    )
   } else {
     const extraction = await extractTextFromDocument(bytes, fileName, fileMimeType)
     warnings.push(...extraction.warnings)
@@ -283,9 +275,8 @@ async function runFieldsExtraction(input: ExtractionInput): Promise<ExtractionOu
     const base64 = fileUrl ? "" : Buffer.from(bytes).toString("base64")
     documentContent = buildImagePrompt(base64, fileMimeType || "image/png", schemaSummary, promptOverride, fileUrl)
   } else if (isPdf) {
-    // Convert PDF to PNG images — Gemini handles images natively and this
-    // avoids base64 PDF bloat that causes timeouts on large scanned docs
-    const pageImages = await convertPdfToImages(bytes)
+    // Send PDF as base64 data URI — same approach as the old extractor
+    const base64 = Buffer.from(bytes).toString("base64")
 
     // Extract supplemental text from PDF
     const extraction = await extractTextFromDocument(bytes, fileName, fileMimeType)
@@ -297,20 +288,13 @@ async function runFieldsExtraction(input: ExtractionInput): Promise<ExtractionOu
       warnings.push(`Supplemental text truncated to ${MAX_SUPPLEMENTAL_TEXT_CHARS} characters.`)
     }
 
-    // Build prompt with page images instead of raw PDF
     documentContent = buildPdfPrompt(
-      pageImages[0]?.dataUri.split(",")[1] ?? "",
-      "image/png",
+      base64,
+      fileMimeType || "application/pdf",
       schemaSummary,
       supplemental.length > 0 ? supplemental : null,
       promptOverride
     )
-    // For multi-page, replace the single image with all pages
-    if (pageImages.length > 1) {
-      const textParts = (documentContent as any[]).filter((c: any) => c.type === "text")
-      const imageParts = pageImages.map(p => ({ type: "image", image: p.dataUri }))
-      documentContent = [...textParts, ...imageParts] as any
-    }
   } else {
     // Text-based document (DOCX, Excel, TXT, CSV, etc.)
     const extraction = await extractTextFromDocument(bytes, fileName, fileMimeType)
