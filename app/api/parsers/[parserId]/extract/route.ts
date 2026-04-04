@@ -12,6 +12,7 @@ import {
   buildWaves,
   runTransformation,
 } from "@/lib/extraction/transformations"
+import { getSignedFileUrl } from "@/lib/storage/fileUrl"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
@@ -186,6 +187,8 @@ export async function POST(
   // The worker will also receive the trigger, but it checks status="processing"
   // before starting. By the time it arrives, we've already updated to completed/error.
   try {
+    const fileUrl = await getSignedFileUrl("parser-documents", storagePath)
+
     const extractionResult = await runExtraction({
       fileData: fileData.data,
       fileName: fileData.name ?? "uploaded",
@@ -193,6 +196,7 @@ export async function POST(
       schemaTree,
       extractionPromptOverride: p.extraction_prompt_override,
       extractionType,
+      fileUrl,
     })
 
     const creditsUsed = creditCheck.firstDocumentFree

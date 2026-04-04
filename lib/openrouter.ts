@@ -202,14 +202,17 @@ function getModel(override?: string): string {
 
 interface FormattedMessage {
     role: 'user' | 'assistant' | 'system'
-    content: string | Array<{ type: string; text?: string; image_url?: { url: string } }>
+    content: string | Array<Record<string, any>>
 }
 
 interface ContentItemWithImage {
-    type: 'text' | 'image_url'
+    type: 'text' | 'image_url' | 'file'
     text?: string
     image_url?: { url: string }
     image?: string
+    // File-type fields (OpenRouter PDF/file URL support)
+    filename?: string
+    fileUrl?: string
 }
 
 /**
@@ -221,23 +224,42 @@ function formatMessages(messages: Message[]): FormattedMessage[] {
             return { role: msg.role, content: msg.content }
         }
 
-        // Handle multimodal content (text + images)
+        // Handle multimodal content (text + images + files)
         const content = msg.content.map(item => {
             if (item.type === 'text') {
                 return { type: 'text', text: item.text }
-            } else {
-                // Handle both 'image' and 'image_url' types
-                const itemWithImage = item as ContentItemWithImage
-                const imageData = itemWithImage.image || itemWithImage.image_url?.url
-                if (imageData) {
-                    return {
-                        type: 'image_url',
-                        image_url: {
-                            url: imageData.startsWith('data:') ? imageData : `data:image/jpeg;base64,${imageData}`
-                        }
+            }
+
+            // File type: send URL directly to OpenRouter (no base64)
+            const itemAny = item as ContentItemWithImage
+            if (itemAny.type === 'file' && itemAny.fileUrl) {
+                return {
+                    type: 'file',
+                    file: {
+                        filename: itemAny.filename ?? 'document',
+                        file_data: itemAny.fileUrl,
                     }
                 }
             }
+
+            // Image type: handle both 'image' and 'image_url' formats
+            const imageData = itemAny.image || itemAny.image_url?.url
+            if (imageData) {
+                // If it's already a URL (not data:), use it directly
+                if (imageData.startsWith('http://') || imageData.startsWith('https://')) {
+                    return {
+                        type: 'image_url',
+                        image_url: { url: imageData }
+                    }
+                }
+                return {
+                    type: 'image_url',
+                    image_url: {
+                        url: imageData.startsWith('data:') ? imageData : `data:image/jpeg;base64,${imageData}`
+                    }
+                }
+            }
+
             return item
         })
 

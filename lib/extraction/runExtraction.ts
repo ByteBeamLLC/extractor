@@ -79,6 +79,8 @@ export interface ExtractionInput {
   extractionPromptOverride?: string | null
   /** Extraction type — "fields" for schema-driven, "full_content" for extracting everything */
   extractionType?: ExtractionType
+  /** Signed URL for the file — when provided, sent to OpenRouter instead of base64 (faster, no payload bloat) */
+  fileUrl?: string | null
 }
 
 export interface ExtractionOutput {
@@ -131,7 +133,7 @@ export async function runExtraction(input: ExtractionInput): Promise<ExtractionO
 // ---------------------------------------------------------------------------
 
 async function runFullContentExtraction(input: ExtractionInput): Promise<ExtractionOutput> {
-  const { fileData, fileName, mimeType, extractionPromptOverride } = input
+  const { fileData, fileName, mimeType, extractionPromptOverride, fileUrl } = input
 
   const buffer = Buffer.from(fileData, "base64")
   const bytes = new Uint8Array(buffer)
@@ -155,10 +157,10 @@ async function runFullContentExtraction(input: ExtractionInput): Promise<Extract
   const promptOverride = extractionPromptOverride || undefined
 
   if (isImage) {
-    const base64 = Buffer.from(bytes).toString("base64")
-    documentContent = buildFullContentImagePrompt(base64, fileMimeType || "image/png", promptOverride)
+    const base64 = fileUrl ? "" : Buffer.from(bytes).toString("base64")
+    documentContent = buildFullContentImagePrompt(base64, fileMimeType || "image/png", promptOverride, fileUrl)
   } else if (isPdf) {
-    const base64 = Buffer.from(bytes).toString("base64")
+    const base64 = fileUrl ? "" : Buffer.from(bytes).toString("base64")
 
     const extraction = await extractTextFromDocument(bytes, fileName, fileMimeType)
     warnings.push(...extraction.warnings)
@@ -173,7 +175,8 @@ async function runFullContentExtraction(input: ExtractionInput): Promise<Extract
       base64,
       fileMimeType || "application/pdf",
       supplemental.length > 0 ? supplemental : null,
-      promptOverride
+      promptOverride,
+      fileUrl
     )
   } else {
     const extraction = await extractTextFromDocument(bytes, fileName, fileMimeType)
@@ -239,7 +242,7 @@ async function runFullContentExtraction(input: ExtractionInput): Promise<Extract
 // ---------------------------------------------------------------------------
 
 async function runFieldsExtraction(input: ExtractionInput): Promise<ExtractionOutput> {
-  const { fileData, fileName, mimeType, schemaTree, extractionPromptOverride } = input
+  const { fileData, fileName, mimeType, schemaTree, extractionPromptOverride, fileUrl } = input
 
   // Decode file
   const buffer = Buffer.from(fileData, "base64")
@@ -269,10 +272,10 @@ async function runFieldsExtraction(input: ExtractionInput): Promise<ExtractionOu
   const promptOverride = extractionPromptOverride || undefined
 
   if (isImage) {
-    const base64 = Buffer.from(bytes).toString("base64")
-    documentContent = buildImagePrompt(base64, fileMimeType || "image/png", schemaSummary, promptOverride)
+    const base64 = fileUrl ? "" : Buffer.from(bytes).toString("base64")
+    documentContent = buildImagePrompt(base64, fileMimeType || "image/png", schemaSummary, promptOverride, fileUrl)
   } else if (isPdf) {
-    const base64 = Buffer.from(bytes).toString("base64")
+    const base64 = fileUrl ? "" : Buffer.from(bytes).toString("base64")
 
     // Extract supplemental text from PDF (same as main app)
     const extraction = await extractTextFromDocument(bytes, fileName, fileMimeType)
@@ -289,7 +292,8 @@ async function runFieldsExtraction(input: ExtractionInput): Promise<ExtractionOu
       fileMimeType || "application/pdf",
       schemaSummary,
       supplemental.length > 0 ? supplemental : null,
-      promptOverride
+      promptOverride,
+      fileUrl
     )
   } else {
     // Text-based document (DOCX, Excel, TXT, CSV, etc.)

@@ -12,6 +12,7 @@ import {
   buildWaves,
   runTransformation,
 } from "@/lib/extraction/transformations"
+import { getSignedFileUrl } from "@/lib/storage/fileUrl"
 
 export const runtime = "nodejs"
 export const maxDuration = 600
@@ -92,6 +93,9 @@ export async function POST(request: NextRequest) {
   const buffer = Buffer.from(await fileBlob.arrayBuffer())
   const base64 = buffer.toString("base64")
 
+  // Generate a signed URL so OpenRouter can fetch the file directly (avoids base64 bloat)
+  const fileUrl = await getSignedFileUrl("parser-documents", storagePath)
+
   // --- Run extraction ---
   const extractionType = parser.extraction_type ?? "fields"
   const schemaTree: SchemaField[] = parser.fields ?? []
@@ -105,6 +109,7 @@ export async function POST(request: NextRequest) {
       schemaTree,
       extractionPromptOverride: parser.extraction_prompt_override,
       extractionType,
+      fileUrl,
     })
   } catch (err) {
     console.error("[process-document] Extraction threw:", err)
