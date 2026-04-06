@@ -9,6 +9,7 @@ import { useAuthDialog } from "@/components/auth/AuthDialogContext"
 import type { Parser, ExtractorSubscription } from "@/lib/extractor/types"
 import { ParserCard } from "./ParserCard"
 import { CreateParserDialog } from "./CreateParserDialog"
+import { DocumentDropZone } from "./DocumentDropZone"
 import { getTemplateById } from "@/lib/parser-templates"
 import { generateInboundEmail } from "@/lib/extractor/inbound-email"
 import { FirstDocumentUpload } from "@/components/extractor/onboarding/FirstDocumentUpload"
@@ -251,6 +252,9 @@ export function ParserListPage() {
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Page title */}
       <h1 className="text-2xl font-bold mb-6">Document Extraction</h1>
+
+      {/* Chatbot-style drop zone */}
+      <DocumentDropZone parsers={parsers} onParserCreated={loadData} />
 
       {/* Error */}
       {(error || templateError) && (
