@@ -423,6 +423,16 @@ export function DocumentDropZone({ parsers, onParserCreated }: DocumentDropZoneP
 
           {/* Toolbar */}
           <div className="flex items-center gap-1 px-2.5 pb-2.5 pt-0.5">
+            <div className="flex-1" />
+
+            {/* Extracting status */}
+            {isExtracting && extractStatus && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mr-2">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                {extractStatus}
+              </div>
+            )}
+
             {/* Parser selector */}
             <div className="relative">
               <button
@@ -436,35 +446,40 @@ export function DocumentDropZone({ parsers, onParserCreated }: DocumentDropZoneP
 
               {/* Parser dropdown */}
               {showDropdown && (
-                <div className="absolute top-full mt-1.5 left-0 w-64 bg-popover border rounded-xl shadow-lg z-50 max-h-[280px] overflow-y-auto p-1">
-                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide px-3 pt-2 pb-1">Your Parsers</p>
-                  {parsers.map(p => (
+                <div className="absolute top-full mt-1.5 right-0 w-64 bg-popover border rounded-xl shadow-lg z-50 flex flex-col">
+                  {/* Scrollable parser list */}
+                  <div className="max-h-[220px] overflow-y-auto p-1">
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide px-3 pt-2 pb-1">Your Parsers</p>
+                    {parsers.map(p => (
+                      <button
+                        key={p.id}
+                        onClick={() => selectExistingParser(p)}
+                        className={cn(
+                          "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors text-left",
+                          selectedParser?.id === p.id ? "bg-[#2782ff]/10 text-[#2782ff] font-medium" : "hover:bg-muted/60"
+                        )}
+                      >
+                        <span className="w-2 h-2 rounded-full shrink-0" style={{ background: getParserColor(p.name) }} />
+                        {p.name}
+                      </button>
+                    ))}
+                  </div>
+                  {/* Fixed create button */}
+                  <div className="border-t p-1">
                     <button
-                      key={p.id}
-                      onClick={() => selectExistingParser(p)}
-                      className={cn(
-                        "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors text-left",
-                        selectedParser?.id === p.id ? "bg-[#2782ff]/10 text-[#2782ff] font-medium" : "hover:bg-muted/60"
-                      )}
+                      onClick={openCreateMenu}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-[#2782ff] hover:bg-muted/60 transition-colors"
                     >
-                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: getParserColor(p.name) }} />
-                      {p.name}
+                      <Plus className="h-4 w-4" />
+                      Create new parser
                     </button>
-                  ))}
-                  <div className="h-px bg-border my-1" />
-                  <button
-                    onClick={openCreateMenu}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-[#2782ff] hover:bg-muted/60 transition-colors"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Create new parser
-                  </button>
+                  </div>
                 </div>
               )}
 
               {/* Create parser submenu */}
               {showCreateMenu && (
-                <div className="absolute top-full mt-1.5 left-0 w-[340px] bg-popover border rounded-xl shadow-lg z-50 p-4">
+                <div className="absolute top-full mt-1.5 right-0 w-[340px] bg-popover border rounded-xl shadow-lg z-50 p-4">
                   <div className="flex items-center gap-2 mb-3">
                     <button
                       onClick={() => { setShowCreateMenu(false); setShowDropdown(true) }}
@@ -531,16 +546,6 @@ export function DocumentDropZone({ parsers, onParserCreated }: DocumentDropZoneP
                 </div>
               )}
             </div>
-
-            <div className="flex-1" />
-
-            {/* Extracting status */}
-            {isExtracting && extractStatus && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground mr-2">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                {extractStatus}
-              </div>
-            )}
 
             {/* Send button */}
             <button
