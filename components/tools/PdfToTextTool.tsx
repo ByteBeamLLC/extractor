@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { FileSizeBridgeBanner } from "@/components/tools/FileSizeBridgeBanner"
 
 type Status = "idle" | "processing" | "done" | "error"
 
@@ -22,6 +23,7 @@ export function PdfToTextTool() {
   const [status, setStatus] = useState<Status>("idle")
   const [extractedText, setExtractedText] = useState<string>("")
   const [error, setError] = useState<string | null>(null)
+  const [fileTooLarge, setFileTooLarge] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const [fileName, setFileName] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -35,6 +37,7 @@ export function PdfToTextTool() {
     }
 
     if (file.size > 50 * 1024 * 1024) {
+      setFileTooLarge(true)
       setError("File too large. Maximum size is 50 MB.")
       setStatus("error")
       return
@@ -106,6 +109,7 @@ export function PdfToTextTool() {
     setStatus("idle")
     setExtractedText("")
     setError(null)
+    setFileTooLarge(false)
     setFileName(null)
     setCopied(false)
     if (inputRef.current) inputRef.current.value = ""
@@ -230,18 +234,22 @@ export function PdfToTextTool() {
               <p className="text-sm text-muted-foreground">{error}</p>
             </div>
           </div>
-          <div className="px-6 py-4 border-t flex flex-col sm:flex-row gap-3">
-            <Button onClick={reset} variant="outline" className="h-10">
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Try Another File
-            </Button>
-            <Button asChild className="h-10">
-              <a href="/solutions/pdf-data-extraction">
-                <FileText className="h-4 w-4 mr-2" />
-                Try AI-Powered Extraction
-              </a>
-            </Button>
-          </div>
+          {fileTooLarge ? (
+            <FileSizeBridgeBanner toolName="pdf_to_text" />
+          ) : (
+            <div className="px-6 py-4 border-t flex flex-col sm:flex-row gap-3">
+              <Button onClick={reset} variant="outline" className="h-10">
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Try Another File
+              </Button>
+              <Button asChild className="h-10">
+                <a href="https://app.parsli.co">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Try Parsli Free
+                </a>
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>

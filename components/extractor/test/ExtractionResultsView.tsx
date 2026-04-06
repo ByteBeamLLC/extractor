@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import Markdown from "react-markdown"
-import { Copy, Check, Code, Table2, Pencil, RotateCcw, Loader2, FileText } from "lucide-react"
+import { Copy, Check, Code, Table2, Pencil, RotateCcw, Loader2, FileText, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -48,11 +48,51 @@ export function ExtractionResultsView({
   // For full_content, extract the markdown string
   const markdownContent = isFullContent ? (displayResults.markdown ?? "") : ""
 
+  /** Format results as readable plain text (key: value pairs) */
+  const toPlainText = () => {
+    if (isFullContent) return markdownContent
+    return fields
+      .filter((f) => f.type !== "input")
+      .map((f) => {
+        const val = displayResults[f.id]
+        if (val === null || val === undefined || val === "-") return `${f.name}: —`
+        if (Array.isArray(val)) {
+          if (val.length > 0 && typeof val[0] === "object") {
+            const rows = val.map((row, i) =>
+              Object.entries(row).map(([k, v]) => `  ${k}: ${v}`).join("\n")
+            )
+            return `${f.name}:\n${rows.map((r, i) => `  [${i + 1}]\n${r}`).join("\n")}`
+          }
+          return `${f.name}: ${val.join(", ")}`
+        }
+        if (typeof val === "object") return `${f.name}: ${JSON.stringify(val)}`
+        return `${f.name}: ${val}`
+      })
+      .join("\n")
+  }
+
   const handleCopy = async () => {
     const text = isFullContent ? markdownContent : JSON.stringify(displayResults, null, 2)
     await navigator.clipboard.writeText(text)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const [copiedText, setCopiedText] = useState(false)
+  const handleCopyText = async () => {
+    await navigator.clipboard.writeText(toPlainText())
+    setCopiedText(true)
+    setTimeout(() => setCopiedText(false), 2000)
+  }
+
+  const handleDownloadTxt = () => {
+    const blob = new Blob([toPlainText()], { type: "text/plain;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "extraction.txt"
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   const renderValue = (value: any): React.ReactNode => {
@@ -186,6 +226,14 @@ export function ExtractionResultsView({
               </Link>
             </Button>
           )}
+          <Button variant="ghost" size="sm" onClick={handleCopyText}>
+            {copiedText ? (
+              <Check className="h-3.5 w-3.5 mr-1 text-green-600" />
+            ) : (
+              <Copy className="h-3.5 w-3.5 mr-1" />
+            )}
+            {copiedText ? "Copied" : "Copy Text"}
+          </Button>
           <Button variant="ghost" size="sm" onClick={handleCopy}>
             {copied ? (
               <Check className="h-3.5 w-3.5 mr-1 text-green-600" />
@@ -193,6 +241,10 @@ export function ExtractionResultsView({
               <Copy className="h-3.5 w-3.5 mr-1" />
             )}
             {copied ? "Copied" : isFullContent ? "Copy Markdown" : "Copy JSON"}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={handleDownloadTxt}>
+            <Download className="h-3.5 w-3.5 mr-1" />
+            .txt
           </Button>
         </div>
       </div>

@@ -21,10 +21,12 @@ export async function GET(request: NextRequest) {
   const error = searchParams.get("error")
 
   let next = "/dashboard"
+  let anonUserId: string | undefined
   if (stateRaw) {
     try {
       const state = JSON.parse(Buffer.from(stateRaw, "base64url").toString())
       next = state.next || "/dashboard"
+      anonUserId = state.anon_uid
     } catch { /* use default */ }
   }
 
@@ -76,9 +78,81 @@ export async function GET(request: NextRequest) {
     })
     if (verifyError) throw verifyError
 
+    // Migrate anonymous user data to the new authenticated account
+    if (anonUserId) {
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      if (authUser && authUser.id !== anonUserId) {
+        try {
+          await migrateAnonymousData(admin, anonUserId, authUser.id)
+          trackServerEvent("anonymous_converted", {
+            distinct_id: authUser.id,
+            user_id: authUser.id,
+            email,
+            source: "google_oauth",
+            anon_user_id: anonUserId,
+          })
+        } catch (migErr) {
+          // Log but don't block login — user can still use the app
+          console.error("[google-auth-callback] Data migration failed:", migErr)
+        }
+      }
+    }
+
     return NextResponse.redirect(new URL(next, origin))
   } catch (err) {
     console.error("[google-auth-callback] Error:", err)
     return NextResponse.redirect(loginUrl)
   }
+}
+
+/**
+ * Transfer all data owned by an anonymous user to a newly authenticated user.
+ * Runs in a single transaction-like sequence using the service role client.
+ * Only the anonymous user_id from the server-side session cookie is trusted.
+ */
+async function migrateAnonymousData(
+  admin: ReturnType<typeof createSupabaseServiceRoleClient>,
+  anonUserId: string,
+  newUserId: string
+) {
+  // Re-assign parsers (and their child documents follow via parser_id)
+  await admin
+    .from("parsers")
+    .update({ user_id: newUserId })
+    .eq("user_id", anonUserId)
+
+  // Re-assign extraction jobs
+  await admin
+    .from("extraction_jobs")
+    .update({ user_id: newUserId })
+    .eq("user_id", anonUserId)
+
+  // Re-assign parser processed documents (have their own user_id column)
+  await admin
+    .from("parser_processed_documents")
+    .update({ user_id: newUserId })
+    .eq("user_id", anonUserId)
+
+  // Transfer subscription/billing data
+  await admin
+    .from("extractor_subscriptions")
+    .update({ user_id: newUserId })
+    .eq("user_id", anonUserId)
+
+  await admin
+    .from("credit_wallets")
+    .update({ user_id: newUserId })
+    .eq("user_id", anonUserId)
+
+  // Mark guest session as converted (if any)
+  await admin
+    .from("guest_sessions")
+    .update({
+      converted_to_user_id: newUserId,
+      converted_at: new Date().toISOString(),
+    })
+    .eq("session_token", anonUserId)
+
+  // Delete the orphaned anonymous auth user
+  await admin.auth.admin.deleteUser(anonUserId)
 }

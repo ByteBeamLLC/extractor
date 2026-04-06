@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { FileSizeBridgeBanner } from "@/components/tools/FileSizeBridgeBanner"
 
 type Status = "idle" | "processing" | "done" | "error"
 
@@ -22,6 +23,7 @@ export function MakePdfSearchableTool() {
   const [status, setStatus] = useState<Status>("idle")
   const [extractedText, setExtractedText] = useState<string>("")
   const [error, setError] = useState<string | null>(null)
+  const [fileTooLarge, setFileTooLarge] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const [fileName, setFileName] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -36,6 +38,7 @@ export function MakePdfSearchableTool() {
     }
 
     if (file.size > 20 * 1024 * 1024) {
+      setFileTooLarge(true)
       setError("File too large. Maximum size is 20 MB for OCR processing.")
       setStatus("error")
       return
@@ -174,6 +177,7 @@ export function MakePdfSearchableTool() {
     setStatus("idle")
     setExtractedText("")
     setError(null)
+    setFileTooLarge(false)
     setFileName(null)
     setCopied(false)
     setProgress("")
@@ -299,18 +303,22 @@ export function MakePdfSearchableTool() {
               <p className="text-sm text-muted-foreground">{error}</p>
             </div>
           </div>
-          <div className="px-6 py-4 border-t flex flex-col sm:flex-row gap-3">
-            <Button onClick={reset} variant="outline" className="h-10">
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Try Another File
-            </Button>
-            <Button asChild className="h-10">
-              <a href="/solutions/document-parsing-api">
-                <Search className="h-4 w-4 mr-2" />
-                Try AI-Powered OCR
-              </a>
-            </Button>
-          </div>
+          {fileTooLarge ? (
+            <FileSizeBridgeBanner toolName="make_pdf_searchable" />
+          ) : (
+            <div className="px-6 py-4 border-t flex flex-col sm:flex-row gap-3">
+              <Button onClick={reset} variant="outline" className="h-10">
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Try Another File
+              </Button>
+              <Button asChild className="h-10">
+                <a href="/solutions/document-parsing-api">
+                  <Search className="h-4 w-4 mr-2" />
+                  Try AI-Powered OCR
+                </a>
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>

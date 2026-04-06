@@ -247,9 +247,44 @@ export function CreateParserDialog({ open, onOpenChange, onCreated }: CreatePars
       if (insertError) throw insertError
       const parserId = (data as any)?.id
 
+      // For AI mode, detect fields from the sample file before extracting
+      if (mode === "ai") {
+        setCreatingStatus("AI is analyzing your document...")
+        const buffer = await sampleFile!.arrayBuffer()
+        const base64 = btoa(
+          new Uint8Array(buffer).reduce(
+            (data, byte) => data + String.fromCharCode(byte),
+            ""
+          )
+        )
+
+        const detectRes = await fetch(`/api/parsers/${parserId}/detect-fields`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            file: { name: sampleFile!.name, type: sampleFile!.type, data: base64 },
+          }),
+        })
+
+        if (!detectRes.ok) {
+          const body = await detectRes.json().catch(() => ({}))
+          throw new Error(body.error ?? "Failed to detect fields")
+        }
+
+        const { fields: detectedFields } = await detectRes.json()
+
+        // Save detected fields to the parser
+        const { error: updateError } = await supabase
+          .from("parsers" as any)
+          .update({ fields: detectedFields } as any)
+          .eq("id", parserId)
+
+        if (updateError) throw updateError
+      }
+
       setCreatingStatus(
         mode === "ai"
-          ? "AI is detecting fields and extracting..."
+          ? "Extracting data with detected fields..."
           : "Uploading and extracting..."
       )
       const extractBody = await uploadFile(parserId, sampleFile!)

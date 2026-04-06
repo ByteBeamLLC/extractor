@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import type { OCRLanguage, OCRProgress } from "@/lib/tools/ocr-utils"
+import { FileSizeBridgeBanner } from "@/components/tools/FileSizeBridgeBanner"
 
 const SUPPORTED_LANGUAGES: Record<OCRLanguage, string> = {
   eng: "English",
@@ -55,6 +56,7 @@ export function PhotoToTextTool() {
   const [extractedText, setExtractedText] = useState<string>("")
   const [confidence, setConfidence] = useState<number>(0)
   const [error, setError] = useState<string | null>(null)
+  const [fileTooLarge, setFileTooLarge] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const [fileName, setFileName] = useState<string | null>(null)
   const [language, setLanguage] = useState<OCRLanguage>("eng")
@@ -71,6 +73,7 @@ export function PhotoToTextTool() {
       }
 
       if (file.size > 20 * 1024 * 1024) {
+        setFileTooLarge(true)
         setError("File too large. Maximum size is 20 MB.")
         setStatus("error")
         return
@@ -147,6 +150,7 @@ export function PhotoToTextTool() {
     setExtractedText("")
     setConfidence(0)
     setError(null)
+    setFileTooLarge(false)
     setFileName(null)
     setProgress(null)
     setCopied(false)
@@ -307,18 +311,22 @@ export function PhotoToTextTool() {
               <p className="text-sm text-muted-foreground">{error}</p>
             </div>
           </div>
-          <div className="px-6 py-4 border-t flex flex-col sm:flex-row gap-3">
-            <Button onClick={reset} variant="outline" className="h-10">
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Try Another File
-            </Button>
-            <Button asChild className="h-10">
-              <a href="/solutions/ai-ocr">
-                <Camera className="h-4 w-4 mr-2" />
-                Try AI-Powered Extraction
-              </a>
-            </Button>
-          </div>
+          {fileTooLarge ? (
+            <FileSizeBridgeBanner toolName="photo_to_text" />
+          ) : (
+            <div className="px-6 py-4 border-t flex flex-col sm:flex-row gap-3">
+              <Button onClick={reset} variant="outline" className="h-10">
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Try Another File
+              </Button>
+              <Button asChild className="h-10">
+                <a href="https://app.parsli.co">
+                  <Camera className="h-4 w-4 mr-2" />
+                  Try Parsli Free
+                </a>
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>

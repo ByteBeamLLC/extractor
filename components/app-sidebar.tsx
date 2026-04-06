@@ -125,7 +125,7 @@ export function AppSidebar() {
         { key: "overview", href: `/parsers/${parser.id}`, icon: FileText, label: "Overview", exact: true },
         { key: "schema", href: `/parsers/${parser.id}/schema`, icon: ListChecks, label: "Fields Schema", badge: parser.fields?.length || null },
         { key: "documents", href: `/parsers/${parser.id}/documents`, icon: Upload, label: "Documents", badge: parser.document_count || null },
-        { key: "export", href: `/parsers/${parser.id}/export`, icon: Share2, label: "Integrations", badge: integrationCount || null },
+        { key: "export", href: `/parsers/${parser.id}/export`, icon: Share2, label: "Exports", badge: integrationCount || null },
         { key: "api", href: `/parsers/${parser.id}/api`, icon: Code, label: "API & Webhooks", badge: apiKeyCount || null },
         { key: "settings", href: `/parsers/${parser.id}/settings`, icon: Settings, label: "Settings" },
       ]

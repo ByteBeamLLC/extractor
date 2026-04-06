@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { FileSizeBridgeBanner } from "@/components/tools/FileSizeBridgeBanner"
 
 type Status = "idle" | "loaded" | "processing" | "done" | "error"
 
@@ -23,6 +24,7 @@ export function PdfPageRemoverTool() {
   const [selectedPages, setSelectedPages] = useState<Set<number>>(new Set())
   const [resultBlob, setResultBlob] = useState<Blob | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [fileTooLarge, setFileTooLarge] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const [fileName, setFileName] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -34,6 +36,7 @@ export function PdfPageRemoverTool() {
       return
     }
     if (f.size > 50 * 1024 * 1024) {
+      setFileTooLarge(true)
       setError("File too large. Maximum size is 50 MB.")
       setStatus("error")
       return
@@ -132,6 +135,7 @@ export function PdfPageRemoverTool() {
     setSelectedPages(new Set())
     setResultBlob(null)
     setError(null)
+    setFileTooLarge(false)
     setFileName(null)
     if (inputRef.current) inputRef.current.value = ""
   }, [])
@@ -309,12 +313,16 @@ export function PdfPageRemoverTool() {
               <p className="text-sm text-muted-foreground">{error}</p>
             </div>
           </div>
-          <div className="px-6 py-4 border-t">
-            <Button onClick={reset} variant="outline" className="h-10">
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Try Another File
-            </Button>
-          </div>
+          {fileTooLarge ? (
+            <FileSizeBridgeBanner toolName="pdf_page_remover" />
+          ) : (
+            <div className="px-6 py-4 border-t">
+              <Button onClick={reset} variant="outline" className="h-10">
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Try Another File
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>

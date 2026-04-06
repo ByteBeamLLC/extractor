@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { analyzeStructure, type StructureSignal } from "@/lib/tools/analyze-structure"
 import { StructureBridgeBanner } from "./StructureBridgeBanner"
+import { FileSizeBridgeBanner } from "@/components/tools/FileSizeBridgeBanner"
 
 const ACCEPTED_TYPES = [
   "image/jpeg",
@@ -87,6 +88,7 @@ export function HandwritingToTextTool() {
   const [status, setStatus] = useState<Status>("idle")
   const [extractedText, setExtractedText] = useState<string>("")
   const [error, setError] = useState<string | null>(null)
+  const [fileTooLarge, setFileTooLarge] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const [fileName, setFileName] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -202,6 +204,7 @@ export function HandwritingToTextTool() {
           error_type: "file_too_large",
           file_type: file.type,
         })
+        setFileTooLarge(true)
         setError("File too large. Maximum size is 20 MB.")
         setStatus("error")
         return
@@ -285,6 +288,7 @@ export function HandwritingToTextTool() {
     setStatus("idle")
     setExtractedText("")
     setError(null)
+    setFileTooLarge(false)
     setFileName(null)
     setCopied(false)
     setPreviewUrl(null)
@@ -511,18 +515,22 @@ export function HandwritingToTextTool() {
               <p className="text-sm text-muted-foreground">{error}</p>
             </div>
           </div>
-          <div className="px-6 py-4 border-t flex flex-col sm:flex-row gap-3">
-            <Button onClick={reset} variant="outline" className="h-10">
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Try Another File
-            </Button>
-            <Button asChild className="h-10">
-              <a href="/solutions/ai-ocr">
-                <PenLine className="h-4 w-4 mr-2" />
-                Try AI-Powered Extraction
-              </a>
-            </Button>
-          </div>
+          {fileTooLarge ? (
+            <FileSizeBridgeBanner toolName="handwriting_to_text" />
+          ) : (
+            <div className="px-6 py-4 border-t flex flex-col sm:flex-row gap-3">
+              <Button onClick={reset} variant="outline" className="h-10">
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Try Another File
+              </Button>
+              <Button asChild className="h-10">
+                <a href="https://app.parsli.co">
+                  <PenLine className="h-4 w-4 mr-2" />
+                  Try Parsli Free
+                </a>
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>

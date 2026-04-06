@@ -8,7 +8,8 @@ export type AnalyticsEventMap = {
   anonymous_converted: {
     user_id: string
     email: string
-    source: "login_page" | "auth_dialog"
+    source: "login_page" | "auth_dialog" | "google_oauth"
+    anon_user_id?: string
   }
   demo_started: { step_id: string }
   demo_completed: { total_steps: number }

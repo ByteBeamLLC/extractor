@@ -5,6 +5,7 @@ import {
   Download,
   FileJson,
   FileSpreadsheet,
+  FileText,
   Loader2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -207,6 +208,37 @@ export function ExportPage({ parser }: ExportPageProps) {
     downloadCsv(headers, rows, parser.name)
   }
 
+  const handleDownloadTXT = () => {
+    const completed = documents.filter((d) => d.results)
+    if (completed.length === 0) return
+
+    const lines = completed.map((doc) => {
+      const { __meta__, ...data } = doc.results!
+      const header = `=== ${doc.file_name} ===`
+      if (isFullContent) {
+        return `${header}\n${data.markdown ?? JSON.stringify(data, null, 2)}`
+      }
+      const fields = Object.entries(data)
+        .map(([key, val]) => {
+          const name = resolveFieldName(key)
+          if (val === null || val === undefined || val === "-") return `${name}: —`
+          if (Array.isArray(val)) return `${name}: ${val.map((v) => typeof v === "object" ? JSON.stringify(v) : v).join(", ")}`
+          if (typeof val === "object") return `${name}: ${JSON.stringify(val)}`
+          return `${name}: ${val}`
+        })
+        .join("\n")
+      return `${header}\n${fields}`
+    })
+
+    const blob = new Blob([lines.join("\n\n")], { type: "text/plain;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `${parser.name.replace(/\s+/g, "_")}_export.txt`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const completedCount = documents.filter((d) => d.results).length
 
   return (
@@ -244,6 +276,10 @@ export function ExportPage({ parser }: ExportPageProps) {
                 <FileJson className="h-4 w-4 mr-2" />
                 JSON
               </Button>
+              <Button variant="outline" onClick={handleDownloadTXT}>
+                <FileText className="h-4 w-4 mr-2" />
+                TXT
+              </Button>
             </div>
           )}
 
@@ -257,7 +293,7 @@ export function ExportPage({ parser }: ExportPageProps) {
       </TourStep>
 
       {/* Integrations Section */}
-      <SignUpGate feature="Integrations">
+      <SignUpGate feature="Exports">
         <div className="border rounded-xl p-6 bg-card">
           <IntegrationList parserId={parser.id} />
         </div>
