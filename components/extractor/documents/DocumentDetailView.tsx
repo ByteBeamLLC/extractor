@@ -64,6 +64,7 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
   const [fileLoading, setFileLoading] = useState(true)
   const [reprocessing, setReprocessing] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [copiedText, setCopiedText] = useState(false)
   const isFullContent = parser.extraction_type === "full_content"
   const [tab, setTab] = useState<"data" | "fields">("data")
 
@@ -159,6 +160,47 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
     await navigator.clipboard.writeText(JSON.stringify(display, null, 2))
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  /** Format results as readable plain text. For full_content, returns the markdown. */
+  const resultsAsText = () => {
+    if (!doc?.results) return ""
+    const { __meta__, ...display } = doc.results
+    if (isFullContent) {
+      return typeof display.markdown === "string" ? display.markdown : JSON.stringify(display, null, 2)
+    }
+    // Fields mode — render as "Field Name: value" lines
+    const fieldNameMap = new Map<string, string>()
+    for (const f of parser.fields ?? []) {
+      if (f.type !== "input") fieldNameMap.set(f.id, f.name)
+    }
+    const resolveName = (id: string) => fieldNameMap.get(id) ?? id
+    return Object.entries(display)
+      .map(([key, val]) => {
+        const name = resolveName(key)
+        if (val === null || val === undefined || val === "-") return `${name}: —`
+        if (Array.isArray(val)) {
+          if (val.length > 0 && typeof val[0] === "object") {
+            const rows = val.map((row, i) => {
+              const lines = Object.entries(row).map(([k, v]) => `  ${k}: ${v}`).join("\n")
+              return `  [${i + 1}]\n${lines}`
+            })
+            return `${name}:\n${rows.join("\n")}`
+          }
+          return `${name}: ${val.join(", ")}`
+        }
+        if (typeof val === "object") return `${name}: ${JSON.stringify(val)}`
+        return `${name}: ${val}`
+      })
+      .join("\n")
+  }
+
+  const handleCopyText = async () => {
+    const text = resultsAsText()
+    if (!text) return
+    await navigator.clipboard.writeText(text)
+    setCopiedText(true)
+    setTimeout(() => setCopiedText(false), 2000)
   }
 
   if (loading) {
@@ -319,14 +361,24 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
                 <RotateCcw className={`h-3 w-3 mr-1 ${reprocessing ? "animate-spin" : ""}`} />
                 <span className="hidden sm:inline">{reprocessing ? "Reprocessing..." : "Reprocess"}</span>
               </Button>
-              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleCopyJson} disabled={!displayResults}>
-                {copied ? (
+              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleCopyText} disabled={!displayResults}>
+                {copiedText ? (
                   <Check className="h-3 w-3 mr-1 text-green-600" />
                 ) : (
                   <Copy className="h-3 w-3 mr-1" />
                 )}
-                <span className="hidden sm:inline">{copied ? "Copied" : "Copy JSON"}</span>
+                <span className="hidden sm:inline">{copiedText ? "Copied" : "Copy Text"}</span>
               </Button>
+              {!isFullContent && (
+                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleCopyJson} disabled={!displayResults}>
+                  {copied ? (
+                    <Check className="h-3 w-3 mr-1 text-green-600" />
+                  ) : (
+                    <Copy className="h-3 w-3 mr-1" />
+                  )}
+                  <span className="hidden sm:inline">{copied ? "Copied" : "Copy JSON"}</span>
+                </Button>
+              )}
             </div>
           </div>
 
