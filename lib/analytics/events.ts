@@ -210,6 +210,22 @@ export type AnalyticsEventMap = {
     structure_type: string
     lifetime_tool_uses: number
   }
+
+  // ─── Document chat events ───
+  chat_message_sent: {
+    user_id: string
+    parser_id: string
+    document_id: string
+    tool_calls: number
+    tool_names: string[]
+    latency_ms: number
+  }
+  chat_error: {
+    user_id: string
+    parser_id: string
+    document_id: string
+    error: string
+  }
 }
 
 export type AnalyticsEvent = keyof AnalyticsEventMap

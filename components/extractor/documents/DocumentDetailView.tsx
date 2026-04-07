@@ -24,10 +24,12 @@ import {
   Copy,
   Check,
   FileWarning,
+  Sparkles,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { DocumentChat } from "@/components/extractor/chat/DocumentChat"
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
 import type { Parser, ProcessedDocument } from "@/lib/extractor/types"
 import type { SchemaField } from "@/lib/schema"
@@ -66,7 +68,7 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
   const [copied, setCopied] = useState(false)
   const [copiedText, setCopiedText] = useState(false)
   const isFullContent = parser.extraction_type === "full_content"
-  const [tab, setTab] = useState<"data" | "fields">("data")
+  const [tab, setTab] = useState<"data" | "fields" | "chat">("data")
 
   // Load document
   const loadDocument = useCallback(async () => {
@@ -342,91 +344,105 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
         <div className="w-full md:w-1/2 flex flex-col min-h-0">
           {/* Actions bar */}
           <div className="px-4 py-2 border-b bg-card flex items-center justify-between shrink-0 gap-2 flex-wrap">
-            <Tabs value={tab} onValueChange={(v) => setTab(v as "data" | "fields")}>
+            <Tabs value={tab} onValueChange={(v) => setTab(v as "data" | "fields" | "chat")}>
               <TabsList className="h-8">
                 <TabsTrigger value="data" className="text-xs h-7">Data</TabsTrigger>
                 {!isFullContent && (
                   <TabsTrigger value="fields" className="text-xs h-7">Fields</TabsTrigger>
                 )}
+                <TabsTrigger value="chat" className="text-xs h-7 gap-1">
+                  <Sparkles className="h-3 w-3" />
+                  Chat
+                </TabsTrigger>
               </TabsList>
             </Tabs>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs"
-                onClick={handleReprocess}
-                disabled={reprocessing || !fileUrl}
-              >
-                <RotateCcw className={`h-3 w-3 mr-1 ${reprocessing ? "animate-spin" : ""}`} />
-                <span className="hidden sm:inline">{reprocessing ? "Reprocessing..." : "Reprocess"}</span>
-              </Button>
-              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleCopyText} disabled={!displayResults}>
-                {copiedText ? (
-                  <Check className="h-3 w-3 mr-1 text-green-600" />
-                ) : (
-                  <Copy className="h-3 w-3 mr-1" />
-                )}
-                <span className="hidden sm:inline">{copiedText ? "Copied" : "Copy Text"}</span>
-              </Button>
-              {!isFullContent && (
-                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleCopyJson} disabled={!displayResults}>
-                  {copied ? (
+            {tab !== "chat" && (
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={handleReprocess}
+                  disabled={reprocessing || !fileUrl}
+                >
+                  <RotateCcw className={`h-3 w-3 mr-1 ${reprocessing ? "animate-spin" : ""}`} />
+                  <span className="hidden sm:inline">{reprocessing ? "Reprocessing..." : "Reprocess"}</span>
+                </Button>
+                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleCopyText} disabled={!displayResults}>
+                  {copiedText ? (
                     <Check className="h-3 w-3 mr-1 text-green-600" />
                   ) : (
                     <Copy className="h-3 w-3 mr-1" />
                   )}
-                  <span className="hidden sm:inline">{copied ? "Copied" : "Copy JSON"}</span>
+                  <span className="hidden sm:inline">{copiedText ? "Copied" : "Copy Text"}</span>
                 </Button>
-              )}
-            </div>
+                {!isFullContent && (
+                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleCopyJson} disabled={!displayResults}>
+                    {copied ? (
+                      <Check className="h-3 w-3 mr-1 text-green-600" />
+                    ) : (
+                      <Copy className="h-3 w-3 mr-1" />
+                    )}
+                    <span className="hidden sm:inline">{copied ? "Copied" : "Copy JSON"}</span>
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Results content */}
-          <div className="flex-1 overflow-auto min-h-0">
-            {doc.status === "error" && (
-              <div className="m-4 flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                {doc.error_message || "Extraction failed"}
-              </div>
-            )}
-
-            {displayResults && tab === "data" && (
-              <DataView results={displayResults} isFullContent={isFullContent} />
-            )}
-
-            {tab === "fields" && (
-              <FieldsView
-                fields={parser.fields}
-                results={displayResults}
-                enrichingFields={doc.enriching_fields ?? undefined}
-              />
-            )}
-
-            {!displayResults && doc.status !== "error" && (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-sm text-muted-foreground">No extraction results yet</p>
-              </div>
-            )}
-          </div>
-
-          {/* Bottom feedback bar */}
-          <div className="border-t px-4 py-3 bg-card shrink-0">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-primary shrink-0" />
-              <p className="text-xs text-muted-foreground flex-1">
-                {isFullContent
-                  ? "Not the data you were looking for? Add custom extraction instructions."
-                  : "Not the data you were looking for? Update your fields and instructions."}
-              </p>
-              <Button size="sm" variant="default" className="h-7 text-xs shrink-0" asChild>
-                <Link href={`/parsers/${parser.id}/schema`}>
-                  <Pencil className="h-3 w-3 mr-1" />
-                  {isFullContent ? "Instructions" : "Update fields"}
-                </Link>
-              </Button>
+          {tab === "chat" ? (
+            <div className="flex-1 min-h-0">
+              <DocumentChat parser={parser} doc={doc} />
             </div>
-          </div>
+          ) : (
+            <div className="flex-1 overflow-auto min-h-0">
+              {doc.status === "error" && (
+                <div className="m-4 flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  {doc.error_message || "Extraction failed"}
+                </div>
+              )}
+
+              {displayResults && tab === "data" && (
+                <DataView results={displayResults} isFullContent={isFullContent} />
+              )}
+
+              {tab === "fields" && (
+                <FieldsView
+                  fields={parser.fields}
+                  results={displayResults}
+                  enrichingFields={doc.enriching_fields ?? undefined}
+                />
+              )}
+
+              {!displayResults && doc.status !== "error" && (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-sm text-muted-foreground">No extraction results yet</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Bottom feedback bar — hidden in chat mode (chat has its own composer) */}
+          {tab !== "chat" && (
+            <div className="border-t px-4 py-3 bg-card shrink-0">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-primary shrink-0" />
+                <p className="text-xs text-muted-foreground flex-1">
+                  {isFullContent
+                    ? "Not the data you were looking for? Add custom extraction instructions."
+                    : "Not the data you were looking for? Update your fields and instructions."}
+                </p>
+                <Button size="sm" variant="default" className="h-7 text-xs shrink-0" asChild>
+                  <Link href={`/parsers/${parser.id}/schema`}>
+                    <Pencil className="h-3 w-3 mr-1" />
+                    {isFullContent ? "Instructions" : "Update fields"}
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

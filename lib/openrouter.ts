@@ -398,3 +398,224 @@ export async function generateFreeformJson(
 export function isOpenRouterConfigured(): boolean {
     return !!(process.env.OPENROUTER_API_KEY && process.env.OPENROUTER_MODEL)
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tool / function calling
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Used by the document chat feature. Supports OpenAI-style function calling
+// via OpenRouter (which forwards transparently to the underlying provider).
+// Runs a server-side tool execution loop: model proposes tool calls →
+// handlers run in parallel → results are appended → model is called again →
+// repeat until the model returns a plain text answer or hits maxIterations.
+
+interface OpenRouterToolDefinition {
+    type: 'function'
+    function: {
+        name: string
+        description: string
+        parameters: Record<string, unknown>
+    }
+}
+
+interface OpenRouterToolCall {
+    id: string
+    type: 'function'
+    function: {
+        name: string
+        arguments: string
+    }
+}
+
+interface OpenRouterChatMessage {
+    role: 'user' | 'assistant' | 'system' | 'tool'
+    content: string | null
+    tool_calls?: OpenRouterToolCall[]
+    tool_call_id?: string
+    name?: string
+}
+
+export interface ChatToolForRouter {
+    definition: {
+        name: string
+        description: string
+        parameters: Record<string, unknown>
+    }
+    handler: (
+        args: Record<string, unknown>,
+    ) => Promise<
+        { ok: true; result: unknown } | { ok: false; error: string }
+    >
+}
+
+export interface ToolCallExecutionRecord {
+    name: string
+    args: Record<string, unknown>
+    result: unknown
+    ok: boolean
+    error?: string
+}
+
+interface GenerateChatWithToolsOptions {
+    /** Model id (e.g. 'openai/gpt-4.1-mini'). Falls back to OPENROUTER_MODEL env var. */
+    model?: string
+    /** System prompt — sent as the first message. */
+    system: string
+    /** User/assistant turns so far. The function appends the new exchange itself. */
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>
+    /** Available tools. Names must be unique. */
+    tools: ChatToolForRouter[]
+    /** Max tool-loop rounds before giving up. Default 5. */
+    maxIterations?: number
+    /** Default 0.2 — chat over structured data should be deterministic. */
+    temperature?: number
+    /** Per-request fetch timeout in ms. */
+    timeoutMs?: number
+    /** Absolute deadline (Date.now()-based). */
+    deadlineMs?: number
+    /**
+     * Provider routing override. By default `fetchOpenRouterWithRetry` injects
+     * the Google provider order; pass e.g. `{ order: ['openai'], allow_fallbacks: true }`
+     * to route to OpenAI models instead.
+     */
+    provider?: { order?: string[]; allow_fallbacks?: boolean }
+}
+
+/**
+ * Run a chat completion with function calling and an automatic tool execution loop.
+ *
+ * Returns the final assistant text plus a record of every tool call that was
+ * executed along the way (so the caller can surface them in the UI).
+ *
+ * Throws if the model is still calling tools after `maxIterations` rounds — that
+ * usually means the model is stuck in a loop and the caller should bail.
+ */
+export async function generateChatWithTools(
+    options: GenerateChatWithToolsOptions,
+): Promise<{ text: string; toolCallsMade: ToolCallExecutionRecord[] }> {
+    const model = getModel(options.model)
+    const maxIterations = options.maxIterations ?? 5
+    const temperature = options.temperature ?? 0.2
+
+    const routerTools: OpenRouterToolDefinition[] = options.tools.map((t) => ({
+        type: 'function',
+        function: {
+            name: t.definition.name,
+            description: t.definition.description,
+            parameters: t.definition.parameters,
+        },
+    }))
+    const handlers = new Map(
+        options.tools.map((t) => [t.definition.name, t.handler] as const),
+    )
+
+    const conversation: OpenRouterChatMessage[] = [
+        { role: 'system', content: options.system },
+        ...options.messages.map(
+            (m) => ({ role: m.role, content: m.content }) as OpenRouterChatMessage,
+        ),
+    ]
+
+    const toolCallsMade: ToolCallExecutionRecord[] = []
+
+    for (let iteration = 0; iteration < maxIterations; iteration++) {
+        const body: Record<string, unknown> = {
+            model,
+            messages: conversation,
+            temperature,
+            tools: routerTools,
+            tool_choice: 'auto',
+        }
+        if (options.provider) {
+            body.provider = options.provider
+        }
+
+        const { data } = await fetchOpenRouterWithRetry(body, {
+            timeoutMs: options.timeoutMs,
+            deadlineMs: options.deadlineMs,
+        })
+
+        const choice = data.choices?.[0]
+        if (!choice) {
+            throw new Error('OpenRouter returned no choices')
+        }
+
+        const message = choice.message ?? {}
+        const toolCalls: OpenRouterToolCall[] = message.tool_calls ?? []
+
+        // No tool calls → model produced its final answer.
+        if (toolCalls.length === 0) {
+            const text = typeof message.content === 'string' ? message.content : ''
+            return { text, toolCallsMade }
+        }
+
+        // Echo the assistant's tool-call message back into the conversation.
+        // The OpenAI/OpenRouter contract requires this BEFORE the tool replies.
+        conversation.push({
+            role: 'assistant',
+            content: typeof message.content === 'string' ? message.content : null,
+            tool_calls: toolCalls,
+        })
+
+        // Run every tool call in parallel.
+        const executions = await Promise.all(
+            toolCalls.map(async (call) => {
+                const record: ToolCallExecutionRecord = {
+                    name: call.function.name,
+                    args: {},
+                    result: null,
+                    ok: false,
+                }
+
+                let parsedArgs: Record<string, unknown> = {}
+                try {
+                    parsedArgs = call.function.arguments
+                        ? JSON.parse(call.function.arguments)
+                        : {}
+                } catch (err) {
+                    record.error = `Invalid tool arguments JSON: ${
+                        err instanceof Error ? err.message : String(err)
+                    }`
+                    return { call, record }
+                }
+                record.args = parsedArgs
+
+                const handler = handlers.get(call.function.name)
+                if (!handler) {
+                    record.error = `Unknown tool: ${call.function.name}`
+                    return { call, record }
+                }
+
+                try {
+                    const handlerResult = await handler(parsedArgs)
+                    if (handlerResult.ok) {
+                        record.ok = true
+                        record.result = handlerResult.result
+                    } else {
+                        record.error = handlerResult.error
+                    }
+                } catch (err) {
+                    record.error = err instanceof Error ? err.message : String(err)
+                }
+                return { call, record }
+            }),
+        )
+
+        for (const { call, record } of executions) {
+            toolCallsMade.push(record)
+            const toolResponseBody = record.ok
+                ? { result: record.result }
+                : { error: record.error ?? 'Unknown error' }
+            conversation.push({
+                role: 'tool',
+                tool_call_id: call.id,
+                name: call.function.name,
+                content: JSON.stringify(toolResponseBody),
+            })
+        }
+    }
+
+    throw new Error(
+        `Tool loop exceeded ${maxIterations} iterations without a final answer`,
+    )
+}
