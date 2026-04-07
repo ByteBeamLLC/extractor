@@ -9,6 +9,8 @@ import { TourProvider } from "@/components/tour/TourProvider"
 import { AnalyticsIdentifier } from "@/components/providers/AnalyticsIdentifier"
 import { SignupConversionTracker } from "@/components/providers/SignupConversionTracker"
 import { AnonymousAuthGuard } from "@/components/auth/AnonymousAuthGuard"
+import { NotificationAttributionTracker } from "@/components/notifications/NotificationAttributionTracker"
+import { TimezoneCapture } from "@/components/notifications/TimezoneCapture"
 import {
   SidebarProvider,
   SidebarInset,
@@ -34,6 +36,8 @@ export default async function AppLayout({
       <SupabaseProvider initialSession={session}>
         <AnalyticsIdentifier />
         <SignupConversionTracker />
+        <NotificationAttributionTracker />
+        <TimezoneCapture />
         <AuthDialogProvider>
           <AnonymousAuthGuard>
           <ActiveParserProvider>

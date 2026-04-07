@@ -127,6 +127,9 @@ export interface ExtractorSubscription {
   api_access: boolean
   stripe_customer_id: string | null
   stripe_subscription_id: string | null
+  notification_email_enabled: boolean
+  notification_push_enabled: boolean
+  timezone: string
   created_at: string
   updated_at: string
 }

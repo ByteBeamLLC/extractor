@@ -256,6 +256,133 @@ export async function POST(request: NextRequest) {
     })
   }
 
+  // --- Two-stage re-engagement: schedule email + fire push ---
+  //
+  // The user may have navigated away during extraction. Two channels:
+  //   1. Email — scheduled t+5 min, deduped at send time by checking
+  //      `push_clicked_at` / `email_clicked_at` on the same nid row.
+  //   2. Push  — fired synchronously; the service worker suppresses the
+  //      OS notification if a tab is currently focused on the doc page.
+  //
+  // Both channels share a single `nid` UUID so the click attribution
+  // endpoint can flip the matching dedupe row regardless of channel.
+  //
+  // MUST NOT throw — extraction completion is the source of truth; this
+  // entire block is best-effort and never rolls back a successful extraction.
+  if (finalStatus === "completed") {
+    try {
+      // Default email ON, push OFF (push is opt-in via the settings toggle)
+      const { data: subRow } = await supabase
+        .from("extractor_subscriptions")
+        .select("notification_email_enabled, notification_push_enabled")
+        .eq("user_id", doc.user_id)
+        .maybeSingle()
+
+      const sub = subRow as
+        | {
+            notification_email_enabled?: boolean
+            notification_push_enabled?: boolean
+          }
+        | null
+      const emailEnabled = sub?.notification_email_enabled ?? true
+      const pushEnabled = sub?.notification_push_enabled ?? false
+
+      if (emailEnabled || pushEnabled) {
+        const nid = crypto.randomUUID()
+        const baseUrl =
+          process.env.NEXT_PUBLIC_APP_URL || "https://app.parsli.co"
+        const fileName = doc.file_name ?? "your document"
+
+        // ─── Email (Phase 1): schedule t+5 min ───
+        if (emailEnabled) {
+          const scheduledFor = new Date(Date.now() + 5 * 60 * 1000)
+          const { error: insertErr } = await supabase
+            .from("notification_emails")
+            .insert({
+              nid,
+              user_id: doc.user_id,
+              document_id: documentId,
+              parser_id: parser.id,
+              scheduled_for: scheduledFor.toISOString(),
+              is_first_value: isFirstDocument,
+              status: "pending",
+            })
+
+          if (insertErr) {
+            console.warn(
+              `[process-document] Failed to schedule notification email:`,
+              insertErr
+            )
+          } else {
+            trackServerEvent("notification_scheduled", {
+              distinct_id: doc.user_id,
+              user_id: doc.user_id,
+              nid,
+              channel: "email",
+              document_id: documentId,
+              parser_id: parser.id,
+              is_first_value: isFirstDocument,
+              extraction_type: extractionType,
+            })
+          }
+        }
+
+        // ─── Push (Phase 2): fire immediately ───
+        if (pushEnabled) {
+          const { sendPushToUser } = await import("@/lib/push/webPush")
+          const pushUrl =
+            `${baseUrl}/parsers/${parser.id}/documents/${documentId}` +
+            `?utm_source=push&utm_medium=notification&utm_campaign=extraction_ready&nid=${nid}`
+
+          try {
+            const pushResult = await sendPushToUser(
+              doc.user_id,
+              {
+                nid,
+                title: "Your data is ready",
+                body: `${fileName} — extraction complete`,
+                url: pushUrl,
+                documentId,
+              },
+              supabase
+            )
+            if (pushResult.sent > 0) {
+              trackServerEvent("notification_sent", {
+                distinct_id: doc.user_id,
+                user_id: doc.user_id,
+                nid,
+                channel: "push",
+                document_id: documentId,
+                parser_id: parser.id,
+                is_first_value: isFirstDocument,
+                extraction_type: extractionType,
+              })
+            }
+          } catch (pushErr) {
+            console.warn(
+              "[process-document] Push send failed (non-fatal):",
+              pushErr
+            )
+          }
+        }
+      }
+    } catch (err) {
+      console.error(
+        "[process-document] Notification scheduling failed (non-fatal):",
+        err
+      )
+      reportError(err, {
+        route: "/api/internal/process-document",
+        userId: doc.user_id,
+        extra: {
+          documentId,
+          parserId: parser.id,
+          stage: "schedule_notification",
+        },
+      })
+    }
+  }
+
   // --- Deliver to integrations (non-blocking) ---
   if (finalStatus === "completed") {
     deliverToIntegrations(

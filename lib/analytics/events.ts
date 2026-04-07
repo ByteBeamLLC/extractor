@@ -64,6 +64,35 @@ export type AnalyticsEventMap = {
     word_count: number
     duration_ms: number
     error_type?: string
+    model_used?: string
+    doc_type?: string
+    language?: string
+  }
+
+  // Handwriting → app bridge funnel
+  hwt_bridge_starter_clicked: {
+    doc_type: string
+    language: string
+    chip_index: number
+  }
+  hwt_bridge_provisioned: {
+    distinct_id: string
+    user_id: string
+    parser_id: string
+    document_id: string
+    doc_type: string
+    language: string
+    is_anonymous: boolean
+    duration_ms: number
+  }
+  hwt_bridge_followup_sent: {
+    parser_id: string
+    document_id: string
+    doc_type: string
+  }
+  hwt_bridge_handoff_consumed: {
+    parser_id: string
+    document_id: string
   }
 
   // ─── Lifecycle events ───
@@ -225,6 +254,57 @@ export type AnalyticsEventMap = {
     parser_id: string
     document_id: string
     error: string
+  }
+
+  // ─── Extraction-ready re-engagement notifications ───
+  // Funnel: scheduled → sent → clicked. The `nid` UUID ties all stages
+  // of the same notification together across channels (push + email).
+
+  // Server: fired from process-document worker when extraction completes
+  // and we insert a pending email job (and, in Phase 2, send a push).
+  notification_scheduled: {
+    user_id: string
+    nid: string
+    channel: "email" | "push"
+    document_id: string
+    parser_id: string
+    is_first_value: boolean
+    extraction_type: string
+  }
+
+  // Server: fired from cron when an email actually goes out.
+  notification_sent: {
+    user_id: string
+    nid: string
+    channel: "email" | "push"
+    document_id: string
+    parser_id: string
+    is_first_value: boolean
+    extraction_type: string
+  }
+
+  // Server: fired from cron when an email is suppressed by dedupe rules
+  // (push already clicked, user already returned, frequency cap, etc.).
+  notification_suppressed: {
+    user_id: string
+    nid: string
+    channel: "email" | "push"
+    document_id: string
+    parser_id: string
+    reason:
+      | "push_clicked"
+      | "email_clicked"
+      | "user_disabled"
+      | "expired"
+  }
+
+  // Client: fired when a user lands on the app with `?nid=...` in the URL.
+  // Captures the channel from `utm_source` so the funnel splits cleanly.
+  notification_clicked: {
+    user_id: string
+    nid: string
+    channel: "email" | "push"
+    document_id?: string
   }
 }
 
