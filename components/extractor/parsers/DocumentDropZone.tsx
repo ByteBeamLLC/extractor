@@ -418,6 +418,9 @@ export function DocumentDropZone({ parsers, onParserCreated }: DocumentDropZoneP
                 Drop a file here, or{" "}
                 <span className="text-[#2782ff] font-semibold hover:underline">browse</span>
               </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                then select an existing parser or create a new one
+              </p>
             </div>
           )}
 
