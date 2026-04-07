@@ -30,6 +30,18 @@ export interface RunCronOptions {
   userId?: string
   /** Override the batch size. */
   limit?: number
+  /**
+   * Skip the 22:00–07:00 local quiet-hours defer. Used by the manual
+   * flush endpoint — if a user explicitly clicks "send now," they don't
+   * want the cron to silently push it to tomorrow morning.
+   */
+  skipQuietHours?: boolean
+  /**
+   * Ignore the `scheduled_for <= now()` filter so rows scheduled for the
+   * future are also picked up. Used by the manual flush endpoint so rows
+   * that were previously deferred (e.g. by quiet hours) are flushed too.
+   */
+  ignoreSchedule?: boolean
 }
 
 export interface RunCronSummary {
@@ -67,9 +79,12 @@ export async function runEmailCron(
     .from("notification_emails")
     .select("*")
     .eq("status", "pending")
-    .lte("scheduled_for", new Date().toISOString())
     .order("scheduled_for", { ascending: true })
     .limit(options.limit ?? BATCH_SIZE)
+
+  if (!options.ignoreSchedule) {
+    query = query.lte("scheduled_for", new Date().toISOString())
+  }
 
   if (options.userId) {
     query = query.eq("user_id", options.userId)
@@ -89,7 +104,9 @@ export async function runEmailCron(
   for (const job of jobs as any[]) {
     summary.processed++
     try {
-      const outcome = await processJob(job, supabase)
+      const outcome = await processJob(job, supabase, {
+        skipQuietHours: options.skipQuietHours === true,
+      })
       summary[outcome]++
     } catch (err) {
       summary.failed++
@@ -106,7 +123,11 @@ export async function runEmailCron(
   return summary
 }
 
-async function processJob(job: any, supabase: SupabaseClient): Promise<JobOutcome> {
+async function processJob(
+  job: any,
+  supabase: SupabaseClient,
+  jobOptions: { skipQuietHours: boolean } = { skipQuietHours: false }
+): Promise<JobOutcome> {
   // 1. Dedupe — already returned via push or email
   if (job.push_clicked_at) {
     await markSuppressed(supabase, job, "push_clicked")
@@ -154,9 +175,9 @@ async function processJob(job: any, supabase: SupabaseClient): Promise<JobOutcom
     return "suppressed"
   }
 
-  // 5. Quiet hours — defer until 8am local
+  // 5. Quiet hours — defer until 8am local (unless caller opted out)
   const tz = typedSub?.timezone || "UTC"
-  if (isInQuietHours(tz)) {
+  if (!jobOptions.skipQuietHours && isInQuietHours(tz)) {
     const newScheduledFor = deferUntilMorning(tz)
     await supabase
       .from("notification_emails")
