@@ -441,13 +441,33 @@ export function DocumentDropZone({ parsers, onParserCreated }: DocumentDropZoneP
               <button
                 onClick={() => { setShowCreateMenu(false); setShowDropdown(!showDropdown) }}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[0.94rem] font-semibold bg-[#2782ff]/10 text-[#2782ff] hover:bg-[#2782ff]/15 transition-colors",
-                  file && !selectedParser && !pendingMode && "animate-pulse ring-2 ring-[#2782ff]/30"
+                  "relative overflow-hidden flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[0.94rem] font-semibold transition-colors",
+                  file && !selectedParser && !pendingMode 
+                    ? "bg-[#2782ff] text-white" 
+                    : "bg-[#2782ff]/10 text-[#2782ff] hover:bg-[#2782ff]/15"
                 )}
               >
+                {/* Aggressive pulse from the middle spread across */}
+                {file && !selectedParser && !pendingMode && (
+                  <span 
+                    className="absolute inset-0 block bg-white/30 rounded-lg pointer-events-none mix-blend-overlay"
+                    style={{
+                      animation: "spread-pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite"
+                    }}
+                  />
+                )}
+                <style dangerouslySetInnerHTML={{__html: `
+                  @keyframes spread-pulse {
+                    0% { transform: scaleX(0); opacity: 1; }
+                    100% { transform: scaleX(1); opacity: 0; }
+                  }
+                `}} />
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ background: displayColor }} />
                 <span className="max-w-[180px] truncate">{displayName}</span>
-                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground/60" />
+                <ChevronDown className={cn(
+                  "h-3.5 w-3.5",
+                  file && !selectedParser && !pendingMode ? "text-white/80" : "text-muted-foreground/60"
+                )} />
               </button>
 
               {/* Parser dropdown */}
