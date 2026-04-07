@@ -361,7 +361,7 @@ export function DocumentDropZone({ parsers, onParserCreated }: DocumentDropZoneP
         ? pendingParserName || "AI fields"
         : pendingMode === "manual"
           ? pendingParserName || "Custom fields"
-          : "Parser"
+          : "Choose Parser"
 
   const displayColor = selectedParser
     ? getParserColor(selectedParser.name)
@@ -437,7 +437,7 @@ export function DocumentDropZone({ parsers, onParserCreated }: DocumentDropZoneP
             <div className="relative">
               <button
                 onClick={() => { setShowCreateMenu(false); setShowDropdown(!showDropdown) }}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[0.94rem] font-semibold text-foreground hover:bg-muted/60 transition-colors"
               >
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ background: displayColor }} />
                 <span className="max-w-[180px] truncate">{displayName}</span>
