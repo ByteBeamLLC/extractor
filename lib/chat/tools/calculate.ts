@@ -5,9 +5,16 @@
  * LLMs hallucinate math, especially decimal/multi-step operations, so we
  * never trust the model's own arithmetic — even for trivial cases.
  *
- * Security: we use mathjs's recommended sandboxing pattern, disabling
- * `import`, `createUnit`, `evaluate`, `parse`, `simplify`, and `derivative`
- * inside expressions to prevent arbitrary code execution.
+ * Security: we override only the two functions that genuinely allow
+ * arbitrary code execution: `import` (loads JS modules into the math
+ * namespace) and `createUnit` (historically exploited for code injection).
+ *
+ * IMPORTANT: do NOT also override `evaluate`, `parse`, `simplify`, or
+ * `derivative` here. Although the mathjs security docs list them as
+ * defense-in-depth candidates, `math.import({ evaluate: fn }, ...)`
+ * REPLACES `math.evaluate` itself, which breaks the top-level entry point
+ * we use to run expressions. The two-function override below is the
+ * actual safe minimum.
  */
 
 import { all, create } from "mathjs"
@@ -15,8 +22,6 @@ import type { ChatTool } from "@/lib/chat/types"
 
 const math = create(all)
 
-// Lock down the math instance — disable functions that could execute
-// arbitrary code or define new functions inside an expression.
 math.import(
   {
     import: function () {
@@ -24,18 +29,6 @@ math.import(
     },
     createUnit: function () {
       throw new Error("Function 'createUnit' is disabled inside expressions")
-    },
-    evaluate: function () {
-      throw new Error("Function 'evaluate' is disabled inside expressions")
-    },
-    parse: function () {
-      throw new Error("Function 'parse' is disabled inside expressions")
-    },
-    simplify: function () {
-      throw new Error("Function 'simplify' is disabled inside expressions")
-    },
-    derivative: function () {
-      throw new Error("Function 'derivative' is disabled inside expressions")
     },
   },
   { override: true }
