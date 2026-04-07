@@ -2,11 +2,30 @@
 
 import { useEffect, useState } from "react"
 import Image from "next/image"
-import { CheckCircle2, Loader2 } from "lucide-react"
+import {
+  CheckCircle2,
+  Loader2,
+  Sheet,
+  Zap,
+  FileSpreadsheet,
+  Webhook,
+  Workflow,
+  type LucideIcon,
+} from "lucide-react"
 
 /* ------------------------------------------------------------------ */
 /*  Slide data — REAL extraction results from each document            */
 /* ------------------------------------------------------------------ */
+interface Destination {
+  name: string
+  kind: string
+  icon: LucideIcon
+  /** Tailwind text color class for the icon */
+  iconClass: string
+  /** Tailwind bg class for the icon chip */
+  chipClass: string
+}
+
 interface Slide {
   image: string
   alt: string
@@ -15,6 +34,45 @@ interface Slide {
   mode: "fields" | "text"
   fields?: { label: string; value: string }[]
   fullText?: string
+  destination: Destination
+}
+
+const DESTINATIONS: Record<string, Destination> = {
+  sheets: {
+    name: "Google Sheets",
+    kind: "SPREADSHEET",
+    icon: Sheet,
+    iconClass: "text-emerald-600",
+    chipClass: "bg-emerald-50",
+  },
+  zapier: {
+    name: "Zapier",
+    kind: "AUTOMATION",
+    icon: Zap,
+    iconClass: "text-orange-500",
+    chipClass: "bg-orange-50",
+  },
+  excel: {
+    name: "Excel",
+    kind: "DOWNLOAD",
+    icon: FileSpreadsheet,
+    iconClass: "text-emerald-700",
+    chipClass: "bg-emerald-50",
+  },
+  webhook: {
+    name: "Webhook",
+    kind: "CUSTOM APP",
+    icon: Webhook,
+    iconClass: "text-primary",
+    chipClass: "bg-primary/10",
+  },
+  make: {
+    name: "Make",
+    kind: "AUTOMATION",
+    icon: Workflow,
+    iconClass: "text-violet-600",
+    chipClass: "bg-violet-50",
+  },
 }
 
 const slides: Slide[] = [
@@ -32,6 +90,7 @@ const slides: Slide[] = [
       { label: "Tax", value: "$9.06 (6.25%)" },
       { label: "Total", value: "$154.06" },
     ],
+    destination: DESTINATIONS.sheets,
   },
   {
     image: "/samples/bol.png",
@@ -47,6 +106,7 @@ const slides: Slide[] = [
       { label: "Carrier", value: "Voyages Carriers — Trailer 986" },
       { label: "Total", value: "100 packages / 450 KG / £1,903" },
     ],
+    destination: DESTINATIONS.webhook,
   },
   {
     image: "/samples/email.png",
@@ -62,6 +122,7 @@ const slides: Slide[] = [
       { label: "Role", value: "Software Engineer — 4 years" },
       { label: "Skills", value: "Python, FastAPI, production systems" },
     ],
+    destination: DESTINATIONS.zapier,
   },
   {
     image: "/samples/survey-doc.png",
@@ -77,6 +138,7 @@ const slides: Slide[] = [
       { label: "Source", value: "Betsy / Sledge" },
       { label: "Weather", value: "Overcast, snow on the ground" },
     ],
+    destination: DESTINATIONS.excel,
   },
   {
     image: "/samples/handwritten-letter.png",
@@ -88,6 +150,7 @@ const slides: Slide[] = [
 It was a pleasure seeing you again at our open house the other week! You're always the first person I think of when I am out networking and building relationships. Please let me know if I can ever be of assistance to you or anyone you know!
 See you soon!
 Diane`,
+    destination: DESTINATIONS.make,
   },
 ]
 
@@ -95,7 +158,8 @@ Diane`,
 const SCAN_MS = 2200
 const REVEAL_STAGGER = 140
 const TYPING_SPEED = 14
-const HOLD_MS = 3500
+const DELIVER_DELAY_MS = 650 // gap between "complete" and the delivery footer appearing
+const HOLD_MS = 4400         // total time the result panel stays up after fields complete
 const TRANSITION_MS = 600
 
 type Phase = "scanning" | "revealing" | "complete" | "transitioning"
@@ -106,6 +170,7 @@ export function AdHeroDemo() {
   const [scanPct, setScanPct] = useState(0)
   const [revealedRows, setRevealedRows] = useState(0)
   const [typedChars, setTypedChars] = useState(0)
+  const [delivered, setDelivered] = useState(false)
 
   const slide = slides[idx]
 
@@ -113,6 +178,7 @@ export function AdHeroDemo() {
   useEffect(() => {
     if (phase !== "scanning") return
     setScanPct(0)
+    setDelivered(false)
     const start = performance.now()
     let raf: number
     function tick(now: number) {
@@ -161,11 +227,15 @@ export function AdHeroDemo() {
     }
   }, [phase, slide])
 
-  /* ---- Complete → hold then transition ---- */
+  /* ---- Complete → trigger delivery, then hold, then transition ---- */
   useEffect(() => {
     if (phase !== "complete") return
-    const t = setTimeout(() => setPhase("transitioning"), HOLD_MS)
-    return () => clearTimeout(t)
+    const deliverT = setTimeout(() => setDelivered(true), DELIVER_DELAY_MS)
+    const holdT = setTimeout(() => setPhase("transitioning"), HOLD_MS)
+    return () => {
+      clearTimeout(deliverT)
+      clearTimeout(holdT)
+    }
   }, [phase])
 
   /* ---- Transition → next slide ---- */
@@ -181,6 +251,7 @@ export function AdHeroDemo() {
   const isComplete = phase === "complete"
   const isTransitioning = phase === "transitioning"
   const showPanel = phase === "revealing" || phase === "complete"
+  const DestinationIcon = slide.destination.icon
 
   return (
     <div className="relative w-full max-w-[480px] mx-auto lg:mx-0 lg:max-w-none">
@@ -318,6 +389,47 @@ export function AdHeroDemo() {
                     )}
                   </div>
                 )}
+              </div>
+
+              {/* Delivery footer — fades in after fields are complete.
+                  Reserves height even when hidden so the panel doesn't jump. */}
+              <div
+                className={`overflow-hidden border-t border-slate-100 transition-all duration-500 ease-out ${
+                  isComplete ? "max-h-20 opacity-100" : "max-h-0 opacity-0"
+                }`}
+              >
+                <div className="flex items-center gap-3 px-4 py-2.5">
+                  <div
+                    className={`flex h-7 w-7 items-center justify-center rounded-md ${slide.destination.chipClass}`}
+                  >
+                    <DestinationIcon
+                      className={`h-4 w-4 ${slide.destination.iconClass}`}
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-[11px] font-semibold text-slate-700 truncate">
+                        {slide.destination.name}
+                      </span>
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                        {slide.destination.kind}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 text-[10px] font-medium">
+                      {delivered ? (
+                        <>
+                          <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                          <span className="text-emerald-600">Delivered</span>
+                        </>
+                      ) : (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                          <span className="text-primary">Sending…</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
