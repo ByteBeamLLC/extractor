@@ -437,7 +437,10 @@ export function DocumentDropZone({ parsers, onParserCreated }: DocumentDropZoneP
             <div className="relative">
               <button
                 onClick={() => { setShowCreateMenu(false); setShowDropdown(!showDropdown) }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[0.94rem] font-semibold bg-[#2782ff]/10 text-[#2782ff] hover:bg-[#2782ff]/15 transition-colors"
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[0.94rem] font-semibold bg-[#2782ff]/10 text-[#2782ff] hover:bg-[#2782ff]/15 transition-colors",
+                  file && !selectedParser && !pendingMode && "animate-pulse ring-2 ring-[#2782ff]/30"
+                )}
               >
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ background: displayColor }} />
                 <span className="max-w-[180px] truncate">{displayName}</span>
