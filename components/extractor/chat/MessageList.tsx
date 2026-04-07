@@ -1,9 +1,9 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import Markdown from "react-markdown"
 import { Calculator, Database, Sparkles } from "lucide-react"
 import type { ChatMessage, ToolCallRecord } from "@/lib/chat/types"
+import { MarkdownContent } from "./MarkdownContent"
 
 interface MessageListProps {
   messages: ChatMessage[]
@@ -60,9 +60,7 @@ function AssistantBubble({
         <Sparkles className="h-3.5 w-3.5 text-white" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-[13px] leading-relaxed text-foreground prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0 prose-headings:mt-2 prose-headings:mb-1">
-          <Markdown>{content}</Markdown>
-        </div>
+        <MarkdownContent>{content}</MarkdownContent>
         {toolCallsMade && toolCallsMade.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
             {toolCallsMade.map((tc, i) => (
