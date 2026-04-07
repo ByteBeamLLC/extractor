@@ -414,9 +414,9 @@ export function DocumentDropZone({ parsers, onParserCreated }: DocumentDropZoneP
               onClick={() => fileInputRef.current?.click()}
             >
               <Cloud className={cn("h-7 w-7 transition-colors", isDragging ? "text-[#2782ff]" : "text-muted-foreground/40")} />
-              <p className="text-sm text-muted-foreground">
+              <p className="text-base font-medium text-foreground">
                 Drop a file here, or{" "}
-                <span className="text-[#2782ff] font-medium hover:underline">browse</span>
+                <span className="text-[#2782ff] font-semibold hover:underline">browse</span>
               </p>
             </div>
           )}
