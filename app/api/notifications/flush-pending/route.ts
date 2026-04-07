@@ -26,15 +26,9 @@ export async function POST() {
   }
 
   const supabase = createSupabaseServiceRoleClient()
-  // Manual trigger bypasses quiet hours AND the `scheduled_for` filter.
-  // If the user is explicitly clicking "send now," defer-until-morning
-  // and future-scheduled rows shouldn't silently get skipped.
-  // The scheduled Vercel Cron still respects both normally.
-  const summary = await runEmailCron(supabase, {
-    userId: user.id,
-    skipQuietHours: true,
-    ignoreSchedule: true,
-  })
+  // Runs the same rules as the scheduled cron, scoped to this user.
+  // Honors quiet hours and scheduled_for — no bypasses.
+  const summary = await runEmailCron(supabase, { userId: user.id })
 
   return NextResponse.json({ ok: true, summary })
 }
