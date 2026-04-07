@@ -2,16 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Image from "next/image"
-import {
-  CheckCircle2,
-  Loader2,
-  Sheet,
-  Zap,
-  FileSpreadsheet,
-  Webhook,
-  Workflow,
-  type LucideIcon,
-} from "lucide-react"
+import { CheckCircle2, Loader2 } from "lucide-react"
 
 /* ------------------------------------------------------------------ */
 /*  Slide data — REAL extraction results from each document            */
@@ -19,11 +10,8 @@ import {
 interface Destination {
   name: string
   kind: string
-  icon: LucideIcon
-  /** Tailwind text color class for the icon */
-  iconClass: string
-  /** Tailwind bg class for the icon chip */
-  chipClass: string
+  /** Path to the brand SVG in /public */
+  iconSrc: string
 }
 
 interface Slide {
@@ -37,41 +25,39 @@ interface Slide {
   destination: Destination
 }
 
+/* Real brand icons — sourced from the producthunt launch deck (24×24 viewBox SVGs).
+   Rendered inside a neutral slate chip; sizing follows the producthunt ratio
+   (icon ≈ 52% of container) so brand colors do the work. */
 const DESTINATIONS: Record<string, Destination> = {
   sheets: {
     name: "Google Sheets",
     kind: "SPREADSHEET",
-    icon: Sheet,
-    iconClass: "text-emerald-600",
-    chipClass: "bg-emerald-50",
+    iconSrc: "/icons/integrations/google-sheets.svg",
   },
   zapier: {
     name: "Zapier",
     kind: "AUTOMATION",
-    icon: Zap,
-    iconClass: "text-orange-500",
-    chipClass: "bg-orange-50",
-  },
-  excel: {
-    name: "Excel",
-    kind: "DOWNLOAD",
-    icon: FileSpreadsheet,
-    iconClass: "text-emerald-700",
-    chipClass: "bg-emerald-50",
-  },
-  webhook: {
-    name: "Webhook",
-    kind: "CUSTOM APP",
-    icon: Webhook,
-    iconClass: "text-primary",
-    chipClass: "bg-primary/10",
+    iconSrc: "/icons/integrations/zapier.svg",
   },
   make: {
     name: "Make",
     kind: "AUTOMATION",
-    icon: Workflow,
-    iconClass: "text-violet-600",
-    chipClass: "bg-violet-50",
+    iconSrc: "/icons/integrations/make.svg",
+  },
+  gdocs: {
+    name: "Google Docs",
+    kind: "DOCUMENT",
+    iconSrc: "/icons/integrations/google-docs.svg",
+  },
+  power: {
+    name: "Power Automate",
+    kind: "AUTOMATION",
+    iconSrc: "/icons/integrations/power-automate.svg",
+  },
+  gmail: {
+    name: "Gmail",
+    kind: "EMAIL",
+    iconSrc: "/icons/integrations/gmail.svg",
   },
 }
 
@@ -106,7 +92,7 @@ const slides: Slide[] = [
       { label: "Carrier", value: "Voyages Carriers — Trailer 986" },
       { label: "Total", value: "100 packages / 450 KG / £1,903" },
     ],
-    destination: DESTINATIONS.webhook,
+    destination: DESTINATIONS.power,
   },
   {
     image: "/samples/email.png",
@@ -138,7 +124,7 @@ const slides: Slide[] = [
       { label: "Source", value: "Betsy / Sledge" },
       { label: "Weather", value: "Overcast, snow on the ground" },
     ],
-    destination: DESTINATIONS.excel,
+    destination: DESTINATIONS.make,
   },
   {
     image: "/samples/handwritten-letter.png",
@@ -150,7 +136,7 @@ const slides: Slide[] = [
 It was a pleasure seeing you again at our open house the other week! You're always the first person I think of when I am out networking and building relationships. Please let me know if I can ever be of assistance to you or anyone you know!
 See you soon!
 Diane`,
-    destination: DESTINATIONS.make,
+    destination: DESTINATIONS.gdocs,
   },
 ]
 
@@ -251,7 +237,6 @@ export function AdHeroDemo() {
   const isComplete = phase === "complete"
   const isTransitioning = phase === "transitioning"
   const showPanel = phase === "revealing" || phase === "complete"
-  const DestinationIcon = slide.destination.icon
 
   return (
     <div className="relative w-full max-w-[480px] mx-auto lg:mx-0 lg:max-w-none">
@@ -399,11 +384,17 @@ export function AdHeroDemo() {
                 }`}
               >
                 <div className="flex items-center gap-3 px-4 py-2.5">
-                  <div
-                    className={`flex h-7 w-7 items-center justify-center rounded-md ${slide.destination.chipClass}`}
-                  >
-                    <DestinationIcon
-                      className={`h-4 w-4 ${slide.destination.iconClass}`}
+                  {/* Brand chip — neutral container, real brand SVG.
+                      Mirrors the producthunt launch deck treatment:
+                      icon ≈ 50% of chip, object-contain so glyphs aren't cropped.
+                      Plain <img> (not next/image) since these are tiny static
+                      SVGs that don't need optimization or dangerouslyAllowSVG. */}
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={slide.destination.iconSrc}
+                      alt={slide.destination.name}
+                      className="h-4 w-4 object-contain"
                     />
                   </div>
                   <div className="min-w-0 flex-1">
