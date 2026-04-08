@@ -216,11 +216,20 @@ async function processJob(
       : undefined
 
   // 8. Build URLs (carry attribution)
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.parsli.co"
+  //
+  // Base URL fallback order: NEXT_PUBLIC_SITE_URL → NEXT_PUBLIC_APP_URL → parsli.co.
+  // Prefer SITE_URL (parsli.co) because that's where user sessions live —
+  // linking to app.parsli.co would drop the user onto a foreign origin with
+  // no cookies and break the "Open in Parsli" click.
+  const baseUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    "https://parsli.co"
   const documentUrl =
     `${baseUrl}/parsers/${job.parser_id}/documents/${job.document_id}` +
     `?utm_source=email&utm_medium=notification&utm_campaign=extraction_ready&nid=${job.nid}`
   const unsubscribeUrl = `${baseUrl}/settings?tab=notifications`
+  const logoUrl = `${baseUrl}/parsli-icon.png`
 
   // 9. Render + send
   const fileName = typedDoc.file_name ?? "your document"
@@ -234,6 +243,7 @@ async function processJob(
     fullPreview,
     fieldCount,
     unsubscribeUrl,
+    logoUrl,
   }
 
   const subject = buildSubject({

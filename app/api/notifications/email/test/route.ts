@@ -25,7 +25,10 @@ export async function POST() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.parsli.co"
+  const baseUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    "https://parsli.co"
 
   const props: ExtractionReadyEmailProps = {
     fileName: "invoice-march.pdf",
@@ -43,6 +46,7 @@ export async function POST() {
     ],
     fieldCount: 6,
     unsubscribeUrl: `${baseUrl}/settings?tab=notifications`,
+    logoUrl: `${baseUrl}/parsli-icon.png`,
   }
 
   const result = await sendEmail({
