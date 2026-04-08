@@ -28,6 +28,7 @@ import typescript from "highlight.js/lib/languages/typescript"
 import xml from "highlight.js/lib/languages/xml"
 import yaml from "highlight.js/lib/languages/yaml"
 import { Check, Copy } from "lucide-react"
+import { copyToClipboard } from "@/lib/clipboard"
 
 // Side-effect import: ships the github-dark code theme. Scoped under
 // the .hljs class so it only affects code blocks rendered here.
@@ -254,13 +255,9 @@ function CodeBlock({ children, language, rawCode }: CodeBlockProps) {
   const [copied, setCopied] = useState(false)
 
   async function handleCopy() {
-    try {
-      await navigator.clipboard.writeText(rawCode)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1800)
-    } catch {
-      // clipboard may be unavailable in some contexts; silently ignore
-    }
+    if (!(await copyToClipboard(rawCode))) return
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1800)
   }
 
   return (

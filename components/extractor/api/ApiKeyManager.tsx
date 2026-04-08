@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dialog"
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
 import type { Parser } from "@/lib/extractor/types"
+import { copyToClipboard } from "@/lib/clipboard"
 
 interface ApiKeyManagerProps {
   parser: Parser
@@ -90,7 +91,7 @@ export function ApiKeyManager({ parser }: ApiKeyManagerProps) {
 
   const handleCopyKey = async () => {
     if (!newPlainKey) return
-    await navigator.clipboard.writeText(newPlainKey)
+    if (!(await copyToClipboard(newPlainKey))) return
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -168,7 +169,7 @@ export function ApiKeyManager({ parser }: ApiKeyManagerProps) {
               variant="outline"
               size="icon"
               onClick={async () => {
-                await navigator.clipboard.writeText(webhookUrl)
+                await copyToClipboard(webhookUrl)
               }}
             >
               <Copy className="h-4 w-4" />

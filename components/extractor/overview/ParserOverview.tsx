@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge"
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
 import { useAuthDialog } from "@/components/auth/AuthDialogContext"
 import type { Parser, ProcessedDocument } from "@/lib/extractor/types"
+import { copyToClipboard } from "@/lib/clipboard"
 import { ParserOnboarding } from "@/components/extractor/onboarding/ParserOnboarding"
 import { TourStep } from "@/components/tour/TourStep"
 import { useTour } from "@/components/tour/TourProvider"
@@ -103,7 +104,7 @@ export function ParserOverview({ parser, onUpdate }: ParserOverviewProps) {
 
   const handleCopyEmail = async () => {
     if (!parser.inbound_email) return
-    await navigator.clipboard.writeText(parser.inbound_email)
+    if (!(await copyToClipboard(parser.inbound_email))) return
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }

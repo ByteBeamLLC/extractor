@@ -19,6 +19,7 @@ import {
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
 import type { Parser } from "@/lib/extractor/types"
 import { generateInboundEmail } from "@/lib/extractor/inbound-email"
+import { copyToClipboard } from "@/lib/clipboard"
 
 interface ParserSettingsProps {
   parser: Parser
@@ -44,7 +45,7 @@ export function ParserSettings({ parser, onUpdate, onDeleted }: ParserSettingsPr
 
   const handleCopyEmail = async () => {
     if (!parser.inbound_email) return
-    await navigator.clipboard.writeText(parser.inbound_email)
+    if (!(await copyToClipboard(parser.inbound_email))) return
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }

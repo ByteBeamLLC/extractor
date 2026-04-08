@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { copyToClipboard } from "@/lib/clipboard"
 import { FileSizeBridgeBanner } from "@/components/tools/FileSizeBridgeBanner"
 
 type Status = "idle" | "processing" | "done" | "error"
@@ -93,7 +94,7 @@ export function PdfToJsonTool() {
   }, [])
 
   const handleCopy = useCallback(async () => {
-    await navigator.clipboard.writeText(jsonOutput)
+    if (!(await copyToClipboard(jsonOutput))) return
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }, [jsonOutput])

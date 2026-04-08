@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { AuthButton } from "@/components/marketing/shared/AuthButton"
 import { cn } from "@/lib/utils"
+import { copyToClipboard } from "@/lib/clipboard"
 import { FileSizeBridgeBanner } from "@/components/tools/FileSizeBridgeBanner"
 
 type Status = "idle" | "processing" | "done" | "error"
@@ -96,7 +97,7 @@ export function InvoiceParserTool() {
   }, [])
 
   const handleCopy = useCallback(async () => {
-    await navigator.clipboard.writeText(extractedText)
+    if (!(await copyToClipboard(extractedText))) return
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }, [extractedText])

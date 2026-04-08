@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { copyToClipboard } from "@/lib/clipboard"
 import type { OCRLanguage, OCRProgress } from "@/lib/tools/ocr-utils"
 import { FileSizeBridgeBanner } from "@/components/tools/FileSizeBridgeBanner"
 
@@ -112,7 +113,7 @@ export function PhotoToTextTool() {
   )
 
   const handleCopy = useCallback(async () => {
-    await navigator.clipboard.writeText(extractedText)
+    if (!(await copyToClipboard(extractedText))) return
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }, [extractedText])

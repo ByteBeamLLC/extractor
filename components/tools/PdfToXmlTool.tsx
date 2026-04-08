@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { copyToClipboard } from "@/lib/clipboard"
 import { FileSizeBridgeBanner } from "@/components/tools/FileSizeBridgeBanner"
 
 type Status = "idle" | "processing" | "done" | "error"
@@ -105,7 +106,7 @@ ${pagesXml}
   }, [])
 
   const handleCopy = useCallback(async () => {
-    await navigator.clipboard.writeText(xmlOutput)
+    if (!(await copyToClipboard(xmlOutput))) return
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }, [xmlOutput])

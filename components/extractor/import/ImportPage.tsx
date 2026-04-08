@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { Parser } from "@/lib/extractor/types"
+import { copyToClipboard } from "@/lib/clipboard"
 import { DocumentUploader } from "@/components/extractor/test/DocumentUploader"
 import { TourStep } from "@/components/tour/TourStep"
 import { SignUpGate } from "@/components/auth/SignUpGate"
@@ -35,14 +36,14 @@ export function ImportPage({ parser }: ImportPageProps) {
 
   const handleCopyEmail = async () => {
     if (!parser.inbound_email) return
-    await navigator.clipboard.writeText(parser.inbound_email)
+    if (!(await copyToClipboard(parser.inbound_email))) return
     setEmailCopied(true)
     setTimeout(() => setEmailCopied(false), 2000)
   }
 
   const handleCopyWebhook = async () => {
     if (!webhookUrl) return
-    await navigator.clipboard.writeText(webhookUrl)
+    if (!(await copyToClipboard(webhookUrl))) return
     setWebhookCopied(true)
     setTimeout(() => setWebhookCopied(false), 2000)
   }

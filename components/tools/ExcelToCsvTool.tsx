@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { copyToClipboard } from "@/lib/clipboard"
 import { FileSizeBridgeBanner } from "@/components/tools/FileSizeBridgeBanner"
 
 type Status = "idle" | "processing" | "done" | "error"
@@ -125,20 +126,9 @@ export function ExcelToCsvTool() {
 
   const handleCopy = useCallback(async () => {
     if (!result) return
-    try {
-      await navigator.clipboard.writeText(result.csv)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      const textarea = document.createElement("textarea")
-      textarea.value = result.csv
-      document.body.appendChild(textarea)
-      textarea.select()
-      document.execCommand("copy")
-      document.body.removeChild(textarea)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
+    if (!(await copyToClipboard(result.csv))) return
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }, [result])
 
   const handleDownload = useCallback(() => {

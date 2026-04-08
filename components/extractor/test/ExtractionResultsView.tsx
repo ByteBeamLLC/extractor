@@ -7,6 +7,7 @@ import { Copy, Check, Code, Table2, Pencil, RotateCcw, Loader2, FileText, Downlo
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { copyToClipboard } from "@/lib/clipboard"
 import type { SchemaField } from "@/lib/schema"
 import type { ExtractionType } from "@/lib/extractor/types"
 
@@ -73,14 +74,14 @@ export function ExtractionResultsView({
 
   const handleCopy = async () => {
     const text = isFullContent ? markdownContent : JSON.stringify(displayResults, null, 2)
-    await navigator.clipboard.writeText(text)
+    if (!(await copyToClipboard(text))) return
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
 
   const [copiedText, setCopiedText] = useState(false)
   const handleCopyText = async () => {
-    await navigator.clipboard.writeText(toPlainText())
+    if (!(await copyToClipboard(toPlainText()))) return
     setCopiedText(true)
     setTimeout(() => setCopiedText(false), 2000)
   }

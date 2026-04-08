@@ -5,6 +5,7 @@ import { Loader2, Copy, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { copyToClipboard } from "@/lib/clipboard"
 
 interface GoogleSheetsSetupProps {
   parserId: string
@@ -52,7 +53,7 @@ export function GoogleSheetsSetup({ parserId, onCreated, onCancel }: GoogleSheet
   const handleCopy = async () => {
     if (!feedUrl) return
     const formula = `=IMPORTDATA("${feedUrl}")`
-    await navigator.clipboard.writeText(formula)
+    if (!(await copyToClipboard(formula))) return
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }

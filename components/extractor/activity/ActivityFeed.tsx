@@ -18,6 +18,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
+import { copyToClipboard } from "@/lib/clipboard"
 import type { ProcessedDocument } from "@/lib/extractor/types"
 
 const SOURCE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -148,7 +149,7 @@ export function ActivityFeed({ parserId }: ActivityFeedProps) {
               variant="outline"
               size="sm"
               onClick={async () => {
-                await navigator.clipboard.writeText(
+                await copyToClipboard(
                   JSON.stringify(selectedDoc.results, null, 2)
                 )
               }}

@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { copyToClipboard } from "@/lib/clipboard"
 import { FileSizeBridgeBanner } from "@/components/tools/FileSizeBridgeBanner"
 
 type Status = "idle" | "processing" | "done" | "error"
@@ -127,21 +128,9 @@ export function ExcelToJsonTool() {
 
   const handleCopy = useCallback(async () => {
     if (!result) return
-    try {
-      await navigator.clipboard.writeText(result.jsonString)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      // Fallback for older browsers
-      const textarea = document.createElement("textarea")
-      textarea.value = result.jsonString
-      document.body.appendChild(textarea)
-      textarea.select()
-      document.execCommand("copy")
-      document.body.removeChild(textarea)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
+    if (!(await copyToClipboard(result.jsonString))) return
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }, [result])
 
   const handleDownload = useCallback(() => {

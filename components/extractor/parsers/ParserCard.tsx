@@ -40,6 +40,7 @@ import { useAuthDialog } from "@/components/auth/AuthDialogContext"
 import { validateUploadFile } from "@/components/extractor/test/DocumentUploader"
 import type { Parser } from "@/lib/extractor/types"
 import { cn } from "@/lib/utils"
+import { copyToClipboard } from "@/lib/clipboard"
 
 interface StatusBreakdown {
   completed: number
@@ -190,14 +191,13 @@ export function ParserCard({ parser, statusBreakdown, onDeleted }: ParserCardPro
     onDeleted() // reload
   }
 
-  const handleCopyEmail = (e: React.MouseEvent) => {
+  const handleCopyEmail = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    if (parser.inbound_email) {
-      navigator.clipboard.writeText(parser.inbound_email)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
+    if (!parser.inbound_email) return
+    if (!(await copyToClipboard(parser.inbound_email))) return
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   // Dragging state: show drop overlay

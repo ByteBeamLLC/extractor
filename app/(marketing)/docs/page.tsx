@@ -25,6 +25,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { copyToClipboard } from "@/lib/clipboard"
 
 /* ------------------------------------------------------------------ */
 /*  Table of Contents                                                  */
@@ -78,8 +79,8 @@ function Step({ number, title, children }: { number: number; title: string; chil
 
 function CodeBlock({ code, language = "bash" }: { code: string; language?: string }) {
   const [copied, setCopied] = useState(false)
-  const handleCopy = () => {
-    navigator.clipboard.writeText(code)
+  const handleCopy = async () => {
+    if (!(await copyToClipboard(code))) return
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
