@@ -3,7 +3,7 @@ import { createSupabaseServerComponentClient, createSupabaseServiceRoleClient } 
 import { runExtraction } from "@/lib/extraction/runExtraction"
 import { countDocumentPages } from "@/lib/extraction/api"
 import type { SchemaField } from "@/lib/schema"
-import { checkCredits, deductCredits } from "@/lib/extractor/billing/credits"
+import { reserveCredits, refundCredits, reserveFailureMessage } from "@/lib/extractor/billing/credits"
 import { deliverToIntegrations } from "@/lib/extractor/integrations/orchestrator"
 
 export const runtime = "nodejs"
@@ -98,11 +98,26 @@ export async function POST(
   const fileBytes = new Uint8Array(await fileBlob.arrayBuffer())
   const pageCount = await countDocumentPages(fileBytes, d.file_name, d.mime_type)
 
-  // Check credits
-  const creditCheck = await checkCredits(user.id, pageCount, supabase, user.is_anonymous === true)
-  if (!creditCheck.allowed) {
+  // Reserve credits for the reprocess. We disable first-doc-free here —
+  // a user can't claim the freebie by re-running an already-charged doc.
+  // We also clear `refunded_at` so refund_credits can idempotently handle
+  // a subsequent failure on this re-run.
+  await (supabase as any)
+    .from("parser_processed_documents")
+    .update({ refunded_at: null })
+    .eq("id", documentId)
+
+  const reservation = await reserveCredits(
+    user.id,
+    pageCount,
+    documentId,
+    supabase,
+    user.is_anonymous === true,
+    { allowFirstDocFree: false }
+  )
+  if (!reservation.reserved) {
     return NextResponse.json(
-      { error: creditCheck.reason || "Monthly credit limit reached." },
+      { error: reserveFailureMessage(reservation) },
       { status: 402 }
     )
   }
@@ -126,36 +141,37 @@ export async function POST(
     extractionType,
   })
 
-  // Deduct credits (for first-document-free, only deduct what's available)
-  const reprocessCredits = creditCheck.firstDocumentFree
-    ? Math.min(pageCount, creditCheck.remaining)
-    : pageCount
-  const { success: deducted } = await deductCredits(user.id, reprocessCredits, supabase)
-  if (!deducted) {
-    console.warn(`[reprocess] Credit deduction failed for user ${user.id}`)
-  }
+  // Credits already reserved before extraction ran.
+  const finalStatus =
+    extractionResult.handledWithFallback && extractionResult.error
+      ? "error"
+      : "completed"
 
-  // Update document record
   await supabase
     .from("parser_processed_documents" as any)
     .update({
-      status: extractionResult.handledWithFallback && extractionResult.error ? "error" : "completed",
+      status: finalStatus,
       results: extractionResult.results,
       processed_at: new Date().toISOString(),
-      credits_used: (d.credits_used ?? 0) + pageCount,
+      credits_used: (d.credits_used ?? 0) + reservation.pagesCharged,
       error_message: extractionResult.error ?? null,
     } as any)
     .eq("id", documentId)
 
-  // Deliver to integrations
-  deliverToIntegrations(
-    p.id,
-    p.name,
-    documentId,
-    extractionResult.results,
-    { file_name: d.file_name, mime_type: d.mime_type ?? "", source_type: d.source_type, page_count: pageCount },
-    supabase as any
-  ).catch((err) => console.error("[reprocess] Integration delivery failed:", err))
+  if (finalStatus === "error") {
+    // Refund the reservation for this reprocess attempt. Idempotent.
+    await refundCredits(user.id, documentId, reservation.pagesCharged, supabase)
+  } else {
+    // Deliver to integrations only on success.
+    deliverToIntegrations(
+      p.id,
+      p.name,
+      documentId,
+      extractionResult.results,
+      { file_name: d.file_name, mime_type: d.mime_type ?? "", source_type: d.source_type, page_count: pageCount },
+      supabase as any
+    ).catch((err) => console.error("[reprocess] Integration delivery failed:", err))
+  }
 
   return NextResponse.json({
     success: extractionResult.success,

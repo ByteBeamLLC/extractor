@@ -4,6 +4,7 @@ import { AuthDialogProvider } from "@/components/auth/AuthDialogContext"
 import { createSupabaseServerComponentClient } from "@/lib/supabase/server"
 import { GlobalErrorBoundary } from "@/components/GlobalErrorBoundary"
 import { AppSidebar } from "@/components/app-sidebar"
+import { SubscriptionProvider } from "@/components/billing/SubscriptionContext"
 import { ActiveParserProvider } from "@/components/extractor/parser-context"
 import { TourProvider } from "@/components/tour/TourProvider"
 import { AnalyticsIdentifier } from "@/components/providers/AnalyticsIdentifier"
@@ -40,6 +41,7 @@ export default async function AppLayout({
         <TimezoneCapture />
         <AuthDialogProvider>
           <AnonymousAuthGuard>
+          <SubscriptionProvider>
           <ActiveParserProvider>
             <TourProvider>
               <SidebarProvider defaultOpen={defaultOpen}>
@@ -54,6 +56,7 @@ export default async function AppLayout({
               </SidebarProvider>
             </TourProvider>
           </ActiveParserProvider>
+          </SubscriptionProvider>
           </AnonymousAuthGuard>
         </AuthDialogProvider>
       </SupabaseProvider>

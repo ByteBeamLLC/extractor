@@ -4,7 +4,7 @@ import { authenticateApiKey } from "@/lib/extractor/auth/apiKeyAuth"
 import { runExtraction } from "@/lib/extraction/runExtraction"
 import { countDocumentPages } from "@/lib/extraction/api"
 import { deliverToIntegrations } from "@/lib/extractor/integrations/orchestrator"
-import { checkCredits, deductCredits } from "@/lib/extractor/billing/credits"
+import { reserveCredits, refundCredits, reserveFailureMessage } from "@/lib/extractor/billing/credits"
 import type { SchemaField } from "@/lib/schema"
 import { trackServerEvent } from "@/lib/analytics/server"
 import { reportError } from "@/lib/errorReporting"
@@ -60,31 +60,59 @@ export async function POST(request: NextRequest) {
   const fileBuffer = Buffer.from(fileData.data, "base64")
   const pageCount = await countDocumentPages(new Uint8Array(fileBuffer), fileData.name, fileData.type)
 
-  // Check credits
-  const creditCheck = await checkCredits(auth.userId!, pageCount, supabase)
-  if (!creditCheck.allowed) {
+  // Pre-generate the doc id so the reservation can be keyed to it.
+  const docId = crypto.randomUUID()
+
+  // Atomically reserve credits up front.
+  const reservation = await reserveCredits(
+    auth.userId!,
+    pageCount,
+    docId,
+    supabase
+  )
+  if (!reservation.reserved) {
     return NextResponse.json(
-      { error: creditCheck.reason || "Monthly credit limit reached. Upgrade your plan for more pages." },
+      { error: reserveFailureMessage(reservation) },
       { status: 402 }
     )
   }
 
-  // Create processing log
-  const { data: processedDoc } = await supabase
+  // Create processing log with the reserved amount.
+  const { error: insertError } = await supabase
     .from("parser_processed_documents" as any)
     .insert({
+      id: docId,
       parser_id: parser.id,
       user_id: auth.userId!,
       source_type: "api",
       file_name: fileData.name ?? "api-upload",
       mime_type: fileData.type,
       file_size: fileData.size,
+      page_count: pageCount,
+      credits_used: reservation.pagesCharged,
       status: "processing",
     } as any)
-    .select("id")
-    .single()
 
-  const docId = (processedDoc as any)?.id
+  if (insertError) {
+    console.error("[v1/extract] Doc insert failed:", insertError)
+    await supabase
+      .from("parser_processed_documents" as any)
+      .insert({
+        id: docId,
+        parser_id: parser.id,
+        user_id: auth.userId!,
+        source_type: "api",
+        file_name: fileData.name ?? "api-upload",
+        mime_type: fileData.type,
+        file_size: fileData.size,
+        page_count: pageCount,
+        credits_used: reservation.pagesCharged,
+        status: "error",
+        error_message: "Doc insert failed",
+      } as any)
+    await refundCredits(auth.userId!, docId, reservation.pagesCharged, supabase)
+    return NextResponse.json({ error: "Failed to create document record" }, { status: 500 })
+  }
 
   // Run extraction using shared logic
   const result = await runExtraction({
@@ -99,29 +127,22 @@ export async function POST(request: NextRequest) {
   // Strip __meta__ for API response
   const { __meta__, ...apiResults } = result.results
 
-  // Atomically deduct credits (for first-document-free, only deduct what's available)
-  const v1CreditsUsed = creditCheck.firstDocumentFree
-    ? Math.min(pageCount, creditCheck.remaining)
-    : pageCount
-  const { success: deducted } = await deductCredits(auth.userId!, v1CreditsUsed, supabase)
-  if (!deducted) {
-    console.warn(`[v1/extract] Credit deduction failed for user ${auth.userId} — possible race condition`)
-  }
+  // Update processing log with final status. Credits were already reserved;
+  // only refund on failure.
+  await supabase
+    .from("parser_processed_documents" as any)
+    .update({
+      status: result.error ? "error" : "completed",
+      results: result.results,
+      processed_at: new Date().toISOString(),
+      error_message: result.error ?? null,
+    } as any)
+    .eq("id", docId)
 
-  // Update processing log
-  if (docId) {
-    await supabase
-      .from("parser_processed_documents" as any)
-      .update({
-        status: result.error ? "error" : "completed",
-        results: result.results,
-        processed_at: new Date().toISOString(),
-        credits_used: pageCount,
-        error_message: result.error ?? null,
-      } as any)
-      .eq("id", docId)
-
-    // Deliver to integrations
+  if (result.error) {
+    await refundCredits(auth.userId!, docId, reservation.pagesCharged, supabase)
+  } else {
+    // Deliver to integrations only on success.
     deliverToIntegrations(
       parser.id,
       parser.name,

@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import {
   User,
@@ -22,7 +22,7 @@ import { Switch } from "@/components/ui/switch"
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
 import { usePushSubscription } from "@/lib/hooks/usePushSubscription"
 import { useAuthDialog } from "@/components/auth/AuthDialogContext"
-import type { ExtractorSubscription } from "@/lib/extractor/types"
+import { useSubscription } from "@/components/billing/SubscriptionContext"
 
 const TIER_LABELS: Record<string, string> = {
   free: "Free",
@@ -36,13 +36,15 @@ export default function SettingsPage() {
   const session = useSession()
   const supabase = useSupabaseClient()
   const { openAuthDialog } = useAuthDialog()
+  const { subscription, loading: subscriptionLoading } = useSubscription()
 
-  const [subscription, setSubscription] = useState<ExtractorSubscription | null>(null)
-  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [fullName, setFullName] = useState("")
   const [portalLoading, setPortalLoading] = useState(false)
+  // Local state for optimistic toggle UX. Kept in sync with the live
+  // subscription via the effect below so Realtime updates (including changes
+  // made from a second tab) are reflected automatically.
   const [emailNotifEnabled, setEmailNotifEnabled] = useState(true)
   const [emailNotifSaving, setEmailNotifSaving] = useState(false)
   const push = usePushSubscription()
@@ -50,26 +52,18 @@ export default function SettingsPage() {
   const checkoutSuccess = searchParams.get("checkout") === "success"
   const initialTab = searchParams.get("tab") === "notifications" ? "notifications" : "profile"
 
-  const load = useCallback(async () => {
-    if (!session?.user?.id) return
-    const { data } = await supabase
-      .from("extractor_subscriptions")
-      .select("*")
-      .eq("user_id", session.user.id)
-      .maybeSingle()
-    setSubscription(data)
-    // Default ON if the column is null (older accounts before the migration).
-    // Cast: Supabase generated types are stale and don't know about the new column yet.
-    setEmailNotifEnabled(
-      (data as ExtractorSubscription | null)?.notification_email_enabled ?? true
-    )
-    setFullName((session.user.user_metadata?.full_name as string) || "")
-    setLoading(false)
-  }, [session?.user?.id, supabase])
+  // Initial page loads show a spinner until the provider's first fetch resolves.
+  const loading = subscriptionLoading
 
+  // Sync the optimistic toggle with the authoritative subscription value.
   useEffect(() => {
-    load()
-  }, [load])
+    setEmailNotifEnabled(subscription?.notification_email_enabled ?? true)
+  }, [subscription?.notification_email_enabled])
+
+  // Seed the full-name field from the session once available.
+  useEffect(() => {
+    setFullName((session?.user?.user_metadata?.full_name as string) || "")
+  }, [session?.user?.user_metadata?.full_name])
 
   const handleSave = async () => {
     if (!session) return

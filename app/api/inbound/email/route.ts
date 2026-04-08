@@ -4,7 +4,7 @@ import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import { runExtraction } from "@/lib/extraction/runExtraction"
 import { countDocumentPages } from "@/lib/extraction/api"
 import { deliverToIntegrations } from "@/lib/extractor/integrations/orchestrator"
-import { checkCredits, deductCredits } from "@/lib/extractor/billing/credits"
+import { reserveCredits, refundCredits } from "@/lib/extractor/billing/credits"
 import { reportError } from "@/lib/errorReporting"
 import type { SchemaField } from "@/lib/schema"
 
@@ -186,37 +186,55 @@ async function processEmail(
       )
       itemPageCounts.push(pages)
     }
-    const totalPages = itemPageCounts.reduce((sum, p) => sum + p, 0)
 
-    // Check credits upfront
-    const creditCheck = await checkCredits(parser.user_id, totalPages, supabase)
-    if (!creditCheck.allowed) {
-      console.log(`[inbound/email] Insufficient credits for user ${parser.user_id} (need ${totalPages}, have ${creditCheck.remaining})`)
-      return
-    }
-
-    // Process each item
+    // Process each item — reserve credits atomically per-item. If the user
+    // runs out of credits partway through a multi-attachment email, earlier
+    // items are processed and later ones are skipped, which is fairer than
+    // the old behavior of failing the whole batch on an upfront check.
     for (let idx = 0; idx < items.length; idx++) {
       const item = items[idx]
       const itemPages = itemPageCounts[idx]
+      const docId = crypto.randomUUID()
+      let reservedPages = 0
+
       try {
+        const reservation = await reserveCredits(
+          parser.user_id,
+          itemPages,
+          docId,
+          supabase
+        )
+        if (!reservation.reserved) {
+          console.log(
+            `[inbound/email] Stopping at item ${idx + 1}/${items.length}: ${reservation.reason} (remaining=${reservation.remaining})`
+          )
+          break
+        }
+        reservedPages = reservation.pagesCharged
+
         // Create processing log — store messageId for deduplication
-        const { data: processedDoc } = await supabase
+        const { error: insertErr } = await supabase
           .from("parser_processed_documents" as any)
           .insert({
+            id: docId,
             parser_id: parser.id,
             user_id: parser.user_id,
             source_type: "email",
             file_name: item.fileName,
             mime_type: item.mimeType,
             file_size: item.size,
+            page_count: itemPages,
+            credits_used: reservation.pagesCharged,
             status: "processing",
             integration_status: messageId ? { email_message_id: messageId } : {},
           } as any)
-          .select("id")
-          .single()
 
-        const docId = (processedDoc as any)?.id
+        if (insertErr) {
+          console.error("[inbound/email] Doc insert failed:", insertErr)
+          await refundCredits(parser.user_id, docId, reservedPages, supabase)
+          reservedPages = 0
+          continue
+        }
 
         // Store original file to Supabase Storage for preview & reprocessing
         if (docId) {
@@ -252,26 +270,21 @@ async function processEmail(
           extractionType,
         })
 
-        // Deduct credits
-        const { success: deducted } = await deductCredits(parser.user_id, itemPages, supabase)
-        if (!deducted) {
-          console.warn(`[inbound/email] Credit deduction failed for user ${parser.user_id}`)
-        }
+        // Update processing log with final status. Credits were already
+        // reserved; refund if the extraction failed.
+        await supabase
+          .from("parser_processed_documents" as any)
+          .update({
+            status: result.error ? "error" : "completed",
+            results: result.results,
+            processed_at: new Date().toISOString(),
+            error_message: result.error ?? null,
+          } as any)
+          .eq("id", docId)
 
-        // Update processing log
-        if (docId) {
-          await supabase
-            .from("parser_processed_documents" as any)
-            .update({
-              status: result.error ? "error" : "completed",
-              results: result.results,
-              processed_at: new Date().toISOString(),
-              credits_used: itemPages,
-              error_message: result.error ?? null,
-            } as any)
-            .eq("id", docId)
-
-          // Deliver to integrations
+        if (result.error) {
+          await refundCredits(parser.user_id, docId, reservedPages, supabase)
+        } else {
           await deliverToIntegrations(
             parser.id,
             parser.name,
@@ -295,6 +308,14 @@ async function processEmail(
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : "Unknown error"
         console.error(`[inbound/email] Error processing ${item.fileName}:`, errorMsg)
+        // Refund the reservation if we threw after reserving. Idempotent:
+        // if the doc was already marked as refunded (by the error path in
+        // the try block), refund_credits is a no-op.
+        if (reservedPages > 0) {
+          await refundCredits(parser.user_id, docId, reservedPages, supabase).catch(
+            (e) => console.error("[inbound/email] Refund failed:", e)
+          )
+        }
       }
     }
   } catch (err) {

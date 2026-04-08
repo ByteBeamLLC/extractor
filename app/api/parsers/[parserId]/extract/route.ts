@@ -4,7 +4,7 @@ import { runExtraction } from "@/lib/extraction/runExtraction"
 import { countDocumentPages } from "@/lib/extraction/api"
 import type { SchemaField } from "@/lib/schema"
 import { deliverToIntegrations } from "@/lib/extractor/integrations/orchestrator"
-import { checkCredits, deductCredits } from "@/lib/extractor/billing/credits"
+import { reserveCredits, refundCredits, reserveFailureMessage } from "@/lib/extractor/billing/credits"
 import { trackServerEvent } from "@/lib/analytics/server"
 import { reportError } from "@/lib/errorReporting"
 import {
@@ -115,35 +115,52 @@ export async function POST(
   const fileBuffer = Buffer.from(fileData.data, "base64")
   const pageCount = await countDocumentPages(new Uint8Array(fileBuffer), fileData.name, fileData.type)
 
-  // Check credits (with automatic reset if period elapsed)
-  const creditCheck = await checkCredits(user.id, pageCount, supabase, user.is_anonymous === true)
-  if (!creditCheck.allowed) {
+  // Pre-generate document ID so we can reserve credits keyed to it,
+  // then store the file, then INSERT the row — all before the pg_net
+  // trigger fires.
+  const docId = crypto.randomUUID()
+
+  // Atomically reserve credits up front. This replaces the old
+  // check-then-deduct two-step: first-doc-free eligibility, quota check,
+  // period reset, and deduction all happen inside a single row lock in
+  // the reserve_credits RPC. Concurrent uploads can't race past this.
+  const reservation = await reserveCredits(
+    user.id,
+    pageCount,
+    docId,
+    supabase,
+    user.is_anonymous === true
+  )
+  if (!reservation.reserved) {
     return NextResponse.json(
-      { error: creditCheck.reason || "Monthly credit limit reached. Upgrade your plan for more pages." },
+      { error: reserveFailureMessage(reservation) },
       { status: 402 }
     )
   }
 
-  // Pre-generate document ID so we can store the file before the INSERT.
-  // This ensures the file is in Storage before the pg_net trigger fires.
-  const docId = crypto.randomUUID()
-
   // Store file FIRST — the background worker downloads from this path.
+  // If storage fails or the doc insert fails after this point we refund the
+  // reservation so the user isn't charged for a document we never processed.
   const hasInlineData = !!inlineFile?.data
   const safeName = (fileData.name ?? "uploaded").replace(/[^a-zA-Z0-9._-]/g, "_")
   const storagePath = `${user.id}/${params.parserId}/${docId}/${safeName}`
+  let storageOk = true
 
   try {
     const adminClient = createSupabaseServiceRoleClient()
 
     if (hasInlineData) {
       // Inline upload from REST API — store file for the background worker
-      await adminClient.storage
+      const { error: uploadErr } = await adminClient.storage
         .from("parser-documents")
         .upload(storagePath, fileBuffer, {
           contentType: fileData.type || "application/octet-stream",
           upsert: true,
         })
+      if (uploadErr) {
+        storageOk = false
+        console.error("[extract] Inline upload failed:", uploadErr)
+      }
     } else if (body.storage_path && body.storage_path !== storagePath) {
       // Browser upload — move from pending path to canonical document path
       await adminClient.storage
@@ -152,11 +169,42 @@ export async function POST(
         .catch(() => {})
     }
   } catch (err) {
+    storageOk = false
     console.error("[extract] File storage error:", err)
   }
 
-  // Create document record — this INSERT triggers pg_net → worker endpoint
-  await supabase
+  if (!storageOk) {
+    // The file never landed — refund the reservation (doc row doesn't exist
+    // yet, so we fake an insert-then-refund by passing the docId directly
+    // to a bare UPDATE of extractor_subscriptions via the refund RPC).
+    // In practice: we insert a shell doc row so refund_credits has a target,
+    // mark it errored, then refund.
+    await supabase
+      .from("parser_processed_documents" as any)
+      .insert({
+        id: docId,
+        parser_id: p.id,
+        user_id: user.id,
+        source_type: sourceType,
+        file_name: fileData.name ?? "uploaded",
+        mime_type: fileData.type,
+        file_size: fileData.size,
+        page_count: pageCount,
+        status: "error",
+        error_message: "File storage failed",
+        credits_used: reservation.pagesCharged,
+      } as any)
+    await refundCredits(user.id, docId, reservation.pagesCharged, supabase)
+    return NextResponse.json(
+      { error: "Failed to store uploaded file" },
+      { status: 500 }
+    )
+  }
+
+  // Create document record — this INSERT triggers pg_net → worker endpoint.
+  // `credits_used` stores what the reservation charged for this doc so
+  // refund_credits knows the exact amount if extraction later fails.
+  const { error: insertError } = await supabase
     .from("parser_processed_documents" as any)
     .insert({
       id: docId,
@@ -167,8 +215,37 @@ export async function POST(
       mime_type: fileData.type,
       file_size: fileData.size,
       page_count: pageCount,
+      credits_used: reservation.pagesCharged,
       status: "processing",
     } as any)
+
+  if (insertError) {
+    // Doc insert failed — we already charged credits, so refund. Since the
+    // row doesn't exist, refund_credits' idempotency guard would no-op; we
+    // decrement credits_used directly via a minimal shell row so the ledger
+    // stays consistent.
+    console.error("[extract] Doc insert failed:", insertError)
+    await supabase
+      .from("parser_processed_documents" as any)
+      .insert({
+        id: docId,
+        parser_id: p.id,
+        user_id: user.id,
+        source_type: sourceType,
+        file_name: fileData.name ?? "uploaded",
+        mime_type: fileData.type,
+        file_size: fileData.size,
+        page_count: pageCount,
+        status: "error",
+        error_message: "Doc insert failed",
+        credits_used: reservation.pagesCharged,
+      } as any)
+    await refundCredits(user.id, docId, reservation.pagesCharged, supabase)
+    return NextResponse.json(
+      { error: "Failed to create document record" },
+      { status: 500 }
+    )
+  }
 
   // --- Async mode: return immediately, extraction handled by pg_net trigger → worker ---
   if (async_) {
@@ -176,9 +253,9 @@ export async function POST(
       success: true,
       document_id: docId,
       status: "processing",
-      ...(creditCheck.firstDocumentFree && {
+      ...(reservation.firstDocumentFree && {
         firstDocumentFree: true,
-        upgradeMessage: `Your first document is on us! This ${pageCount}-page document used your entire monthly quota. Upgrade for more pages.`,
+        upgradeMessage: `Your first document is on us! Upgrade for more pages.`,
       }),
     })
   }
@@ -199,13 +276,11 @@ export async function POST(
       fileUrl,
     })
 
-    const creditsUsed = creditCheck.firstDocumentFree
-      ? Math.min(pageCount, creditCheck.remaining)
-      : pageCount
-    const { success: deducted } = await deductCredits(user.id, creditsUsed, supabase)
-    if (!deducted) {
-      console.warn(`[extract] Credit deduction failed for user ${user.id}`)
-    }
+    // Credits were already atomically reserved before this branch ran;
+    // sync mode only needs to record the pagesCharged on the doc row
+    // (already done in the INSERT above via `credits_used`). No separate
+    // deduction call — that used to race with the gate.
+    const creditsUsed = reservation.pagesCharged
 
     // Run waterfall enrichments for transformation fields (sync mode)
     let enrichedResults = { ...extractionResult.results }
@@ -279,9 +354,9 @@ export async function POST(
       warnings: extractionResult.warnings,
       handledWithFallback: extractionResult.handledWithFallback,
       document_id: docId,
-      ...(creditCheck.firstDocumentFree && {
+      ...(reservation.firstDocumentFree && {
         firstDocumentFree: true,
-        upgradeMessage: `Your first document is on us! This ${pageCount}-page document used your entire monthly quota. Upgrade for more pages.`,
+        upgradeMessage: `Your first document is on us! Upgrade for more pages.`,
       }),
     })
   } catch (err) {
@@ -296,6 +371,10 @@ export async function POST(
         processed_at: new Date().toISOString(),
       } as any)
       .eq("id", docId)
+
+    // Refund the reservation since the extraction failed. Idempotent via
+    // refunded_at on the doc row.
+    await refundCredits(user.id, docId, reservation.pagesCharged, supabase)
 
     return NextResponse.json(
       { error: "Extraction failed", document_id: docId },

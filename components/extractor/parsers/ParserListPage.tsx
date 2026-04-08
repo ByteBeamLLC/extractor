@@ -6,7 +6,7 @@ import { Plus, FileText, Loader2, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
 import { useAuthDialog } from "@/components/auth/AuthDialogContext"
-import type { Parser, ExtractorSubscription } from "@/lib/extractor/types"
+import type { Parser } from "@/lib/extractor/types"
 import { ParserCard } from "./ParserCard"
 import { CreateParserDialog } from "./CreateParserDialog"
 import { DocumentDropZone } from "./DocumentDropZone"
@@ -36,7 +36,6 @@ export function ParserListPage() {
   const { openAuthDialog } = useAuthDialog()
 
   const [parsers, setParsers] = useState<Parser[]>([])
-  const [subscription, setSubscription] = useState<ExtractorSubscription | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -57,57 +56,20 @@ export function ParserListPage() {
     }
     try {
       setError(null)
-      const [parsersRes, subRes] = await Promise.all([
-        supabase
-          .from("parsers")
-          .select("*")
-          .eq("user_id", session.user.id)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("extractor_subscriptions")
-          .select("*")
-          .eq("user_id", session.user.id)
-          .maybeSingle(),
-      ])
+      const parsersRes = await supabase
+        .from("parsers")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .order("created_at", { ascending: false })
 
       if (parsersRes.error) throw parsersRes.error
       const loadedParsers = parsersRes.data ?? []
       setParsers(loadedParsers)
 
-      // Ensure anonymous users have the correct tier
-      let sub = subRes.data
-      const isAnon = session.user.is_anonymous === true
-      if (isAnon && (!sub || sub.tier === "free")) {
-        const ONE_DAY_MS = 24 * 60 * 60 * 1000
-        const anonSub = {
-          tier: "anonymous" as const,
-          credits_free: 5,
-          credits_used: sub?.credits_used ?? 0,
-          max_parsers: 1,
-          credits_reset_at: sub
-            ? sub.credits_reset_at
-            : new Date(Date.now() + ONE_DAY_MS).toISOString(),
-          updated_at: new Date().toISOString(),
-        }
-        if (sub) {
-          await supabase
-            .from("extractor_subscriptions")
-            .update(anonSub)
-            .eq("user_id", session.user.id)
-          sub = { ...sub, ...anonSub }
-        } else {
-          const { data: created } = await supabase
-            .from("extractor_subscriptions")
-            .insert({
-              user_id: session.user.id,
-              ...anonSub,
-            })
-            .select("*")
-            .single()
-          sub = created
-        }
-      }
-      setSubscription(sub)
+      // Subscription is owned by SubscriptionProvider (real-time synced via
+      // Realtime on extractor_subscriptions). Anonymous ↔ authenticated tier
+      // sync is handled by the promote_anonymous_to_free_trigger DB trigger
+      // (migration 20260408140000), so no client-side fix-up is needed here.
 
       // Load status breakdowns for all parsers
       if (loadedParsers.length > 0) {

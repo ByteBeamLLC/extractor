@@ -4,6 +4,14 @@
     {
       "path": "/api/cron/process-notification-emails",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/cleanup-stuck-documents",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/reconcile-credits",
+      "schedule": "0 6 * * *"
     }
   ]
 }

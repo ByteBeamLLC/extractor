@@ -5,12 +5,39 @@ import type { ExtractorSubscription } from "@/lib/extractor/types"
 import { PLANS } from "@/lib/stripe/config"
 
 /**
- * Get or create subscription for a user.
- * Automatically resets credits if the billing period has elapsed (uses DB-level row lock).
+ * Credit metering — atomic reserve/refund model.
+ *
+ * Architecture (Phase 2):
+ *   Extract route  →  reserveCredits()   [atomic RPC inside row lock]
+ *                     ├── success   → insert processing doc → worker extracts
+ *                     └── 402       → return error to client
+ *
+ *   Worker runs    →  extract OK   → no billing call (reservation already committed)
+ *                  →  extract FAIL → refundCredits()  [idempotent, keyed by doc id]
+ *
+ * Why this shape:
+ *   - The reserve RPC takes a row lock, handles period reset, first-doc-free,
+ *     quota check, deduction, and ledger append in ONE transaction. Concurrent
+ *     uploads can't race past each other; the first-doc-free freebie is based
+ *     on `extractor_subscriptions.first_doc_used_at`, not a count() query.
+ *   - The worker no longer decides anything about billing. It only refunds on
+ *     failure, keyed by `parser_processed_documents.id`, so pg_net retries
+ *     can't double-refund.
+ *   - Every credit movement writes a `billing_events` row, giving us a full
+ *     audit trail we can reconcile against `extractor_subscriptions.credits_used`.
  */
+
 const ONE_DAY_MS = 24 * 60 * 60 * 1000
 const THIRTY_DAYS_MS = 30 * ONE_DAY_MS
 
+/**
+ * Get or create the extractor_subscriptions row for this user.
+ *
+ * Ensures a row exists before the reserve RPC runs (the RPC returns
+ * 'no_subscription' if the row is missing). Also repairs an anonymous tier
+ * mismatch where a guest previously got a `free` row — this is kept as a
+ * defensive backstop; Phase 4's auth trigger is the permanent fix.
+ */
 export async function getOrCreateSubscription(
   userId: string,
   supabase: AnySupabaseClient,
@@ -23,53 +50,29 @@ export async function getOrCreateSubscription(
     .maybeSingle()
 
   if (existing) {
-    // Fix tier mismatch: anonymous user with a "free" subscription (created before anonymous tier existed)
+    // Defensive: anonymous user wrongly on 'free' tier. The auth trigger in
+    // Phase 4 handles this for new signups; this backstop catches any
+    // pre-existing rows that slipped through.
     if (isAnonymous && existing.tier === "free") {
       const anonPlan = PLANS.anonymous
+      const patched = {
+        tier: "anonymous" as const,
+        credits_free: anonPlan.pages,
+        max_parsers: anonPlan.maxParsers,
+        credits_used: 0,
+        credits_reset_at: new Date(Date.now() + ONE_DAY_MS).toISOString(),
+        updated_at: new Date().toISOString(),
+      }
       await supabase
         .from("extractor_subscriptions")
-        .update({
-          tier: "anonymous",
-          credits_free: anonPlan.pages,
-          max_parsers: anonPlan.maxParsers,
-          credits_used: 0,
-          credits_reset_at: new Date(Date.now() + ONE_DAY_MS).toISOString(),
-          updated_at: new Date().toISOString(),
-        })
+        .update(patched)
         .eq("user_id", userId)
-      return { ...existing, tier: "anonymous" as const, credits_free: anonPlan.pages, max_parsers: anonPlan.maxParsers, credits_used: 0, credits_reset_at: new Date(Date.now() + ONE_DAY_MS).toISOString() }
-    }
-
-    // Atomically reset credits if period has elapsed (DB handles row locking)
-    if (new Date(existing.credits_reset_at) < new Date()) {
-      if (existing.tier === "anonymous") {
-        // Daily reset for anonymous users (bypass the RPC which assumes 30-day cycles)
-        await supabase
-          .from("extractor_subscriptions")
-          .update({
-            credits_used: 0,
-            credits_reset_at: new Date(Date.now() + ONE_DAY_MS).toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq("user_id", userId)
-        return { ...existing, credits_used: 0, credits_reset_at: new Date(Date.now() + ONE_DAY_MS).toISOString() }
-      }
-
-      const { data: resetResult } = await supabase
-        .rpc("reset_credits_if_due", { p_user_id: userId })
-
-      if (resetResult?.[0]?.was_reset) {
-        return {
-          ...existing,
-          credits_used: 0,
-          credits_reset_at: new Date(Date.now() + THIRTY_DAYS_MS).toISOString(),
-        }
-      }
+      return { ...existing, ...patched }
     }
     return existing
   }
 
-  // Create new subscription
+  // Create a new subscription row.
   const tier = isAnonymous ? "anonymous" : "free"
   const plan = PLANS[tier]
   const resetMs = isAnonymous ? ONE_DAY_MS : THIRTY_DAYS_MS
@@ -90,74 +93,154 @@ export async function getOrCreateSubscription(
   return created!
 }
 
-/** Max pages allowed under the first-document-free policy */
-const FIRST_DOC_FREE_MAX_PAGES = 100
+/** Max pages allowed under the first-document-free policy. */
+export const FIRST_DOC_FREE_MAX_PAGES = 100
+
+/** Outcome of a reserveCredits call. */
+export type ReserveResult =
+  | {
+      reserved: true
+      pagesCharged: number
+      firstDocumentFree: boolean
+      remaining: number
+      /** Reason code from the DB, e.g. `reserved` or `first_document_free`. */
+      reason: string
+    }
+  | {
+      reserved: false
+      pagesCharged: 0
+      firstDocumentFree: false
+      remaining: number
+      /**
+       * Reason code:
+       *   - `quota_exceeded` — normal user is out of credits
+       *   - `anonymous_quota_exceeded` — guest hit daily limit (should prompt signup)
+       *   - `no_subscription` — should never happen in the gate (we bootstrap first)
+       */
+      reason: string
+    }
+
+interface ReserveCreditsOptions {
+  /**
+   * Whether the caller allows this reservation to burn the user's
+   * first-document-free allowance. Default true — set to false for
+   * paths where free-docs shouldn't apply (e.g. API key uploads,
+   * re-processing an existing doc).
+   */
+  allowFirstDocFree?: boolean
+}
 
 /**
- * Check if user has available credits.
- * Also checks subscription status — blocks access if tier indicates payment issues.
+ * Atomically reserve credits for a pending document.
  *
- * First Document Free: if the user has never completed an extraction and the
- * document is ≤100 pages, allow it regardless of plan limits so they can
- * experience the product before hitting a paywall.
+ * This is the ONLY place in the codebase that should mutate
+ * `extractor_subscriptions.credits_used` on the forward path. The function
+ * bootstraps the subscription row if missing, then calls the `reserve_credits`
+ * Postgres RPC which runs the whole decision under a row lock.
  */
-export async function checkCredits(
+export async function reserveCredits(
   userId: string,
-  pagesNeeded: number,
+  pages: number,
+  documentId: string,
   supabase: AnySupabaseClient,
-  isAnonymous: boolean = false
-): Promise<{ allowed: boolean; remaining: number; subscription: ExtractorSubscription; reason?: string; firstDocumentFree?: boolean }> {
-  const subscription = await getOrCreateSubscription(userId, supabase, isAnonymous)
-  const remaining = Math.max(subscription.credits_free - subscription.credits_used, 0)
+  isAnonymous: boolean = false,
+  options: ReserveCreditsOptions = {}
+): Promise<ReserveResult> {
+  const allowFirstDocFree = options.allowFirstDocFree ?? true
 
-  if (remaining >= pagesNeeded) {
-    return { allowed: true, remaining, subscription }
+  // Ensure the row exists — reserve_credits returns 'no_subscription' otherwise.
+  await getOrCreateSubscription(userId, supabase, isAnonymous)
+
+  const { data, error } = await supabase.rpc("reserve_credits", {
+    p_user_id: userId,
+    p_pages: pages,
+    p_document_id: documentId,
+    p_allow_first_doc_free: allowFirstDocFree,
+  })
+
+  if (error || !data || data.length === 0) {
+    console.error("[reserveCredits] RPC failed:", error)
+    return {
+      reserved: false,
+      pagesCharged: 0,
+      firstDocumentFree: false,
+      remaining: 0,
+      reason: "rpc_error",
+    }
   }
 
-  // First Document Free: let new users experience value before hitting the paywall
-  if (pagesNeeded <= FIRST_DOC_FREE_MAX_PAGES) {
-    const { count } = await supabase
-      .from("parser_processed_documents" as any)
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .eq("status", "completed")
+  const row = data[0] as {
+    reserved: boolean
+    pages_charged: number
+    first_doc_free: boolean
+    remaining: number
+    reason: string
+  }
 
-    if (count === 0 || count === null) {
-      return {
-        allowed: true,
-        remaining,
-        subscription,
-        firstDocumentFree: true,
-      }
+  if (!row.reserved) {
+    return {
+      reserved: false,
+      pagesCharged: 0,
+      firstDocumentFree: false,
+      remaining: row.remaining,
+      reason: row.reason,
     }
   }
 
   return {
-    allowed: false,
-    remaining,
-    subscription,
-    reason: subscription.tier === "anonymous"
-      ? "Daily guest limit reached. Sign up free for 30 pages/month."
-      : `This document needs ${pagesNeeded} pages but you have ${remaining} remaining. Upgrade your plan for more pages.`,
+    reserved: true,
+    pagesCharged: row.pages_charged,
+    firstDocumentFree: row.first_doc_free,
+    remaining: row.remaining,
+    reason: row.reason,
   }
 }
 
 /**
- * Atomically deduct credits using DB-level UPDATE with WHERE guard.
- * Returns true if deduction succeeded, false if insufficient credits.
- * This prevents race conditions where two concurrent requests both pass the check.
+ * Refund a previously-reserved credit charge for a document. Idempotent:
+ * keyed by document_id via the `refunded_at` column on
+ * `parser_processed_documents`, so it is safe to call from pg_net retries
+ * or from a cleanup cron.
+ *
+ * Call this when an extraction fails, when a document is manually deleted
+ * while still `processing`, or from the stuck-doc cleanup cron.
  */
-export async function deductCredits(
+export async function refundCredits(
   userId: string,
-  pagesUsed: number,
+  documentId: string,
+  pages: number,
   supabase: AnySupabaseClient
-): Promise<{ success: boolean; remaining: number }> {
-  const { data, error } = await supabase
-    .rpc("deduct_credits", { p_user_id: userId, p_pages: pagesUsed })
+): Promise<{ refunded: boolean; remaining: number }> {
+  const { data, error } = await supabase.rpc("refund_credits", {
+    p_user_id: userId,
+    p_document_id: documentId,
+    p_pages: pages,
+  })
 
   if (error || !data || data.length === 0) {
-    return { success: false, remaining: 0 }
+    console.error("[refundCredits] RPC failed:", error)
+    return { refunded: false, remaining: 0 }
   }
 
-  return { success: true, remaining: data[0].remaining }
+  const row = data[0] as { refunded: boolean; remaining: number }
+  return { refunded: row.refunded, remaining: row.remaining }
+}
+
+/**
+ * Human-readable error message for a reservation failure. Used by routes
+ * to build a response body when `reserveCredits` returns reserved=false.
+ */
+export function reserveFailureMessage(result: Extract<ReserveResult, { reserved: false }>): string {
+  switch (result.reason) {
+    case "anonymous_quota_exceeded":
+      return "Daily guest limit reached. Sign up free for 30 pages/month."
+    case "quota_exceeded":
+      return `This document needs more pages than you have remaining (${result.remaining} left). Upgrade your plan for more pages.`
+    case "no_subscription":
+      return "Unable to load your subscription. Please reload and try again."
+    case "rpc_error":
+      return "A temporary error occurred. Please try again in a moment."
+    default:
+      return "Monthly credit limit reached. Upgrade your plan for more pages."
+  }
 }

@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import { runExtraction } from "@/lib/extraction/runExtraction"
 import { countDocumentPages } from "@/lib/extraction/api"
-import { deductCredits } from "@/lib/extractor/billing/credits"
+import { refundCredits } from "@/lib/extractor/billing/credits"
 import { deliverToIntegrations } from "@/lib/extractor/integrations/orchestrator"
 import { trackServerEvent } from "@/lib/analytics/server"
 import { reportError } from "@/lib/errorReporting"
@@ -51,18 +51,35 @@ export async function POST(request: NextRequest) {
 
   const supabase = createSupabaseServiceRoleClient()
 
-  // --- Load document (atomic claim: only process if still "processing") ---
-  const { data: doc, error: docError } = await supabase
+  // --- Atomic claim ---
+  // Replace the old SELECT-then-process pattern with an UPDATE-returning
+  // claim. Only one invocation can set claimed_at from NULL → now(); the
+  // others see zero rows and exit. This closes the double-extraction window
+  // where pg_net retries could otherwise re-run a doc that was mid-flight.
+  const claimId = crypto.randomUUID()
+  const { data: claimedRows, error: claimError } = await supabase
     .from("parser_processed_documents")
-    .select("*")
+    .update({
+      claimed_at: new Date().toISOString(),
+      claimed_by: claimId,
+    })
     .eq("id", documentId)
     .eq("status", "processing")
-    .single()
+    .is("claimed_at", null)
+    .select("*")
 
-  if (docError || !doc) {
-    // Already completed, errored, or claimed by sync mode — skip silently
-    return NextResponse.json({ status: "skipped", reason: "not_processing" })
+  if (claimError) {
+    console.error("[process-document] Claim UPDATE failed:", claimError)
+    return NextResponse.json({ error: "Claim failed" }, { status: 500 })
   }
+
+  if (!claimedRows || claimedRows.length === 0) {
+    // Another worker already claimed this doc, or it's already been
+    // finalized. Skip silently — this is the idempotent path.
+    return NextResponse.json({ status: "skipped", reason: "already_claimed" })
+  }
+
+  const doc = claimedRows[0]
 
   // --- Load parser ---
   const { data: parser, error: parserError } = await supabase
@@ -100,6 +117,12 @@ export async function POST(request: NextRequest) {
   const extractionType = parser.extraction_type ?? "fields"
   const schemaTree: SchemaField[] = parser.fields ?? []
 
+  // Credits were atomically reserved in the gate route before this worker
+  // was invoked. The reserved amount is stored on the doc row as
+  // `credits_used`. The worker never decides billing — it only refunds on
+  // failure (via the catch block below and the final-status branch).
+  const reservedPages: number = (doc.credits_used as number | null) ?? 0
+
   let extractionResult
   try {
     extractionResult = await runExtraction({
@@ -123,10 +146,15 @@ export async function POST(request: NextRequest) {
       documentId,
       err instanceof Error ? err.message : "Extraction failed"
     )
+    // Refund the pre-reserved credits — idempotent via refunded_at.
+    if (reservedPages > 0) {
+      await refundCredits(doc.user_id, documentId, reservedPages, supabase)
+    }
     return NextResponse.json({ error: "Extraction failed" }, { status: 500 })
   }
 
-  // --- Billing ---
+  // pageCount is used later for integration delivery metadata; keep
+  // deriving it but no billing decision is based on it anymore.
   const pageCount =
     doc.page_count ??
     (await countDocumentPages(
@@ -134,23 +162,6 @@ export async function POST(request: NextRequest) {
       doc.file_name ?? "uploaded",
       doc.mime_type ?? "application/octet-stream"
     ))
-
-  // Determine credits to deduct (first-document-free: check if this is their first completed doc)
-  const { count: completedCount } = await supabase
-    .from("parser_processed_documents")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", doc.user_id)
-    .eq("status", "completed")
-
-  const isFirstDocument = (completedCount ?? 0) === 0
-  const creditsUsed = isFirstDocument ? 0 : pageCount
-
-  if (creditsUsed > 0) {
-    const { success: deducted } = await deductCredits(doc.user_id, creditsUsed, supabase)
-    if (!deducted) {
-      console.warn(`[process-document] Credit deduction failed for user ${doc.user_id}`)
-    }
-  }
 
   // --- Waterfall enrichments: run transformation fields in waves ---
   const transformationFields = getTransformationFields(schemaTree)
@@ -228,12 +239,17 @@ export async function POST(request: NextRequest) {
       status: finalStatus,
       results: enrichedResults,
       processed_at: new Date().toISOString(),
-      credits_used: creditsUsed,
       error_message: extractionResult.error ?? null,
       page_count: pageCount,
       enriching_fields: null,
     })
     .eq("id", documentId)
+
+  // Refund pre-reserved credits if the extraction produced an error.
+  // Idempotent via refunded_at, so pg_net retries are safe.
+  if (finalStatus === "error" && reservedPages > 0) {
+    await refundCredits(doc.user_id, documentId, reservedPages, supabase)
+  }
 
   // --- Update parser stats ---
   await supabase
@@ -244,8 +260,13 @@ export async function POST(request: NextRequest) {
     })
     .eq("id", parser.id)
 
+  // `isFirstValue` means this was the first successful extraction for this
+  // parser (used for analytics and re-engagement copy). Distinct from the
+  // first-doc-free billing flag which now lives on extractor_subscriptions.
+  const isFirstValue = (parser.document_count ?? 0) === 0
+
   // --- Analytics: first_value ---
-  if (extractionResult.success && (parser.document_count ?? 0) === 0) {
+  if (extractionResult.success && isFirstValue) {
     trackServerEvent("first_value", {
       distinct_id: doc.user_id,
       user_id: doc.user_id,
@@ -304,7 +325,7 @@ export async function POST(request: NextRequest) {
               document_id: documentId,
               parser_id: parser.id,
               scheduled_for: scheduledFor.toISOString(),
-              is_first_value: isFirstDocument,
+              is_first_value: isFirstValue,
               status: "pending",
             })
 
@@ -321,7 +342,7 @@ export async function POST(request: NextRequest) {
               channel: "email",
               document_id: documentId,
               parser_id: parser.id,
-              is_first_value: isFirstDocument,
+              is_first_value: isFirstValue,
               extraction_type: extractionType,
             })
           }
@@ -354,7 +375,7 @@ export async function POST(request: NextRequest) {
                 channel: "push",
                 document_id: documentId,
                 parser_id: parser.id,
-                is_first_value: isFirstDocument,
+                is_first_value: isFirstValue,
                 extraction_type: extractionType,
               })
             }
@@ -403,7 +424,7 @@ export async function POST(request: NextRequest) {
   }
 
   console.log(
-    `[process-document] ${finalStatus} doc=${documentId} parser=${parser.id} pages=${pageCount} credits=${creditsUsed} waves=${waves.length}`
+    `[process-document] ${finalStatus} doc=${documentId} parser=${parser.id} pages=${pageCount} credits=${reservedPages} waves=${waves.length}`
   )
 
   return NextResponse.json({ status: finalStatus, document_id: documentId })

@@ -3,7 +3,7 @@ import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import { runExtraction } from "@/lib/extraction/runExtraction"
 import { countDocumentPages } from "@/lib/extraction/api"
 import { deliverToIntegrations } from "@/lib/extractor/integrations/orchestrator"
-import { checkCredits, deductCredits } from "@/lib/extractor/billing/credits"
+import { reserveCredits, refundCredits, reserveFailureMessage } from "@/lib/extractor/billing/credits"
 import { reportError } from "@/lib/errorReporting"
 import type { SchemaField } from "@/lib/schema"
 
@@ -83,33 +83,56 @@ export async function POST(
     fileMimeType
   )
 
-  // Check credits
-  const creditCheck = await checkCredits(parser.user_id, pageCount, supabase)
-  if (!creditCheck.allowed) {
+  // Pre-generate the doc id so we can reserve credits against it.
+  const docId = crypto.randomUUID()
+
+  // Atomically reserve credits up front. This runs inside a row lock and
+  // is safe against concurrent webhooks for the same parser owner.
+  const reservation = await reserveCredits(parser.user_id, pageCount, docId, supabase)
+  if (!reservation.reserved) {
     return NextResponse.json(
-      { error: creditCheck.reason || "Parser owner has reached monthly credit limit" },
+      { error: reserveFailureMessage(reservation) },
       { status: 402 }
     )
   }
 
-  // Create processing log
-  const { data: processedDoc } = await supabase
+  // Create processing log with the reserved amount.
+  const { error: insertError } = await supabase
     .from("parser_processed_documents" as any)
     .insert({
+      id: docId,
       parser_id: parser.id,
       user_id: parser.user_id,
       source_type: "webhook",
       file_name: fileName,
       mime_type: fileMimeType,
+      page_count: pageCount,
+      credits_used: reservation.pagesCharged,
       status: "processing",
     } as any)
-    .select("id")
-    .single()
 
-  const docId = (processedDoc as any)?.id
+  if (insertError) {
+    console.error("[inbound/webhook] Doc insert failed:", insertError)
+    await supabase
+      .from("parser_processed_documents" as any)
+      .insert({
+        id: docId,
+        parser_id: parser.id,
+        user_id: parser.user_id,
+        source_type: "webhook",
+        file_name: fileName,
+        mime_type: fileMimeType,
+        page_count: pageCount,
+        credits_used: reservation.pagesCharged,
+        status: "error",
+        error_message: "Doc insert failed",
+      } as any)
+    await refundCredits(parser.user_id, docId, reservation.pagesCharged, supabase)
+    return NextResponse.json({ error: "Failed to create document record" }, { status: 500 })
+  }
 
   // Store original file to Supabase Storage for preview & reprocessing
-  if (docId) {
+  {
     const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_")
     const storagePath = `${parser.user_id}/${parser.id}/${docId}/${safeName}`
     const fileBuffer = Buffer.from(fileBase64, "base64")
@@ -144,29 +167,21 @@ export async function POST(
 
   const { __meta__, ...apiResults } = result.results
 
-  // Atomically deduct credits (for first-document-free, only deduct what's available)
-  const webhookCreditsUsed = creditCheck.firstDocumentFree
-    ? Math.min(pageCount, creditCheck.remaining)
-    : pageCount
-  const { success: deducted } = await deductCredits(parser.user_id, webhookCreditsUsed, supabase)
-  if (!deducted) {
-    console.warn(`[inbound/webhook] Credit deduction failed for user ${parser.user_id} — possible race condition`)
-  }
+  // Update processing log with final status. Credits were already reserved;
+  // refund if the extraction failed.
+  await supabase
+    .from("parser_processed_documents" as any)
+    .update({
+      status: result.error ? "error" : "completed",
+      results: result.results,
+      processed_at: new Date().toISOString(),
+      error_message: result.error ?? null,
+    } as any)
+    .eq("id", docId)
 
-  // Update processing log
-  if (docId) {
-    await supabase
-      .from("parser_processed_documents" as any)
-      .update({
-        status: result.error ? "error" : "completed",
-        results: result.results,
-        processed_at: new Date().toISOString(),
-        credits_used: pageCount,
-        error_message: result.error ?? null,
-      } as any)
-      .eq("id", docId)
-
-    // Deliver to integrations
+  if (result.error) {
+    await refundCredits(parser.user_id, docId, reservation.pagesCharged, supabase)
+  } else {
     await deliverToIntegrations(
       parser.id,
       parser.name,

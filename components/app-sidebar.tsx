@@ -50,8 +50,8 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { useAuthDialog } from "@/components/auth/AuthDialogContext"
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
+import { useSubscription } from "@/components/billing/SubscriptionContext"
 import { useActiveParser } from "@/components/extractor/parser-context"
-import type { ExtractorSubscription } from "@/lib/extractor/types"
 import { cn } from "@/lib/utils"
 
 const mainNav = [
@@ -68,23 +68,10 @@ export function AppSidebar() {
   const supabase = useSupabaseClient()
   const { openAuthDialog } = useAuthDialog()
   const { parser } = useActiveParser()
+  const { subscription } = useSubscription()
   const [isSigningOut, setIsSigningOut] = useState(false)
-  const [subscription, setSubscription] = useState<ExtractorSubscription | null>(null)
   const [integrationCount, setIntegrationCount] = useState(0)
   const [apiKeyCount, setApiKeyCount] = useState(0)
-
-  // Load subscription for usage display
-  useEffect(() => {
-    if (!session?.user?.id) return
-    supabase
-      .from("extractor_subscriptions")
-      .select("*")
-      .eq("user_id", session.user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) setSubscription(data)
-      })
-  }, [session?.user?.id, supabase])
 
   // Load integration and API key counts for parser nav badges
   useEffect(() => {
