@@ -1,11 +1,11 @@
 import {
   Body,
+  Button,
   Container,
   Head,
   Heading,
   Hr,
   Html,
-  Img,
   Link,
   Preview,
   Section,
@@ -38,8 +38,6 @@ export interface ExtractionReadyEmailProps {
   fieldCount?: number
   /** Link to settings/notifications so users can opt out. */
   unsubscribeUrl: string
-  /** Absolute base URL for the logo — email clients require absolute src. */
-  logoUrl: string
 }
 
 const PRIMARY = "#2782ff"
@@ -65,27 +63,12 @@ const container: React.CSSProperties = {
   padding: "40px 24px",
 }
 
-const brandRow: React.CSSProperties = {
-  margin: "0 0 32px 0",
-  display: "block",
-}
-
-const brandIcon: React.CSSProperties = {
-  display: "inline-block",
-  verticalAlign: "middle",
-  marginRight: "10px",
-  width: "28px",
-  height: "28px",
-}
-
 const wordmark: React.CSSProperties = {
-  display: "inline-block",
-  verticalAlign: "middle",
-  fontSize: "22px",
+  fontSize: "20px",
   fontWeight: 700,
   color: PRIMARY,
   letterSpacing: "-0.01em",
-  margin: "0",
+  margin: "0 0 32px 0",
 }
 
 const heading: React.CSSProperties = {
@@ -158,7 +141,7 @@ const fullPreviewBox: React.CSSProperties = {
 
 const ctaWrapper: React.CSSProperties = {
   textAlign: "center" as const,
-  margin: "0 0 20px 0",
+  margin: "0 0 32px 0",
 }
 
 const ctaButton: React.CSSProperties = {
@@ -170,31 +153,6 @@ const ctaButton: React.CSSProperties = {
   padding: "13px 28px",
   borderRadius: "8px",
   display: "inline-block",
-  // Explicit mso fallback for Outlook desktop
-  msoPaddingAlt: "0px",
-}
-
-const fallbackLinkWrapper: React.CSSProperties = {
-  textAlign: "center" as const,
-  margin: "0 0 32px 0",
-}
-
-const fallbackLinkLabel: React.CSSProperties = {
-  fontSize: "12px",
-  color: SUBTLE,
-  margin: "0 0 4px 0",
-}
-
-const fallbackLinkText: React.CSSProperties = {
-  fontSize: "12px",
-  color: SUBTLE,
-  wordBreak: "break-all",
-  margin: "0",
-}
-
-const fallbackLinkAnchor: React.CSSProperties = {
-  color: SUBTLE,
-  textDecoration: "underline",
 }
 
 const sublineNote: React.CSSProperties = {
@@ -235,7 +193,6 @@ export function ExtractionReadyEmail(props: ExtractionReadyEmailProps) {
     fullPreview,
     fieldCount,
     unsubscribeUrl,
-    logoUrl,
   } = props
 
   // Preview text (Gmail/Apple Mail snippet under the subject line).
@@ -252,16 +209,7 @@ export function ExtractionReadyEmail(props: ExtractionReadyEmailProps) {
       <Preview>{previewText}</Preview>
       <Body style={main}>
         <Container style={container}>
-          <Section style={brandRow}>
-            <Img
-              src={logoUrl}
-              width="28"
-              height="28"
-              alt="Parsli"
-              style={brandIcon}
-            />
-            <span style={wordmark}>Parsli</span>
-          </Section>
+          <Text style={wordmark}>Parsli</Text>
 
           {isFirstValue ? (
             <FirstValueBody
@@ -353,23 +301,9 @@ function FirstValueBody({
       )}
 
       <Section style={ctaWrapper}>
-        <a
-          href={documentUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={ctaButton}
-        >
+        <Button href={documentUrl} style={ctaButton}>
           Open in Parsli
-        </a>
-      </Section>
-
-      <Section style={fallbackLinkWrapper}>
-        <Text style={fallbackLinkLabel}>Or paste this link in your browser:</Text>
-        <Text style={fallbackLinkText}>
-          <Link href={documentUrl} style={fallbackLinkAnchor}>
-            {documentUrl}
-          </Link>
-        </Text>
+        </Button>
       </Section>
 
       <Text style={sublineNote}>
@@ -398,23 +332,9 @@ function SubsequentBody({
       </Text>
 
       <Section style={ctaWrapper}>
-        <a
-          href={documentUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={ctaButton}
-        >
+        <Button href={documentUrl} style={ctaButton}>
           Open in Parsli
-        </a>
-      </Section>
-
-      <Section style={fallbackLinkWrapper}>
-        <Text style={fallbackLinkLabel}>Or paste this link in your browser:</Text>
-        <Text style={fallbackLinkText}>
-          <Link href={documentUrl} style={fallbackLinkAnchor}>
-            {documentUrl}
-          </Link>
-        </Text>
+        </Button>
       </Section>
     </>
   )
