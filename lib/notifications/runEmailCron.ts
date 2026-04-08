@@ -120,8 +120,18 @@ async function processJob(
     return "suppressed"
   }
 
-  // 2. Hard cap — drop jobs older than 6 hours
-  const ageMs = Date.now() - new Date(job.created_at).getTime()
+  // 2. Hard cap — drop jobs older than 6 hours past their scheduled fire time.
+  //
+  // Counting from `scheduled_for` (not `created_at`) is critical: when a row
+  // is deferred by the 22:00–07:00 quiet-hours rule, `scheduled_for` gets
+  // bumped to ~08:00 local next morning. Counting from `created_at` would
+  // mark every overnight-deferred row as "expired" (the whole deferred window
+  // blew through the cap), which is exactly what happened to the Beirut rows.
+  //
+  // Counting from `scheduled_for` gives the row a clean 6-hour retry window
+  // starting from when it was ACTUALLY supposed to fire, regardless of how
+  // far it was deferred.
+  const ageMs = Date.now() - new Date(job.scheduled_for).getTime()
   if (ageMs > SIX_HOURS_MS) {
     await markSuppressed(supabase, job, "expired")
     return "suppressed"
