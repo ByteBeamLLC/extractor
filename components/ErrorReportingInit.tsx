@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
-import { reportError } from "@/lib/errorReporting"
+import { reportError, extractServerMessage } from "@/lib/errorReporting"
 
 /**
  * Catches ALL client-side errors users experience:
@@ -109,13 +109,34 @@ export function ErrorReportingInit() {
           url.includes("localhost")
 
         if (isOwnApi) {
-          // Try to read the error message from the response body
+          // Parse the response body once, derive the message through the
+          // shared normalizer, and carry the raw envelope (truncated) as
+          // extra.responseBody so we can diagnose upstream failures without
+          // losing diagnostic information to "[object Object]" coercion.
           let serverMessage = `Server error ${response.status}`
+          let responseBodyForContext: string | undefined
           try {
             const cloned = response.clone()
             const body = await cloned.json()
-            if (body.error) serverMessage = body.error
-          } catch {}
+            serverMessage = extractServerMessage(body, response.status)
+            try {
+              const json = JSON.stringify(body)
+              responseBodyForContext =
+                json.length > 1000 ? json.slice(0, 1000) + "…" : json
+            } catch {
+              // circular / BigInt — keep the normalized message, drop the body
+            }
+          } catch {
+            // Not JSON (e.g., Vercel HTML error page). Fall back to text.
+            try {
+              const cloned = response.clone()
+              const text = await cloned.text()
+              if (text) {
+                responseBodyForContext =
+                  text.length > 1000 ? text.slice(0, 1000) + "…" : text
+              }
+            } catch {}
+          }
 
           reportError(new Error(serverMessage), {
             route: url,
@@ -124,6 +145,7 @@ export function ErrorReportingInit() {
               type: "fetch_500",
               status: response.status,
               page: window.location.pathname,
+              responseBody: responseBodyForContext,
             },
           })
         }
