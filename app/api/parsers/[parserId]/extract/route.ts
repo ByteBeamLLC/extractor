@@ -4,9 +4,18 @@ import { runExtraction } from "@/lib/extraction/runExtraction"
 import { countDocumentPages } from "@/lib/extraction/api"
 import type { SchemaField } from "@/lib/schema"
 import { deliverToIntegrations } from "@/lib/extractor/integrations/orchestrator"
-import { reserveCredits, refundCredits, reserveFailureMessage } from "@/lib/extractor/billing/credits"
+import {
+  reserveCredits,
+  refundCredits,
+  reserveFailureMessage,
+  type ReserveResult,
+} from "@/lib/extractor/billing/credits"
 import { trackServerEvent } from "@/lib/analytics/server"
 import { reportError } from "@/lib/errorReporting"
+
+/** Preserves the full inferred return type of the factory so Supabase query
+ * builders retain their table typings inside the outer catch. */
+type SupabaseServerClient = ReturnType<typeof createSupabaseServerComponentClient>
 import {
   getTransformationFields,
   buildWaves,
@@ -21,7 +30,23 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { parserId: string } }
 ) {
+  // Per-request correlation id — threaded through reportError and returned
+  // to the client in any 500 envelope so we can find the exact incident in
+  // logs when a user reports "it broke".
+  const requestId = crypto.randomUUID()
+
+  // These are lifted out of the try{} so the outer catch can refund credits
+  // and report the incident with the same correlation context the happy
+  // path would have used. Without this, an escape BETWEEN reserveCredits()
+  // and the doc INSERT would silently leak a reservation.
+  let supabaseClient: SupabaseServerClient | null = null
+  let userId: string | null = null
+  let docId: string | null = null
+  let reservation: ReserveResult | null = null
+
+  try {
   const supabase = createSupabaseServerComponentClient()
+  supabaseClient = supabase
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -29,6 +54,7 @@ export async function POST(
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
+  userId = user.id
 
   // Load parser
   const { data: parser, error: parserError } = await supabase
@@ -118,13 +144,13 @@ export async function POST(
   // Pre-generate document ID so we can reserve credits keyed to it,
   // then store the file, then INSERT the row — all before the pg_net
   // trigger fires.
-  const docId = crypto.randomUUID()
+  docId = crypto.randomUUID()
 
   // Atomically reserve credits up front. This replaces the old
   // check-then-deduct two-step: first-doc-free eligibility, quota check,
   // period reset, and deduction all happen inside a single row lock in
   // the reserve_credits RPC. Concurrent uploads can't race past this.
-  const reservation = await reserveCredits(
+  reservation = await reserveCredits(
     user.id,
     pageCount,
     docId,
@@ -360,8 +386,13 @@ export async function POST(
       }),
     })
   } catch (err) {
-    console.error("[extract] Sync extraction failed:", err)
-    reportError(err, { route: "/api/parsers/extract", method: "POST", userId: user.id, extra: { parserId: p.id, docId } })
+    console.error(`[extract][${requestId}] Sync extraction failed:`, err)
+    reportError(err, {
+      route: "/api/parsers/[parserId]/extract",
+      method: "POST",
+      userId: user.id,
+      extra: { requestId, parserId: p.id, docId },
+    })
 
     await supabase
       .from("parser_processed_documents" as any)
@@ -377,7 +408,67 @@ export async function POST(
     await refundCredits(user.id, docId, reservation.pagesCharged, supabase)
 
     return NextResponse.json(
-      { error: "Extraction failed", document_id: docId },
+      {
+        error: "Extraction failed",
+        document_id: docId,
+        requestId,
+      },
+      { status: 500 }
+    )
+  }
+  } catch (err) {
+    // Top-level containment: catches everything the inner handlers didn't —
+    // parser load failures that throw instead of returning {error}, body
+    // parse failures, countDocumentPages crashes on malformed PDFs, Supabase
+    // RPC network errors during reserveCredits, and any other unhandled
+    // throw between the entry point and the happy-path return.
+    //
+    // Without this wrapper, such throws escape as a bare Vercel 500 with no
+    // body, no correlation id, and no reporter entry — which is the exact
+    // failure mode that produced issue #66.
+    console.error(`[extract][${requestId}] Unhandled error:`, err)
+    reportError(err, {
+      route: "/api/parsers/[parserId]/extract",
+      method: "POST",
+      userId: userId ?? undefined,
+      extra: {
+        requestId,
+        parserId: params.parserId,
+        docId: docId ?? undefined,
+        reserved: reservation?.reserved ?? false,
+        pagesCharged: reservation?.reserved ? reservation.pagesCharged : 0,
+      },
+    })
+
+    // If we managed to reserve credits before the throw but never reached
+    // the refund paths inside the inner handlers, refund now so the ledger
+    // stays consistent. refundCredits is idempotent via refunded_at, so a
+    // later call (e.g., from the stuck-doc cleanup cron) is a no-op.
+    if (
+      userId &&
+      docId &&
+      reservation?.reserved &&
+      reservation.pagesCharged > 0 &&
+      supabaseClient
+    ) {
+      try {
+        await refundCredits(userId, docId, reservation.pagesCharged, supabaseClient)
+      } catch (refundErr) {
+        console.error(
+          `[extract][${requestId}] Refund after unhandled error failed:`,
+          refundErr
+        )
+      }
+    }
+
+    return NextResponse.json(
+      {
+        error:
+          "Something went wrong while starting your extraction. Please try again in a moment.",
+        code: "internal_error",
+        requestId,
+        ...(docId && { document_id: docId }),
+      },
       { status: 500 }
     )
   }
