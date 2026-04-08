@@ -18,6 +18,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { copyToClipboard } from "@/lib/clipboard"
 import { analyzeStructure, type StructureSignal } from "@/lib/tools/analyze-structure"
 import { StructureBridgeBanner } from "./StructureBridgeBanner"
 import { FileSizeBridgeBanner } from "@/components/tools/FileSizeBridgeBanner"
@@ -242,7 +243,7 @@ export function HandwritingToTextTool() {
   )
 
   const handleCopy = useCallback(async () => {
-    await navigator.clipboard.writeText(extractedText)
+    if (!(await copyToClipboard(extractedText))) return
     setCopied(true)
     trackEvent("hwt_copy", {
       word_count: extractedText.split(/\s+/).filter(Boolean).length,

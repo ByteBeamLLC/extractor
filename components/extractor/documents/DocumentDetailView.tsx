@@ -31,6 +31,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DocumentChat } from "@/components/extractor/chat/DocumentChat"
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
+import { copyToClipboard } from "@/lib/clipboard"
 import type { Parser, ProcessedDocument } from "@/lib/extractor/types"
 import type { SchemaField } from "@/lib/schema"
 
@@ -159,7 +160,7 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
   const handleCopyJson = async () => {
     if (!doc?.results) return
     const { __meta__, ...display } = doc.results
-    await navigator.clipboard.writeText(JSON.stringify(display, null, 2))
+    if (!(await copyToClipboard(JSON.stringify(display, null, 2)))) return
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -200,7 +201,7 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
   const handleCopyText = async () => {
     const text = resultsAsText()
     if (!text) return
-    await navigator.clipboard.writeText(text)
+    if (!(await copyToClipboard(text))) return
     setCopiedText(true)
     setTimeout(() => setCopiedText(false), 2000)
   }
