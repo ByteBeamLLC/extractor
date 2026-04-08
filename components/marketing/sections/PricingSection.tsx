@@ -380,7 +380,9 @@ export function PricingSection({ asPage }: PricingSectionProps) {
                         href={
                           plan.level >= 5
                             ? "mailto:talal@bytebeam.co"
-                            : `${APP_URL}/dashboard?subscribe=${plan.tier}&billing=${annual ? "annual" : "monthly"}`
+                            : plan.tier === "free"
+                              ? `${APP_URL}/login?mode=signup&next=/dashboard`
+                              : `${APP_URL}/subscribe?tier=${plan.tier}&billing=${annual ? "annual" : "monthly"}`
                         }
                       >
                         {plan.level >= 5 ? "Contact sales" : "Get started"}
@@ -546,11 +548,13 @@ export function PricingSection({ asPage }: PricingSectionProps) {
                       asChild
                     >
                       <a
-                        href={`${APP_URL}/dashboard?subscribe=${tier.tier}&billing=${annual ? "annual" : "monthly"}`}
+                        href={
+                          tier.tier === "free"
+                            ? `${APP_URL}/login?mode=signup&next=/dashboard`
+                            : `${APP_URL}/subscribe?tier=${tier.tier}&billing=${annual ? "annual" : "monthly"}`
+                        }
                       >
-                        {tier.tier === "free"
-                          ? "Get Started Free"
-                          : "Start Free Trial"}
+                        {tier.tier === "free" ? "Get Started Free" : "Get Started"}
                       </a>
                     </Button>
 

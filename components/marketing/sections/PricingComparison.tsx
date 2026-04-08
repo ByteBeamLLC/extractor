@@ -262,7 +262,9 @@ export function PricingComparison() {
                       href={
                         tier.key === "enterprise"
                           ? "mailto:talal@bytebeam.co"
-                          : `${APP_URL}/dashboard?subscribe=${tier.key}&billing=annual`
+                          : tier.key === "free"
+                            ? `${APP_URL}/login?mode=signup&next=/dashboard`
+                            : `${APP_URL}/subscribe?tier=${tier.key}&billing=annual`
                       }
                     >
                       {tier.cta}

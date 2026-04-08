@@ -1,109 +1,75 @@
-import { NextResponse } from "next/server"
-import { stripe, PLANS, type PlanTier } from "@/lib/stripe/config"
+import { type NextRequest, NextResponse } from "next/server"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
+import { createCheckoutSessionForUser } from "@/lib/stripe/createCheckoutSession"
+import { ApiError, withErrorReporting } from "@/lib/errorReporting"
+import type { PlanTier } from "@/lib/stripe/config"
 
 export const maxDuration = 60
 
-export async function POST(request: Request) {
-  try {
+/**
+ * POST /api/stripe/checkout
+ *
+ * JSON endpoint for any client JS that wants to kick off a Stripe checkout
+ * without a page navigation — e.g. an in-app "Upgrade" button that opens
+ * the Stripe URL in a new tab. The server-rendered `/subscribe` page is
+ * the preferred entry point from the marketing pricing page because it
+ * avoids a round-trip and handles auth redirects natively.
+ *
+ * Both entry points share the same `createCheckoutSessionForUser` helper
+ * so the session-building logic lives in exactly one place.
+ *
+ * Request body: `{ tier: PlanTier, billing: "monthly" | "annual" }`
+ * Response:     `{ url: string, mode: "checkout" | "portal" }`
+ */
+export const POST = withErrorReporting(
+  "/api/stripe/checkout",
+  async (request: NextRequest) => {
     const supabase = createSupabaseServerClient()
     const {
       data: { session },
     } = await supabase.auth.getSession()
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      throw new ApiError(401, "unauthorized", "You must be signed in to subscribe.")
     }
 
-    const { tier, billing } = (await request.json()) as {
-      tier: PlanTier
-      billing: "monthly" | "annual"
-    }
-
-    const plan = PLANS[tier]
-    if (!plan || plan.tier === "free") {
-      return NextResponse.json({ error: "Invalid plan" }, { status: 400 })
-    }
-
-    const priceId =
-      billing === "annual"
-        ? plan.stripePriceIdAnnual
-        : plan.stripePriceIdMonthly
-    if (!priceId) {
-      return NextResponse.json(
-        { error: "Price not configured" },
-        { status: 400 }
+    if (session.user.is_anonymous) {
+      // Guests can't subscribe — they need to convert to a real account first.
+      throw new ApiError(
+        403,
+        "anonymous_cannot_subscribe",
+        "Please create a free account before subscribing.",
       )
     }
 
-    const serviceSupabase = createSupabaseServiceRoleClient()
-    const { data: sub } = await serviceSupabase
-      .from("extractor_subscriptions")
-      .select("stripe_customer_id, stripe_subscription_id")
-      .eq("user_id", session.user.id)
-      .maybeSingle()
-
-    // If user already has an active subscription, redirect to portal instead
-    if (sub?.stripe_subscription_id) {
-      const siteUrl =
-        process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
-      const portalSession = await stripe.billingPortal.sessions.create({
-        customer: sub.stripe_customer_id!,
-        return_url: `${siteUrl}/settings`,
-      })
-      return NextResponse.json({ url: portalSession.url })
+    let body: { tier?: unknown; billing?: unknown }
+    try {
+      body = await request.json()
+    } catch {
+      throw new ApiError(400, "invalid_json", "Request body must be valid JSON.")
     }
 
-    // Get or create Stripe customer
-    let customerId = sub?.stripe_customer_id
+    const tier = typeof body.tier === "string" ? (body.tier as PlanTier) : undefined
+    const billing = typeof body.billing === "string" ? body.billing : undefined
 
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: session.user.email,
-        metadata: { supabase_user_id: session.user.id },
-      })
-      customerId = customer.id
-
-      await serviceSupabase
-        .from("extractor_subscriptions")
-        .upsert(
-          {
-            user_id: session.user.id,
-            stripe_customer_id: customerId,
-            credits_free: PLANS.free.pages,
-            credits_used: 0,
-            credits_reset_at: new Date(
-              Date.now() + 30 * 24 * 60 * 60 * 1000
-            ).toISOString(),
-          },
-          { onConflict: "user_id" }
-        )
+    if (!tier) {
+      throw new ApiError(400, "missing_tier", "`tier` is required.")
+    }
+    if (billing !== "monthly" && billing !== "annual") {
+      throw new ApiError(
+        400,
+        "invalid_billing",
+        "`billing` must be 'monthly' or 'annual'.",
+      )
     }
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
-
-    const checkoutSession = await stripe.checkout.sessions.create({
-      customer: customerId,
-      mode: "subscription",
-      line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${siteUrl}/settings?checkout=success`,
-      cancel_url: `${siteUrl}/pricing?checkout=cancel`,
-      subscription_data: {
-        metadata: {
-          supabase_user_id: session.user.id,
-          plan_tier: tier,
-        },
-      },
-      allow_promotion_codes: true,
+    const result = await createCheckoutSessionForUser({
+      userId: session.user.id,
+      email: session.user.email,
+      tier,
+      billing,
     })
 
-    return NextResponse.json({ url: checkoutSession.url })
-  } catch (err: any) {
-    console.error("[stripe/checkout]", err)
-    return NextResponse.json(
-      { error: err.message || "Internal error" },
-      { status: 500 }
-    )
-  }
-}
+    return NextResponse.json(result)
+  },
+)

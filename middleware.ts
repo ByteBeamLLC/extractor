@@ -3,7 +3,7 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
 // Routes that require authentication (served on app subdomain)
-const protectedRoutes = ["/dashboard", "/settings", "/parsers"]
+const protectedRoutes = ["/dashboard", "/settings", "/parsers", "/subscribe"]
 
 // Marketing routes (served on main domain)
 const marketingRoutes = [
