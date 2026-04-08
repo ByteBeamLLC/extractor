@@ -222,24 +222,144 @@ export async function reportError(
 }
 
 /**
- * Wraps an API route handler with automatic error reporting.
- * Usage:
- *   export const POST = withErrorReporting("/api/my-route", async (req) => { ... })
+ * Typed error that serializes into a stable public envelope when thrown
+ * inside a `withErrorReporting`-wrapped handler.
+ *
+ * Use this instead of `NextResponse.json({error}, {status})` when you want
+ * the envelope shape + correlation id to match the one the wrapper
+ * produces on unhandled throws. That way clients get one uniform error
+ * contract across every route, and every failure is correlated by
+ * `requestId` whether the throw was expected or a surprise.
+ *
+ *   throw new ApiError(402, "quota_exceeded", "Daily guest limit reached.")
+ *
+ * `status` defaults to 500 and `code` defaults to `"internal_error"` for
+ * the case where a raw `throw new ApiError(...)` is used as a shorthand
+ * fatal.
  */
-export function withErrorReporting(
+export class ApiError extends Error {
+  readonly status: number
+  readonly code: string
+  readonly extra?: Record<string, unknown>
+
+  constructor(
+    status: number,
+    code: string,
+    message: string,
+    extra?: Record<string, unknown>,
+  ) {
+    super(message)
+    this.name = "ApiError"
+    this.status = status
+    this.code = code
+    this.extra = extra
+  }
+}
+
+/**
+ * Stable public envelope shape. Every `withErrorReporting`-wrapped route
+ * returns this on failure — clients can rely on `error`, `code`, and
+ * `requestId` being present.
+ */
+export interface ApiErrorEnvelope {
+  error: string
+  code: string
+  requestId: string
+  [k: string]: unknown
+}
+
+/**
+ * Wraps an API route handler with automatic error reporting, correlation
+ * ids, and a stable JSON envelope for failures.
+ *
+ * What this gives you for free:
+ *   - Per-request `requestId` (UUID) in logs, reports, and the response
+ *     envelope. Makes "user says it broke at 3:14pm" instantly triageable.
+ *   - All unhandled throws are caught, reported with route/method/context,
+ *     and returned as `{error, code: "internal_error", requestId}` at 500.
+ *   - `ApiError` instances are mapped to their `status`/`code`/`message`
+ *     and returned WITHOUT a reporter call — these are expected 4xx/5xx
+ *     outcomes (quota, not-found, validation) and shouldn't pollute the
+ *     issue tracker.
+ *   - `X-Request-Id` header on every error response so proxies, logs,
+ *     and browser devtools all show the same id.
+ *
+ * Usage:
+ *
+ *   export const POST = withErrorReporting(
+ *     "/api/my-route",
+ *     async (req, { params }) => {
+ *       if (!someCheck) {
+ *         throw new ApiError(400, "bad_input", "X is required")
+ *       }
+ *       const data = await doWork(req, params.id)
+ *       return NextResponse.json({ data })
+ *     }
+ *   )
+ *
+ * For dynamic routes the second argument is `{ params }` as Next.js
+ * passes it; the type parameter `TContext` preserves your route's param
+ * typing through the wrapper.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type RouteHandlerContext = { params?: Record<string, any> }
+
+export function withErrorReporting<
+  TRequest extends Request = Request,
+  TContext extends RouteHandlerContext = RouteHandlerContext,
+>(
   route: string,
-  handler: (request: Request, context: any) => Promise<Response>
+  handler: (request: TRequest, context: TContext) => Promise<Response>,
 ) {
-  return async (request: Request, context: any): Promise<Response> => {
+  return async (request: TRequest, context: TContext): Promise<Response> => {
+    const requestId =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+
     try {
       return await handler(request, context)
     } catch (error) {
-      console.error(`[${route}] Unhandled error:`, error)
-      await reportError(error, { route, method: request.method })
-      return new Response(
-        JSON.stringify({ error: "Internal server error" }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
-      )
+      // ApiError: expected failure, NOT a reporter incident.
+      if (error instanceof ApiError) {
+        const envelope: ApiErrorEnvelope = {
+          error: error.message,
+          code: error.code,
+          requestId,
+          ...(error.extra ?? {}),
+        }
+        return new Response(JSON.stringify(envelope), {
+          status: error.status,
+          headers: {
+            "Content-Type": "application/json",
+            "X-Request-Id": requestId,
+          },
+        })
+      }
+
+      // Anything else: unhandled throw. Log, report, envelope, 500.
+      console.error(`[${route}][${requestId}] Unhandled error:`, error)
+      await reportError(error, {
+        route,
+        method: request.method,
+        extra: {
+          requestId,
+          params: context?.params,
+        },
+      })
+
+      const envelope: ApiErrorEnvelope = {
+        error: "An unexpected error occurred. Please try again.",
+        code: "internal_error",
+        requestId,
+      }
+      return new Response(JSON.stringify(envelope), {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+          "X-Request-Id": requestId,
+        },
+      })
     }
   }
 }
