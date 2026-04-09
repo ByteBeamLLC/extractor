@@ -162,6 +162,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to create document" }, { status: 500 })
   }
 
+  // 3b. Increment the denormalized document_count on the parser.
+  // The bridge inserts a pre-completed document, bypassing the extraction
+  // worker that normally bumps this counter.
+  await admin
+    .from("parsers" as any)
+    .update({
+      document_count: 1,
+      last_processed_at: new Date().toISOString(),
+    } as any)
+    .eq("id", parserId)
+
   // 4. Backfill the handwriting_uploads row if there is one we can match.
   // We use the same IP+UA distinct_id formula as the handwriting tool route.
   try {
