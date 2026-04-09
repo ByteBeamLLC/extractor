@@ -242,26 +242,27 @@ export function BridgeChat({
   }
 
   return (
-    <div className="border-t bg-muted/20">
-      <div className="px-6 py-5">
+    <div className="flex flex-col h-full bg-gradient-to-b from-muted/30 to-transparent">
+      {/* Chat content — fills available space */}
+      <div className="flex-1 px-5 py-4 overflow-y-auto">
         <div className="flex items-center gap-2 mb-1">
-          <Sparkles className="h-4 w-4 text-primary" />
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-indigo-500 flex items-center justify-center shrink-0">
+            <Sparkles className="h-3.5 w-3.5 text-white" />
+          </div>
           <h3 className="text-sm font-semibold">{HEADER_LABEL}</h3>
         </div>
         <p className="text-xs text-muted-foreground mb-4">{HEADER_HINT}</p>
 
-        {/* Starter chips — visible until the first answer arrives. Tagged so
-            Mixpanel session replay shows the chip text (it's localized to the
-            doc's language and helps with funnel analysis). NO mp-mask here. */}
+        {/* Starter chips — visible until the first answer arrives */}
         {!hasFirstAnswer && messages.length === 0 && (
-          <div className="flex flex-wrap gap-2" data-mp-no-mask>
+          <div className="flex flex-col gap-2" data-mp-no-mask>
             {starterQuestions.map((chip, index) => (
               <button
                 key={chip.label + index}
                 type="button"
                 onClick={() => handleChipClick(chip, index)}
                 disabled={isLoading}
-                className="rounded-full border border-border bg-background px-3.5 py-1.5 text-sm hover:border-primary/40 hover:bg-primary/5 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                className="text-left rounded-lg border border-border bg-background px-3.5 py-2.5 text-[13px] leading-snug hover:border-primary/40 hover:bg-primary/5 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {chip.label}
               </button>
@@ -271,7 +272,7 @@ export function BridgeChat({
 
         {/* Conversation */}
         {messages.length > 0 && (
-          <div className="mt-2 max-h-96 overflow-y-auto pr-1">
+          <div className="mt-2">
             <MessageList messages={messages} isLoading={isLoading} />
           </div>
         )}
@@ -282,10 +283,12 @@ export function BridgeChat({
             {error}
           </div>
         )}
+      </div>
 
-        {/* Follow-up input — only after the first answer is rendered */}
-        {hasFirstAnswer && (
-          <form onSubmit={handleFollowupSubmit} className="mt-4">
+      {/* Follow-up input — only after the first answer is rendered */}
+      {hasFirstAnswer && (
+        <div className="px-4 py-3 border-t bg-card">
+          <form onSubmit={handleFollowupSubmit}>
             <div className="flex items-end gap-2">
               <textarea
                 value={followup}
@@ -293,7 +296,7 @@ export function BridgeChat({
                 placeholder={SEND_PLACEHOLDER}
                 rows={1}
                 disabled={isLoading}
-                className="flex-1 resize-none rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
+                className="flex-1 resize-none rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault()
@@ -314,12 +317,12 @@ export function BridgeChat({
                 )}
               </Button>
             </div>
-            <p className="mt-2 text-[11px] text-muted-foreground">
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
               Sign in to keep chatting and access your document anytime.
             </p>
           </form>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }

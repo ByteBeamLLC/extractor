@@ -15,6 +15,8 @@ import {
   Copy,
   Check,
   PenLine,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -468,118 +470,18 @@ export function HandwritingToTextTool() {
         </div>
       )}
 
-      {/* Success state — before/after layout */}
+      {/* Success state — split layout: text left, chat right */}
       {status === "done" && (
-        <div className="rounded-2xl border bg-card overflow-hidden">
-          {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b bg-green-50 dark:bg-green-950/30">
-            <div className="flex items-center gap-3">
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
-              <div>
-                <p className="font-semibold text-sm">Handwriting recognized</p>
-                <p className="text-xs text-muted-foreground">
-                  {extractedText.split(/\s+/).length} words extracted
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={reset}
-              className="p-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-              aria-label="Extract from another file"
-            >
-              <X className="h-4 w-4 text-muted-foreground" />
-            </button>
-          </div>
-
-          {/* Before / After */}
-          {previewUrl && (
-            <div className="grid sm:grid-cols-2 gap-px bg-border">
-              <div className="bg-card p-4">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
-                  Original
-                </p>
-                <div className="relative w-full h-48 rounded-lg overflow-hidden border bg-muted/30">
-                  <Image
-                    src={previewUrl}
-                    alt="Original handwriting"
-                    fill
-                    className="object-contain"
-                    unoptimized={previewUrl.startsWith("blob:")}
-                  />
-                </div>
-              </div>
-              <div className="bg-card p-4">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
-                  Extracted Text
-                </p>
-                <textarea
-                  readOnly
-                  value={extractedText}
-                  className="w-full h-48 rounded-lg border bg-muted/30 p-3 text-sm font-mono resize-none focus:outline-none"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Fallback: text only (no preview) */}
-          {!previewUrl && (
-            <div className="px-6 py-4">
-              <textarea
-                readOnly
-                value={extractedText}
-                className="w-full h-64 rounded-lg border bg-muted/30 p-4 text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-primary/20"
-              />
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className="px-6 py-4 border-t flex flex-col sm:flex-row gap-3">
-            <Button
-              onClick={handleCopy}
-              variant="outline"
-              className="h-11 flex-1"
-            >
-              {copied ? (
-                <Check className="h-4 w-4 mr-2" />
-              ) : (
-                <Copy className="h-4 w-4 mr-2" />
-              )}
-              {copied ? "Copied!" : "Copy Text"}
-            </Button>
-            <Button onClick={handleDownload} className="flex-1 h-11" size="lg">
-              <Download className="h-4 w-4 mr-2" />
-              Download .txt
-            </Button>
-            <Button
-              onClick={reset}
-              variant="outline"
-              className="h-11"
-              size="lg"
-            >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Extract Another
-            </Button>
-          </div>
-
-          {/* Bridge to Parsli app — contextual chat that provisions a parser
-              behind the scenes and hands off to the in-app chat after auth.
-              Gated behind NEXT_PUBLIC_FEATURE_HWT_BRIDGE for staged rollout. */}
-          {process.env.NEXT_PUBLIC_FEATURE_HWT_BRIDGE !== "false" &&
-           bridgePayload && bridgePayload.starterQuestions.length > 0 && (
-            <BridgeChat
-              text={extractedText}
-              language={bridgePayload.language}
-              docType={bridgePayload.docType}
-              starterQuestions={bridgePayload.starterQuestions}
-              image={{
-                base64: bridgePayload.base64,
-                mimeType: bridgePayload.mimeType,
-                fileName: bridgePayload.fileName,
-                fileSize: bridgePayload.fileSize,
-              }}
-            />
-          )}
-        </div>
+        <SuccessView
+          previewUrl={previewUrl}
+          fileName={fileName}
+          extractedText={extractedText}
+          copied={copied}
+          onCopy={handleCopy}
+          onDownload={handleDownload}
+          onReset={reset}
+          bridgePayload={bridgePayload}
+        />
       )}
 
       {/* Error state */}
@@ -610,6 +512,168 @@ export function HandwritingToTextTool() {
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+/* ─── Success view: split layout with thumbnail, text left, chat right ─── */
+
+function SuccessView({
+  previewUrl,
+  fileName,
+  extractedText,
+  copied,
+  onCopy,
+  onDownload,
+  onReset,
+  bridgePayload,
+}: {
+  previewUrl: string | null
+  fileName: string
+  extractedText: string
+  copied: boolean
+  onCopy: () => void
+  onDownload: () => void
+  onReset: () => void
+  bridgePayload: BridgePayload | null
+}) {
+  const [textExpanded, setTextExpanded] = useState(false)
+  const wordCount = extractedText.split(/\s+/).filter(Boolean).length
+  const showBridge =
+    process.env.NEXT_PUBLIC_FEATURE_HWT_BRIDGE !== "false" &&
+    bridgePayload &&
+    bridgePayload.starterQuestions.length > 0
+
+  return (
+    <div className="rounded-2xl border bg-card overflow-hidden">
+      {/* Success bar with thumbnail */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b bg-muted/30">
+        {previewUrl && (
+          <div className="relative w-12 h-12 rounded-lg overflow-hidden border bg-muted/30 shrink-0">
+            <Image
+              src={previewUrl}
+              alt="Original"
+              fill
+              className="object-cover"
+              unoptimized={previewUrl.startsWith("blob:")}
+            />
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+            <p className="font-semibold text-sm">Handwriting recognized</p>
+          </div>
+          <p className="text-xs text-muted-foreground truncate">
+            {fileName} &middot; {wordCount} words extracted
+          </p>
+        </div>
+        <button
+          onClick={onReset}
+          className="p-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition-colors shrink-0"
+          aria-label="Start over"
+        >
+          <X className="h-4 w-4 text-muted-foreground" />
+        </button>
+      </div>
+
+      {/* Split: text left, chat right (stacks on mobile) */}
+      <div className="flex flex-col md:flex-row md:min-h-[340px]">
+        {/* Left: extracted text */}
+        <div className="flex-1 md:border-r border-b md:border-b-0 flex flex-col">
+          <div className="flex items-center px-4 py-2 border-b">
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex-1">
+              Extracted text
+            </span>
+            <div className="flex gap-1">
+              <button
+                onClick={onCopy}
+                className="p-1.5 rounded-md border hover:border-primary hover:text-primary hover:bg-primary/5 transition-colors"
+                title="Copy text"
+              >
+                {copied ? (
+                  <Check className="h-3.5 w-3.5 text-green-600" />
+                ) : (
+                  <Copy className="h-3.5 w-3.5" />
+                )}
+              </button>
+              <button
+                onClick={onDownload}
+                className="p-1.5 rounded-md border hover:border-primary hover:text-primary hover:bg-primary/5 transition-colors"
+                title="Download .txt"
+              >
+                <Download className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+          {/* Mobile: collapsed text with toggle. Desktop: scrollable full text. */}
+          <div
+            className={cn(
+              "flex-1 px-4 py-3 font-mono text-[13px] leading-relaxed whitespace-pre-wrap break-words overflow-y-auto",
+              !textExpanded && "max-h-[100px] md:max-h-none relative"
+            )}
+          >
+            {extractedText}
+            {!textExpanded && (
+              <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-card to-transparent md:hidden" />
+            )}
+          </div>
+          <button
+            onClick={() => setTextExpanded((v) => !v)}
+            className="flex items-center justify-center gap-1 px-4 py-2 text-xs font-semibold text-primary md:hidden border-t"
+          >
+            {textExpanded ? (
+              <>
+                <ChevronUp className="h-3.5 w-3.5" /> Collapse
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-3.5 w-3.5" /> Show full text
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Right: bridge chat or fallback CTA */}
+        <div className="flex-1 flex flex-col">
+          {showBridge ? (
+            <BridgeChat
+              text={extractedText}
+              language={bridgePayload!.language}
+              docType={bridgePayload!.docType}
+              starterQuestions={bridgePayload!.starterQuestions}
+              image={{
+                base64: bridgePayload!.base64,
+                mimeType: bridgePayload!.mimeType,
+                fileName: bridgePayload!.fileName,
+                fileSize: bridgePayload!.fileSize,
+              }}
+            />
+          ) : (
+            <div className="flex-1 flex items-center justify-center p-6 text-center">
+              <div>
+                <p className="text-sm font-semibold mb-1">
+                  Want to do more with this document?
+                </p>
+                <p className="text-xs text-muted-foreground mb-4">
+                  Extract structured data, chat with AI, export to Sheets.
+                </p>
+                <Button asChild size="sm">
+                  <a href="https://app.parsli.co">Try Parsli Free</a>
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom bar */}
+      <div className="px-4 py-2.5 border-t bg-muted/20">
+        <Button onClick={onReset} variant="ghost" size="sm" className="text-xs">
+          <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+          Extract Another
+        </Button>
+      </div>
     </div>
   )
 }
