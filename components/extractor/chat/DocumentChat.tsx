@@ -11,6 +11,8 @@ import { useDocumentChat } from "./useDocumentChat"
 interface DocumentChatProps {
   parser: Parser
   doc: ProcessedDocument
+  /** Bridge session token from ?handoff= URL param. Consumed once to hydrate chat. */
+  handoffToken?: string
 }
 
 /**
@@ -21,10 +23,11 @@ interface DocumentChatProps {
  * Conversation state lives in component memory only — switching documents
  * unmounts this component and starts fresh.
  */
-export function DocumentChat({ parser, doc }: DocumentChatProps) {
+export function DocumentChat({ parser, doc, handoffToken }: DocumentChatProps) {
   const { messages, isLoading, error, send } = useDocumentChat({
     parserId: parser.id,
     documentId: doc.id,
+    initialHandoffToken: handoffToken,
   })
   const [draft, setDraft] = useState("")
 

@@ -7,6 +7,7 @@ import {
   type ExtractionReadyEmailProps,
   type FieldPreviewItem,
 } from "@/emails/ExtractionReady"
+import { createEmailContinuationToken } from "@/lib/email-continuation"
 import type { SchemaField } from "@/lib/schema"
 
 const SIX_HOURS_MS = 6 * 60 * 60 * 1000
@@ -215,11 +216,28 @@ async function processJob(
       ? Object.values(results).filter((v) => v != null && v !== "").length
       : undefined
 
-  // 8. Build URLs (carry attribution)
+  // 8. Build URLs — email continuation token for auto-auth deep link
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.parsli.co"
-  const documentUrl =
-    `${baseUrl}/parsers/${job.parser_id}/documents/${job.document_id}` +
+  const targetPath =
+    `/parsers/${job.parser_id}/documents/${job.document_id}` +
     `?utm_source=email&utm_medium=notification&utm_campaign=extraction_ready&nid=${job.nid}`
+
+  let documentUrl: string
+  try {
+    const { rawToken } = await createEmailContinuationToken({
+      userId: job.user_id,
+      targetUrl: `${baseUrl}${targetPath}`,
+      nid: job.nid,
+      purpose: "extraction_ready",
+    })
+    documentUrl = `${baseUrl}/auth/email-continue?token=${encodeURIComponent(rawToken)}`
+  } catch (tokenErr) {
+    // Fallback to direct URL if token creation fails — better to send a
+    // link that requires manual login than to skip the email entirely.
+    console.error("[notification-cron] Failed to create continuation token:", tokenErr)
+    documentUrl = `${baseUrl}${targetPath}`
+  }
+
   const unsubscribeUrl = `${baseUrl}/settings?tab=notifications`
 
   // 9. Render + send

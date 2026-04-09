@@ -126,10 +126,15 @@ export async function POST(
 
   // Build the system prompt + tools (tools are bound to this document's data)
   const systemPrompt = buildChatSystemPrompt(parser, doc)
-  const tools = [
-    calculateTool,
-    createQueryExtractedDataTool(doc.results as Record<string, unknown>),
-  ]
+  // For full_content parsers (e.g. handwriting bridge) the document is plain text,
+  // not a structured JSON — query_extracted_data has nothing meaningful to query.
+  // We still expose `calculate` so totaling expense lists / quizzing math works.
+  const tools = parser.extraction_type === "full_content"
+    ? [calculateTool]
+    : [
+        calculateTool,
+        createQueryExtractedDataTool(doc.results as Record<string, unknown>),
+      ]
 
   // Trim history to the last MAX_HISTORY_MESSAGES turns and strip extra fields
   // before sending to the model — only role + content go in the prompt.

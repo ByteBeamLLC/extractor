@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
 import { exchangeCodeForUser } from "@/lib/auth/google-oauth"
+import { verifyState } from "@/lib/auth/state-signing"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 import { trackServerEvent } from "@/lib/analytics/server"
 import { setNewSignupCookie } from "@/lib/analytics/signup-cookie"
@@ -14,26 +15,36 @@ export const maxDuration = 60
 // GET /api/auth/google/callback?code=...&state=...
 // Google redirects here after user grants consent.
 // Creates or finds the Supabase user, verifies OTP server-side to set session cookies.
+//
+// State is HMAC-verified — rejects forged or expired state parameters.
+// Anonymous data migration uses the transactional Postgres RPC function
+// instead of sequential JS UPDATEs.
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl
   const code = searchParams.get("code")
   const stateRaw = searchParams.get("state")
   const error = searchParams.get("error")
 
-  let next = "/dashboard"
-  let anonUserId: string | undefined
-  if (stateRaw) {
-    try {
-      const state = JSON.parse(Buffer.from(stateRaw, "base64url").toString())
-      next = state.next || "/dashboard"
-      anonUserId = state.anon_uid
-    } catch { /* use default */ }
-  }
-
   const loginUrl = `${origin}/login?error=google_auth_failed`
 
   if (error || !code) {
     return NextResponse.redirect(loginUrl)
+  }
+
+  // Verify HMAC-signed state — rejects forged or expired (>15 min) states
+  let next = "/dashboard"
+  let anonUserId: string | undefined
+  let bridgeToken: string | undefined
+
+  if (stateRaw) {
+    const state = verifyState(stateRaw)
+    if (!state) {
+      console.error("[google-auth-callback] Invalid or expired state parameter")
+      return NextResponse.redirect(`${origin}/login?error=invalid_state`)
+    }
+    next = state.next || "/dashboard"
+    anonUserId = state.anon_uid
+    bridgeToken = state.bridge_token
   }
 
   try {
@@ -78,12 +89,30 @@ export async function GET(request: NextRequest) {
     })
     if (verifyError) throw verifyError
 
-    // Migrate anonymous user data to the new authenticated account
+    // Migrate anonymous user data via transactional Postgres function
     if (anonUserId) {
       const { data: { user: authUser } } = await supabase.auth.getUser()
       if (authUser && authUser.id !== anonUserId) {
         try {
-          await migrateAnonymousData(admin, anonUserId, authUser.id)
+          const { data: rowCounts, error: rpcError } = await admin.rpc(
+            "migrate_anonymous_user_data",
+            { p_anon_user_id: anonUserId, p_new_user_id: authUser.id }
+          )
+
+          if (rpcError) throw rpcError
+
+          // Audit log
+          await admin.from("account_migrations").insert({
+            anon_user_id: anonUserId,
+            new_user_id: authUser.id,
+            source: "google_oauth",
+            row_counts: rowCounts ?? {},
+            success: true,
+          })
+
+          // Delete the orphaned anonymous auth user
+          await admin.auth.admin.deleteUser(anonUserId)
+
           trackServerEvent("anonymous_converted", {
             distinct_id: authUser.id,
             user_id: authUser.id,
@@ -92,67 +121,31 @@ export async function GET(request: NextRequest) {
             anon_user_id: anonUserId,
           })
         } catch (migErr) {
-          // Log but don't block login — user can still use the app
+          // Log failure audit — do NOT delete the anon user on failure
           console.error("[google-auth-callback] Data migration failed:", migErr)
+          await admin.from("account_migrations").insert({
+            anon_user_id: anonUserId,
+            new_user_id: authUser.id,
+            source: "google_oauth",
+            row_counts: {},
+            success: false,
+            error_message:
+              migErr instanceof Error ? migErr.message : String(migErr),
+          })
         }
       }
     }
 
-    return NextResponse.redirect(new URL(next, origin))
+    // If bridge_token is present, append it to the redirect URL so the app
+    // can consume it and hydrate the chat UI.
+    const redirectUrl = new URL(next, origin)
+    if (bridgeToken) {
+      redirectUrl.searchParams.set("handoff", bridgeToken)
+    }
+
+    return NextResponse.redirect(redirectUrl)
   } catch (err) {
     console.error("[google-auth-callback] Error:", err)
     return NextResponse.redirect(loginUrl)
   }
-}
-
-/**
- * Transfer all data owned by an anonymous user to a newly authenticated user.
- * Runs in a single transaction-like sequence using the service role client.
- * Only the anonymous user_id from the server-side session cookie is trusted.
- */
-async function migrateAnonymousData(
-  admin: ReturnType<typeof createSupabaseServiceRoleClient>,
-  anonUserId: string,
-  newUserId: string
-) {
-  // Re-assign parsers (and their child documents follow via parser_id)
-  await admin
-    .from("parsers")
-    .update({ user_id: newUserId })
-    .eq("user_id", anonUserId)
-
-  // Re-assign extraction jobs
-  await admin
-    .from("extraction_jobs")
-    .update({ user_id: newUserId })
-    .eq("user_id", anonUserId)
-
-  // Re-assign parser processed documents (have their own user_id column)
-  await admin
-    .from("parser_processed_documents")
-    .update({ user_id: newUserId })
-    .eq("user_id", anonUserId)
-
-  // Transfer subscription/billing data
-  await admin
-    .from("extractor_subscriptions")
-    .update({ user_id: newUserId })
-    .eq("user_id", anonUserId)
-
-  await admin
-    .from("credit_wallets")
-    .update({ user_id: newUserId })
-    .eq("user_id", anonUserId)
-
-  // Mark guest session as converted (if any)
-  await admin
-    .from("guest_sessions")
-    .update({
-      converted_to_user_id: newUserId,
-      converted_at: new Date().toISOString(),
-    })
-    .eq("session_token", anonUserId)
-
-  // Delete the orphaned anonymous auth user
-  await admin.auth.admin.deleteUser(anonUserId)
 }

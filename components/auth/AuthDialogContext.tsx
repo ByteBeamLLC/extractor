@@ -12,19 +12,41 @@ import { PasswordStrength, getStrength } from "@/components/ui/password-strength
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
 import { cn } from "@/lib/utils"
 import { trackEvent } from "@/lib/analytics"
+import { buildAppUrl } from "@/lib/app-url"
 
 type AuthMode = "sign-in" | "sign-up" | "forgot-password" | "check-email"
 
+interface OpenAuthDialogOptions {
+  /**
+   * Path to redirect to after successful auth. When set, the dialog will
+   * navigate (full page) to this path on success and pass it through the
+   * Google OAuth `?next=` and email-callback redirect. Leave undefined to
+   * keep the legacy behavior (no navigation, dialog just closes).
+   */
+  next?: string
+  /**
+   * Bridge session token (bsn_...) to pass through OAuth flow. The connect
+   * route looks up the anonymous user from this token and the callback
+   * appends it as ?handoff= on the redirect URL so the app can consume it.
+   */
+  bridgeToken?: string
+}
+
 interface AuthDialogContextValue {
-  openAuthDialog: (mode?: AuthMode) => void
+  openAuthDialog: (mode?: AuthMode, options?: OpenAuthDialogOptions) => void
   closeAuthDialog: () => void
 }
 
 const AuthDialogContext = createContext<AuthDialogContextValue | undefined>(undefined)
 
+const GOOGLE_DEFAULT_NEXT = "/dashboard"
+
 export function AuthDialogProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState<AuthMode>("sign-in")
+  // null = legacy behavior (no nav after success). string = navigate to this path.
+  const [nextPath, setNextPath] = useState<string | null>(null)
+  const [bridgeToken, setBridgeToken] = useState<string | null>(null)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -37,10 +59,15 @@ export function AuthDialogProvider({ children }: { children: React.ReactNode }) 
   const isAnonymous = session?.user?.is_anonymous === true
   const supabase = useSupabaseClient()
 
-  const openAuthDialog = useCallback((nextMode?: AuthMode) => {
-    setMode(nextMode || "sign-in")
-    setOpen(true)
-  }, [])
+  const openAuthDialog = useCallback(
+    (nextMode?: AuthMode, options?: OpenAuthDialogOptions) => {
+      setMode(nextMode || "sign-in")
+      setNextPath(options?.next ?? null)
+      setBridgeToken(options?.bridgeToken ?? null)
+      setOpen(true)
+    },
+    []
+  )
 
   const closeAuthDialog = useCallback(() => {
     setOpen(false)
@@ -102,7 +129,12 @@ export function AuthDialogProvider({ children }: { children: React.ReactNode }) 
         type: "success",
         text: "Welcome back! Signing you in...",
       })
-      setTimeout(() => setOpen(false), 1000)
+      setTimeout(() => {
+        setOpen(false)
+        if (nextPath) {
+          window.location.href = buildAppUrl(nextPath)
+        }
+      }, 1000)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to sign in"
       if (errorMessage.toLowerCase().includes("invalid")) {
@@ -119,7 +151,7 @@ export function AuthDialogProvider({ children }: { children: React.ReactNode }) 
     } finally {
       setIsSubmitting(false)
     }
-  }, [email, password, supabase.auth, validateEmail])
+  }, [email, password, supabase.auth, validateEmail, nextPath])
 
   const handleSignUp = useCallback(async () => {
     if (!validateEmail(email)) return
@@ -148,11 +180,14 @@ export function AuthDialogProvider({ children }: { children: React.ReactNode }) 
         data = { user: result.data.user }
         trackEvent("anonymous_converted", { user_id: data.user?.id ?? "", email, source: "auth_dialog" })
       } else {
+        const callbackUrl = buildAppUrl(
+          `/auth/callback${nextPath ? `?next=${encodeURIComponent(nextPath)}` : ""}`
+        )
         const result = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : undefined,
+            emailRedirectTo: callbackUrl,
           },
         })
         if (result.error) throw result.error
@@ -165,6 +200,14 @@ export function AuthDialogProvider({ children }: { children: React.ReactNode }) 
         source: isAnonymous ? "anonymous_conversion" : "auth_dialog",
       })
 
+      // Anonymous-upgrade keeps the same session — no email confirmation needed,
+      // so we can navigate immediately. Fresh signups still need email verification,
+      // so we route them through "check-email" and rely on the callback for nextPath.
+      if (isAnonymous && nextPath) {
+        window.location.href = buildAppUrl(nextPath)
+        return
+      }
+
       setMode("check-email")
     } catch (error) {
       setMessage({
@@ -174,7 +217,7 @@ export function AuthDialogProvider({ children }: { children: React.ReactNode }) 
     } finally {
       setIsSubmitting(false)
     }
-  }, [email, password, confirmPassword, supabase.auth, validateEmail, isAnonymous])
+  }, [email, password, confirmPassword, supabase.auth, validateEmail, isAnonymous, nextPath])
 
   const handleResetPassword = useCallback(async () => {
     if (!validateEmail(email)) return
@@ -338,7 +381,11 @@ export function AuthDialogProvider({ children }: { children: React.ReactNode }) 
                   variant="outline"
                   className="w-full h-10"
                   onClick={() => {
-                    window.location.href = `/api/auth/google/connect?next=${encodeURIComponent("/dashboard")}`
+                    const target = nextPath || GOOGLE_DEFAULT_NEXT
+                    const connectUrl = new URL(buildAppUrl("/api/auth/google/connect"))
+                    connectUrl.searchParams.set("next", target)
+                    if (bridgeToken) connectUrl.searchParams.set("bridge_token", bridgeToken)
+                    window.location.href = connectUrl.toString()
                   }}
                 >
                   <svg className="h-4 w-4" viewBox="0 0 24 24">

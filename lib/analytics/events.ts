@@ -306,6 +306,37 @@ export type AnalyticsEventMap = {
     channel: "email" | "push"
     document_id?: string
   }
+
+  // ─── Bridge session lifecycle ───
+  bridge_session_created: {
+    user_id: string
+    parser_id: string
+    document_id: string
+    is_anonymous: boolean
+  }
+  bridge_session_consumed: {
+    user_id: string
+    parser_id: string | null
+    document_id: string | null
+    anon_user_id: string
+  }
+  bridge_session_rejected: {
+    user_id: string
+    reason: "expired_or_consumed"
+  }
+
+  // ─── Email continuation (deep link from notification emails) ───
+  email_continue_success: {
+    user_id: string
+    nid: string | null
+    purpose: string
+    target_url: string
+  }
+  email_continue_rejected: {
+    user_id?: string
+    nid?: string | null
+    reason: "expired_or_consumed" | "user_not_found" | "session_creation_failed"
+  }
 }
 
 export type AnalyticsEvent = keyof AnalyticsEventMap

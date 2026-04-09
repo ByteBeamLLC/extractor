@@ -79,7 +79,21 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL(pathname, siteUrl))
     }
 
-    // Let unauthenticated users through — AnonymousAuthGuard will create a session client-side
+    // Protected routes require a session (anonymous or permanent). Without one,
+    // redirect to /login with ?next= so they return after auth. Anonymous users
+    // with sessions (e.g. from the handwriting bridge) pass through — they have
+    // valid Supabase sessions and can explore the app.
+    //
+    // /auth/* routes are excluded — /auth/email-continue must let completely
+    // unauthenticated users through so the continuation token can create a session.
+    if (isProtected && !pathname.startsWith("/auth/")) {
+      if (!session) {
+        const loginUrl = new URL("/login", request.url)
+        loginUrl.searchParams.set("next", pathname + request.nextUrl.search)
+        return NextResponse.redirect(loginUrl)
+      }
+    }
+
     return res
   }
 

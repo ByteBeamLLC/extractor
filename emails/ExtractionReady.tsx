@@ -1,6 +1,5 @@
 import {
   Body,
-  Button,
   Container,
   Head,
   Heading,
@@ -181,6 +180,15 @@ const footerLink: React.CSSProperties = {
   textDecoration: "underline",
 }
 
+const fallbackLink: React.CSSProperties = {
+  fontSize: "12px",
+  color: SUBTLE,
+  textAlign: "center" as const,
+  margin: "0 0 28px 0",
+  lineHeight: "1.6",
+  wordBreak: "break-all",
+}
+
 // ─── component ───
 export function ExtractionReadyEmail(props: ExtractionReadyEmailProps) {
   const {
@@ -301,15 +309,26 @@ function FirstValueBody({
       )}
 
       <Section style={ctaWrapper}>
-        <Button href={documentUrl} style={ctaButton}>
+        {/* Plain <a> tag instead of React Email <Button> — the <Button>
+            component renders non-clickably in Gmail mobile + Outlook desktop.
+            See reverted fix 16d03bbd2 / 6bf2c058c. */}
+        <a href={documentUrl} style={ctaButton}>
           Open in Parsli
-        </Button>
+        </a>
       </Section>
 
       <Text style={sublineNote}>
         That took us a few seconds.
         <br />
         Imagine running this on every document that hits your inbox.
+      </Text>
+
+      <Text style={fallbackLink}>
+        If the button doesn&apos;t work, paste this link into your browser:
+        <br />
+        <Link href={documentUrl} style={footerLink}>
+          {documentUrl}
+        </Link>
       </Text>
     </>
   )
@@ -332,10 +351,18 @@ function SubsequentBody({
       </Text>
 
       <Section style={ctaWrapper}>
-        <Button href={documentUrl} style={ctaButton}>
+        <a href={documentUrl} style={ctaButton}>
           Open in Parsli
-        </Button>
+        </a>
       </Section>
+
+      <Text style={fallbackLink}>
+        If the button doesn&apos;t work, paste this link into your browser:
+        <br />
+        <Link href={documentUrl} style={footerLink}>
+          {documentUrl}
+        </Link>
+      </Text>
     </>
   )
 }

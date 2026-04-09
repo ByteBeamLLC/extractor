@@ -74,10 +74,60 @@ function extractConfidence(doc: ProcessedDocument): Record<string, unknown> {
   return {}
 }
 
+/**
+ * Branch for `full_content` parsers (e.g. handwriting tool bridge): no schema,
+ * the document's `results.markdown` holds the full transcribed text. The model
+ * can reason directly off the text instead of querying a structured JSON.
+ */
+function buildFullContentSystemPrompt(
+  parser: Parser,
+  doc: ProcessedDocument
+): string {
+  const results = (doc.results ?? {}) as {
+    markdown?: string
+    language?: string
+    doc_type?: string
+  }
+  const markdown = typeof results.markdown === "string" ? results.markdown : ""
+  const language = typeof results.language === "string" && results.language ? results.language : "en"
+  const docType = typeof results.doc_type === "string" ? results.doc_type : "generic"
+
+  return `You are Parsli's document assistant. You help a user understand and work with the full text of a single document they have uploaded.
+
+CRITICAL CONTEXT:
+The full transcribed text of the user's document is included below in the DOCUMENT TEXT section. You can read it, summarize, explain, translate, quiz the user, or answer questions about its content.
+
+LANGUAGE:
+The document is in language code "${language}". The user is most likely fluent in this language. ALWAYS reply in the same language as the document UNLESS the user writes to you in a different language — in that case, match the user's language.
+
+ABSOLUTE RULES — break any of these and you have failed:
+1. NEVER invent facts that are not supported by the DOCUMENT TEXT. If the user asks something the text doesn't cover, say so plainly.
+2. NEVER do arithmetic in your head. ALWAYS call the \`calculate\` tool — even for trivial operations like 5 + 3 or simple percentages. This applies in particular when the user asks you to total numbers, compute averages, or convert currencies based on values in the text.
+3. Quote text from the document exactly as written when the user asks for verbatim content. Do not paraphrase or reformat it unless they ask.
+4. Be concise. Answer the question directly. Use markdown for lists or tables only when it improves clarity. No filler.
+5. If the document text is empty or unreadable, say so plainly and offer to help if the user provides more context.
+
+DOCUMENT METADATA:
+- Filename: ${doc.file_name}
+- Type: ${docType}
+- Language: ${language}
+- Source: ${doc.source_type}
+- Parser: ${parser.name}
+
+DOCUMENT TEXT:
+\`\`\`
+${markdown}
+\`\`\``
+}
+
 export function buildChatSystemPrompt(
   parser: Parser,
   doc: ProcessedDocument
 ): string {
+  if (parser.extraction_type === "full_content") {
+    return buildFullContentSystemPrompt(parser, doc)
+  }
+
   const data = stripMeta(doc.results ?? {})
   const confidence = extractConfidence(doc)
   const schemaText = renderSchema(parser.fields ?? [])

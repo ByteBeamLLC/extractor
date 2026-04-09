@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useCallback, useRef, useEffect } from "react"
+import { useState, useCallback, useRef } from "react"
 import Image from "next/image"
 import { trackEvent } from "@/lib/analytics"
-import { getIdentity, incrementToolUses } from "@/lib/analytics/identity"
+import { incrementToolUses } from "@/lib/analytics/identity"
 import {
   Upload,
   Download,
@@ -19,8 +19,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { copyToClipboard } from "@/lib/clipboard"
-import { analyzeStructure, type StructureSignal } from "@/lib/tools/analyze-structure"
-import { StructureBridgeBanner } from "./StructureBridgeBanner"
+import { BridgeChat } from "./BridgeChat"
 import { FileSizeBridgeBanner } from "@/components/tools/FileSizeBridgeBanner"
 
 const ACCEPTED_TYPES = [
@@ -85,6 +84,21 @@ async function fetchImageAsBase64(
   })
 }
 
+interface BridgeStarter {
+  label: string
+  prompt: string
+}
+
+interface BridgePayload {
+  base64: string
+  mimeType: string
+  fileName: string
+  fileSize?: number
+  language: string
+  docType: string
+  starterQuestions: BridgeStarter[]
+}
+
 export function HandwritingToTextTool() {
   const [status, setStatus] = useState<Status>("idle")
   const [extractedText, setExtractedText] = useState<string>("")
@@ -96,20 +110,11 @@ export function HandwritingToTextTool() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [extractionSource, setExtractionSource] = useState<"upload" | "sample">("upload")
   const [extractionFileType, setExtractionFileType] = useState<string>("image/jpeg")
-  const [showBridge, setShowBridge] = useState(false)
-  const [structureSignal, setStructureSignal] = useState<StructureSignal | null>(null)
-  const [bridgeLifetimeUses, setBridgeLifetimeUses] = useState(0)
+  // Carries everything BridgeChat needs to provision a parser+document and chat.
+  // Set when extraction succeeds; cleared on reset.
+  const [bridgePayload, setBridgePayload] = useState<BridgePayload | null>(null)
   const extractionStartRef = useRef<number>(0)
   const inputRef = useRef<HTMLInputElement>(null)
-
-  // Enable bridge banner for returning users who already have 2+ uses
-  useEffect(() => {
-    const identity = getIdentity()
-    if (identity && identity.tool_uses >= 2) {
-      setShowBridge(true)
-      setBridgeLifetimeUses(identity.tool_uses)
-    }
-  }, [])
 
   const callApi = useCallback(
     async (base64: string, mimeType: string, name: string, source: "upload" | "sample", fileSize?: number) => {
@@ -162,12 +167,27 @@ export function HandwritingToTextTool() {
         setExtractedText(data.text)
         setStatus("done")
 
-        // Show bridge banner after 2nd successful extraction
-        if (lifetimeUses >= 2) {
-          setStructureSignal(analyzeStructure(data.text))
-          setShowBridge(true)
-          setBridgeLifetimeUses(lifetimeUses)
-        }
+        // Stash everything BridgeChat needs to provision a parser+document.
+        // For sample images we still capture the base64 so the bridge endpoint
+        // can save the file to parser-documents bucket — gives the user a real
+        // image preview when they land in the app.
+        const starterQuestions: BridgeStarter[] = Array.isArray(data.starter_questions)
+          ? data.starter_questions
+              .filter((q: unknown): q is BridgeStarter =>
+                !!q && typeof q === "object" &&
+                typeof (q as BridgeStarter).label === "string" &&
+                typeof (q as BridgeStarter).prompt === "string"
+              )
+          : []
+        setBridgePayload({
+          base64,
+          mimeType,
+          fileName: name,
+          fileSize,
+          language: typeof data.language === "string" ? data.language : "en",
+          docType: typeof data.doc_type === "string" ? data.doc_type : "generic",
+          starterQuestions,
+        })
       } catch (e) {
         console.error("Handwriting extraction error:", e)
         trackEvent("hwt_extraction_error", {
@@ -293,7 +313,7 @@ export function HandwritingToTextTool() {
     setFileName(null)
     setCopied(false)
     setPreviewUrl(null)
-    setStructureSignal(null)
+    setBridgePayload(null)
     if (inputRef.current) inputRef.current.value = ""
   }, [status])
 
@@ -496,11 +516,22 @@ export function HandwritingToTextTool() {
             </Button>
           </div>
 
-          {/* Bridge to Parsli app */}
-          {showBridge && (
-            <StructureBridgeBanner
-              structureSignal={structureSignal}
-              lifetimeUses={bridgeLifetimeUses}
+          {/* Bridge to Parsli app — contextual chat that provisions a parser
+              behind the scenes and hands off to the in-app chat after auth.
+              Gated behind NEXT_PUBLIC_FEATURE_HWT_BRIDGE for staged rollout. */}
+          {process.env.NEXT_PUBLIC_FEATURE_HWT_BRIDGE !== "false" &&
+           bridgePayload && bridgePayload.starterQuestions.length > 0 && (
+            <BridgeChat
+              text={extractedText}
+              language={bridgePayload.language}
+              docType={bridgePayload.docType}
+              starterQuestions={bridgePayload.starterQuestions}
+              image={{
+                base64: bridgePayload.base64,
+                mimeType: bridgePayload.mimeType,
+                fileName: bridgePayload.fileName,
+                fileSize: bridgePayload.fileSize,
+              }}
             />
           )}
         </div>

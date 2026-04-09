@@ -1,9 +1,10 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Markdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 import { formatDistanceToNow, format } from "date-fns"
 import {
   ArrowLeft,
@@ -60,6 +61,7 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
   const session = useSession()
   const supabase = useSupabaseClient()
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const [doc, setDoc] = useState<ProcessedDocument | null>(null)
   const [loading, setLoading] = useState(true)
@@ -69,7 +71,36 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
   const [copied, setCopied] = useState(false)
   const [copiedText, setCopiedText] = useState(false)
   const isFullContent = parser.extraction_type === "full_content"
-  const [tab, setTab] = useState<"data" | "fields" | "chat">("data")
+  // Initial tab honors `?tab=` (used by the handwriting → chat bridge handoff so
+  // post-auth users land directly on the chat). After mount we strip the param
+  // so a refresh doesn't keep forcing the tab.
+  const initialTab = (() => {
+    const requested = searchParams?.get("tab")
+    if (requested === "chat" || requested === "fields" || requested === "data") {
+      return requested
+    }
+    return "data" as const
+  })()
+  const [tab, setTab] = useState<"data" | "fields" | "chat">(initialTab)
+
+  // Bridge handoff token from ?handoff= — consumed once by useDocumentChat,
+  // then stripped from the URL so a refresh doesn't replay.
+  const [handoffToken] = useState(() => searchParams?.get("handoff") ?? undefined)
+
+  useEffect(() => {
+    const hasTab = !!searchParams?.get("tab")
+    const hasHandoff = !!searchParams?.get("handoff")
+    if (!hasTab && !hasHandoff) return
+    // Clean the URL after we've consumed the params so the user can switch tabs
+    // freely and the handoff doesn't replay on refresh.
+    const params = new URLSearchParams(Array.from(searchParams!.entries()))
+    params.delete("tab")
+    params.delete("handoff")
+    const qs = params.toString()
+    router.replace(qs ? `?${qs}` : window.location.pathname, { scroll: false })
+    // Run only on mount — searchParams is captured at render time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Load document
   const loadDocument = useCallback(async () => {
@@ -394,7 +425,7 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
           {/* Results content */}
           {tab === "chat" ? (
             <div className="flex-1 min-h-0">
-              <DocumentChat parser={parser} doc={doc} />
+              <DocumentChat parser={parser} doc={doc} handoffToken={handoffToken} />
             </div>
           ) : (
             <div className="flex-1 overflow-auto min-h-0">
@@ -458,7 +489,7 @@ function DataView({ results, isFullContent }: { results: Record<string, any>; is
   if (isFullContent && results.markdown) {
     return (
       <div className="mp-mask p-4 prose prose-sm max-w-none dark:prose-invert">
-        <Markdown>{results.markdown}</Markdown>
+        <Markdown remarkPlugins={[remarkGfm]}>{results.markdown}</Markdown>
       </div>
     )
   }

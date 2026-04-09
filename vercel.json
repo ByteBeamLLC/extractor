@@ -12,6 +12,10 @@
     {
       "path": "/api/cron/reconcile-credits",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/cleanup-bridge-sessions",
+      "schedule": "0 3 * * *"
     }
   ]
 }

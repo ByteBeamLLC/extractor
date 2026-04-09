@@ -9,7 +9,9 @@ import { ActiveParserProvider } from "@/components/extractor/parser-context"
 import { TourProvider } from "@/components/tour/TourProvider"
 import { AnalyticsIdentifier } from "@/components/providers/AnalyticsIdentifier"
 import { SignupConversionTracker } from "@/components/providers/SignupConversionTracker"
-import { AnonymousAuthGuard } from "@/components/auth/AnonymousAuthGuard"
+// AnonymousAuthGuard removed from global layout — middleware now gates
+// protected routes, and anonymous sessions are created explicitly where
+// needed (e.g. BridgeChat.tsx calls signInAnonymously).
 import { NotificationAttributionTracker } from "@/components/notifications/NotificationAttributionTracker"
 import { TimezoneCapture } from "@/components/notifications/TimezoneCapture"
 import {
@@ -40,7 +42,6 @@ export default async function AppLayout({
         <NotificationAttributionTracker />
         <TimezoneCapture />
         <AuthDialogProvider>
-          <AnonymousAuthGuard>
           <SubscriptionProvider>
           <ActiveParserProvider>
             <TourProvider>
@@ -57,7 +58,6 @@ export default async function AppLayout({
             </TourProvider>
           </ActiveParserProvider>
           </SubscriptionProvider>
-          </AnonymousAuthGuard>
         </AuthDialogProvider>
       </SupabaseProvider>
     </GlobalErrorBoundary>
