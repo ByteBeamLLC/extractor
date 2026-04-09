@@ -606,17 +606,21 @@ function SuccessView({
               </button>
             </div>
           </div>
-          {/* Mobile: collapsed text with toggle. Desktop: scrollable full text. */}
+          {/* Mobile: collapsed text with toggle. Desktop: scrollable full text with fade. */}
           <div
             className={cn(
-              "flex-1 px-4 py-3 font-mono text-[13px] leading-relaxed whitespace-pre-wrap break-words overflow-y-auto",
-              !textExpanded && "max-h-[100px] md:max-h-none relative"
+              "flex-1 relative min-h-0",
+              !textExpanded && "max-h-[100px] md:max-h-none"
             )}
           >
-            {extractedText}
-            {!textExpanded && (
-              <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-card to-transparent md:hidden" />
-            )}
+            <div className="absolute inset-0 px-4 py-3 font-mono text-[13px] leading-relaxed whitespace-pre-wrap break-words overflow-y-auto md:static md:h-full">
+              {extractedText}
+            </div>
+            {/* Fade overlay — signals more content below on desktop; always on mobile when collapsed */}
+            <div className={cn(
+              "absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-card to-transparent pointer-events-none",
+              textExpanded && "md:block hidden"
+            )} />
           </div>
           <button
             onClick={() => setTextExpanded((v) => !v)}
