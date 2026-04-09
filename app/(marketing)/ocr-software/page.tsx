@@ -166,6 +166,27 @@ export default function OcrSoftwarePage() {
         </div>
       </section>
 
+      <section className="py-16 sm:py-20 bg-muted/30 border-t">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-10">OCR Glossary</h2>
+          <p className="text-center text-muted-foreground mb-8 max-w-2xl mx-auto">Key terms in optical character recognition and document processing. For a deep dive, read our complete guide: <Link href="/guides/what-is-ocr" className="text-primary hover:underline">What Is OCR?</Link></p>
+          <div className="grid gap-4">
+            {[
+              { term: "OCR (Optical Character Recognition)", definition: "Technology that converts images of text — from scans, photos, or PDFs — into machine-readable characters." },
+              { term: "ICR (Intelligent Character Recognition)", definition: "An extension of OCR designed to read handwritten text using machine learning models." },
+              { term: "IDP (Intelligent Document Processing)", definition: "The broader category that combines OCR with AI-powered document understanding, classification, and data extraction." },
+              { term: "Zonal OCR", definition: "OCR that reads text from predefined coordinates on a page. Fast but breaks when document layouts change." },
+              { term: "Document AI", definition: "AI models that understand document structure — tables, fields, relationships — beyond simple character recognition." },
+            ].map((item) => (
+              <div key={item.term} className="rounded-lg border bg-card px-5 py-4">
+                <h3 className="font-semibold text-sm mb-1">{item.term}</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">{item.definition}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="py-16 sm:py-20"><div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8"><h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">Frequently asked questions</h2><div className="divide-y rounded-2xl border bg-card">{faqs.map((faq) => (<details key={faq.q} className="group"><summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 text-sm font-semibold sm:text-base [&::-webkit-details-marker]:hidden">{faq.q}<ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90" /></summary><div className="px-6 pb-5 text-sm leading-7 text-muted-foreground">{faq.a}</div></details>))}</div></div></section>
 
       <section className="py-16 sm:py-24 bg-slate-950">
@@ -184,13 +205,14 @@ export default function OcrSoftwarePage() {
           <h2 className="text-lg font-semibold mb-6">Related</h2>
           <div className="flex flex-wrap gap-3">
             {[
+              { href: "/guides/what-is-ocr", label: "What Is OCR?" },
+              { href: "/solutions/document-parser", label: "AI Document Parser" },
+              { href: "/solutions/intelligent-document-processing", label: "Intelligent Document Processing" },
               { href: "/email-parser", label: "Email Parser" },
               { href: "/pdf-parser", label: "PDF Parser" },
-              { href: "/features", label: "All Features" },
               { href: "/tools/ocr", label: "Free OCR Tool" },
-              { href: "/tools/scan-to-text", label: "Scan to Text" },
-              { href: "/tools/make-pdf-searchable", label: "Make PDF Searchable" },
-              { href: "/solutions/handwriting-to-text", label: "Handwriting Solution" },
+              { href: "/tools/handwriting-to-text", label: "Handwriting to Text" },
+              { href: "/compare/adobe-acrobat-ocr", label: "Parsli vs Adobe Acrobat OCR" },
               { href: "/compare/abbyy", label: "Parsli vs ABBYY" },
               { href: "/pricing", label: "Pricing" },
             ].map((link) => (<Link key={link.href} href={link.href} className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-4 py-2 text-sm hover:border-primary/30 transition-colors">{link.label} <ArrowRight className="h-3 w-3 text-muted-foreground" /></Link>))}

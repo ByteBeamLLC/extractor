@@ -725,7 +725,7 @@ export const blogPosts: BlogPost[] = [
     metaTitle: "What Is Document Parsing? Complete Guide (2026)",
     metaDescription: "Document parsing extracts structured data from PDFs, emails, and documents automatically. Learn how it works, tools compared, and when to use each approach.",
     publishedAt: "2026-01-22",
-    updatedAt: "2026-01-28",
+    updatedAt: "2026-04-10",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "14 min read",
@@ -7370,7 +7370,7 @@ export const blogPosts: BlogPost[] = [
     metaDescription:
       "Intelligent document processing uses AI to extract data from documents automatically. Learn how IDP works, IDP vs OCR, use cases, and market trends for 2026.",
     publishedAt: "2026-03-18",
-    updatedAt: "2026-03-15",
+    updatedAt: "2026-04-10",
     author: "Talal Bazerbachi",
     authorTitle: "Founder at Parsli",
     readTime: "14 min read",
@@ -10331,6 +10331,175 @@ export const blogPosts: BlogPost[] = [
     "what-is-intelligent-document-processing",
     "true-cost-manual-data-entry-2026"
   ]
+},
+{
+  slug: "what-is-ocr",
+  title: "What Is OCR? How Optical Character Recognition Works (2026 Guide)",
+  metaTitle: "What Is OCR? How Optical Character Recognition Works (2026)",
+  metaDescription:
+    "Learn what OCR is, how optical character recognition works, the difference between traditional OCR and AI-powered document extraction, and the best OCR tools in 2026.",
+  publishedAt: "2026-04-10",
+  updatedAt: "2026-04-10",
+  author: "Talal Bazerbachi",
+  authorTitle: "Founder at Parsli",
+  readTime: "12 min read",
+  excerpt:
+    "OCR converts images of text into machine-readable characters. But modern document processing goes far beyond character recognition. Here's what you need to know.",
+  category: "Guide",
+  keyTakeaways: [
+    "OCR (optical character recognition) converts images of text — from scanned documents, photos, or PDFs — into machine-readable text.",
+    "Traditional OCR recognizes characters but doesn't understand document structure. AI-powered extraction combines OCR with document understanding.",
+    "The global OCR market reached $13.38 billion in 2023 and is projected to reach $32.29 billion by 2030 (Grand View Research).",
+    "Modern AI models achieve 95-99% character accuracy, compared to 85-95% for legacy OCR engines.",
+    "For data extraction, OCR alone isn't enough — you need document parsing that understands tables, fields, and relationships.",
+  ],
+  content: [
+    {
+      type: "paragraph",
+      text: "You have a stack of scanned invoices. Or a photographed contract. Or a PDF bank statement from 2019 that your bank only keeps as an image. You need the data inside these documents — but you can't select, copy, or search the text. This is the problem OCR solves.",
+    },
+    {
+      type: "paragraph",
+      text: "OCR — optical character recognition — converts images of text into machine-readable characters. It's the technology that lets your computer 'read' a scanned document the same way you would. But while OCR has been around for decades, the technology has evolved dramatically — from simple pattern matching to AI-powered document understanding.",
+    },
+    {
+      type: "heading",
+      level: 2,
+      text: "What is OCR?",
+    },
+    {
+      type: "paragraph",
+      text: "Optical character recognition (OCR) is a technology that identifies text within images — scanned documents, photographs of text, image-based PDFs — and converts it into machine-readable, editable, and searchable text. The input is pixels; the output is characters.",
+    },
+    {
+      type: "paragraph",
+      text: "At its core, OCR answers one question: 'What letters and numbers are in this image?' It doesn't understand what the text means, how it's structured, or what data fields it contains. That distinction matters — because most people who search for OCR actually need something more: data extraction from documents.",
+    },
+    {
+      type: "heading",
+      level: 2,
+      text: "How does OCR work?",
+    },
+    {
+      type: "paragraph",
+      text: "Modern OCR processes a document in four stages:",
+    },
+    {
+      type: "list",
+      items: [
+        "**Preprocessing**: The image is cleaned up — deskewed, denoised, contrast-enhanced, binarized (converted to black and white). This improves recognition accuracy by giving the OCR engine cleaner input.",
+        "**Segmentation**: The image is divided into regions — text blocks, individual lines, words, and characters. The engine identifies where text appears on the page and isolates each character for recognition.",
+        "**Recognition**: Each character is analyzed and matched against a trained model. Traditional OCR uses pattern matching (comparing against stored character templates) or feature extraction (analyzing strokes and curves). AI-powered OCR uses neural networks trained on millions of text samples.",
+        "**Post-processing**: Raw recognition output is refined using language models, dictionaries, and context. If the engine reads 'lnvoice' but the dictionary says 'Invoice' is more likely, it corrects the error. This step significantly improves accuracy on real-world documents.",
+      ],
+    },
+    {
+      type: "heading",
+      level: 2,
+      text: "A brief history of OCR",
+    },
+    {
+      type: "paragraph",
+      text: "OCR technology has evolved through three distinct generations. The first generation (1950s-1980s) used template matching — comparing each character against a set of stored templates. These systems could only read specific fonts and required perfectly aligned, high-quality input. The second generation (1990s-2010s) introduced feature-based recognition and statistical models, handling multiple fonts and some degradation. Tesseract, originally developed by Hewlett-Packard in 1985 and later open-sourced by Google, became the standard. The third generation (2015-present) uses deep learning — convolutional neural networks and transformer models trained on massive datasets. These systems handle handwriting, degraded text, complex layouts, and multiple languages with dramatically higher accuracy.",
+    },
+    {
+      type: "heading",
+      level: 2,
+      text: "Types of OCR",
+    },
+    {
+      type: "list",
+      items: [
+        "**Traditional OCR**: Character-level recognition using template matching or feature extraction. Works well on clean, typed text. Struggles with handwriting, low-quality scans, and complex layouts.",
+        "**Intelligent Character Recognition (ICR)**: An extension of OCR designed to read handwritten text. Uses machine learning models trained on handwriting samples. Accuracy varies significantly based on handwriting legibility.",
+        "**AI-powered OCR**: Uses deep learning models (CNNs, transformers) to recognize text with full visual context. Can handle mixed fonts, handwriting, degraded images, and complex page layouts. Examples include Google's Gemini and GPT-4 Vision.",
+        "**Zonal OCR**: Reads text from predefined zones on a document — specific coordinates where data is expected (e.g., 'the invoice number is always at x:200, y:50'). Fast but breaks when document layouts change.",
+      ],
+    },
+    {
+      type: "heading",
+      level: 2,
+      text: "OCR accuracy: what to expect",
+    },
+    {
+      type: "paragraph",
+      text: "According to Grand View Research, the global OCR market reached $13.38 billion in 2023 and is projected to reach $32.29 billion by 2030. This growth is driven by AI models that achieve 95-99% character accuracy — a significant improvement over legacy engines that typically achieve 85-95% accuracy.",
+    },
+    {
+      type: "paragraph",
+      text: "But character accuracy is just one metric. For business use cases, what matters is field accuracy — did the OCR correctly read the invoice number, the total amount, the vendor name? A single wrong character in a 10-digit account number means the entire field is wrong. This is why modern document processing goes beyond OCR: it combines character recognition with document understanding to validate and structure the output.",
+    },
+    {
+      type: "heading",
+      level: 2,
+      text: "OCR vs AI document extraction",
+    },
+    {
+      type: "paragraph",
+      text: "OCR answers: 'What text is in this image?' AI document extraction answers: 'What data is in this document?' The distinction is critical for business use cases.",
+    },
+    {
+      type: "list",
+      items: [
+        "**OCR output**: A stream of text — 'Invoice #12345 Date: 03/15/2026 Total: $1,234.56'. Unstructured. You still need to parse it to find specific fields.",
+        "**AI extraction output**: Structured data — {invoice_number: '12345', date: '2026-03-15', total: 1234.56}. Named fields ready to use in your systems.",
+      ],
+    },
+    {
+      type: "paragraph",
+      text: "Modern AI extraction platforms like Parsli include OCR as part of their pipeline — they read the image, recognize the text, and then go further: understanding document structure, identifying fields, extracting tables, and delivering structured data. For most business use cases, you don't need standalone OCR — you need the full extraction pipeline. See our detailed comparison of [OCR vs AI document extraction](/blog/ocr-vs-ai-document-extraction).",
+    },
+    {
+      type: "heading",
+      level: 2,
+      text: "Common OCR use cases",
+    },
+    {
+      type: "list",
+      items: [
+        "**Invoice processing**: Extracting vendor names, amounts, line items, and dates from scanned or emailed invoices. See [AI invoice processing](/solutions/ai-invoice-processing).",
+        "**Bank statement conversion**: Converting scanned bank statements to spreadsheet data for reconciliation. See [bank statement to Excel](/tools/bank-statement-to-excel).",
+        "**Receipt scanning**: Digitizing paper receipts for expense management. See [receipt scanner](/tools/receipt-scanner).",
+        "**Healthcare records**: Digitizing handwritten medical notes and patient forms.",
+        "**Legal document review**: Making scanned contracts and legal documents searchable and extractable.",
+        "**Handwriting digitization**: Converting handwritten notes, forms, and labels to text. See [handwriting to text](/tools/handwriting-to-text).",
+      ],
+    },
+    {
+      type: "mid-cta",
+      text: "Need to extract data from scanned documents?",
+    },
+    {
+      type: "heading",
+      level: 2,
+      text: "Best OCR tools in 2026",
+    },
+    {
+      type: "paragraph",
+      text: "The OCR landscape ranges from free open-source engines to enterprise AI platforms. The right tool depends on your use case: standalone text recognition, full document extraction, or developer API integration.",
+    },
+    {
+      type: "list",
+      items: [
+        "**Tesseract** (Free, open source): The most widely used OCR engine. Good accuracy on clean, typed text. No document understanding — output is raw text. Requires developer integration.",
+        "**Adobe Acrobat** ($22.99/mo): Built-in 'Recognize Text' feature makes scanned PDFs searchable. No structured data extraction. See [Adobe Acrobat OCR alternative](/compare/adobe-acrobat-ocr).",
+        "**Google Cloud Vision / Document AI**: Cloud-based OCR and document AI APIs. Enterprise pricing. Strong accuracy on diverse documents.",
+        "**Amazon Textract**: AWS document extraction service. Good for forms and tables. Pay-per-page pricing. See [Parsli vs Textract](/compare/textract).",
+        "**ABBYY FineReader**: Enterprise OCR with strong accuracy. Expensive licensing. See [Parsli vs ABBYY](/compare/abbyy).",
+        "**Parsli**: AI-powered document extraction that includes OCR as part of the pipeline. Extracts structured data (not just text) from scanned documents, images, and PDFs. Free tier: 30 pages/month. See [OCR software](/ocr-software).",
+      ],
+    },
+    {
+      type: "cta",
+      headline: "Beyond OCR: Extract Structured Data from Any Document",
+    },
+  ],
+  relatedSlugs: [
+    "ocr-vs-ai-document-extraction",
+    "what-is-document-parsing",
+    "best-invoice-ocr-software",
+    "what-is-intelligent-document-processing",
+  ],
 },
 ]
 

@@ -58,6 +58,7 @@ const categoryMap: Record<string, GuideCategory> = {
   "credit-card-statement-parsing-expense-reporting": "Document Extraction",
   "bank-statement-to-excel-automation-guide": "Data Conversion",
   "aml-document-processing-small-financial-firms": "Workflow Automation",
+  "what-is-ocr": "Document Extraction",
 }
 
 /* ── slug → relatedTools ── */
@@ -222,6 +223,11 @@ const toolsMap: Record<string, { href: string; title: string; description: strin
     { href: "/tools/bank-statement-parser", title: "Free Bank Statement Parser", description: "Parse bank statements for AML compliance checks." },
     { href: "/tools/pdf-to-json", title: "Free PDF to JSON Converter", description: "Extract structured data from compliance documents." },
   ],
+  "what-is-ocr": [
+    { href: "/tools/ocr", title: "Free Online OCR", description: "OCR any document — free, no sign-up." },
+    { href: "/tools/handwriting-to-text", title: "Handwriting to Text", description: "Convert handwritten text to digital with AI." },
+    { href: "/tools/image-to-text", title: "Image to Text", description: "Extract text from any image." },
+  ],
 }
 
 /* ── slug → relatedSolutions ── */
@@ -248,6 +254,7 @@ const solutionsMap: Record<string, string[]> = {
   "bookkeeping-clean-up-guide": ["bank-statement-extraction"],
   "extract-invoice-data-to-excel": ["invoice-parsing", "pdf-to-excel"],
   "extract-table-data-from-pdfs": ["pdf-to-excel", "no-code-document-parser"],
+  "what-is-ocr": ["document-parser", "document-processing-software"],
 }
 
 /* ── slug → relatedCompare ── */
@@ -274,6 +281,7 @@ const compareMap: Record<string, string[]> = {
   "bookkeeping-clean-up-guide": ["docuclipper"],
   "extract-invoice-data-to-excel": ["nanonets", "docparser"],
   "extract-table-data-from-pdfs": ["google-document-ai", "textract"],
+  "what-is-ocr": ["adobe-acrobat-ocr", "abbyy", "textract"],
 }
 
 /* ── slug → relatedBlog ── */
@@ -300,6 +308,7 @@ const blogMap: Record<string, string[]> = {
   "bookkeeping-clean-up-guide": ["extract-bank-statement-data-pdf", "automate-data-entry"],
   "extract-invoice-data-to-excel": ["best-invoice-ocr-software", "extract-data-pdf-to-excel"],
   "extract-table-data-from-pdfs": ["extract-data-pdf-to-excel", "best-pdf-parser-tools"],
+  "what-is-ocr": ["ocr-vs-ai-document-extraction", "what-is-document-parsing", "best-invoice-ocr-software"],
 }
 
 /* ── Conversion helpers ── */

@@ -47,4 +47,6 @@ export const guideSlugs = new Set([
   // Content blog posts promoted to guides
   "extract-invoice-data-to-excel",
   "extract-table-data-from-pdfs",
+  // OCR cluster anchor
+  "what-is-ocr",
 ])

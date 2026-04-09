@@ -11029,6 +11029,622 @@ const guides: GuideData[] = [
     relatedCompare: ["docparser"],
     relatedBlog: ["extract-data-pdf-to-excel", "extract-tables-from-pdf"],
   },
+  {
+    slug: "how-to-extract-data-from-pdf",
+    title: "How to Extract Data from PDF — 5 Methods Compared (2026)",
+    h1: "How to Extract Data from PDF — 5 Methods Compared",
+    metaTitle: "How to Extract Data from PDF — 5 Methods Compared (2026)",
+    metaDescription:
+      "Compare 5 ways to extract data from PDFs: manual, Adobe Acrobat, free online tools, Python, and AI platforms. Step-by-step with accuracy, cost, and privacy tradeoffs.",
+    publishedAt: "2026-04-10",
+    updatedAt: "2026-04-10",
+    author: "Talal Bazerbachi",
+    authorTitle: "Founder at Parsli",
+    readTime: "12 min read",
+    category: "Document Extraction",
+    imageTitle: "Extract Data from PDF",
+    tldr: [
+      "**Manual copy-paste** works for 1-5 PDFs but introduces a 2-5% error rate and doesn't scale.",
+      "**Adobe Acrobat** exports PDFs to Excel but produces messy formatting — merged cells, broken headers — and costs $22.99/month.",
+      "**Free online tools** (ILovePDF, Smallpdf) are convenient but upload your documents to third-party servers — a privacy risk for sensitive data.",
+      "**Python libraries** (pdfplumber, tabula) are free and customizable but can't handle scanned PDFs without adding OCR and require developer resources.",
+      "**AI platforms** (Parsli) extract specific data fields from any PDF layout — including scanned docs — with no templates or code. [Try it free →](/tools/pdf-to-excel)",
+    ],
+    content: [
+      {
+        type: "paragraph",
+        text: "Getting data out of PDFs is one of the most common data tasks in business — and one of the most frustrating. PDFs are designed for presentation, not data exchange. They lock your numbers, tables, and text inside a visual format that resists extraction.",
+      },
+      {
+        type: "paragraph",
+        text: "This guide compares five methods for extracting data from PDFs, from manual approaches to fully automated AI pipelines. Each method has different tradeoffs for accuracy, speed, cost, and privacy — and the right choice depends on your volume, document types, and technical resources.",
+      },
+      {
+        type: "key-stat",
+        stats: [
+          { value: "2.4B", label: "PDFs created daily worldwide" },
+          { value: "80%", label: "Business data in unstructured docs (Deloitte)" },
+          { value: "15-30 min", label: "Manual extraction per document" },
+          { value: "< 3 sec", label: "AI extraction per document" },
+        ],
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Comparison: 5 methods at a glance",
+        id: "comparison-table",
+      },
+      {
+        type: "table",
+        headers: ["Method", "Speed", "Accuracy", "Scanned PDFs", "Cost", "Privacy", "Best for"],
+        rows: [
+          ["Manual copy-paste", "Slow", "Low-Medium", "No", "Free", "High", "1-5 documents"],
+          ["Adobe Acrobat Export", "Medium", "Medium", "Basic OCR", "$22.99/mo", "High", "One-off conversions"],
+          ["Free online tools", "Fast", "Medium", "Some", "Free", "Low ⚠️", "Quick, non-sensitive files"],
+          ["Python (pdfplumber)", "Fast", "Medium-High", "No (without OCR)", "Free", "High", "Developers, uniform formats"],
+          ["AI platform (Parsli)", "Fast", "High", "Yes", "Free tier available", "High", "Any volume or format"],
+        ],
+        highlightColumn: 4,
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Method 1: Manual copy-paste",
+        id: "method-1-manual",
+      },
+      {
+        type: "paragraph",
+        text: "Open the PDF, select text or tables, copy, switch to your spreadsheet, paste, fix the formatting. This is how most people start — and it works for a handful of documents. But manual extraction has real costs: the average knowledge worker spends 15-30 minutes per document on manual data extraction, and introduces a 2-5% error rate from transposed digits, missed rows, and misaligned columns.",
+      },
+      {
+        type: "pros-cons",
+        pros: [
+          "No tools or setup required",
+          "Full control over what gets extracted",
+          "Works for simple, well-structured PDFs",
+        ],
+        cons: [
+          "Doesn't work on scanned or image-based PDFs",
+          "Tables lose formatting when pasted",
+          "Error rate of 2-5% at scale",
+          "Doesn't scale beyond ~10 documents/month",
+        ],
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Method 2: Adobe Acrobat Export",
+        id: "method-2-adobe",
+      },
+      {
+        type: "paragraph",
+        text: "Adobe Acrobat Pro ($22.99/month) includes an \"Export PDF\" feature that converts PDFs to Excel, Word, or other formats. It's the most well-known approach — but 'export' is fundamentally different from 'extraction.' Acrobat converts the visual layout of the PDF into spreadsheet cells, often producing merged cells, broken headers, and misaligned data that requires manual cleanup.",
+      },
+      {
+        type: "pros-cons",
+        pros: [
+          "Industry-standard tool many organizations already own",
+          "Handles native (digital) PDFs reasonably well",
+          "Also includes PDF editing, signing, annotating",
+        ],
+        cons: [
+          "Output often requires significant manual cleanup",
+          "Struggles with complex table structures",
+          "Basic OCR for scanned PDFs — limited accuracy",
+          "One file at a time — no batch processing",
+          "$22.99/month per user",
+        ],
+      },
+      {
+        type: "callout",
+        variant: "tip",
+        text: "If you're using Adobe Acrobat primarily for PDF-to-Excel conversion, see our detailed [Adobe Acrobat PDF to Excel alternative comparison](/compare/adobe-acrobat-pdf-to-excel) to understand when a dedicated extraction tool makes more sense.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Method 3: Free online tools",
+        id: "method-3-online-tools",
+      },
+      {
+        type: "paragraph",
+        text: "Tools like ILovePDF, Smallpdf, and Zamzar offer free PDF-to-Excel conversion in the browser. They're fast and convenient for one-off files — but there's a critical tradeoff: your documents are uploaded to third-party servers.",
+      },
+      {
+        type: "callout",
+        variant: "warning",
+        text: "**Privacy warning**: Free online PDF converters upload your documents to their servers for processing. For sensitive documents — financial statements, contracts, medical records, invoices with vendor details — this is a significant privacy and compliance risk. Always check the tool's data retention and privacy policy before uploading.",
+      },
+      {
+        type: "pros-cons",
+        pros: [
+          "Free and fast for occasional use",
+          "No software installation required",
+          "Some support basic OCR for scanned PDFs",
+        ],
+        cons: [
+          "Documents uploaded to third-party servers — privacy risk",
+          "Limited accuracy on complex tables",
+          "File size and usage limits on free tiers",
+          "No custom field extraction — you get the whole page",
+          "No batch processing or automation",
+        ],
+      },
+      {
+        type: "mid-cta",
+        text: "Need to extract data from PDFs without uploading to third-party servers?",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Method 4: Python libraries (pdfplumber, tabula)",
+        id: "method-4-python",
+      },
+      {
+        type: "paragraph",
+        text: "For developers, Python libraries like pdfplumber and tabula-py offer programmatic PDF table extraction. They're free, customizable, and can be integrated into existing data pipelines. pdfplumber generally outperforms tabula for tables without visible grid lines.",
+      },
+      {
+        type: "pros-cons",
+        pros: [
+          "Free and open source",
+          "Full programmatic control",
+          "Handles batch processing natively",
+          "Data stays on your infrastructure",
+        ],
+        cons: [
+          "Doesn't work on scanned PDFs (no built-in OCR)",
+          "Requires per-format tuning for inconsistent layouts",
+          "Struggles with multi-line cell content",
+          "Needs developer resources to build and maintain",
+          "Adding OCR (Tesseract) introduces accuracy issues",
+        ],
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Method 5: AI-powered extraction (Parsli)",
+        id: "method-5-ai",
+      },
+      {
+        type: "paragraph",
+        text: "AI-powered extraction takes a fundamentally different approach. Instead of converting file formats or matching text positions, AI reads the document the way a human would — understanding context, identifying fields, and extracting structured data regardless of layout. This handles the cases other methods can't: scanned PDFs, varying layouts, multi-page tables, and handwritten text.",
+      },
+      {
+        type: "step",
+        number: 1,
+        title: "Upload your PDF",
+        description: "Drag and drop any PDF — scanned, native, or image-based. Parsli handles them all.",
+      },
+      {
+        type: "step",
+        number: 2,
+        title: "Define what you need",
+        description: "Use the visual schema builder to name your fields (invoice_number, date, line_items, total). Describe each in plain English.",
+      },
+      {
+        type: "step",
+        number: 3,
+        title: "Get structured data",
+        description: "AI extracts your fields and delivers clean data as Excel, CSV, JSON, or directly to Google Sheets.",
+      },
+      {
+        type: "pros-cons",
+        pros: [
+          "Works on any PDF layout — no per-format configuration",
+          "Built-in OCR handles scanned and image-based PDFs",
+          "Extracts specific fields, not the entire page layout",
+          "No code required — visual schema builder",
+          "API available for automated pipelines",
+          "Free tier: 30 pages/month",
+        ],
+        cons: [
+          "Cloud-based — requires internet connection",
+          "Free tier limited to 30 pages/month",
+          "Newer tool — smaller user community than established alternatives",
+        ],
+      },
+      {
+        type: "tool-callout",
+        href: "/tools/pdf-to-excel",
+        title: "Free PDF to Excel Converter",
+        description: "Extract data from a PDF right now — no sign-up required. Upload a file and see structured data in seconds.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Which method should you choose?",
+        id: "which-method",
+      },
+      {
+        type: "paragraph",
+        text: "The right method depends on three factors: **volume** (how many PDFs per month), **variety** (how many different layouts), and **sensitivity** (can you upload to third-party servers).",
+      },
+      {
+        type: "list",
+        items: [
+          "**Under 5 PDFs/month, same format**: Manual copy-paste is fine.",
+          "**One-off conversions, non-sensitive**: Free online tools are fastest.",
+          "**Uniform formats, developer available**: Python libraries give full control.",
+          "**Multiple formats, scanned docs, or scale**: AI extraction handles the complexity.",
+          "**Already have Adobe Creative Cloud**: Use Acrobat Export for simple conversions, but consider a dedicated tool for complex tables or scanned docs.",
+        ],
+      },
+      {
+        type: "paragraph",
+        text: "According to Deloitte, 80-90% of enterprise data is trapped in unstructured documents. The method you choose determines how efficiently you can unlock that data — and the cost compounds with every document you process.",
+      },
+      { type: "cta" },
+    ],
+    faqs: [
+      {
+        question: "Can you extract data from a scanned PDF?",
+        answer: "Yes, but only with tools that include OCR (optical character recognition). Manual copy-paste and Python libraries (pdfplumber/tabula) can't read scanned PDFs. Adobe Acrobat has basic OCR, and AI platforms like Parsli include advanced AI-powered OCR that handles complex layouts and handwriting.",
+      },
+      {
+        question: "What's the most accurate way to extract PDF data?",
+        answer: "AI-powered extraction offers the highest accuracy (95%+) across diverse document types. Python libraries are accurate for uniform digital PDFs. Manual extraction has a 2-5% error rate that increases with volume and fatigue.",
+      },
+      {
+        question: "Is it safe to use free online PDF tools?",
+        answer: "Free online tools upload your documents to third-party servers. For non-sensitive documents, this is generally fine. For financial data, medical records, contracts, or any documents covered by compliance requirements (GDPR, HIPAA), use tools that keep data on your infrastructure or have explicit privacy guarantees.",
+      },
+      {
+        question: "Can I extract tables from PDFs?",
+        answer: "Yes. Adobe Acrobat attempts to preserve table layout but often breaks it. Python libraries detect table coordinates but struggle with borderless tables. AI extraction understands table structure semantically — rows, columns, headers — and produces clean tabular data. See our [PDF table extraction tool](/tools/pdf-table-extractor).",
+      },
+      {
+        question: "How do I extract data from multiple PDFs at once?",
+        answer: "Batch processing is available via Python scripts, AI platforms (Parsli processes batches natively), and Adobe Acrobat's Action Wizard (for export only). Free online tools typically handle one file at a time.",
+      },
+      {
+        question: "What format should I extract PDF data to?",
+        answer: "Excel (.xlsx) for spreadsheet analysis, CSV for data pipelines and imports, JSON for API integration and databases. Parsli supports all three plus direct Google Sheets export.",
+      },
+    ],
+    relatedTools: [
+      { href: "/tools/pdf-to-excel", title: "PDF to Excel", description: "Convert any PDF to Excel — free, no sign-up." },
+      { href: "/tools/pdf-to-json", title: "PDF to JSON", description: "Extract structured JSON from PDF documents." },
+      { href: "/tools/pdf-to-text", title: "PDF to Text", description: "Extract all text content from PDFs." },
+      { href: "/tools/pdf-table-extractor", title: "PDF Table Extractor", description: "Extract tables from PDFs with structure preserved." },
+    ],
+    relatedSolutions: ["pdf-to-excel", "document-parser", "no-code-document-parser"],
+    relatedCompare: ["adobe-acrobat-pdf-to-excel", "docparser", "textract"],
+    relatedBlog: ["extract-data-pdf-to-excel", "best-pdf-parser-tools"],
+  },
+  {
+    slug: "convert-bank-statement-to-excel",
+    title: "How to Convert Bank Statements to Excel (3 Methods)",
+    h1: "How to Convert Bank Statements to Excel",
+    metaTitle: "How to Convert Bank Statements to Excel — 3 Methods (2026)",
+    metaDescription:
+      "Convert PDF bank statements to Excel with 3 methods: bank portal CSV, manual entry, and AI extraction. Step-by-step guide for Chase, BofA, Wells Fargo, and more.",
+    publishedAt: "2026-04-10",
+    updatedAt: "2026-04-10",
+    author: "Talal Bazerbachi",
+    authorTitle: "Founder at Parsli",
+    readTime: "10 min read",
+    category: "Data Conversion",
+    imageTitle: "Bank Statement to Excel",
+    tldr: [
+      "**Bank portal CSV export** is the fastest method for recent statements — check your bank's online portal for download options.",
+      "**Manual data entry** works for a few pages but takes 1-2 hours per 100-transaction statement and introduces errors.",
+      "**AI-powered extraction** handles any bank format — Chase, BofA, Wells Fargo, scanned statements — and converts in seconds.",
+      "**Scanned or printed statements** from older records can't be exported from bank portals; AI with OCR is the only automated option.",
+      "**Data sensitivity**: Bank statements contain PII. Avoid uploading to free third-party tools. [Try Parsli's bank statement converter →](/tools/bank-statement-to-excel)",
+    ],
+    content: [
+      {
+        type: "paragraph",
+        text: "Accountants, bookkeepers, and financial analysts regularly need bank transaction data in spreadsheet format — for reconciliation, auditing, tax preparation, or financial analysis. But banks deliver statements as PDFs, and getting that data into Excel is rarely straightforward.",
+      },
+      {
+        type: "paragraph",
+        text: "This guide covers three methods to convert bank statements to Excel, with specific guidance for common banks (Chase, Bank of America, Wells Fargo, Citi). We'll help you choose the right approach based on your statement type, volume, and data sensitivity requirements.",
+      },
+      {
+        type: "callout",
+        variant: "warning",
+        text: "**Data sensitivity**: Bank statements contain account numbers, transaction details, and personal information. Avoid uploading to free online converters that process files on third-party servers. Use tools with explicit privacy guarantees for financial documents.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Method 1: Download CSV from your bank portal",
+        id: "method-1-bank-portal",
+      },
+      {
+        type: "paragraph",
+        text: "Most major banks offer CSV or Excel download options for recent transaction history in their online banking portals. This is the fastest method when available — no conversion needed, the data is already structured.",
+      },
+      {
+        type: "step",
+        number: 1,
+        title: "Log in to your bank's online portal",
+        description: "Navigate to your account's transaction history or statements section.",
+      },
+      {
+        type: "step",
+        number: 2,
+        title: "Select the date range",
+        description: "Choose the period you need. Most banks allow custom date ranges for the past 12-24 months.",
+      },
+      {
+        type: "step",
+        number: 3,
+        title: "Download as CSV or Excel",
+        description: "Look for 'Download,' 'Export,' or 'Save as' options. Select CSV (.csv) or Excel (.xlsx) format.",
+      },
+      {
+        type: "paragraph",
+        text: "**When this method doesn't work**: Older statements (beyond 12-24 months) are typically only available as PDF downloads. Statements from closed accounts may only be available as PDFs. Printed or scanned statements from paper archives have no digital export option.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Method 2: Manual data entry",
+        id: "method-2-manual",
+      },
+      {
+        type: "paragraph",
+        text: "For a small number of transactions, manual entry into a spreadsheet is straightforward: create columns for date, description, debit, credit, and balance, then type each transaction row. A typical monthly statement with 50-100 transactions takes 30-60 minutes to enter manually.",
+      },
+      {
+        type: "paragraph",
+        text: "The challenge is accuracy. Manual data entry has a 2-5% error rate — transposed digits, missed transactions, misaligned columns. For financial reconciliation, even a single error can cascade: a wrong transaction amount throws off the running balance for every subsequent row.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Method 3: AI-powered extraction",
+        id: "method-3-ai",
+      },
+      {
+        type: "paragraph",
+        text: "AI extraction reads the bank statement PDF — including scanned and printed statements — and converts all transactions to structured spreadsheet data automatically. The AI understands bank statement layouts from any bank, identifying dates, descriptions, amounts, and running balances without per-bank configuration.",
+      },
+      {
+        type: "step",
+        number: 1,
+        title: "Upload your bank statement",
+        description: "Drag and drop the PDF into Parsli — from any bank, any format. Digital, scanned, or photographed.",
+      },
+      {
+        type: "step",
+        number: 2,
+        title: "AI extracts every transaction",
+        description: "Date, description, debit/credit amount, and running balance — extracted from every row on every page.",
+      },
+      {
+        type: "step",
+        number: 3,
+        title: "Download as Excel or CSV",
+        description: "Export clean, structured data as Excel (.xlsx), CSV, or push directly to Google Sheets.",
+      },
+      {
+        type: "tool-callout",
+        href: "/tools/bank-statement-to-excel",
+        title: "Free Bank Statement to Excel Converter",
+        description: "Convert any bank statement PDF to Excel — free, no sign-up. Works with Chase, BofA, Wells Fargo, Citi, and any other bank.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Which method should you use?",
+        id: "which-method",
+      },
+      {
+        type: "table",
+        headers: ["Scenario", "Best method"],
+        rows: [
+          ["Recent statements (last 12 months)", "Bank portal CSV download"],
+          ["Older statements (PDF only)", "AI extraction"],
+          ["Scanned or printed statements", "AI extraction (with OCR)"],
+          ["Small number of transactions (<30)", "Manual entry is fine"],
+          ["Multi-page statements from multiple banks", "AI extraction"],
+          ["Statements for QuickBooks import", "AI extraction → CSV → QuickBooks import"],
+        ],
+      },
+      {
+        type: "paragraph",
+        text: "For accounting workflows that require importing bank data into QuickBooks, Xero, or FreshBooks, see our guide on [uploading bank statements to QuickBooks](/guides/upload-bank-statements-to-quickbooks).",
+      },
+      { type: "cta" },
+    ],
+    faqs: [
+      {
+        question: "Can I convert a scanned bank statement to Excel?",
+        answer: "Yes, using AI extraction with built-in OCR. Manual entry and bank portal CSV downloads can't handle scanned documents. Parsli's AI reads scanned and printed bank statements from any bank format.",
+      },
+      {
+        question: "Does it work with any bank?",
+        answer: "AI extraction works with any bank's statement format — Chase, Bank of America, Wells Fargo, HSBC, Citi, credit unions, and international banks. No per-bank configuration needed.",
+      },
+      {
+        question: "How accurate is the conversion?",
+        answer: "AI extraction achieves 95%+ accuracy on bank statements, including scanned documents. Manual entry typically has a 2-5% error rate that increases with volume.",
+      },
+      {
+        question: "Is it safe to upload bank statements?",
+        answer: "With Parsli, your documents are never used to train AI models. GDPR compliant. For maximum security, avoid free third-party online converters that may retain copies of your financial documents.",
+      },
+    ],
+    relatedTools: [
+      { href: "/tools/bank-statement-to-excel", title: "Bank Statement to Excel", description: "Convert any bank statement to Excel — free." },
+      { href: "/tools/bank-statement-to-csv", title: "Bank Statement to CSV", description: "Export bank transactions as CSV." },
+      { href: "/tools/bank-statement-parser", title: "Bank Statement Parser", description: "Parse any bank statement format." },
+    ],
+    relatedSolutions: ["bank-statement-extraction"],
+    relatedCompare: ["docparser", "docuclipper"],
+    relatedBlog: ["extract-bank-statement-data-pdf", "bank-statement-to-excel-automation-guide"],
+  },
+  {
+    slug: "upload-bank-statements-to-quickbooks",
+    title: "How to Upload Bank Statements to QuickBooks Online",
+    h1: "How to Upload Bank Statements to QuickBooks Online",
+    metaTitle: "Upload Bank Statements to QuickBooks Online — Step-by-Step (2026)",
+    metaDescription:
+      "Upload bank statements to QuickBooks Online when bank feeds fail. Step-by-step guide for manual import (QBO/OFX/CSV) and automated extraction with AI.",
+    publishedAt: "2026-04-10",
+    updatedAt: "2026-04-10",
+    author: "Talal Bazerbachi",
+    authorTitle: "Founder at Parsli",
+    readTime: "8 min read",
+    category: "Integration Guide",
+    imageTitle: "Bank Statements to QuickBooks",
+    tldr: [
+      "**QuickBooks bank feeds** are the preferred method, but they disconnect, don't support all banks, and can't import historical statements.",
+      "**Manual file upload** works with QBO, OFX, or CSV files — download from your bank portal and import via Banking → Upload Transactions.",
+      "**PDF bank statements** can't be uploaded to QuickBooks directly — they must be converted to CSV or QBO format first.",
+      "**AI extraction** converts PDF bank statements (including scanned) to QuickBooks-compatible CSV automatically. [Try the free converter →](/tools/bank-statement-to-csv)",
+    ],
+    content: [
+      {
+        type: "paragraph",
+        text: "QuickBooks Online's bank feed feature is supposed to import transactions automatically — but it doesn't always work. Bank feeds disconnect, some banks aren't supported, and historical statements beyond a few months can't be imported via the feed. When the automated connection fails, you need to upload bank statements manually.",
+      },
+      {
+        type: "paragraph",
+        text: "This guide covers three paths to get bank statement data into QuickBooks Online: reconnecting the bank feed, manually uploading transaction files, and using AI to convert PDF statements into QuickBooks-compatible format.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Why bank feeds fail",
+        id: "why-bank-feeds-fail",
+      },
+      {
+        type: "list",
+        items: [
+          "**Bank connection drops**: Authentication tokens expire, banks update their APIs, or security policies change. You'll see a 'Connection needs attention' warning.",
+          "**Bank not supported**: Smaller banks, credit unions, and international banks may not have direct QuickBooks integration.",
+          "**Historical data limits**: Bank feeds typically import the last 90 days. Older transactions need manual import.",
+          "**Closed accounts**: Once an account is closed at the bank, the feed stops — but you may still need those transactions in QuickBooks.",
+          "**Multiple banks**: Managing feeds for 5+ bank accounts means 5+ potential disconnection points.",
+        ],
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Option 1: Reconnect the bank feed",
+        id: "option-1-reconnect",
+      },
+      {
+        type: "paragraph",
+        text: "If your bank feed disconnected recently, try reconnecting first. In QuickBooks Online, go to **Banking** → click on the bank account → **Update** or **Fix connection**. Re-enter your bank credentials. This resolves most temporary disconnections.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Option 2: Upload a transaction file manually",
+        id: "option-2-manual-upload",
+      },
+      {
+        type: "paragraph",
+        text: "QuickBooks Online accepts three file formats for manual bank statement import: **QBO** (QuickBooks Web Connect), **OFX** (Open Financial Exchange), and **CSV** (comma-separated values). Most bank portals offer at least one of these as a download option.",
+      },
+      {
+        type: "step",
+        number: 1,
+        title: "Download the transaction file from your bank",
+        description: "Log in to your bank portal → Transaction History → Download/Export → Select QBO, OFX, or CSV format. Choose the date range you need.",
+      },
+      {
+        type: "step",
+        number: 2,
+        title: "Upload to QuickBooks Online",
+        description: "In QuickBooks, go to **Banking** → **Upload Transactions** (or **Link Account** → **Upload from file**). Select your bank account and choose the downloaded file.",
+      },
+      {
+        type: "step",
+        number: 3,
+        title: "Map columns (CSV only)",
+        description: "If uploading CSV, QuickBooks asks you to map columns — match Date, Description, and Amount fields. QBO and OFX files are pre-formatted and don't need mapping.",
+      },
+      {
+        type: "step",
+        number: 4,
+        title: "Review and accept transactions",
+        description: "QuickBooks shows the imported transactions in the 'For Review' tab. Review, categorize, and accept them to add to your books.",
+      },
+      {
+        type: "callout",
+        variant: "tip",
+        text: "**QBO format is preferred** over CSV for QuickBooks import. QBO files include transaction type metadata (check, deposit, transfer) that CSV lacks. If your bank offers QBO download, use it.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        text: "Option 3: Convert PDF statements with AI",
+        id: "option-3-ai-conversion",
+      },
+      {
+        type: "paragraph",
+        text: "When your bank statements are only available as PDFs — older statements, scanned documents, statements from closed accounts — QuickBooks can't import them directly. You need to convert the PDF to CSV format first.",
+      },
+      {
+        type: "paragraph",
+        text: "AI extraction converts any bank statement PDF (including scanned and printed statements) into a clean CSV file that QuickBooks can import. The AI reads the statement, identifies every transaction (date, description, amount, balance), and outputs structured data in QuickBooks-compatible format.",
+      },
+      {
+        type: "step",
+        number: 1,
+        title: "Upload the PDF bank statement",
+        description: "Upload to Parsli's bank statement converter. Any bank, any format — digital or scanned.",
+      },
+      {
+        type: "step",
+        number: 2,
+        title: "AI extracts all transactions",
+        description: "Date, description, debit/credit amount, and balance — extracted from every page automatically.",
+      },
+      {
+        type: "step",
+        number: 3,
+        title: "Download as CSV",
+        description: "Export the structured transaction data as a CSV file formatted for QuickBooks import.",
+      },
+      {
+        type: "step",
+        number: 4,
+        title: "Upload CSV to QuickBooks",
+        description: "Follow the manual upload steps above (Banking → Upload Transactions) with the generated CSV file.",
+      },
+      {
+        type: "tool-callout",
+        href: "/tools/bank-statement-to-csv",
+        title: "Free Bank Statement to CSV",
+        description: "Convert any bank statement PDF to QuickBooks-compatible CSV — free, no sign-up.",
+      },
+      { type: "cta" },
+    ],
+    faqs: [
+      {
+        question: "Can I upload a PDF bank statement directly to QuickBooks?",
+        answer: "No. QuickBooks Online only accepts QBO, OFX, and CSV files for bank transaction import. PDF bank statements must be converted to one of these formats first. AI extraction can convert PDFs to CSV automatically.",
+      },
+      {
+        question: "What file format is best for QuickBooks import?",
+        answer: "QBO (QuickBooks Web Connect) is the preferred format — it includes transaction type metadata that CSV lacks. If your bank doesn't offer QBO download, CSV works but requires column mapping during import.",
+      },
+      {
+        question: "Can I import scanned bank statements to QuickBooks?",
+        answer: "Not directly. Scanned statements must be converted to CSV first using AI extraction with OCR. Parsli's bank statement converter handles scanned and printed statements from any bank.",
+      },
+      {
+        question: "How far back can I import bank statements?",
+        answer: "QuickBooks bank feeds typically import the last 90 days. For older transactions, download the statement file from your bank portal or convert PDF statements to CSV for manual upload. There's no time limit on manual file uploads.",
+      },
+    ],
+    relatedTools: [
+      { href: "/tools/bank-statement-to-csv", title: "Bank Statement to CSV", description: "Convert bank statements to QuickBooks-compatible CSV." },
+      { href: "/tools/bank-statement-to-excel", title: "Bank Statement to Excel", description: "Convert bank statements to Excel format." },
+      { href: "/tools/bank-statement-parser", title: "Bank Statement Parser", description: "Parse any bank statement format." },
+    ],
+    relatedSolutions: ["bank-statement-extraction"],
+    relatedCompare: ["docuclipper"],
+    relatedBlog: ["extract-bank-statement-data-pdf", "bank-statement-to-excel-automation-guide"],
+  },
 
 ]
 

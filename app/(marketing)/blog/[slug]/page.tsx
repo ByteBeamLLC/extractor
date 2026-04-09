@@ -35,6 +35,7 @@ const blogToSolutions: Record<string, string[]> = {
   ],
   // New posts
   "what-is-document-parsing": [
+    "document-parser",
     "no-code-document-parser",
     "document-parsing-api",
     "invoice-parsing",
@@ -110,6 +111,7 @@ const blogToSolutions: Record<string, string[]> = {
     "document-parsing-api",
   ],
   "what-is-intelligent-document-processing": [
+    "intelligent-document-processing",
     "no-code-document-parser",
     "document-parsing-api",
     "invoice-data-extraction",
@@ -353,6 +355,10 @@ const blogToSolutions: Record<string, string[]> = {
     "bank-statement-extraction",
     "pdf-to-excel",
     "no-code-document-parser",
+  ],
+  "what-is-ocr": [
+    "document-parser",
+    "document-processing-software",
   ],
 }
 
@@ -644,6 +650,11 @@ const blogToTools: Record<string, { href: string; title: string; description: st
     { href: "/tools/bank-statement-to-excel", title: "Free Bank Statement to Excel", description: "Convert months of bank statements to Excel in minutes." },
     { href: "/tools/receipt-scanner", title: "Free Receipt Scanner", description: "Digitize receipt backlog for clean-up." },
   ],
+  "what-is-ocr": [
+    { href: "/tools/ocr", title: "Free Online OCR", description: "OCR any document — extract text from scans and images instantly." },
+    { href: "/tools/handwriting-to-text", title: "Handwriting to Text", description: "Convert handwritten text to digital with AI." },
+    { href: "/tools/image-to-text", title: "Image to Text", description: "Extract text from any image file." },
+  ],
 }
 
 /* Map blog slugs to related comparison pages */
@@ -652,15 +663,15 @@ const blogToCompare: Record<string, string[]> = {
   "nanonets-alternatives": ["nanonets", "parseur", "docparser", "docsumo"],
   "mailparser-alternatives": ["mailparser", "parseur", "parsio", "docparser"],
   "best-invoice-ocr-software": ["nanonets", "docparser", "rossum", "docsumo"],
-  "best-email-parser-tools": ["parseur", "mailparser", "parsio"],
-  "extract-data-pdf-to-excel": ["docparser", "parseur", "textract"],
+  "best-email-parser-tools": ["parseur", "mailparser", "parsio", "zapier-email-parser"],
+  "extract-data-pdf-to-excel": ["docparser", "parseur", "textract", "adobe-acrobat-pdf-to-excel"],
   "what-is-document-parsing": ["nanonets", "docsumo", "textract"],
   "automate-data-entry": ["parseur", "nanonets", "docsumo"],
   "extract-data-from-pdf-automatically": ["textract", "google-document-ai", "docparser"],
   "automate-invoice-data-extraction": ["nanonets", "docsumo", "rossum"],
   "extract-bank-statement-data-pdf": ["docparser", "parseur", "nanonets"],
   "parse-emails-to-google-sheets": ["parseur", "mailparser", "parsio"],
-  "email-attachments-to-spreadsheet": ["mailparser", "parseur", "parsio"],
+  "email-attachments-to-spreadsheet": ["mailparser", "parseur", "parsio", "zapier-email-parser"],
   "document-parsing-api": ["textract", "google-document-ai", "azure-document-intelligence"],
   "agentic-document-extraction": ["nanonets", "docsumo", "sensible", "unstract"],
   "best-pdf-parser-tools": ["docparser", "parseur", "nanonets", "abbyy"],
@@ -690,10 +701,10 @@ const blogToCompare: Record<string, string[]> = {
   // New financial posts
   "financial-document-automation": ["nanonets", "docsumo", "abbyy", "rossum"],
   "accounts-payable-automation": ["nanonets", "docsumo", "rossum"],
-  "ocr-invoice-processing": ["nanonets", "abbyy", "docsumo", "rossum"],
+  "ocr-invoice-processing": ["nanonets", "abbyy", "docsumo", "rossum", "adobe-acrobat-ocr"],
   "ai-invoice-processing": ["nanonets", "docsumo", "rossum", "abbyy"],
   "detect-fraudulent-documents": ["docuclipper", "nanonets", "sensible"],
-  "accounting-ocr": ["abbyy", "nanonets", "docsumo", "veryfi"],
+  "accounting-ocr": ["abbyy", "nanonets", "docsumo", "veryfi", "adobe-acrobat-ocr"],
   "receipt-ocr-guide": ["veryfi", "klippa", "nanonets", "docsumo"],
   "paperless-invoice-processing": ["nanonets", "docsumo", "rossum"],
   "ocr-data-capture": ["abbyy", "nanonets", "textract", "google-document-ai"],
@@ -717,6 +728,7 @@ const blogToCompare: Record<string, string[]> = {
   "ocr-vs-idp": ["abbyy", "nanonets", "docsumo", "textract"],
   "ocr-underwriting": ["nanonets", "abbyy", "docsumo", "mindee"],
   "bookkeeping-clean-up-guide": ["docuclipper", "nanonets", "docparser"],
+  "what-is-ocr": ["adobe-acrobat-ocr", "abbyy", "textract"],
 }
 
 function getRelatedComparisons(blogSlug: string) {

@@ -32,6 +32,9 @@ const logoMap: Record<string, string> = {
   affinda: "/logos/competitors/affinda.webp",
   matil: "/logos/competitors/matil.svg",
   docuclipper: "/logos/competitors/docuclipper.webp",
+  "adobe-acrobat-pdf-to-excel": "/logos/competitors/adobe-acrobat.svg",
+  "adobe-acrobat-ocr": "/logos/competitors/adobe-acrobat.svg",
+  "zapier-email-parser": "/logos/competitors/zapier.svg",
 }
 
 export function getCompetitorLogo(slug: string): string | null {

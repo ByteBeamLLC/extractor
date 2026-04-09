@@ -210,6 +210,41 @@ export default function PdfToExcelToolPage() {
         }}
       />
 
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "HowTo",
+          name: "How to Convert PDF to Excel",
+          description:
+            "Convert any PDF table to an Excel spreadsheet in 3 simple steps — free, no sign-up required.",
+          step: [
+            {
+              "@type": "HowToStep",
+              position: 1,
+              name: "Upload your PDF",
+              text: "Drag and drop your PDF file or click to browse. The file is processed entirely in your browser — nothing is uploaded to a server.",
+            },
+            {
+              "@type": "HowToStep",
+              position: 2,
+              name: "Preview the extracted data",
+              text: "The tool automatically detects tables in your PDF and shows you a preview of the extracted data with rows and columns preserved.",
+            },
+            {
+              "@type": "HowToStep",
+              position: 3,
+              name: "Download as Excel",
+              text: "Click Download to save your data as an Excel (.xlsx) file. Multi-page PDFs with different layouts create separate sheets.",
+            },
+          ],
+          totalTime: "PT30S",
+          tool: {
+            "@type": "HowToTool",
+            name: "Parsli PDF to Excel Converter",
+          },
+        }}
+      />
+
       {/* ═══════ 1. Hero + Tool ═══════ */}
       <section className="relative pt-24 sm:pt-28 pb-16">
         <div className="absolute inset-0 -z-10">
@@ -653,6 +688,54 @@ export default function PdfToExcelToolPage() {
               </tbody>
             </table>
           </div>
+          <h2 className="text-xl sm:text-2xl font-bold mt-10 mb-4">
+            Parsli vs Other PDF to Excel Converters
+          </h2>
+          <p className="text-muted-foreground leading-relaxed mb-4">
+            Looking for the best way to convert PDFs to Excel? Here&apos;s how the main options compare — including privacy, scanned PDF support, and cost.
+          </p>
+          <div className="border rounded-lg overflow-hidden mb-6">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="text-left px-4 py-2.5 font-semibold">Feature</th>
+                  <th className="text-left px-4 py-2.5 font-semibold">Parsli</th>
+                  <th className="text-left px-4 py-2.5 font-semibold">Adobe Acrobat</th>
+                  <th className="text-left px-4 py-2.5 font-semibold">Smallpdf</th>
+                  <th className="text-left px-4 py-2.5 font-semibold">ILovePDF</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ["Privacy", "Browser-based", "Desktop app", "Cloud upload", "Cloud upload"],
+                  ["Scanned PDFs", "AI OCR", "Basic OCR", "Limited", "Limited"],
+                  ["Custom field extraction", "Yes", "No", "No", "No"],
+                  ["Batch processing", "Yes", "One at a time", "Limited free", "Limited free"],
+                  ["Sign-up required", "No", "Yes ($22.99/mo)", "Yes (freemium)", "Yes (freemium)"],
+                  ["API access", "Yes (all plans)", "Separate product", "No", "No"],
+                  ["Google Sheets", "Direct export", "No", "No", "No"],
+                ].map(([feature, parsli, adobe, smallpdf, ilovepdf]) => (
+                  <tr key={feature} className="border-t">
+                    <td className="px-4 py-2 font-medium">{feature}</td>
+                    <td className="px-4 py-2 text-primary font-medium">{parsli}</td>
+                    <td className="px-4 py-2 text-muted-foreground">{adobe}</td>
+                    <td className="px-4 py-2 text-muted-foreground">{smallpdf}</td>
+                    <td className="px-4 py-2 text-muted-foreground">{ilovepdf}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-muted-foreground leading-relaxed text-sm">
+            For a detailed comparison with Adobe Acrobat, see our{" "}
+            <Link href="/compare/adobe-acrobat-pdf-to-excel" className="text-primary hover:underline">
+              Adobe Acrobat PDF to Excel alternative
+            </Link>{" "}
+            page. For a deeper guide on all extraction methods, read{" "}
+            <Link href="/guides/how-to-extract-data-from-pdf" className="text-primary hover:underline">
+              How to Extract Data from PDF — 5 Methods Compared
+            </Link>.
+          </p>
         </div>
       </section>
 

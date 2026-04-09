@@ -912,6 +912,739 @@ const data = await response.json();
     ],
     ctaPainPoint: "Still keying BOL data into your WMS by hand?",
   },
+  {
+    slug: "document-parser",
+    keyword: "document parser",
+    metaTitle: "AI Document Parser — Extract Data from Any Document | Parsli",
+    metaDescription:
+      "Parse PDFs, scans, images, and emails into structured data with AI. No templates, no rules, no code. 95%+ accuracy. Free to start.",
+    h1: "AI Document Parser",
+    h1Accent: "That Actually Works",
+    subtitle:
+      "Extract structured data from any document — PDFs, scans, images, or emails — without templates or rules. Parsli's AI reads documents the way you would.",
+    comparisonHeadline: "Stop building templates for every document",
+    painPoints: [
+      "Building and maintaining templates for each document layout",
+      "Parsers break when vendors change their format",
+      "Scanned or image-based documents are unreadable",
+      "Need a developer to write custom parsing logic",
+      "Weeks of setup before extracting a single field",
+    ],
+    solutions: [
+      "AI understands any layout — no templates to build",
+      "Adapts to format changes automatically",
+      "Built-in OCR handles scans, photos, and images",
+      "No-code schema builder — anyone can set it up",
+      "Start extracting data in under 5 minutes",
+    ],
+    saveLine: "Eliminate template maintenance entirely.",
+    calloutBox: {
+      title: "Zero Templates, Zero Rules",
+      description:
+        "Unlike template-based document parsers, Parsli's AI reads the full context of every page. It identifies fields semantically — not by position — so it works on any document layout without configuration.",
+    },
+    supportedTypes: [
+      { emoji: "📄", name: "PDFs" },
+      { emoji: "📷", name: "Scanned Documents" },
+      { emoji: "🖼️", name: "Images" },
+      { emoji: "📧", name: "Emails & Attachments" },
+      { emoji: "📝", name: "Word & Excel Files" },
+    ],
+    howItWorks: [
+      {
+        step: "1",
+        title: "Upload Any Document",
+        description:
+          "Drag and drop files, forward emails, or send via API. PDFs, scans, images, Word, Excel — all supported.",
+      },
+      {
+        step: "2",
+        title: "AI Extracts Your Data",
+        description:
+          "Define fields with the visual schema builder. Parsli's AI reads the document and extracts every field you need with 95%+ accuracy.",
+      },
+      {
+        step: "3",
+        title: "Export or Integrate",
+        description:
+          "Download as Excel, CSV, or JSON. Or send data to Google Sheets, Zapier, Make, webhooks, or your own systems automatically.",
+      },
+    ],
+    benefits: [
+      {
+        title: "No Templates or Rules",
+        description:
+          "Traditional document parsers require a template for every layout. Parsli's AI understands document structure semantically, so it works on any format out of the box.",
+      },
+      {
+        title: "Handles Any Document Type",
+        description:
+          "Invoices, contracts, receipts, bank statements, shipping docs — if it contains data, Parsli can [extract it without code](/guides/extract-data-from-pdfs-without-code).",
+      },
+      {
+        title: "Built-In OCR for Scans",
+        description:
+          "Scanned and image-based documents are processed with AI-powered OCR. No separate OCR tool or clean digital file required.",
+      },
+      {
+        title: "API + No-Code in One Platform",
+        description:
+          "Use the visual schema builder for no-code workflows, or integrate via [REST API](/solutions/document-parsing-api) for custom applications. Both use the same AI engine.",
+      },
+    ],
+    seoSections: [
+      {
+        heading: "What Is a Document Parser?",
+        content:
+          "A document parser is software that extracts structured data from unstructured documents — PDFs, images, scanned files, emails, and more. Instead of manually reading documents and typing data into spreadsheets or systems, a document parser automates the extraction process. According to Grand View Research, the intelligent document processing market was valued at $2.30 billion in 2024 and is projected to reach $12.35 billion by 2030, growing at a 33.1% CAGR — driven by the need to automate document data extraction across industries.\n\nTraditional document parsers rely on templates or rules: you define extraction zones for each document layout, and the parser looks for data at those fixed positions. When formats change or new document types appear, you rebuild the template. AI-powered document parsers like Parsli take a fundamentally different approach — they read the full context of the page and identify fields semantically, adapting to any layout without configuration.",
+      },
+      {
+        heading: "Document Parser vs OCR vs IDP",
+        content:
+          "These terms are related but distinct. OCR (optical character recognition) converts images of text into machine-readable characters — it's a single step in the pipeline. A document parser goes further: it not only reads the text but also understands the document's structure, identifies specific fields, and outputs structured data. IDP (intelligent document processing) is the industry category that encompasses AI-powered document parsing, classification, and validation.\n\nMost modern document parsers include built-in OCR as part of their pipeline. What differentiates them is what happens after text recognition: template-based parsers apply rigid rules to map fields, while AI parsers like Parsli use language models to understand context and extract data from any layout. According to Everest Group's IDP PEAK Matrix, zero-training AI extraction reduces time-to-value from weeks to minutes compared to template-based solutions.",
+      },
+      {
+        heading: "How to Choose a Document Parser",
+        content:
+          "The right document parser depends on your use case, document variety, and technical resources. Key factors to evaluate: Does it require templates or per-format setup? Can it handle scanned and image-based documents? Does it support your output formats and integrations? What's the accuracy on your specific document types?\n\nFor teams processing documents from many different sources — multiple vendors, banks, or formats — template-free AI parsing eliminates the largest ongoing cost: template maintenance. Deloitte estimates that 80–90% of enterprise data is trapped in unstructured documents. A document parser that adapts to any format lets you unlock that data without building and maintaining rules for each variation.",
+      },
+    ],
+    faq: [
+      {
+        question: "What types of documents can Parsli parse?",
+        answer:
+          "PDFs (native and scanned), images (JPEG, PNG), Word documents (.docx), Excel files (.xlsx), and emails with attachments. If it contains data, Parsli can extract it.",
+      },
+      {
+        question: "Do I need to create templates for each document type?",
+        answer:
+          "No. Parsli's AI understands document structure without templates. Define your extraction fields once, and the AI adapts to any layout automatically. This is the core difference between AI parsing and [traditional template-based parsing](/blog/what-is-document-parsing).",
+      },
+      {
+        question: "How accurate is the document parsing?",
+        answer:
+          "95%+ accuracy on most document types, including complex layouts and scanned documents. Each extraction includes per-field confidence scores for quality control.",
+      },
+      {
+        question: "Is there a document parsing API?",
+        answer:
+          "Yes. Send documents via REST API and get structured JSON back in seconds. See the [Document Parsing API](/solutions/document-parsing-api) for details and code examples.",
+      },
+      {
+        question: "Can I parse documents without writing code?",
+        answer:
+          "Yes. The [visual schema builder](/solutions/no-code-document-parser) lets anyone define extraction fields using plain English descriptions. No programming required.",
+      },
+      {
+        question: "How does Parsli compare to Docparser?",
+        answer:
+          "Docparser uses template-based extraction that requires per-format setup. Parsli uses AI extraction that works on any layout without templates. See the [full comparison](/compare/docparser).",
+      },
+    ],
+    codeExample: {
+      title: "Parse Any Document via API",
+      language: "javascript",
+      code: `const response = await fetch('https://api.parsli.co/v1/extract', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    parser_id: 'your_parser_id',
+    file_url: 'https://example.com/document.pdf'
+  })
+});
+
+const { data } = await response.json();
+// data.fields contains your extracted structured data`,
+    },
+    adCopyVariants: [
+      "AI Document Parser — No Templates Needed",
+      "Parse Any Document in Seconds with AI",
+      "Stop Building Templates — AI Reads Any Layout",
+      "Document Parsing That Actually Works — Try Free",
+      "Extract Data from Any PDF, Scan, or Image",
+    ],
+    relatedKeywords: [
+      "document parsing",
+      "pdf document extractor",
+      "document data extraction",
+      "parse documents automatically",
+      "AI document extraction",
+    ],
+    ctaPainPoint: "building templates for every document layout",
+  },
+  {
+    slug: "intelligent-document-processing",
+    keyword: "intelligent document processing",
+    metaTitle: "Intelligent Document Processing Software | Parsli",
+    metaDescription:
+      "Enterprise-grade IDP without the enterprise price tag. AI extracts data from any document — no training, no templates, no vendor lock-in. Free to start.",
+    h1: "Intelligent Document Processing",
+    h1Accent: "Without the Enterprise Price Tag",
+    subtitle:
+      "Get enterprise-grade document AI without six-figure contracts. Parsli extracts structured data from any document with zero model training and no templates.",
+    comparisonHeadline: "Skip the enterprise IDP sales cycle",
+    painPoints: [
+      "Enterprise IDP platforms cost $50K–$500K per year",
+      "Weeks of model training before you extract anything",
+      "Need dedicated ML engineers to maintain the system",
+      "Locked into long-term contracts with rigid pricing",
+      "Months-long implementation timelines",
+    ],
+    solutions: [
+      "Start at $20/month — no enterprise sales calls needed",
+      "Zero training required — AI works out of the box",
+      "No-code setup — anyone on your team can use it",
+      "Month-to-month pricing with a perpetual free tier",
+      "Go live in minutes, not months",
+    ],
+    saveLine: "Enterprise-grade extraction at 1/100th the cost.",
+    calloutBox: {
+      title: "No Model Training Required",
+      description:
+        "Traditional IDP platforms require weeks of annotated training data. Parsli's AI uses Google Gemini 2.5 Pro — a frontier language model that understands documents out of the box. Upload a document and start extracting immediately.",
+    },
+    supportedTypes: [
+      { emoji: "📄", name: "PDFs & Scans" },
+      { emoji: "🧾", name: "Invoices & Receipts" },
+      { emoji: "🏦", name: "Financial Documents" },
+      { emoji: "📧", name: "Emails" },
+      { emoji: "📋", name: "Forms & Applications" },
+    ],
+    howItWorks: [
+      {
+        step: "1",
+        title: "Define Your Schema",
+        description:
+          "Use the visual schema builder to describe the data you need — field names, types, and plain English instructions.",
+      },
+      {
+        step: "2",
+        title: "Send Documents",
+        description:
+          "Upload files, forward emails, or connect via API. Parsli accepts PDFs, images, scans, Word, Excel, and email attachments.",
+      },
+      {
+        step: "3",
+        title: "Get Structured Data",
+        description:
+          "Extracted data flows to Google Sheets, webhooks, Zapier, Make, or your own systems. Review, approve, and export.",
+      },
+    ],
+    benefits: [
+      {
+        title: "Zero Model Training",
+        description:
+          "No annotated datasets, no training cycles, no ML engineers. Parsli's AI extracts data from any document on the first try. According to Everest Group, zero-training extraction reduces time-to-value from weeks to minutes.",
+      },
+      {
+        title: "Transparent, Self-Service Pricing",
+        description:
+          "Plans start at $20/month. No sales calls, no annual contracts, no hidden fees. According to Gartner, hidden costs in enterprise document processing contracts average 25–40% above listed prices.",
+      },
+      {
+        title: "Works on Any Document Type",
+        description:
+          "Invoices, contracts, bank statements, insurance claims, medical records, tax forms — one platform handles them all without per-document-type configuration.",
+      },
+      {
+        title: "Full Integration Ecosystem",
+        description:
+          "Connect to Google Sheets, [Zapier](/guides/parse-email-attachments-with-zapier), [Make](/guides/automate-receipt-processing-with-make), QuickBooks, webhooks, and REST API. Your data flows where you need it.",
+      },
+    ],
+    seoSections: [
+      {
+        heading: "What Is Intelligent Document Processing (IDP)?",
+        content:
+          "Intelligent document processing (IDP) uses artificial intelligence to extract, classify, and validate data from unstructured documents. Unlike basic OCR, which only converts images to text, IDP understands document context — identifying fields, tables, and relationships across the page. Learn more in our guide to [what intelligent document processing is and how it works](/guides/what-is-intelligent-document-processing).\n\nThe global IDP market was valued at $2.30 billion in 2024 and is projected to reach $12.35 billion by 2030, growing at a 33.1% CAGR (Grand View Research). This growth is driven by enterprises seeking to automate document-heavy processes across finance, healthcare, logistics, and legal — where 80–90% of data remains trapped in unstructured documents (Deloitte).",
+      },
+      {
+        heading: "IDP vs OCR vs RPA: What's the Difference?",
+        content:
+          "OCR (optical character recognition) converts images of text into machine-readable characters. It's a single technology, not a complete solution. RPA (robotic process automation) automates repetitive tasks by mimicking human actions — clicking buttons, filling forms, moving data between systems. IDP combines AI-powered document understanding with extraction capabilities, sitting between OCR (which reads text) and RPA (which acts on data).\n\nIn practice, an IDP platform like Parsli handles the entire document processing pipeline: receiving documents, reading them with OCR, understanding their structure with AI, extracting specific fields, and delivering structured data to downstream systems. RPA tools like UiPath or Automation Anywhere often integrate with IDP platforms to complete end-to-end workflows.",
+      },
+      {
+        heading: "How IDP Reduces Document Processing Costs",
+        content:
+          "According to IOFM, manual document processing costs approximately $6.30 per document, while automated processing costs approximately $1.45 — a 77% reduction. At scale, the savings are transformative: a team processing 5,000 documents per month saves over $24,000 monthly by switching from manual to AI-powered extraction.\n\nBeyond direct cost savings, IDP reduces processing time from minutes per document to seconds, virtually eliminates data entry errors, and frees staff to focus on analysis and decision-making instead of typing. Forrester estimates that AI-powered document processing reduces overall processing costs by 30–40% compared to semi-automated approaches.",
+      },
+    ],
+    faq: [
+      {
+        question: "How is Parsli different from enterprise IDP platforms?",
+        answer:
+          "Enterprise platforms like ABBYY, Kofax, and UiPath require large upfront investments, dedicated ML teams, and months of implementation. Parsli offers the same AI extraction capabilities with self-service pricing starting at $20/month and setup in minutes.",
+      },
+      {
+        question: "Does Parsli require model training?",
+        answer:
+          "No. Parsli uses Google Gemini 2.5 Pro, a frontier language model that understands documents out of the box. No annotated datasets, no training cycles, no ML engineers required.",
+      },
+      {
+        question: "What document types does IDP support?",
+        answer:
+          "Any document type — invoices, contracts, bank statements, insurance claims, medical records, receipts, tax forms, shipping documents, and more. Parsli adapts to any layout without per-type configuration.",
+      },
+      {
+        question: "Can Parsli handle high-volume document processing?",
+        answer:
+          "Yes. Plans support up to 25,000 pages/month. For higher volumes, contact us for enterprise pricing. Most documents process in under 3 seconds regardless of complexity.",
+      },
+      {
+        question: "How does Parsli compare to ABBYY or Nanonets?",
+        answer:
+          "ABBYY and Nanonets offer powerful IDP but at significantly higher price points and with longer setup times. See our detailed comparisons: [Parsli vs ABBYY](/compare/abbyy) and [Parsli vs Nanonets](/compare/nanonets).",
+      },
+    ],
+    adCopyVariants: [
+      "IDP Without the Enterprise Price Tag",
+      "Intelligent Document Processing — Start Free",
+      "AI Document Extraction, No Training Required",
+      "Enterprise IDP Quality at SMB Prices",
+      "Stop Paying $50K/Year for Document AI",
+    ],
+    relatedKeywords: [
+      "intelligent document processing software",
+      "IDP software",
+      "document automation platform",
+      "AI document processing",
+      "document intelligence",
+    ],
+    ctaPainPoint: "paying enterprise prices for document processing",
+  },
+  {
+    slug: "email-management",
+    keyword: "software to manage emails",
+    metaTitle: "AI Email Management Software — Parse & Extract Data | Parsli",
+    metaDescription:
+      "Turn emails into structured data automatically. Parsli's AI extracts data from email bodies and attachments — invoices, orders, confirmations — without manual reading.",
+    h1: "AI-Powered Email Management",
+    h1Accent: "Extract Data, Not Just Read",
+    subtitle:
+      "Stop manually reading emails to extract data. Parsli's AI parses email bodies and attachments — invoices, order confirmations, shipping notices — and delivers structured data to your tools.",
+    comparisonHeadline: "Stop copy-pasting data from emails",
+    painPoints: [
+      "Manually reading emails to find and copy data",
+      "Attachments pile up with no way to extract data at scale",
+      "Email rules and filters don't understand content",
+      "Important data buried in email threads",
+      "Hours spent forwarding, downloading, and re-typing",
+    ],
+    solutions: [
+      "AI reads email bodies and extracts specific fields",
+      "Attachments parsed automatically — PDFs, images, docs",
+      "Content-aware parsing, not just keyword filtering",
+      "Data extracted and delivered in real time",
+      "Set up once — emails processed automatically",
+    ],
+    saveLine: "Reclaim the 13 hours per week spent managing email.",
+    calloutBox: {
+      title: "Emails + Attachments, Parsed Together",
+      description:
+        "Parsli processes both the email body and any attached documents in a single extraction. Forward an invoice email and get vendor name, amount, line items, and due date — all from one forwarded message.",
+    },
+    supportedTypes: [
+      { emoji: "📧", name: "Email Bodies" },
+      { emoji: "📎", name: "PDF Attachments" },
+      { emoji: "🖼️", name: "Image Attachments" },
+      { emoji: "📊", name: "Excel Attachments" },
+      { emoji: "📝", name: "Word Attachments" },
+    ],
+    howItWorks: [
+      {
+        step: "1",
+        title: "Forward or Connect Your Inbox",
+        description:
+          "Forward emails to your Parsli inbox, or connect Gmail for automatic processing. No email migration required.",
+      },
+      {
+        step: "2",
+        title: "AI Extracts Data from Content",
+        description:
+          "Parsli reads the email body and all attachments, extracting the specific fields you defined — dates, amounts, names, line items, and more.",
+      },
+      {
+        step: "3",
+        title: "Data Flows to Your Systems",
+        description:
+          "Extracted data is sent to Google Sheets, your CRM, accounting software, or any tool via Zapier, Make, webhooks, or API.",
+      },
+    ],
+    benefits: [
+      {
+        title: "Parse Email Bodies and Attachments",
+        description:
+          "Most email tools only filter or sort. Parsli reads the actual content — extracting specific data fields from both the email text and any attached documents.",
+      },
+      {
+        title: "Works with Any Email Format",
+        description:
+          "Order confirmations, shipping notices, invoice emails, lead notifications, booking confirmations — the AI adapts to any email format without templates.",
+      },
+      {
+        title: "Gmail Integration Built In",
+        description:
+          "Connect your Gmail account for automatic processing, or forward emails manually. [Parse email attachments automatically](/guides/parse-email-attachments-automatically) with zero manual intervention.",
+      },
+      {
+        title: "Replace Manual Data Entry from Email",
+        description:
+          "According to McKinsey Global Institute, the average knowledge worker spends 28% of their workweek — roughly 13 hours — managing email. Parsli automates the data extraction part of that time.",
+      },
+    ],
+    seoSections: [
+      {
+        heading: "Why Email Management Needs AI",
+        content:
+          "Traditional email management tools — filters, labels, folders — organize messages but don't understand their content. When you receive 50 invoices, 30 order confirmations, or 20 shipping notifications per day, the bottleneck isn't sorting emails. It's extracting the data locked inside them.\n\nAccording to McKinsey Global Institute, the average knowledge worker spends 28% of their workweek — roughly 13 hours — managing email. A significant portion of that time goes to reading messages, finding relevant data, and manually entering it into spreadsheets or systems. AI-powered email management eliminates that manual extraction step entirely: emails arrive, data is extracted, and structured results flow to your tools automatically.",
+      },
+      {
+        heading: "Email Parser vs Email Client: Different Problems, Different Tools",
+        content:
+          "An email client (Gmail, Outlook) helps you read, organize, and respond to emails. An email parser extracts structured data from emails so you don't have to read them at all — at least not for data entry purposes. These are complementary tools, not replacements.\n\nParsli works alongside your existing email setup. Forward emails to your Parsli inbox, or [connect Gmail directly](/integrations/gmail). The AI reads the email body and all attachments, extracts the fields you defined, and sends structured data to your downstream systems. Your inbox stays the same — but the manual data entry disappears. For detailed setup, see our guide to [parse email attachments with Zapier](/guides/parse-email-attachments-with-zapier).",
+      },
+      {
+        heading: "Automate Email Data Extraction at Scale",
+        content:
+          "For businesses processing dozens or hundreds of emails daily — accounts payable teams, operations departments, customer service teams — manual email data extraction doesn't scale. Each email takes 2–5 minutes to read, extract data from, and enter into a system. At 100 emails per day, that's 3–8 hours of pure data entry.\n\nWith Parsli, each email is processed in seconds. Forward emails automatically using inbox rules, and extracted data appears in Google Sheets or your system of choice within moments. The result: your team reviews and acts on data instead of typing it. Whether you're processing [invoices from email](/guides/automate-invoice-processing-for-small-business), capturing lead data from form submissions, or extracting shipping details from carrier notifications, the workflow is the same — forward the email, get the data.",
+      },
+    ],
+    faq: [
+      {
+        question: "How does Parsli extract data from emails?",
+        answer:
+          "Forward emails to your Parsli inbox or connect Gmail. The AI reads the email body and all attachments, extracting the specific fields you defined in your schema — dates, amounts, vendor names, line items, and more.",
+      },
+      {
+        question: "Can Parsli parse email attachments?",
+        answer:
+          "Yes. PDF, image, Word, and Excel attachments are all processed alongside the email body. Parsli extracts data from both in a single pass.",
+      },
+      {
+        question: "Does it work with Gmail and Outlook?",
+        answer:
+          "Gmail integration is built in. For Outlook and other providers, forward emails to your Parsli inbox using email rules for automatic processing. See our [Gmail integration](/integrations/gmail) and [Outlook integration](/integrations/outlook) guides.",
+      },
+      {
+        question: "What types of emails can be parsed?",
+        answer:
+          "Any email with extractable data: invoices, order confirmations, shipping notifications, booking confirmations, lead form submissions, receipts, and more. The AI adapts to any email format without templates.",
+      },
+      {
+        question: "How is this different from Zapier Email Parser?",
+        answer:
+          "Zapier's email parser uses basic template matching — you highlight fields manually. Parsli uses AI to understand email content semantically, handles attachments, and works on any format without per-email templates. See the [full comparison](/compare/zapier-email-parser).",
+      },
+      {
+        question: "Can I process emails automatically without forwarding?",
+        answer:
+          "Yes. Connect your Gmail account directly and Parsli monitors your inbox for matching emails. No manual forwarding required.",
+      },
+    ],
+    adCopyVariants: [
+      "AI Email Parser — Extract Data, Not Just Read",
+      "Stop Copy-Pasting from Emails — Automate with AI",
+      "Emails to Structured Data in Seconds",
+      "Parse Email Bodies + Attachments Automatically",
+      "Email Management Powered by AI — Try Free",
+    ],
+    relatedKeywords: [
+      "email management programs",
+      "software to manage emails",
+      "emails ai",
+      "email data extraction",
+      "email parsing software",
+    ],
+    ctaPainPoint: "manually extracting data from emails",
+  },
+  {
+    slug: "document-processing-software",
+    keyword: "document processing software",
+    metaTitle: "AI Document Processing Software — Automate Extraction | Parsli",
+    metaDescription:
+      "Process documents automatically with AI. Extract structured data from PDFs, scans, emails, and images — no templates, no code. Reduce processing costs by 77%.",
+    h1: "Document Processing Software",
+    h1Accent: "Powered by AI, Not Templates",
+    subtitle:
+      "Automate document processing with AI that reads any format, extracts the data you need, and delivers it to your systems — no templates, no rules, no code.",
+    comparisonHeadline: "Stop processing documents manually",
+    painPoints: [
+      "Manual data entry from documents takes hours per day",
+      "Different formats require different processing approaches",
+      "Scanned and image documents can't be processed digitally",
+      "Template-based tools break on layout changes",
+      "No visibility into processing status or accuracy",
+    ],
+    solutions: [
+      "AI extracts data from any document in seconds",
+      "One platform handles all document formats",
+      "Built-in OCR processes scans and images",
+      "AI adapts to layout changes automatically",
+      "Per-field confidence scores for quality control",
+    ],
+    saveLine: "Reduce document processing costs by 77%.",
+    calloutBox: {
+      title: "One Platform for All Document Types",
+      description:
+        "Invoices, contracts, bank statements, receipts, shipping documents, medical records — Parsli processes them all with a single AI engine. No per-document-type licensing or configuration.",
+    },
+    supportedTypes: [
+      { emoji: "📄", name: "PDFs" },
+      { emoji: "📷", name: "Scanned Documents" },
+      { emoji: "🖼️", name: "Images" },
+      { emoji: "📧", name: "Emails" },
+      { emoji: "📝", name: "Office Documents" },
+    ],
+    howItWorks: [
+      {
+        step: "1",
+        title: "Upload or Send Documents",
+        description:
+          "Upload files directly, forward emails, connect via API, or set up automatic ingestion from email, webhooks, or cloud storage.",
+      },
+      {
+        step: "2",
+        title: "AI Processes and Extracts",
+        description:
+          "Parsli's AI reads each document, identifies the fields you defined, and extracts structured data with 95%+ accuracy.",
+      },
+      {
+        step: "3",
+        title: "Data Delivered to Your Systems",
+        description:
+          "Extracted data flows to Google Sheets, your ERP, CRM, or any system via Zapier, Make, webhooks, or REST API.",
+      },
+    ],
+    benefits: [
+      {
+        title: "Any Document, Any Format",
+        description:
+          "PDFs, scans, images, emails, Word, Excel — Parsli's AI handles every format. According to Deloitte, 80–90% of enterprise data is trapped in unstructured documents. Parsli unlocks it.",
+      },
+      {
+        title: "AI-Powered Accuracy",
+        description:
+          "95%+ extraction accuracy with per-field confidence scores. Flag low-confidence results for human review and auto-approve the rest.",
+      },
+      {
+        title: "Reduces Processing Costs by 77%",
+        description:
+          "IOFM benchmarks show manual document processing costs $6.30 per document vs $1.45 for automated processing — a 77% cost reduction that scales with volume.",
+      },
+      {
+        title: "No-Code + API Flexibility",
+        description:
+          "Operations teams use the visual schema builder. Developers use the [REST API](/solutions/document-parsing-api). Both produce the same high-quality extraction results.",
+      },
+    ],
+    seoSections: [
+      {
+        heading: "What Is Document Processing Software?",
+        content:
+          "Document processing software automates the extraction of data from business documents — invoices, contracts, bank statements, receipts, forms, and more. Instead of humans manually reading documents and typing data into systems, the software reads the documents, identifies relevant fields, and delivers structured data.\n\nModern document processing software uses AI (artificial intelligence) to understand document layouts without templates or rules. This is a significant evolution from earlier OCR-based tools that could only recognize characters. AI-powered document processing understands context, identifies fields semantically, and handles any format — including scanned and image-based documents. Learn more about the technology behind it in our guide to [what document parsing is](/guides/what-is-document-parsing).",
+      },
+      {
+        heading: "Manual vs Automated Document Processing",
+        content:
+          "Manual document processing is the default at most organizations: someone reads a document, finds the relevant data, and types it into a spreadsheet or system. This approach is slow (3–10 minutes per document), error-prone (1–4% error rate according to IOFM), and doesn't scale. A team processing 200 documents per day spends 10–33 hours on data entry alone.\n\nAutomated document processing with AI reduces per-document processing time from minutes to seconds, cuts error rates to below 1%, and frees staff to focus on review and decision-making instead of data entry. Forrester estimates that AI-powered document processing reduces overall processing costs by 30–40% compared to semi-automated approaches.",
+      },
+      {
+        heading: "Key Features of AI Document Processing",
+        content:
+          "When evaluating document processing software, look for these capabilities: multi-format support (PDFs, scans, images, emails), built-in OCR for scanned documents, template-free extraction that works on any layout, a visual schema builder for non-technical users, an API for developer integration, per-field confidence scores for quality control, and integrations with your downstream systems.\n\nThe most important differentiator is whether the software requires templates. Template-based tools need per-format configuration and break when layouts change. AI-powered tools like Parsli read documents the way a human would — understanding context and extracting data regardless of layout. This eliminates the largest ongoing cost: template maintenance across hundreds of document variations.",
+      },
+    ],
+    faq: [
+      {
+        question: "What types of documents can be processed?",
+        answer:
+          "Any document containing extractable data: invoices, contracts, bank statements, receipts, purchase orders, shipping documents, insurance claims, medical records, tax forms, and more. Parsli supports PDFs, scans, images, emails, Word, and Excel files.",
+      },
+      {
+        question: "How much does document processing cost?",
+        answer:
+          "Parsli plans start at $20/month for 250 pages. The free tier includes 30 pages/month. At scale, costs go as low as 1¢ per page — versus $6.30 per document for manual processing (IOFM benchmark).",
+      },
+      {
+        question: "Does it work with scanned documents?",
+        answer:
+          "Yes. Built-in OCR powered by Google Gemini 2.5 Pro handles scanned, photographed, and image-based documents. No separate OCR tool needed.",
+      },
+      {
+        question: "Can I process documents without code?",
+        answer:
+          "Yes. The [no-code document parser](/solutions/no-code-document-parser) includes a visual schema builder that lets anyone define extraction fields in plain English. Developers can also use the REST API.",
+      },
+      {
+        question: "How fast is automated document processing?",
+        answer:
+          "Most documents are processed in under 3 seconds. A batch of 100 invoices processes in minutes, not hours. There's no daily processing limit beyond your plan's monthly page quota.",
+      },
+    ],
+    adCopyVariants: [
+      "AI Document Processing — No Templates",
+      "Automate Document Data Extraction with AI",
+      "Process Any Document in Under 3 Seconds",
+      "Cut Document Processing Costs by 77%",
+      "AI Reads Documents So You Don't Have To",
+    ],
+    relatedKeywords: [
+      "ai document processing",
+      "document processing",
+      "document automation",
+      "automated data extraction",
+      "document digitization software",
+    ],
+    ctaPainPoint: "processing documents manually",
+  },
+  {
+    slug: "ai-invoice-processing",
+    keyword: "ai invoice processing",
+    metaTitle: "AI Invoice Processing — Extract Data from Any Invoice | Parsli",
+    metaDescription:
+      "AI-powered invoice processing that works on any vendor format. Extract invoice numbers, line items, totals, and more — no templates needed. Free to start.",
+    h1: "AI Invoice Processing",
+    h1Accent: "Zero Templates, Any Vendor",
+    subtitle:
+      "Stop building templates for every vendor's invoice. Parsli's AI reads any invoice layout and extracts the data you need — invoice number, line items, totals, taxes — in seconds.",
+    comparisonHeadline: "Stop losing money on manual invoice entry",
+    painPoints: [
+      "Manual invoice data entry costs $6–$20 per invoice",
+      "Each vendor sends a different invoice format",
+      "Template parsers break when vendors change layouts",
+      "Scanned and emailed invoices require manual handling",
+      "Invoice backlogs cause late payments and penalties",
+    ],
+    solutions: [
+      "AI processes any invoice format for under $0.10",
+      "Works on every vendor's layout without configuration",
+      "Adapts to format changes — no template rebuilds",
+      "Scans, photos, PDFs, and email invoices all supported",
+      "Process invoices in seconds, not hours",
+    ],
+    saveLine: "Cut invoice processing costs from $6.30 to $1.45 per invoice.",
+    calloutBox: {
+      title: "Every Field, Every Vendor",
+      description:
+        "Invoice number, vendor name, dates, PO number, line items, taxes, discounts, totals — Parsli extracts every field from any vendor's invoice format. New vendor? Just send the invoice. No setup required.",
+    },
+    supportedTypes: [
+      { emoji: "📄", name: "PDF Invoices" },
+      { emoji: "📷", name: "Scanned Invoices" },
+      { emoji: "📧", name: "Emailed Invoices" },
+      { emoji: "🖼️", name: "Photo Invoices" },
+      { emoji: "📝", name: "Word & Excel" },
+    ],
+    howItWorks: [
+      {
+        step: "1",
+        title: "Send Your Invoices",
+        description:
+          "Upload PDFs, forward invoice emails, or send via API. Any format — scanned, digital, or photographed.",
+      },
+      {
+        step: "2",
+        title: "AI Extracts Every Field",
+        description:
+          "Vendor, invoice number, date, due date, PO, line items (description, qty, unit price, amount), subtotal, tax, discounts, and total.",
+      },
+      {
+        step: "3",
+        title: "Data Flows to Accounting",
+        description:
+          "Extracted data lands in [QuickBooks](/guides/extract-invoice-data-to-quickbooks), Google Sheets, your ERP, or any system via Zapier, Make, webhooks, or API.",
+      },
+    ],
+    benefits: [
+      {
+        title: "Works on Any Vendor Format",
+        description:
+          "No per-vendor templates or training. Parsli's AI reads invoice structure semantically and extracts data from any layout — domestic, international, handwritten, or typed.",
+      },
+      {
+        title: "Accurate Line Item Extraction",
+        description:
+          "Multi-row tables with descriptions, quantities, unit prices, discounts, and amounts — extracted correctly. Even complex layouts with merged cells and varying column positions.",
+      },
+      {
+        title: "77% Lower Processing Cost",
+        description:
+          "IOFM benchmarks show manual invoice processing costs $6.30 per invoice. With Parsli, it's approximately $1.45 per invoice — a 77% cost reduction that compounds at scale.",
+      },
+      {
+        title: "Connects to Your Accounting Stack",
+        description:
+          "Integrate with [QuickBooks](/guides/extract-invoice-data-to-quickbooks), Xero, Google Sheets, or any tool via [Zapier](/guides/parse-email-attachments-with-zapier), [Make](/guides/automate-receipt-processing-with-make), webhooks, or REST API.",
+      },
+    ],
+    seoSections: [
+      {
+        heading: "Why AI Invoice Processing?",
+        content:
+          "If your AP team processes more than 50 invoices per month, manual data entry is your biggest hidden cost. According to IOFM, manual invoice processing costs approximately $6.30 per invoice — covering labor, error correction, and rework time. At 500 invoices per month, that's $3,150 in pure processing costs before accounting for late payment penalties from backlogs.\n\nAI invoice processing eliminates manual data entry entirely. The AI reads each invoice, identifies every field — vendor, amount, line items, dates, PO numbers — and delivers structured data to your accounting system in seconds. Your AP team reviews and approves instead of typing. The result: faster processing, fewer errors, and no more late payments from data entry backlogs.",
+      },
+      {
+        heading: "What Data Can AI Extract from Invoices?",
+        content:
+          "Parsli extracts every standard invoice field: invoice number, invoice date, due date, vendor name and address, billing address, PO number, payment terms, line items (description, quantity, unit price, discount, tax, and total per line), subtotal, tax amount, discount amount, total amount, and bank/payment details. You can also define custom fields — GL codes, project numbers, department names, cost centers — using plain English instructions.\n\nFor line item tables, the AI handles multi-row descriptions, merged cells, varying column layouts, and tables that span multiple pages. It reads the table structure the way you would — identifying headers, row boundaries, and totals — regardless of how the vendor formats their invoice. Learn how to [automate invoice processing for your small business](/guides/automate-invoice-processing-for-small-business).",
+      },
+      {
+        heading: "AI vs Template-Based Invoice Parsing",
+        content:
+          "Traditional invoice parsers require you to create a template for each vendor's invoice layout. You draw zones around fields, set extraction rules, and test. When a vendor changes their invoice design — or you onboard a new vendor — you create a new template. For AP teams working with 50+ vendors, template maintenance becomes a full-time job.\n\nAI-powered invoice processing requires zero per-vendor setup. Parsli's AI understands invoice structure semantically — reading context to identify fields rather than looking at fixed positions. New vendor? Just send the invoice. Format change? The AI adapts automatically. The result: no template backlog, no maintenance overhead, and no delays when onboarding new vendors. See the detailed comparison in our guide to [the best invoice OCR software](/blog/best-invoice-ocr-software).",
+      },
+    ],
+    faq: [
+      {
+        question: "How much does AI invoice processing cost?",
+        answer:
+          "Parsli starts at $20/month for 250 pages. The free tier includes 30 pages/month. At scale, invoice processing costs as low as 1¢ per page — compared to $6.30 per invoice for manual processing (IOFM).",
+      },
+      {
+        question: "Can AI handle invoices from any vendor?",
+        answer:
+          "Yes. Parsli's AI adapts to any vendor's invoice format without templates or per-vendor configuration. New vendor? Just send the invoice and Parsli extracts the data.",
+      },
+      {
+        question: "Does it extract line item tables?",
+        answer:
+          "Yes. Multi-row tables with descriptions, quantities, unit prices, discounts, and amounts are extracted accurately — even across multiple pages or with complex layouts.",
+      },
+      {
+        question: "Can I send invoices from email?",
+        answer:
+          "Yes. Forward invoice emails to your Parsli inbox or connect Gmail directly. Both the email body and PDF/image attachments are processed. See our guide to [parse email attachments automatically](/guides/parse-email-attachments-automatically).",
+      },
+      {
+        question: "Does Parsli integrate with QuickBooks?",
+        answer:
+          "Yes. Extracted invoice data can be sent to QuickBooks via Zapier or webhooks. See our [QuickBooks invoice import guide](/guides/extract-invoice-data-to-quickbooks) for step-by-step setup.",
+      },
+      {
+        question: "How does this compare to the existing Invoice Parsing solution?",
+        answer:
+          "Both use the same AI engine. The [Invoice Parsing solution](/solutions/invoice-parsing) focuses on the technical parsing workflow. This page focuses on the AI-powered processing benefits for AP teams and business buyers.",
+      },
+    ],
+    adCopyVariants: [
+      "AI Invoice Processing — Any Vendor, Any Format",
+      "Cut Invoice Processing Costs by 77% with AI",
+      "No Templates Needed — AI Reads Any Invoice",
+      "Invoice Data Entry on Autopilot — Try Free",
+      "Process 500 Invoices in Minutes, Not Days",
+    ],
+    relatedKeywords: [
+      "ai invoice",
+      "invoice processing",
+      "automated invoice processing",
+      "invoice data extraction",
+      "accounts payable automation",
+    ],
+    ctaPainPoint: "entering invoice data manually",
+  },
 ]
 
 export function getAllSolutions(): SolutionPage[] {

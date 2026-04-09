@@ -80,7 +80,7 @@ export async function GET() {
       id: `${BASE_URL}/solutions/${sol.slug}`,
       link: `${BASE_URL}/solutions/${sol.slug}`,
       description: sol.metaDescription,
-      date: new Date("2026-04-03"),
+      date: new Date("2026-04-10"),
       category: [{ name: "Solutions" }],
     })
   }

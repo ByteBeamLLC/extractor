@@ -55,15 +55,18 @@ const compareToBlog: Record<string, string[]> = {
   affinda: ["what-is-intelligent-document-processing", "ocr-vs-ai-document-extraction", "automate-data-entry"],
   matil: ["extract-data-from-pdf-automatically", "ocr-vs-ai-document-extraction", "true-cost-manual-data-entry-2026"],
   docuclipper: ["bank-statement-to-excel-automation-guide", "best-tax-document-extraction-tools-2026", "ocr-vs-ai-document-extraction"],
+  "adobe-acrobat-pdf-to-excel": ["extract-data-pdf-to-excel", "best-pdf-parser-tools"],
+  "adobe-acrobat-ocr": ["ocr-vs-ai-document-extraction", "what-is-document-parsing"],
+  "zapier-email-parser": ["best-email-parser-tools", "parse-emails-to-google-sheets", "email-attachments-to-spreadsheet"],
 }
 
 /* Map comparison slugs to related solutions */
 const compareToSolutions: Record<string, string[]> = {
-  parseur: ["no-code-document-parser", "invoice-parsing"],
-  docparser: ["pdf-to-excel", "document-parsing-api"],
+  parseur: ["no-code-document-parser", "invoice-parsing", "document-parser", "email-management"],
+  docparser: ["pdf-to-excel", "document-parsing-api", "document-parser"],
   parsio: ["no-code-document-parser", "invoice-parsing"],
   docsumo: ["invoice-parsing", "document-parsing-api"],
-  nanonets: ["invoice-parsing", "no-code-document-parser"],
+  nanonets: ["invoice-parsing", "no-code-document-parser", "intelligent-document-processing", "ai-invoice-processing"],
   rossum: ["invoice-parsing"],
   klippa: ["invoice-parsing", "no-code-document-parser"],
   "base64ai": ["document-parsing-api"],
@@ -92,6 +95,9 @@ const compareToSolutions: Record<string, string[]> = {
   affinda: ["invoice-data-extraction", "document-parsing-api", "no-code-document-parser"],
   matil: ["document-parsing-api", "pdf-to-excel", "email-data-extraction"],
   docuclipper: ["bank-statement-extraction", "pdf-to-excel", "no-code-document-parser"],
+  "adobe-acrobat-pdf-to-excel": ["pdf-to-excel", "document-parser", "no-code-document-parser"],
+  "adobe-acrobat-ocr": ["document-parser", "document-processing-software"],
+  "zapier-email-parser": ["email-management", "no-code-document-parser"],
 }
 
 function getRelatedBlogPosts(slug: string) {

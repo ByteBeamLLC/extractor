@@ -13,7 +13,7 @@ const BASE_URL = "https://parsli.co"
 export default function sitemap(): MetadataRoute.Sitemap {
   // Use a fixed date for static/rarely-changing pages so Google trusts lastModified signals.
   // Update this date when you make meaningful content changes to static pages.
-  const staticDate = new Date("2026-03-19")
+  const staticDate = new Date("2026-04-10")
 
   const staticPages: MetadataRoute.Sitemap = [
     {
@@ -54,7 +54,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: `${BASE_URL}/tools/pdf-to-excel`,
-      lastModified: staticDate,
+      lastModified: new Date("2026-04-10"),
       changeFrequency: "monthly",
       priority: 0.8,
     },
@@ -283,7 +283,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: `${BASE_URL}/ocr-software`,
-      lastModified: new Date("2026-04-03"),
+      lastModified: new Date("2026-04-10"),
       changeFrequency: "monthly",
       priority: 0.9,
     },
