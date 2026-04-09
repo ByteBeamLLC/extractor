@@ -37,22 +37,54 @@ export async function GET(
 
   const d = doc as any
   const safeName = (d.file_name ?? "uploaded").replace(/[^a-zA-Z0-9._-]/g, "_")
-  const storagePath = `${user.id}/${params.parserId}/${params.documentId}/${safeName}`
 
   // Use service role client to bypass storage RLS
   const adminClient = createSupabaseServiceRoleClient()
 
-  // Create a signed URL (valid for 1 hour)
-  const { data: signedUrlData, error: signError } = await adminClient.storage
-    .from("parser-documents")
-    .createSignedUrl(storagePath, 3600)
+  // Try the current user's path first. If the document was migrated from an
+  // anonymous user (bridge flow), the file still lives under the old anon
+  // user's path in storage. Fall back by listing the document's folder to
+  // find the actual file regardless of which user_id prefix it's under.
+  const primaryPath = `${user.id}/${params.parserId}/${params.documentId}/${safeName}`
 
-  if (signError || !signedUrlData?.signedUrl) {
+  let signedUrl: string | null = null
+
+  // 1. Try current user path
+  const { data: primary } = await adminClient.storage
+    .from("parser-documents")
+    .createSignedUrl(primaryPath, 3600)
+
+  if (primary?.signedUrl) {
+    signedUrl = primary.signedUrl
+  } else {
+    // 2. Fallback: check if there's an account_migrations row pointing to an
+    //    old anon user whose storage path still has the file.
+    const { data: migration } = await adminClient
+      .from("account_migrations")
+      .select("anon_user_id")
+      .eq("new_user_id", user.id)
+      .eq("success", true)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (migration) {
+      const anonPath = `${(migration as any).anon_user_id}/${params.parserId}/${params.documentId}/${safeName}`
+      const { data: fallback } = await adminClient.storage
+        .from("parser-documents")
+        .createSignedUrl(anonPath, 3600)
+      if (fallback?.signedUrl) {
+        signedUrl = fallback.signedUrl
+      }
+    }
+  }
+
+  if (!signedUrl) {
     return NextResponse.json(
       { error: "File not available. Only recently uploaded documents have preview support." },
       { status: 404 }
     )
   }
 
-  return NextResponse.json({ url: signedUrlData.signedUrl })
+  return NextResponse.json({ url: signedUrl })
 }
