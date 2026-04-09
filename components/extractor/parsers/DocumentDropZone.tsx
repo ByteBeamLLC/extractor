@@ -242,10 +242,8 @@ export function DocumentDropZone({ parsers, onParserCreated }: DocumentDropZoneP
     }
     const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, "_")
     const storagePath = `${session!.user.id}/${parserId}/pending/${crypto.randomUUID()}/${safeName}`
-    const { error: storageError } = await supabase.storage
-      .from("parser-documents")
-      .upload(storagePath, f, { contentType: f.type || "application/octet-stream", upsert: true })
-    if (storageError) throw new Error(`Upload failed: ${storageError.message}`)
+    const { uploadToStorage } = await import("@/lib/storage/client")
+    await uploadToStorage(storagePath, f, f.type || "application/octet-stream")
     return { storage_path: storagePath, file_name: f.name, file_type: f.type, file_size: f.size }
   }
 
@@ -314,16 +312,19 @@ export function DocumentDropZone({ parsers, onParserCreated }: DocumentDropZoneP
         // For AI mode, detect fields first
         if (mode === "ai") {
           setExtractStatus("AI is analyzing your document...")
-          const buffer = await file.arrayBuffer()
-          const base64 = btoa(new Uint8Array(buffer).reduce((d, byte) => d + String.fromCharCode(byte), ""))
+          const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_")
+          const detectKey = `${session.user.id}/${parserId}/detect-fields/${crypto.randomUUID()}/${safeName}`
+          const { uploadToStorage: uploadDetect } = await import("@/lib/storage/client")
+          await uploadDetect(detectKey, file, file.type || "application/octet-stream")
           const detectRes = await fetch(`/api/parsers/${parserId}/detect-fields`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ file: { name: file.name, type: file.type, data: base64 } }),
+            body: JSON.stringify({ storage_path: detectKey, file_name: file.name, file_type: file.type }),
           })
           if (!detectRes.ok) {
-            const body = await detectRes.json().catch(() => ({}))
-            throw new Error(body.error ?? "Failed to detect fields")
+            let errMsg = "Failed to detect fields"
+            try { const b = await detectRes.json(); errMsg = b.error ?? errMsg } catch {}
+            throw new Error(errMsg)
           }
           const { fields: detectedFields } = await detectRes.json()
           await supabase.from("parsers" as any).update({ fields: detectedFields } as any).eq("id", parserId)

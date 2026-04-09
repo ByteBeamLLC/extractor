@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useRef, useState } from "react"
 import { useSupabaseClient } from "@/lib/supabase/hooks"
 import type { Parser } from "@/lib/extractor/types"
 import type { SchemaField } from "@/lib/schema"
+import { uploadToStorage } from "@/lib/storage/client"
 
 export interface FieldDetectionState {
   status: "idle" | "detecting" | "done" | "error"
@@ -73,27 +74,37 @@ export function ActiveParserProvider({ children }: { children: React.ReactNode }
       // Run in background — result lands in context regardless of which page is active
       ;(async () => {
         try {
-          const buffer = await file.arrayBuffer()
-          const base64 = btoa(
-            new Uint8Array(buffer).reduce(
-              (data, byte) => data + String.fromCharCode(byte),
-              ""
-            )
-          )
+          // Upload to S3 via presigned URL (bypasses Vercel body limit)
+          const storageKey = `${p.user_id}/${p.id}/detect-fields/${crypto.randomUUID()}/${file.name}`
+          await uploadToStorage(storageKey, file, file.type)
 
           const response = await fetch(`/api/parsers/${p.id}/detect-fields`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              file: { name: file.name, type: file.type, data: base64 },
+              storage_path: storageKey,
+              file_name: file.name,
+              file_type: file.type,
             }),
           })
 
-          const data = await response.json()
-
           if (!response.ok) {
-            throw new Error(data.error ?? "Detection failed")
+            let errorMsg = "Detection failed"
+            try {
+              const errData = await response.json()
+              errorMsg = errData.error ?? errorMsg
+            } catch {
+              // Non-JSON response (e.g. Vercel 504 timeout)
+              if (response.status === 504) {
+                errorMsg = "Detection timed out — try a smaller or single-page document"
+              } else {
+                errorMsg = `Detection failed (${response.status}). Please try again.`
+              }
+            }
+            throw new Error(errorMsg)
           }
+
+          const data = await response.json()
 
           setFieldDetection({
             status: "done",
