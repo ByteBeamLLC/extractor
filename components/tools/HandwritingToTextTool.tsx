@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useRef } from "react"
+import { useState, useCallback, useRef, useEffect } from "react"
 import Image from "next/image"
 import { trackEvent } from "@/lib/analytics"
 import { incrementToolUses } from "@/lib/analytics/identity"
@@ -162,6 +162,13 @@ export function HandwritingToTextTool() {
   const [bridgePayload, setBridgePayload] = useState<BridgePayload | null>(null)
   const extractionStartRef = useRef<number>(0)
   const inputRef = useRef<HTMLInputElement>(null)
+  const resultRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (status === "done") {
+      resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+    }
+  }, [status])
 
   const callApi = useCallback(
     async (base64: string, mimeType: string, name: string, source: "upload" | "sample", fileSize?: number) => {
@@ -365,7 +372,7 @@ export function HandwritingToTextTool() {
   }, [status])
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
+    <div className={cn("w-full mx-auto", status === "done" ? "max-w-3xl" : "max-w-2xl")}>
       {/* Drop zone / Upload area */}
       {status === "idle" && (
         <>
@@ -472,16 +479,18 @@ export function HandwritingToTextTool() {
 
       {/* Success state — split layout: text left, chat right */}
       {status === "done" && (
-        <SuccessView
-          previewUrl={previewUrl}
-          fileName={fileName}
-          extractedText={extractedText}
-          copied={copied}
-          onCopy={handleCopy}
-          onDownload={handleDownload}
-          onReset={reset}
-          bridgePayload={bridgePayload}
-        />
+        <div ref={resultRef}>
+          <SuccessView
+            previewUrl={previewUrl}
+            fileName={fileName}
+            extractedText={extractedText}
+            copied={copied}
+            onCopy={handleCopy}
+            onDownload={handleDownload}
+            onReset={reset}
+            bridgePayload={bridgePayload}
+          />
+        </div>
       )}
 
       {/* Error state */}
