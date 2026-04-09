@@ -113,6 +113,14 @@ export async function createCheckoutSessionForUser(
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
 
+  // Friendly product label that shows on the Stripe-hosted checkout, in
+  // the customer portal subscription list, and on every invoice. Stripe's
+  // default would be the bare product name ("Parsli Starter"); this makes
+  // the parent-brand relationship explicit so customers don't get confused
+  // by the "ByteBeamAgency Ltd" merchant name on their card statement.
+  const planLabel = plan.name // "Starter" | "Growth" | "Pro" | "Business"
+  const subscriptionDescription = `Parsli ${planLabel} subscription — AI document data extraction. A product by ByteBeam Agency Ltd.`
+
   const params: Stripe.Checkout.SessionCreateParams = {
     customer: customerId,
     mode: "subscription",
@@ -120,9 +128,23 @@ export async function createCheckoutSessionForUser(
     success_url: `${appUrl}/settings?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${siteUrl}/pricing?checkout=cancel`,
     subscription_data: {
+      // Shown in the Stripe customer portal under "Current plan" and on
+      // every invoice line item. The metadata block below is what our
+      // webhook handler uses to map Stripe events back to a Supabase user.
+      description: subscriptionDescription,
       metadata: {
         supabase_user_id: userId,
         plan_tier: tier,
+      },
+    },
+    // Renders as helper text under the "Subscribe" button on the
+    // Stripe-hosted checkout page. Reinforces the Parsli brand even when
+    // we're on the default checkout.stripe.com domain (no custom domain
+    // configured to keep Stripe billing at $0/mo until first revenue).
+    custom_text: {
+      submit: {
+        message:
+          "Parsli — AI document data extraction. A product by ByteBeam Agency Ltd.",
       },
     },
     client_reference_id: userId,
