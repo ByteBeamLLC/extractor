@@ -54,7 +54,59 @@ const SAMPLES = [
   },
 ]
 
-function fileToBase64(file: File): Promise<string> {
+const MAX_DIMENSION = 2000
+const JPEG_QUALITY = 0.8
+const INLINE_THRESHOLD = 3 * 1024 * 1024
+
+/**
+ * Compress an image file to JPEG at 80% quality, resized to max 2000px on the
+ * longest edge. Returns {base64, mimeType}. Falls back to raw base64 for
+ * non-image files (PDF) or if canvas fails (e.g. HEIC on older browsers).
+ *
+ * This keeps the payload well under Vercel's 4.5MB body limit — iOS camera
+ * photos are typically 3-8MB raw and would exceed the limit without compression.
+ */
+async function compressImage(
+  file: File
+): Promise<{ base64: string; mimeType: string }> {
+  // Non-image files or small files: return raw base64
+  if (!file.type.startsWith("image/") || file.size <= INLINE_THRESHOLD) {
+    const base64 = await fileToBase64Raw(file)
+    return { base64, mimeType: file.type }
+  }
+
+  try {
+    const bitmap = await createImageBitmap(file)
+    const { width, height } = bitmap
+
+    let targetW = width
+    let targetH = height
+    if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+      const scale = MAX_DIMENSION / Math.max(width, height)
+      targetW = Math.round(width * scale)
+      targetH = Math.round(height * scale)
+    }
+
+    const canvas = new OffscreenCanvas(targetW, targetH)
+    const ctx = canvas.getContext("2d")
+    if (!ctx) throw new Error("no 2d context")
+    ctx.drawImage(bitmap, 0, 0, targetW, targetH)
+    bitmap.close()
+
+    const blob = await canvas.convertToBlob({
+      type: "image/jpeg",
+      quality: JPEG_QUALITY,
+    })
+    const base64 = await fileToBase64Raw(blob)
+    return { base64, mimeType: "image/jpeg" }
+  } catch {
+    // Fallback: raw base64 (HEIC on older Safari, or OffscreenCanvas unsupported)
+    const base64 = await fileToBase64Raw(file)
+    return { base64, mimeType: file.type }
+  }
+}
+
+function fileToBase64Raw(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = () => {
@@ -63,7 +115,7 @@ function fileToBase64(file: File): Promise<string> {
       resolve(result.split(",")[1])
     }
     reader.onerror = reject
-    reader.readAsDataURL(file)
+    reader.readAsDataURL(blob)
   })
 }
 
@@ -73,15 +125,8 @@ async function fetchImageAsBase64(
   const res = await fetch(src)
   const blob = await res.blob()
   const mimeType = blob.type || "image/jpeg"
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const result = reader.result as string
-      resolve({ base64: result.split(",")[1], mimeType })
-    }
-    reader.onerror = reject
-    reader.readAsDataURL(blob)
-  })
+  const base64 = await fileToBase64Raw(blob)
+  return { base64, mimeType }
 }
 
 interface BridgeStarter {
@@ -241,8 +286,8 @@ export function HandwritingToTextTool() {
       const url = URL.createObjectURL(file)
       setPreviewUrl(url)
 
-      const base64 = await fileToBase64(file)
-      await callApi(base64, file.type, file.name, "upload", file.size)
+      const { base64, mimeType } = await compressImage(file)
+      await callApi(base64, mimeType, file.name, "upload", file.size)
     },
     [callApi]
   )
