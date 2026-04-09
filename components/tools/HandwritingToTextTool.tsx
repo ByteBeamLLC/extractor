@@ -578,9 +578,9 @@ function SuccessView({
       </div>
 
       {/* Split: text left, chat right (stacks on mobile) */}
-      <div className="flex flex-col md:flex-row md:min-h-[340px]">
+      <div className="flex flex-col md:flex-row md:h-[400px]">
         {/* Left: extracted text */}
-        <div className="flex-1 md:border-r border-b md:border-b-0 flex flex-col">
+        <div className="flex-1 md:border-r border-b md:border-b-0 flex flex-col min-h-0">
           <div className="flex items-center px-4 py-2 border-b">
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex-1">
               Extracted text
@@ -635,7 +635,7 @@ function SuccessView({
         </div>
 
         {/* Right: bridge chat or fallback CTA */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-h-0">
           {showBridge ? (
             <BridgeChat
               text={extractedText}
