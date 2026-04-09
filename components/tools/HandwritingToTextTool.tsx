@@ -610,10 +610,10 @@ function SuccessView({
           <div
             className={cn(
               "flex-1 relative min-h-0",
-              !textExpanded && "max-h-[100px] md:max-h-none"
+              !textExpanded && "max-h-[100px] overflow-hidden md:max-h-none md:overflow-visible"
             )}
           >
-            <div className="absolute inset-0 px-4 py-3 font-mono text-[13px] leading-relaxed whitespace-pre-wrap break-words overflow-y-auto md:static md:h-full">
+            <div className="px-4 py-3 font-mono text-[13px] leading-relaxed whitespace-pre-wrap break-words md:absolute md:inset-0 md:overflow-y-auto">
               {extractedText}
             </div>
             {/* Fade overlay — signals more content below on desktop; always on mobile when collapsed */}
