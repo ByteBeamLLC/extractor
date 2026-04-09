@@ -195,8 +195,13 @@ export function CreateParserDialog({ open, onOpenChange, onCreated }: CreatePars
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_")
     const storagePath = `${session!.user.id}/${parserId}/pending/${crypto.randomUUID()}/${safeName}`
 
-    const { uploadToStorage } = await import("@/lib/storage/client")
-    await uploadToStorage(storagePath, file, file.type || "application/octet-stream")
+    const { error: storageError } = await supabase.storage
+      .from("parser-documents")
+      .upload(storagePath, file, {
+        contentType: file.type || "application/octet-stream",
+        upsert: true,
+      })
+    if (storageError) throw new Error(`Upload failed: ${storageError.message}`)
 
     return { storage_path: storagePath, file_name: file.name, file_type: file.type, file_size: file.size }
   }
@@ -245,25 +250,25 @@ export function CreateParserDialog({ open, onOpenChange, onCreated }: CreatePars
       // For AI mode, detect fields from the sample file before extracting
       if (mode === "ai") {
         setCreatingStatus("AI is analyzing your document...")
-        const safeName = sampleFile!.name.replace(/[^a-zA-Z0-9._-]/g, "_")
-        const detectKey = `${session.user.id}/${parserId}/detect-fields/${crypto.randomUUID()}/${safeName}`
-        const { uploadToStorage: uploadDetect } = await import("@/lib/storage/client")
-        await uploadDetect(detectKey, sampleFile!, sampleFile!.type || "application/octet-stream")
+        const buffer = await sampleFile!.arrayBuffer()
+        const base64 = btoa(
+          new Uint8Array(buffer).reduce(
+            (data, byte) => data + String.fromCharCode(byte),
+            ""
+          )
+        )
 
         const detectRes = await fetch(`/api/parsers/${parserId}/detect-fields`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            storage_path: detectKey,
-            file_name: sampleFile!.name,
-            file_type: sampleFile!.type,
+            file: { name: sampleFile!.name, type: sampleFile!.type, data: base64 },
           }),
         })
 
         if (!detectRes.ok) {
-          let errMsg = "Failed to detect fields"
-          try { const b = await detectRes.json(); errMsg = b.error ?? errMsg } catch {}
-          throw new Error(errMsg)
+          const body = await detectRes.json().catch(() => ({}))
+          throw new Error(body.error ?? "Failed to detect fields")
         }
 
         const { fields: detectedFields } = await detectRes.json()
