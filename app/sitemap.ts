@@ -341,13 +341,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 0.9,
     },
-    {
-      url: `${BASE_URL}/lp/columbus-3pl`,
-      lastModified: staticDate,
-      changeFrequency: "weekly",
-      priority: 0.8,
-    },
-    // Note: /lp/freight-invoice and /lp/bol-automation excluded — they have noindex tags
+    // Note: /lp/columbus-3pl, /lp/freight-invoice and /lp/bol-automation excluded — they have noindex tags
     {
       url: `${BASE_URL}/privacy`,
       lastModified: staticDate,

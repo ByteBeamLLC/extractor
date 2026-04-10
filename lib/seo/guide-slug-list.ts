@@ -6,7 +6,7 @@
 export const guideSlugs = new Set([
   // ── New posts (from extended blog files) ──
   "what-is-a-bank-statement",
-  "how-to-read-bank-statement",
+  // "how-to-read-bank-statement" — removed: no content in blog-posts.ts, 301 → /blog/what-is-a-bank-statement in next.config.mjs
   "verify-bank-statements",
   "fake-bank-statements-detection",
   "bank-statement-reconciliation",
@@ -16,14 +16,14 @@ export const guideSlugs = new Set([
   "ai-invoice-processing",
   "detect-fraudulent-documents",
   "accounting-ocr",
-  "receipt-ocr-guide",
+  // "receipt-ocr-guide" — removed: no content, 301 → /tools/receipt-scanner in next.config.mjs
   "paperless-invoice-processing",
   "ocr-data-capture",
   "bank-statement-analysis-divorce",
   "utility-bill-data-extraction",
   "tax-resolution-bank-statement-analysis",
   "ocr-vs-idp",
-  "ocr-underwriting",
+  // "ocr-underwriting" — removed: no content, 301 → /ocr-software in next.config.mjs
   "bookkeeping-clean-up-guide",
   // ── Original blog posts with category "Guide" ──
   "extract-data-pdf-to-excel",
