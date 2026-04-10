@@ -32,9 +32,9 @@ const logoMap: Record<string, string> = {
   affinda: "/logos/competitors/affinda.webp",
   matil: "/logos/competitors/matil.svg",
   docuclipper: "/logos/competitors/docuclipper.webp",
-  "adobe-acrobat-pdf-to-excel": "/logos/competitors/adobe-acrobat.svg",
-  "adobe-acrobat-ocr": "/logos/competitors/adobe-acrobat.svg",
-  "zapier-email-parser": "/logos/competitors/zapier.svg",
+  "adobe-acrobat-pdf-to-excel": "/logos/competitors/Adobe_Acrobat_DC_logo_2020.svg.png",
+  "adobe-acrobat-ocr": "/logos/competitors/Adobe_Acrobat_DC_logo_2020.svg.png",
+  "zapier-email-parser": "/logos/competitors/Zapier_logo.png",
 }
 
 export function getCompetitorLogo(slug: string): string | null {
