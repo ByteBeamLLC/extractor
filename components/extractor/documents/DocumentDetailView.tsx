@@ -51,6 +51,48 @@ const STATUS_CONFIG = {
   error: { icon: XCircle, color: "text-red-600", label: "Error" },
 }
 
+/** Build a flat map from field ID → display name, including nested fields */
+function buildFieldNameMap(fields: SchemaField[]): Map<string, string> {
+  const map = new Map<string, string>()
+  const walk = (fs: SchemaField[]) => {
+    for (const f of fs) {
+      if (f.type === "input") continue
+      map.set(f.id, f.name)
+      if (f.type === "object" && "children" in f) walk((f as any).children ?? [])
+      else if (f.type === "table" && "columns" in f) walk((f as any).columns ?? [])
+      else if (f.type === "list" && "item" in f) walk([(f as any).item])
+    }
+  }
+  walk(fields)
+  return map
+}
+
+/** Replace field-ID keys with human-readable field names in a results object */
+function mapResultKeysToNames(results: Record<string, any>, fields: SchemaField[]): Record<string, any> {
+  const nameMap = buildFieldNameMap(fields)
+  const mapped: Record<string, any> = {}
+  for (const [key, value] of Object.entries(results)) {
+    const displayKey = nameMap.get(key) ?? key
+    if (Array.isArray(value) && value.length > 0 && typeof value[0] === "object" && value[0] !== null) {
+      mapped[displayKey] = value.map((row) => {
+        if (row && typeof row === "object" && !Array.isArray(row)) {
+          const mr: Record<string, any> = {}
+          for (const [k, v] of Object.entries(row)) mr[nameMap.get(k) ?? k] = v
+          return mr
+        }
+        return row
+      })
+    } else if (value && typeof value === "object" && !Array.isArray(value)) {
+      const mo: Record<string, any> = {}
+      for (const [k, v] of Object.entries(value)) mo[nameMap.get(k) ?? k] = v
+      mapped[displayKey] = mo
+    } else {
+      mapped[displayKey] = value
+    }
+  }
+  return mapped
+}
+
 interface DocumentDetailViewProps {
   parser: Parser
   documentId: string
@@ -191,7 +233,8 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
   const handleCopyJson = async () => {
     if (!doc?.results) return
     const { __meta__, ...display } = doc.results
-    if (!(await copyToClipboard(JSON.stringify(display, null, 2)))) return
+    const named = isFullContent ? display : mapResultKeysToNames(display, parser.fields ?? [])
+    if (!(await copyToClipboard(JSON.stringify(named, null, 2)))) return
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -437,7 +480,7 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
               )}
 
               {displayResults && tab === "data" && (
-                <DataView results={displayResults} isFullContent={isFullContent} />
+                <DataView results={displayResults} fields={parser.fields} isFullContent={isFullContent} />
               )}
 
               {tab === "fields" && (
@@ -485,7 +528,7 @@ const JSON_TREE_MAX_DEPTH = 20
 const JSON_TREE_MAX_ARRAY_DISPLAY = 50
 
 /** Tree-style data view — renders Markdown for full_content, JSON tree for fields mode */
-function DataView({ results, isFullContent }: { results: Record<string, any>; isFullContent?: boolean }) {
+function DataView({ results, fields, isFullContent }: { results: Record<string, any>; fields?: SchemaField[]; isFullContent?: boolean }) {
   if (isFullContent && results.markdown) {
     return (
       <div className="mp-mask p-4 prose prose-sm max-w-none dark:prose-invert">
@@ -494,10 +537,12 @@ function DataView({ results, isFullContent }: { results: Record<string, any>; is
     )
   }
 
+  const displayData = fields && !isFullContent ? mapResultKeysToNames(results, fields) : results
+
   return (
     <div className="mp-mask p-4">
       <pre className="text-xs leading-relaxed font-mono whitespace-pre-wrap break-words">
-        <JsonTree data={results} indent={0} />
+        <JsonTree data={displayData} indent={0} />
       </pre>
     </div>
   )
