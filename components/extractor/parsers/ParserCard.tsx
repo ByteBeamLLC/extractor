@@ -87,7 +87,9 @@ export function ParserCard({ parser, statusBreakdown, onDeleted }: ParserCardPro
   const [isUploading, setIsUploading] = useState(false)
 
   const fieldCount = parser.fields?.length ?? 0
-  const totalDocs = parser.document_count ?? 0
+  const totalDocs = statusBreakdown
+    ? statusBreakdown.completed + statusBreakdown.error + statusBreakdown.processing + statusBreakdown.pending
+    : 0
 
   const iconColor = getIconColor(parser.name)
 

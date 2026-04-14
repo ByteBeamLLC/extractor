@@ -72,12 +72,14 @@ export function AppSidebar() {
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [integrationCount, setIntegrationCount] = useState(0)
   const [apiKeyCount, setApiKeyCount] = useState(0)
+  const [documentCount, setDocumentCount] = useState(0)
 
-  // Load integration and API key counts for parser nav badges
+  // Load integration, API key, and document counts for parser nav badges
   useEffect(() => {
     if (!parser?.id || !session?.user?.id) {
       setIntegrationCount(0)
       setApiKeyCount(0)
+      setDocumentCount(0)
       return
     }
     Promise.all([
@@ -90,11 +92,45 @@ export function AppSidebar() {
         .select("id", { count: "exact", head: true })
         .eq("parser_id", parser.id)
         .is("revoked_at", null),
-    ]).then(([intRes, keyRes]) => {
+      supabase
+        .from("parser_processed_documents")
+        .select("id", { count: "exact", head: true })
+        .eq("parser_id", parser.id),
+    ]).then(([intRes, keyRes, docRes]) => {
       setIntegrationCount(intRes.count ?? 0)
       setApiKeyCount(keyRes.count ?? 0)
+      setDocumentCount(docRes.count ?? 0)
     })
   }, [parser?.id, session?.user?.id, supabase])
+
+  // Real-time subscription for document count changes
+  useEffect(() => {
+    if (!parser?.id) return
+    const channel = supabase
+      .channel(`sidebar-doc-count-${parser.id}`)
+      .on(
+        "postgres_changes" as any,
+        {
+          event: "*",
+          schema: "public",
+          table: "parser_processed_documents",
+          filter: `parser_id=eq.${parser.id}`,
+        },
+        () => {
+          // Re-fetch the actual count on any change
+          supabase
+            .from("parser_processed_documents")
+            .select("id", { count: "exact", head: true })
+            .eq("parser_id", parser.id)
+            .then(({ count }) => setDocumentCount(count ?? 0))
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [parser?.id, supabase])
 
   // Determine if we're inside a parser route
   const isInsideParser = !!parser && pathname?.startsWith("/parsers/")
@@ -111,7 +147,7 @@ export function AppSidebar() {
     ? [
         { key: "overview", href: `/parsers/${parser.id}`, icon: FileText, label: "Overview", exact: true },
         { key: "schema", href: `/parsers/${parser.id}/schema`, icon: ListChecks, label: "Fields Schema", badge: parser.fields?.length || null },
-        { key: "documents", href: `/parsers/${parser.id}/documents`, icon: Upload, label: "Documents", badge: parser.document_count || null },
+        { key: "documents", href: `/parsers/${parser.id}/documents`, icon: Upload, label: "Documents", badge: documentCount || null },
         { key: "export", href: `/parsers/${parser.id}/export`, icon: Share2, label: "Exports", badge: integrationCount || null },
         { key: "api", href: `/parsers/${parser.id}/api`, icon: Code, label: "API & Webhooks", badge: apiKeyCount || null },
         { key: "settings", href: `/parsers/${parser.id}/settings`, icon: Settings, label: "Settings" },
