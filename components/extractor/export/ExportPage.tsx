@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
 import type { Parser, ProcessedDocument } from "@/lib/extractor/types"
+import type { StructuredExportData } from "@/lib/export/structure"
 import { IntegrationList } from "@/components/extractor/integrations/IntegrationList"
 import { TourStep } from "@/components/tour/TourStep"
 import { SignUpGate } from "@/components/auth/SignUpGate"
@@ -25,7 +26,44 @@ export function ExportPage({ parser }: ExportPageProps) {
   const [documents, setDocuments] = useState<ProcessedDocument[]>([])
   const [loading, setLoading] = useState(true)
 
+  const [structuring, setStructuring] = useState(false)
   const isFullContent = parser.extraction_type === "full_content"
+
+  /**
+   * For full_content parsers, fetch LLM-structured data for each document.
+   * Returns a map from documentId → StructuredExportData.
+   */
+  const fetchAllStructuredData = async (
+    docs: ProcessedDocument[],
+  ): Promise<Map<string, StructuredExportData>> => {
+    const map = new Map<string, StructuredExportData>()
+    if (!isFullContent) return map
+
+    setStructuring(true)
+    try {
+      const results = await Promise.all(
+        docs.map(async (doc) => {
+          try {
+            const res = await fetch(
+              `/api/parsers/${parser.id}/documents/${doc.id}/structure`,
+              { method: "POST" },
+            )
+            if (!res.ok) return { id: doc.id, data: null }
+            const data = await res.json()
+            return { id: doc.id, data: data as StructuredExportData }
+          } catch {
+            return { id: doc.id, data: null }
+          }
+        }),
+      )
+      for (const { id, data } of results) {
+        if (data) map.set(id, data)
+      }
+    } finally {
+      setStructuring(false)
+    }
+    return map
+  }
 
   useEffect(() => {
     async function load() {
@@ -69,21 +107,34 @@ export function ExportPage({ parser }: ExportPageProps) {
     return Array.from(keySet)
   }
 
-  const handleDownloadJSON = () => {
-    const results = documents
-      .filter((d) => d.results)
-      .map((d) => {
-        const { __meta__, ...data } = d.results!
-        if (isFullContent) {
-          return { file_name: d.file_name, processed_at: d.processed_at, ...data }
+  const handleDownloadJSON = async () => {
+    const completed = documents.filter((d) => d.results)
+    const structuredMap = await fetchAllStructuredData(completed)
+
+    const results = completed.map((d) => {
+      const { __meta__, structured_export, ...data } = d.results!
+      if (isFullContent) {
+        const structured = structuredMap.get(d.id)
+        if (structured) {
+          // Convert sheets into array-of-objects
+          const rows: Record<string, any>[] = []
+          for (const sheet of structured.sheets) {
+            for (const row of sheet.rows) {
+              const obj: Record<string, any> = {}
+              sheet.headers.forEach((h, i) => { obj[h] = row[i] ?? "" })
+              rows.push(obj)
+            }
+          }
+          return { file_name: d.file_name, processed_at: d.processed_at, data: rows }
         }
-        // Replace field IDs with names in the output
-        const named: Record<string, any> = { file_name: d.file_name, processed_at: d.processed_at }
-        for (const [key, val] of Object.entries(data)) {
-          named[resolveFieldName(key)] = val
-        }
-        return named
-      })
+        return { file_name: d.file_name, processed_at: d.processed_at, ...data }
+      }
+      const named: Record<string, any> = { file_name: d.file_name, processed_at: d.processed_at }
+      for (const [key, val] of Object.entries(data)) {
+        named[resolveFieldName(key)] = val
+      }
+      return named
+    })
     const blob = new Blob([JSON.stringify(results, null, 2)], {
       type: "application/json",
     })
@@ -95,7 +146,7 @@ export function ExportPage({ parser }: ExportPageProps) {
     URL.revokeObjectURL(url)
   }
 
-  const handleDownloadCSV = () => {
+  const handleDownloadCSV = async () => {
     const completed = documents.filter((d) => d.results)
     if (completed.length === 0) return
 
@@ -184,23 +235,35 @@ export function ExportPage({ parser }: ExportPageProps) {
     downloadCsv(headers, rows, parser.name)
   }
 
-  /** CSV export for full_content mode — union all keys across documents */
-  const handleDownloadCSVFullContent = (completed: ProcessedDocument[]) => {
-    const dynamicKeys = collectDynamicKeys(completed)
-    const headers = ["file_name", ...dynamicKeys.map((k) => k.replace(/_/g, " "))]
+  /** CSV export for full_content mode — uses LLM-structured data */
+  const handleDownloadCSVFullContent = async (completed: ProcessedDocument[]) => {
+    const structuredMap = await fetchAllStructuredData(completed)
+
+    // Collect union of all headers from structured data
+    const allHeaders = new Set<string>()
+    allHeaders.add("file_name")
+    for (const structured of structuredMap.values()) {
+      for (const sheet of structured.sheets) {
+        sheet.headers.forEach((h) => allHeaders.add(h))
+      }
+    }
+    const headers = Array.from(allHeaders)
 
     const rows = completed.map((doc) => {
-      const { __meta__, ...data } = doc.results!
+      const structured = structuredMap.get(doc.id)
       const cells: string[] = [doc.file_name]
-      for (const key of dynamicKeys) {
-        const val = data[key]
-        if (val === null || val === undefined) {
-          cells.push("")
-        } else if (typeof val === "object") {
-          cells.push(JSON.stringify(val))
-        } else {
-          cells.push(String(val))
+
+      if (structured && structured.sheets.length > 0) {
+        // Use the first row of the first sheet for this document
+        const sheet = structured.sheets[0]
+        const firstRow = sheet.rows[0] ?? []
+        for (let i = 1; i < headers.length; i++) {
+          const colIdx = sheet.headers.indexOf(headers[i])
+          cells.push(colIdx >= 0 ? (firstRow[colIdx] ?? "") : "")
         }
+      } else {
+        // Fallback: fill empty
+        for (let i = 1; i < headers.length; i++) cells.push("")
       }
       return cells
     })
@@ -268,15 +331,15 @@ export function ExportPage({ parser }: ExportPageProps) {
 
           {completedCount > 0 && (
             <div className="flex gap-3">
-              <Button variant="outline" onClick={handleDownloadCSV}>
-                <FileSpreadsheet className="h-4 w-4 mr-2" />
-                CSV
+              <Button variant="outline" onClick={handleDownloadCSV} disabled={structuring}>
+                {structuring ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileSpreadsheet className="h-4 w-4 mr-2" />}
+                {structuring ? "Preparing..." : "CSV"}
               </Button>
-              <Button variant="outline" onClick={handleDownloadJSON}>
-                <FileJson className="h-4 w-4 mr-2" />
-                JSON
+              <Button variant="outline" onClick={handleDownloadJSON} disabled={structuring}>
+                {structuring ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileJson className="h-4 w-4 mr-2" />}
+                {structuring ? "Preparing..." : "JSON"}
               </Button>
-              <Button variant="outline" onClick={handleDownloadTXT}>
+              <Button variant="outline" onClick={handleDownloadTXT} disabled={structuring}>
                 <FileText className="h-4 w-4 mr-2" />
                 TXT
               </Button>

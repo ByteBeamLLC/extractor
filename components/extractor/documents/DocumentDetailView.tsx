@@ -47,6 +47,7 @@ import {
   downloadSingleDocExcel,
   downloadSingleDocJson,
 } from "@/lib/export/download"
+import type { StructuredExportData } from "@/lib/export/structure"
 import type { Parser, ProcessedDocument } from "@/lib/extractor/types"
 import type { SchemaField } from "@/lib/schema"
 
@@ -126,6 +127,7 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
   const [reprocessing, setReprocessing] = useState(false)
   const [copied, setCopied] = useState(false)
   const [copiedText, setCopiedText] = useState(false)
+  const [structuring, setStructuring] = useState(false)
   const isFullContent = parser.extraction_type === "full_content"
   // Initial tab honors `?tab=` (used by the handwriting → chat bridge handoff so
   // post-auth users land directly on the chat). After mount we strip the param
@@ -294,29 +296,54 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
     setTimeout(() => setCopiedText(false), 2000)
   }
 
-  const exportOpts = () => {
+  const exportOpts = (structuredData?: StructuredExportData) => {
     if (!doc?.results) return null
-    const { __meta__, ...display } = doc.results
+    const { __meta__, structured_export, ...display } = doc.results
     return {
       results: display,
       fields: parser.fields ?? [],
       extractionType: parser.extraction_type as "fields" | "full_content",
       fileName: doc.file_name,
+      structuredData,
     }
   }
 
-  const handleDownloadCsv = () => {
-    const opts = exportOpts()
+  /**
+   * For full_content parsers, fetch LLM-structured data before download.
+   * Returns the structured data, or undefined for fields-mode parsers.
+   */
+  const fetchStructuredData = async (): Promise<StructuredExportData | undefined> => {
+    if (!isFullContent || !doc) return undefined
+    setStructuring(true)
+    try {
+      const res = await fetch(
+        `/api/parsers/${parser.id}/documents/${doc.id}/structure`,
+        { method: "POST" },
+      )
+      if (!res.ok) return undefined
+      return await res.json()
+    } catch {
+      return undefined
+    } finally {
+      setStructuring(false)
+    }
+  }
+
+  const handleDownloadCsv = async () => {
+    const structured = await fetchStructuredData()
+    const opts = exportOpts(structured)
     if (opts) downloadSingleDocCsv(opts)
   }
 
-  const handleDownloadExcel = () => {
-    const opts = exportOpts()
+  const handleDownloadExcel = async () => {
+    const structured = await fetchStructuredData()
+    const opts = exportOpts(structured)
     if (opts) downloadSingleDocExcel(opts)
   }
 
-  const handleDownloadJson = () => {
-    const opts = exportOpts()
+  const handleDownloadJson = async () => {
+    const structured = await fetchStructuredData()
+    const opts = exportOpts(structured)
     if (opts) downloadSingleDocJson(opts)
   }
 
@@ -503,22 +530,26 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
                 )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-7 text-xs" disabled={!displayResults}>
-                      <Download className="h-3 w-3 mr-1" />
-                      <span className="hidden sm:inline">Download</span>
+                    <Button variant="ghost" size="sm" className="h-7 text-xs" disabled={!displayResults || structuring}>
+                      {structuring ? (
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      ) : (
+                        <Download className="h-3 w-3 mr-1" />
+                      )}
+                      <span className="hidden sm:inline">{structuring ? "Preparing..." : "Download"}</span>
                       <ChevronDown className="h-3 w-3 ml-0.5" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={handleDownloadExcel}>
+                    <DropdownMenuItem onClick={handleDownloadExcel} disabled={structuring}>
                       <FileSpreadsheet className="h-3.5 w-3.5 mr-2" />
                       Excel (.xlsx)
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleDownloadCsv}>
+                    <DropdownMenuItem onClick={handleDownloadCsv} disabled={structuring}>
                       <FileText className="h-3.5 w-3.5 mr-2" />
                       CSV (.csv)
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleDownloadJson}>
+                    <DropdownMenuItem onClick={handleDownloadJson} disabled={structuring}>
                       <FileJson className="h-3.5 w-3.5 mr-2" />
                       JSON (.json)
                     </DropdownMenuItem>

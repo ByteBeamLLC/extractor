@@ -1,5 +1,6 @@
 import * as XLSX from "xlsx"
 import type { SchemaField } from "@/lib/schema"
+import type { StructuredExportData } from "@/lib/export/structure"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -14,6 +15,8 @@ interface SingleDocExportOptions {
   extractionType: "fields" | "full_content"
   /** Original file name — used for the download file name */
   fileName: string
+  /** Pre-structured data from LLM (for full_content mode) */
+  structuredData?: StructuredExportData
 }
 
 // ---------------------------------------------------------------------------
@@ -207,14 +210,14 @@ export function downloadSingleDocCsv({
   fields,
   extractionType,
   fileName,
+  structuredData,
 }: SingleDocExportOptions) {
   const BOM = "\uFEFF"
   let headers: string[]
   let rows: string[][]
 
   if (extractionType === "full_content") {
-    const sheets = buildFullContentSheets(results)
-    // For CSV we only export the first/largest table
+    const sheets = structuredData?.sheets ?? buildFullContentSheets(results)
     const sheet = sheets[0]
     headers = sheet.headers
     rows = sheet.rows
@@ -242,11 +245,12 @@ export function downloadSingleDocExcel({
   fields,
   extractionType,
   fileName,
+  structuredData,
 }: SingleDocExportOptions) {
   const wb = XLSX.utils.book_new()
 
   if (extractionType === "full_content") {
-    const sheets = buildFullContentSheets(results)
+    const sheets = structuredData?.sheets ?? buildFullContentSheets(results)
     for (const sheet of sheets) {
       const aoa = [sheet.headers, ...sheet.rows]
       const ws = XLSX.utils.aoa_to_sheet(aoa)
@@ -287,11 +291,27 @@ export function downloadSingleDocJson({
   fields,
   extractionType,
   fileName,
+  structuredData,
 }: SingleDocExportOptions) {
   let output: any
 
   if (extractionType === "full_content") {
-    output = results
+    if (structuredData) {
+      // Convert sheets into array-of-objects for a clean JSON download
+      const allData: Record<string, any>[] = []
+      for (const sheet of structuredData.sheets) {
+        for (const row of sheet.rows) {
+          const obj: Record<string, any> = {}
+          sheet.headers.forEach((h, i) => {
+            obj[h] = row[i] ?? ""
+          })
+          allData.push(obj)
+        }
+      }
+      output = allData.length === 1 ? allData[0] : allData
+    } else {
+      output = results
+    }
   } else {
     // Replace field IDs with human-readable names
     const named: Record<string, any> = {}

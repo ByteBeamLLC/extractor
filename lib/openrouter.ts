@@ -351,6 +351,8 @@ interface GenerateFreeformJsonOptions {
     model?: string
     timeoutMs?: number   // Per-request fetch timeout
     deadlineMs?: number  // Absolute time budget
+    /** Provider routing override (e.g. { order: ['openai'], allow_fallbacks: true }). */
+    provider?: { order?: string[]; allow_fallbacks?: boolean }
 }
 
 /**
@@ -370,12 +372,17 @@ export async function generateFreeformJson(
         ...options.messages
     ]
 
-    const { data } = await fetchOpenRouterWithRetry({
+    const body: Record<string, unknown> = {
         model,
         messages: formatMessages(enhancedMessages),
         temperature: options.temperature ?? 0.2,
         response_format: { type: 'json_object' },
-    }, {
+    }
+    if (options.provider) {
+        body.provider = options.provider
+    }
+
+    const { data } = await fetchOpenRouterWithRetry(body, {
         timeoutMs: options.timeoutMs,
         deadlineMs: options.deadlineMs,
     })
