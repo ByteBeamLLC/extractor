@@ -438,6 +438,7 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
             fields={parser.fields}
             parserId={parser.id}
             documentId={completedDoc.id}
+            fileName={completedDoc.file_name}
             extractionType={parser.extraction_type}
             enrichingFields={completedDoc.enriching_fields ?? undefined}
           />

@@ -72,6 +72,8 @@ interface ExtractionResultsViewProps {
   parserId?: string
   /** Document ID for reprocessing */
   documentId?: string
+  /** Original file name — used for download file naming */
+  fileName?: string
   /** Callback to reprocess this document */
   onReprocess?: () => void
   /** Whether reprocessing is in progress */
@@ -87,6 +89,7 @@ export function ExtractionResultsView({
   fields,
   parserId,
   documentId,
+  fileName: fileNameProp,
   onReprocess,
   isReprocessing,
   extractionType,
@@ -173,7 +176,7 @@ export function ExtractionResultsView({
     results: displayResults,
     fields,
     extractionType: (extractionType ?? "fields") as "fields" | "full_content",
-    fileName: "extraction",
+    fileName: fileNameProp ?? "extraction",
     structuredData,
   })
 
