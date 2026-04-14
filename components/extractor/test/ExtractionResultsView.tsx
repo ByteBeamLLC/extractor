@@ -19,6 +19,7 @@ import {
   downloadSingleDocExcel,
   downloadSingleDocJson,
 } from "@/lib/export/download"
+import type { StructuredExportData } from "@/lib/export/structure"
 import type { SchemaField } from "@/lib/schema"
 import type { ExtractionType } from "@/lib/extractor/types"
 
@@ -93,6 +94,7 @@ export function ExtractionResultsView({
 }: ExtractionResultsViewProps) {
   const isFullContent = extractionType === "full_content"
   const [copied, setCopied] = useState(false)
+  const [structuring, setStructuring] = useState(false)
   const [view, setView] = useState<"table" | "json" | "markdown">(isFullContent ? "markdown" : "table")
   const enrichingSet = new Set(enrichingFields ?? [])
 
@@ -150,16 +152,43 @@ export function ExtractionResultsView({
     URL.revokeObjectURL(url)
   }
 
-  const exportOpts = () => ({
+  const fetchStructuredData = async (): Promise<StructuredExportData | undefined> => {
+    if (!isFullContent || !parserId || !documentId) return undefined
+    setStructuring(true)
+    try {
+      const res = await fetch(
+        `/api/parsers/${parserId}/documents/${documentId}/structure`,
+        { method: "POST" },
+      )
+      if (!res.ok) return undefined
+      return await res.json()
+    } catch {
+      return undefined
+    } finally {
+      setStructuring(false)
+    }
+  }
+
+  const exportOpts = (structuredData?: StructuredExportData) => ({
     results: displayResults,
     fields,
     extractionType: (extractionType ?? "fields") as "fields" | "full_content",
     fileName: "extraction",
+    structuredData,
   })
 
-  const handleDownloadCsv = () => downloadSingleDocCsv(exportOpts())
-  const handleDownloadExcel = () => downloadSingleDocExcel(exportOpts())
-  const handleDownloadJson = () => downloadSingleDocJson(exportOpts())
+  const handleDownloadCsv = async () => {
+    const structured = await fetchStructuredData()
+    downloadSingleDocCsv(exportOpts(structured))
+  }
+  const handleDownloadExcel = async () => {
+    const structured = await fetchStructuredData()
+    downloadSingleDocExcel(exportOpts(structured))
+  }
+  const handleDownloadJson = async () => {
+    const structured = await fetchStructuredData()
+    downloadSingleDocJson(exportOpts(structured))
+  }
 
   const renderValue = (value: any): React.ReactNode => {
     if (value === null || value === undefined || value === "-") {
@@ -310,22 +339,26 @@ export function ExtractionResultsView({
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm">
-                <Download className="h-3.5 w-3.5 mr-1" />
-                Download
+              <Button variant="ghost" size="sm" disabled={structuring}>
+                {structuring ? (
+                  <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                ) : (
+                  <Download className="h-3.5 w-3.5 mr-1" />
+                )}
+                {structuring ? "Preparing..." : "Download"}
                 <ChevronDown className="h-3 w-3 ml-0.5" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleDownloadExcel}>
+              <DropdownMenuItem onClick={handleDownloadExcel} disabled={structuring}>
                 <FileSpreadsheet className="h-3.5 w-3.5 mr-2" />
                 Excel (.xlsx)
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleDownloadCsv}>
+              <DropdownMenuItem onClick={handleDownloadCsv} disabled={structuring}>
                 <FileText className="h-3.5 w-3.5 mr-2" />
                 CSV (.csv)
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleDownloadJson}>
+              <DropdownMenuItem onClick={handleDownloadJson} disabled={structuring}>
                 <FileJson className="h-3.5 w-3.5 mr-2" />
                 JSON (.json)
               </DropdownMenuItem>
