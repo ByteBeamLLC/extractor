@@ -16,9 +16,20 @@ import {
   Code,
   AlertCircle,
   ChevronRight,
+  Trash2,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
 import type { Parser, ProcessedDocument } from "@/lib/extractor/types"
 import { DocumentUploader } from "@/components/extractor/test/DocumentUploader"
@@ -60,6 +71,59 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
   // Track the most recently completed doc to show inline results
   const [completedDocId, setCompletedDocId] = useState<string | null>(null)
   const completedDoc = documents.find((d) => d.id === completedDocId)
+
+  // Selection state for bulk delete
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  const toggleSelect = (id: string, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === documents.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(documents.map((d) => d.id)))
+    }
+  }
+
+  const handleDelete = async () => {
+    if (selectedIds.size === 0) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/parsers/${parser.id}/documents/batch-delete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ document_ids: Array.from(selectedIds) }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error ?? "Delete failed")
+      }
+      // Remove deleted docs from state
+      setDocuments((prev) => prev.filter((d) => !selectedIds.has(d.id)))
+      // Clear completed doc if it was deleted
+      if (completedDocId && selectedIds.has(completedDocId)) {
+        setCompletedDocId(null)
+      }
+      setSelectedIds(new Set())
+    } catch (err) {
+      // Let the user know via a simple alert for now
+      console.error("Delete failed:", err)
+    } finally {
+      setDeleting(false)
+      setShowDeleteDialog(false)
+    }
+  }
 
   const loadDocuments = useCallback(async () => {
     if (!session?.user?.id) return
@@ -119,6 +183,26 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
             if (prev.some((d) => d.id === inserted.id)) return prev
             return [inserted, ...prev]
           })
+        }
+      )
+      .on(
+        "postgres_changes" as any,
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "parser_processed_documents",
+          filter: `parser_id=eq.${parser.id}`,
+        },
+        (payload: any) => {
+          const deletedId = payload.old?.id
+          if (deletedId) {
+            setDocuments((prev) => prev.filter((d) => d.id !== deletedId))
+            setSelectedIds((prev) => {
+              const next = new Set(prev)
+              next.delete(deletedId)
+              return next
+            })
+          }
         }
       )
       .subscribe()
@@ -276,11 +360,23 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-6">
       {/* Header */}
       <TourStep stepId="documents" side="bottom" align="center">
-        <div>
-          <h1 className="text-xl font-bold">Documents</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Upload documents and view extraction results.
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold">Documents</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Upload documents and view extraction results.
+            </p>
+          </div>
+          {selectedIds.size > 0 && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setShowDeleteDialog(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-1.5" />
+              Delete ({selectedIds.size})
+            </Button>
+          )}
         </div>
       </TourStep>
 
@@ -371,7 +467,16 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
       {/* Document List */}
       {documents.length > 0 ? (
         <div className="border rounded-xl overflow-hidden">
-          <div className="grid grid-cols-[1fr_100px] sm:grid-cols-[1fr_100px_100px_80px_120px] gap-2 px-4 py-2.5 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
+          <div className="grid grid-cols-[28px_1fr_100px] sm:grid-cols-[28px_1fr_100px_100px_80px_120px] gap-2 px-4 py-2.5 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
+            <input
+              type="checkbox"
+              checked={documents.length > 0 && selectedIds.size === documents.length}
+              ref={(el) => {
+                if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < documents.length
+              }}
+              onChange={toggleSelectAll}
+              className="h-3.5 w-3.5 rounded border-muted-foreground/50 accent-primary cursor-pointer"
+            />
             <span>Document</span>
             <span className="hidden sm:block">Source</span>
             <span>Status</span>
@@ -388,15 +493,28 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
                 doc.status === "processing" &&
                 doc.created_at &&
                 Date.now() - new Date(doc.created_at).getTime() > 90_000
+              const isSelected = selectedIds.has(doc.id)
 
               return (
                 <Link
                   key={doc.id}
                   href={`/parsers/${parser.id}/documents/${doc.id}`}
-                  className={`grid grid-cols-[1fr_100px] sm:grid-cols-[1fr_100px_100px_80px_120px] gap-2 px-4 py-3 hover:bg-accent/30 transition-colors items-center ${
-                    doc.id === completedDocId ? "bg-green-50 dark:bg-green-950/20" : ""
+                  className={`grid grid-cols-[28px_1fr_100px] sm:grid-cols-[28px_1fr_100px_100px_80px_120px] gap-2 px-4 py-3 hover:bg-accent/30 transition-colors items-center ${
+                    isSelected
+                      ? "bg-primary/5"
+                      : doc.id === completedDocId
+                        ? "bg-green-50 dark:bg-green-950/20"
+                        : ""
                   }`}
                 >
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => {}}
+                    onClick={(e) => toggleSelect(doc.id, e)}
+                    className="h-3.5 w-3.5 rounded border-muted-foreground/50 accent-primary cursor-pointer"
+                  />
+
                   <div className="flex items-center gap-2 min-w-0">
                     <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                     <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -447,6 +565,35 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
           </div>
         </div>
       ) : null}
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedIds.size === 1 ? "document" : `${selectedIds.size} documents`}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the selected {selectedIds.size === 1 ? "document" : "documents"} and {selectedIds.size === 1 ? "its" : "their"} extraction results. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
