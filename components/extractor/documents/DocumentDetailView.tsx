@@ -26,13 +26,27 @@ import {
   Check,
   FileWarning,
   Sparkles,
+  ChevronDown,
+  FileSpreadsheet,
+  FileJson,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { DocumentChat } from "@/components/extractor/chat/DocumentChat"
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
 import { copyToClipboard } from "@/lib/clipboard"
+import {
+  downloadSingleDocCsv,
+  downloadSingleDocExcel,
+  downloadSingleDocJson,
+} from "@/lib/export/download"
 import type { Parser, ProcessedDocument } from "@/lib/extractor/types"
 import type { SchemaField } from "@/lib/schema"
 
@@ -280,6 +294,32 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
     setTimeout(() => setCopiedText(false), 2000)
   }
 
+  const exportOpts = () => {
+    if (!doc?.results) return null
+    const { __meta__, ...display } = doc.results
+    return {
+      results: display,
+      fields: parser.fields ?? [],
+      extractionType: parser.extraction_type as "fields" | "full_content",
+      fileName: doc.file_name,
+    }
+  }
+
+  const handleDownloadCsv = () => {
+    const opts = exportOpts()
+    if (opts) downloadSingleDocCsv(opts)
+  }
+
+  const handleDownloadExcel = () => {
+    const opts = exportOpts()
+    if (opts) downloadSingleDocExcel(opts)
+  }
+
+  const handleDownloadJson = () => {
+    const opts = exportOpts()
+    if (opts) downloadSingleDocJson(opts)
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32">
@@ -461,6 +501,29 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
                     <span className="hidden sm:inline">{copied ? "Copied" : "Copy JSON"}</span>
                   </Button>
                 )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-7 text-xs" disabled={!displayResults}>
+                      <Download className="h-3 w-3 mr-1" />
+                      <span className="hidden sm:inline">Download</span>
+                      <ChevronDown className="h-3 w-3 ml-0.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleDownloadExcel}>
+                      <FileSpreadsheet className="h-3.5 w-3.5 mr-2" />
+                      Excel (.xlsx)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleDownloadCsv}>
+                      <FileText className="h-3.5 w-3.5 mr-2" />
+                      CSV (.csv)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleDownloadJson}>
+                      <FileJson className="h-3.5 w-3.5 mr-2" />
+                      JSON (.json)
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             )}
           </div>

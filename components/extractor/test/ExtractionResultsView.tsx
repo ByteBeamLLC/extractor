@@ -3,11 +3,22 @@
 import { useState } from "react"
 import Link from "next/link"
 import Markdown from "react-markdown"
-import { Copy, Check, Code, Table2, Pencil, RotateCcw, Loader2, FileText, Download } from "lucide-react"
+import { Copy, Check, Code, Table2, Pencil, RotateCcw, Loader2, FileText, Download, ChevronDown, FileSpreadsheet, FileJson } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { copyToClipboard } from "@/lib/clipboard"
+import {
+  downloadSingleDocCsv,
+  downloadSingleDocExcel,
+  downloadSingleDocJson,
+} from "@/lib/export/download"
 import type { SchemaField } from "@/lib/schema"
 import type { ExtractionType } from "@/lib/extractor/types"
 
@@ -138,6 +149,17 @@ export function ExtractionResultsView({
     a.click()
     URL.revokeObjectURL(url)
   }
+
+  const exportOpts = () => ({
+    results: displayResults,
+    fields,
+    extractionType: (extractionType ?? "fields") as "fields" | "full_content",
+    fileName: "extraction",
+  })
+
+  const handleDownloadCsv = () => downloadSingleDocCsv(exportOpts())
+  const handleDownloadExcel = () => downloadSingleDocExcel(exportOpts())
+  const handleDownloadJson = () => downloadSingleDocJson(exportOpts())
 
   const renderValue = (value: any): React.ReactNode => {
     if (value === null || value === undefined || value === "-") {
@@ -286,10 +308,33 @@ export function ExtractionResultsView({
             )}
             {copied ? "Copied" : isFullContent ? "Copy Markdown" : "Copy JSON"}
           </Button>
-          <Button variant="ghost" size="sm" onClick={handleDownloadTxt}>
-            <Download className="h-3.5 w-3.5 mr-1" />
-            .txt
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm">
+                <Download className="h-3.5 w-3.5 mr-1" />
+                Download
+                <ChevronDown className="h-3 w-3 ml-0.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleDownloadExcel}>
+                <FileSpreadsheet className="h-3.5 w-3.5 mr-2" />
+                Excel (.xlsx)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDownloadCsv}>
+                <FileText className="h-3.5 w-3.5 mr-2" />
+                CSV (.csv)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDownloadJson}>
+                <FileJson className="h-3.5 w-3.5 mr-2" />
+                JSON (.json)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDownloadTxt}>
+                <FileText className="h-3.5 w-3.5 mr-2" />
+                Text (.txt)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
