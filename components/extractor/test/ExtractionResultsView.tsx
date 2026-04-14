@@ -11,6 +11,48 @@ import { copyToClipboard } from "@/lib/clipboard"
 import type { SchemaField } from "@/lib/schema"
 import type { ExtractionType } from "@/lib/extractor/types"
 
+/** Build a flat map from field ID → display name, including nested fields */
+function buildFieldNameMap(fields: SchemaField[]): Map<string, string> {
+  const map = new Map<string, string>()
+  const walk = (fs: SchemaField[]) => {
+    for (const f of fs) {
+      if (f.type === "input") continue
+      map.set(f.id, f.name)
+      if (f.type === "object" && "children" in f) walk((f as any).children ?? [])
+      else if (f.type === "table" && "columns" in f) walk((f as any).columns ?? [])
+      else if (f.type === "list" && "item" in f) walk([(f as any).item])
+    }
+  }
+  walk(fields)
+  return map
+}
+
+/** Replace field-ID keys with human-readable field names in a results object */
+function mapResultKeysToNames(results: Record<string, any>, fields: SchemaField[]): Record<string, any> {
+  const nameMap = buildFieldNameMap(fields)
+  const mapped: Record<string, any> = {}
+  for (const [key, value] of Object.entries(results)) {
+    const displayKey = nameMap.get(key) ?? key
+    if (Array.isArray(value) && value.length > 0 && typeof value[0] === "object" && value[0] !== null) {
+      mapped[displayKey] = value.map((row) => {
+        if (row && typeof row === "object" && !Array.isArray(row)) {
+          const mr: Record<string, any> = {}
+          for (const [k, v] of Object.entries(row)) mr[nameMap.get(k) ?? k] = v
+          return mr
+        }
+        return row
+      })
+    } else if (value && typeof value === "object" && !Array.isArray(value)) {
+      const mo: Record<string, any> = {}
+      for (const [k, v] of Object.entries(value)) mo[nameMap.get(k) ?? k] = v
+      mapped[displayKey] = mo
+    } else {
+      mapped[displayKey] = value
+    }
+  }
+  return mapped
+}
+
 interface ExtractionResultsViewProps {
   results: Record<string, any>
   fields: SchemaField[]
@@ -73,7 +115,8 @@ export function ExtractionResultsView({
   }
 
   const handleCopy = async () => {
-    const text = isFullContent ? markdownContent : JSON.stringify(displayResults, null, 2)
+    const namedResults = isFullContent ? displayResults : mapResultKeysToNames(displayResults, fields)
+    const text = isFullContent ? markdownContent : JSON.stringify(namedResults, null, 2)
     if (!(await copyToClipboard(text))) return
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
@@ -293,7 +336,7 @@ export function ExtractionResultsView({
         </div>
       ) : (
         <pre className="mp-mask p-4 text-xs overflow-auto max-h-[600px] bg-muted/20">
-          {JSON.stringify(displayResults, null, 2)}
+          {JSON.stringify(mapResultKeysToNames(displayResults, fields), null, 2)}
         </pre>
       )}
     </div>
