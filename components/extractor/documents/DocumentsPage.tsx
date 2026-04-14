@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { formatDistanceToNow } from "date-fns"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   Loader2,
   FileText,
@@ -61,6 +62,7 @@ type UploadState = "idle" | "uploading" | "error"
 export function DocumentsPage({ parser }: DocumentsPageProps) {
   const session = useSession()
   const supabase = useSupabaseClient()
+  const router = useRouter()
   const [documents, setDocuments] = useState<ProcessedDocument[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -76,17 +78,6 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [deleting, setDeleting] = useState(false)
-
-  const toggleSelect = (id: string, e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
 
   const toggleSelectAll = () => {
     if (selectedIds.size === documents.length) {
@@ -498,10 +489,14 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
               const isSelected = selectedIds.has(doc.id)
 
               return (
-                <Link
+                <div
                   key={doc.id}
-                  href={`/parsers/${parser.id}/documents/${doc.id}`}
-                  className={`grid grid-cols-[28px_1fr_100px] sm:grid-cols-[28px_1fr_100px_100px_80px_120px] gap-2 px-4 py-3 hover:bg-accent/30 transition-colors items-center ${
+                  onClick={(e) => {
+                    // Don't navigate if clicking the checkbox
+                    if ((e.target as HTMLElement).closest('input[type="checkbox"]')) return
+                    router.push(`/parsers/${parser.id}/documents/${doc.id}`)
+                  }}
+                  className={`grid grid-cols-[28px_1fr_100px] sm:grid-cols-[28px_1fr_100px_100px_80px_120px] gap-2 px-4 py-3 hover:bg-accent/30 transition-colors items-center cursor-pointer ${
                     isSelected
                       ? "bg-primary/5"
                       : doc.id === completedDocId
@@ -512,8 +507,15 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
                   <input
                     type="checkbox"
                     checked={isSelected}
-                    onChange={() => {}}
-                    onClick={(e) => toggleSelect(doc.id, e)}
+                    onChange={(e) => {
+                      e.stopPropagation()
+                      setSelectedIds((prev) => {
+                        const next = new Set(prev)
+                        if (next.has(doc.id)) next.delete(doc.id)
+                        else next.add(doc.id)
+                        return next
+                      })
+                    }}
                     className="h-3.5 w-3.5 rounded border-muted-foreground/50 accent-primary cursor-pointer"
                   />
 
@@ -561,7 +563,7 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
                         ? "Processing..."
                         : "—"}
                   </span>
-                </Link>
+                </div>
               )
             })}
           </div>
