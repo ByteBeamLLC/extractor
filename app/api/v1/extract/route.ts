@@ -7,6 +7,7 @@ import { deliverToIntegrations } from "@/lib/extractor/integrations/orchestrator
 import { reserveCredits, refundCredits, reserveFailureMessage } from "@/lib/extractor/billing/credits"
 import type { SchemaField } from "@/lib/schema"
 import { trackServerEvent } from "@/lib/analytics/server"
+import { mapResultIdsToNames } from "@/lib/extraction/mapResultIdsToNames"
 import { reportError } from "@/lib/errorReporting"
 
 export const runtime = "nodejs"
@@ -124,8 +125,9 @@ export async function POST(request: NextRequest) {
     extractionType,
   })
 
-  // Strip __meta__ for API response
-  const { __meta__, ...apiResults } = result.results
+  // Strip __meta__ and map field IDs to human-readable names for API response
+  const { __meta__, ...idKeyedResults } = result.results
+  const apiResults = mapResultIdsToNames(idKeyedResults, schemaTree)
 
   // Update processing log with final status. Credits were already reserved;
   // only refund on failure.
