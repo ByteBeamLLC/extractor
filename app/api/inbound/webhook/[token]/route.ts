@@ -4,6 +4,7 @@ import { runExtraction } from "@/lib/extraction/runExtraction"
 import { countDocumentPages } from "@/lib/extraction/api"
 import { deliverToIntegrations } from "@/lib/extractor/integrations/orchestrator"
 import { reserveCredits, refundCredits, reserveFailureMessage } from "@/lib/extractor/billing/credits"
+import { mapResultIdsToNames } from "@/lib/extraction/mapResultIdsToNames"
 import { reportError } from "@/lib/errorReporting"
 import type { SchemaField } from "@/lib/schema"
 
@@ -165,7 +166,8 @@ export async function POST(
     extractionType,
   })
 
-  const { __meta__, ...apiResults } = result.results
+  const { __meta__, ...idKeyedResults } = result.results
+  const apiResults = mapResultIdsToNames(idKeyedResults, schemaTree)
 
   // Update processing log with final status. Credits were already reserved;
   // refund if the extraction failed.
