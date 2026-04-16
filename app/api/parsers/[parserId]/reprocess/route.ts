@@ -7,7 +7,18 @@ import { reserveCredits, refundCredits, reserveFailureMessage } from "@/lib/extr
 import { deliverToIntegrations } from "@/lib/extractor/integrations/orchestrator"
 
 export const runtime = "nodejs"
-export const maxDuration = 60
+// Reprocess re-runs the full extraction pipeline (download file, count
+// pages, reserve credits, runExtraction across possibly many LLM calls,
+// write results, refund-on-failure, integration fan-out). On large PDFs
+// this routinely exceeds 60 s. 300 s is the Fluid Compute default on all
+// plans, so this raises the ceiling without requiring a plan upgrade.
+//
+// Note: the extraction pipeline itself does not yet propagate an upstream
+// deadline to its internal LLM calls — that would touch runExtraction's
+// 7 callers and is a separate, scoped follow-up. Bumping maxDuration here
+// handles the common case by giving the pipeline enough wall-clock to
+// finish, without modifying the shared extraction code path.
+export const maxDuration = 300
 
 /**
  * POST /api/parsers/[parserId]/reprocess
