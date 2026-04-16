@@ -32,6 +32,13 @@ export function ExportPage({ parser }: ExportPageProps) {
   /**
    * For full_content parsers, fetch LLM-structured data for each document.
    * Returns a map from documentId → StructuredExportData.
+   *
+   * Concurrency is capped so opening the export tab on a parser with many
+   * documents doesn't spawn N parallel LLM calls. Each /structure call can
+   * take tens of seconds when the cache is cold; letting them all run at
+   * once spikes provider load, multiplies timeout risk, and burns the
+   * user's quota in a single burst. A small fixed ceiling (3) preserves
+   * enough parallelism to feel responsive while bounding the worst case.
    */
   const fetchAllStructuredData = async (
     docs: ProcessedDocument[],
@@ -39,23 +46,44 @@ export function ExportPage({ parser }: ExportPageProps) {
     const map = new Map<string, StructuredExportData>()
     if (!isFullContent) return map
 
+    const STRUCTURE_FETCH_CONCURRENCY = 3
+
     setStructuring(true)
     try {
-      const results = await Promise.all(
-        docs.map(async (doc) => {
-          try {
-            const res = await fetch(
-              `/api/parsers/${parser.id}/documents/${doc.id}/structure`,
-              { method: "POST" },
-            )
-            if (!res.ok) return { id: doc.id, data: null }
-            const data = await res.json()
-            return { id: doc.id, data: data as StructuredExportData }
-          } catch {
-            return { id: doc.id, data: null }
-          }
-        }),
+      const fetchOne = async (
+        doc: ProcessedDocument,
+      ): Promise<{ id: string; data: StructuredExportData | null }> => {
+        try {
+          const res = await fetch(
+            `/api/parsers/${parser.id}/documents/${doc.id}/structure`,
+            { method: "POST" },
+          )
+          if (!res.ok) return { id: doc.id, data: null }
+          const data = await res.json()
+          return { id: doc.id, data: data as StructuredExportData }
+        } catch {
+          return { id: doc.id, data: null }
+        }
+      }
+
+      // Hand-rolled concurrency pool: N workers pull from a shared cursor.
+      // Simpler and zero-dependency vs pulling in p-limit; equivalent
+      // behavior for this single caller.
+      let cursor = 0
+      const results: Array<{ id: string; data: StructuredExportData | null }> =
+        new Array(docs.length)
+      const worker = async (): Promise<void> => {
+        while (true) {
+          const i = cursor++
+          if (i >= docs.length) return
+          results[i] = await fetchOne(docs[i])
+        }
+      }
+      const workerCount = Math.min(STRUCTURE_FETCH_CONCURRENCY, docs.length)
+      await Promise.all(
+        Array.from({ length: workerCount }, () => worker()),
       )
+
       for (const { id, data } of results) {
         if (data) map.set(id, data)
       }

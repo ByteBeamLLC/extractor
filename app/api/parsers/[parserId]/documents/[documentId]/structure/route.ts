@@ -4,7 +4,18 @@ import { withErrorReporting, ApiError } from "@/lib/errorReporting"
 import { structureMarkdownForExport } from "@/lib/export/structure"
 
 export const runtime = "nodejs"
-export const maxDuration = 30
+// Large documents structured via Anthropic Haiku can take ≫ 30 s end-to-end.
+// Fluid Compute's 300 s default is available across Hobby/Pro/Enterprise, so
+// aligning here is plan-agnostic and eliminates FUNCTION_INVOCATION_TIMEOUT
+// 504s that the OpenRouter client's internal deadline-aware retry loop is
+// otherwise powerless to prevent. (ai-sdk.dev/docs/troubleshooting/timeout-on-vercel)
+export const maxDuration = 300
+
+// Safety buffer subtracted from maxDuration when computing the upstream
+// deadline. Mirrors the pattern already used in the chat route (5 s) and is
+// the gRPC "recalc remaining time between hops" idiom scaled for Vercel's
+// response-serialization overhead.
+const DEADLINE_BUFFER_MS = 5_000
 
 export const POST = withErrorReporting(
   "/api/parsers/[parserId]/documents/[documentId]/structure",
@@ -12,6 +23,7 @@ export const POST = withErrorReporting(
     _request: Request,
     { params }: { params: { parserId: string; documentId: string } },
   ) => {
+    const startedAt = Date.now()
     const supabase = createSupabaseServerComponentClient()
     const {
       data: { user },
@@ -51,8 +63,13 @@ export const POST = withErrorReporting(
       return NextResponse.json(empty)
     }
 
-    // Call LLM to structure the markdown
-    const structured = await structureMarkdownForExport(markdown)
+    // Call LLM to structure the markdown. Propagate a deadline so the
+    // upstream call fails fast (and retries respect the budget) instead of
+    // outliving the serverless function and producing a 504.
+    const deadlineMs = startedAt + maxDuration * 1000 - DEADLINE_BUFFER_MS
+    const structured = await structureMarkdownForExport(markdown, {
+      deadlineMs,
+    })
 
     // Cache in the document's results for future requests
     await supabase

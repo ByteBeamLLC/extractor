@@ -88,9 +88,15 @@ Every cell value must be a string.`
 /**
  * Calls an LLM to restructure raw markdown into spreadsheet-ready data.
  * Returns an array of sheets, each with headers and rows.
+ *
+ * `deadlineMs` (absolute Date.now()-based timestamp) is propagated to the
+ * OpenRouter client so retries and per-attempt fetch timeouts abort before
+ * the enclosing serverless function's maxDuration fires. Without it, the
+ * upstream request can outlive the function and surface as 504 to the user.
  */
 export async function structureMarkdownForExport(
   markdown: string,
+  options: { deadlineMs?: number } = {},
 ): Promise<StructuredExportData> {
   if (!markdown || !markdown.trim()) {
     return { sheets: [{ name: "Data", headers: ["Content"], rows: [] }] }
@@ -110,6 +116,7 @@ export async function structureMarkdownForExport(
         content: `Here is the document content to structure:\n\n${markdown}`,
       },
     ],
+    deadlineMs: options.deadlineMs,
   })
 
   return validateAndNormalize(object)

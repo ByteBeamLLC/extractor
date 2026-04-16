@@ -144,6 +144,60 @@ async function fetchOpenRouterWithRetry(
     throw lastError ?? new Error('OpenRouter request failed after retries')
 }
 
+/**
+ * Defensive parser for LLM JSON responses.
+ *
+ * Provider-native `response_format: json_object` is respected by OpenAI but
+ * only partially by Anthropic / some Google provider routes. When the model
+ * ignores the directive we can still receive JSON wrapped in a markdown code
+ * fence, or JSON with leading/trailing prose. We apply three progressive
+ * strategies; the first that parses wins. This mirrors the "three layers of
+ * defense" pattern from the LLM tooling ecosystem (LangChain, llm-exe,
+ * ai-json-safe-parse) and intentionally preserves the fast path: valid JSON
+ * still parses on the first attempt with no extra work.
+ *
+ * Returns the parsed value, or throws the original parse error if every
+ * strategy fails — the caller surfaces that via
+ * `Failed to parse JSON response from OpenRouter: …`.
+ */
+function safeParseLlmJson(content: string): unknown {
+    // 1. Fast path — already-valid JSON.
+    try {
+        return JSON.parse(content)
+    } catch (initialError) {
+        // 2. Strip a markdown code fence (```json … ``` or ``` … ```), then retry.
+        //    Matches fences anywhere in the string — model sometimes emits prose
+        //    before/after. We reconstruct the inner payload only.
+        const fence = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)
+        if (fence && fence[1]) {
+            try {
+                return JSON.parse(fence[1])
+            } catch {
+                /* fall through */
+            }
+        }
+
+        // 3. Last resort — find the first balanced {…} or […] block in the text
+        //    and parse that. Handles "Here is your JSON: { … }" style prefaces.
+        const firstBrace = content.search(/[\[{]/)
+        if (firstBrace >= 0) {
+            const open = content[firstBrace]
+            const close = open === '{' ? '}' : ']'
+            const lastClose = content.lastIndexOf(close)
+            if (lastClose > firstBrace) {
+                const slice = content.slice(firstBrace, lastClose + 1)
+                try {
+                    return JSON.parse(slice)
+                } catch {
+                    /* fall through */
+                }
+            }
+        }
+
+        throw initialError
+    }
+}
+
 interface Message {
     role: 'user' | 'assistant' | 'system'
     content: string | Array<{
@@ -323,11 +377,11 @@ export async function generateObject<T extends z.ZodSchema>(
 
     const content = data.choices?.[0]?.message?.content || '{}'
 
-    // Parse JSON response
+    // Parse JSON response — tolerates markdown fences / prose around the JSON.
     let parsedObject
     try {
-        parsedObject = JSON.parse(content)
-    } catch (error) {
+        parsedObject = safeParseLlmJson(content)
+    } catch {
         throw new Error(`Failed to parse JSON response from OpenRouter: ${content}`)
     }
 
@@ -389,10 +443,15 @@ export async function generateFreeformJson(
 
     const content = data.choices?.[0]?.message?.content || '{}'
 
+    // Parse JSON response — tolerates markdown fences / prose around the JSON.
     let parsedObject: Record<string, any>
     try {
-        parsedObject = JSON.parse(content)
-    } catch (error) {
+        const parsed = safeParseLlmJson(content)
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+            throw new Error('parsed value is not a JSON object')
+        }
+        parsedObject = parsed as Record<string, any>
+    } catch {
         throw new Error(`Failed to parse JSON response from OpenRouter: ${content}`)
     }
 
