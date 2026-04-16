@@ -115,10 +115,26 @@ export function ErrorReportingInit() {
           // losing diagnostic information to "[object Object]" coercion.
           let serverMessage = `Server error ${response.status}`
           let responseBodyForContext: string | undefined
+          // Server-filed sentinel: `withErrorReporting` returns this envelope
+          // on any unhandled throw, AFTER it has already filed the incident
+          // to the issue tracker with a correlation id. Re-reporting here
+          // only adds a duplicate issue keyed off the user-facing copy
+          // ("An unexpected error occurred…"), which is useless for triage.
+          let serverAlreadyReported = false
           try {
             const cloned = response.clone()
             const body = await cloned.json()
             serverMessage = extractServerMessage(body, response.status)
+            if (
+              body &&
+              typeof body === "object" &&
+              !Array.isArray(body) &&
+              (body as Record<string, unknown>).code === "internal_error" &&
+              typeof (body as Record<string, unknown>).requestId === "string" &&
+              ((body as Record<string, unknown>).requestId as string).length > 0
+            ) {
+              serverAlreadyReported = true
+            }
             try {
               const json = JSON.stringify(body)
               responseBodyForContext =
@@ -138,16 +154,18 @@ export function ErrorReportingInit() {
             } catch {}
           }
 
-          reportError(new Error(serverMessage), {
-            route: url,
-            method: args[1]?.method ?? "GET",
-            extra: {
-              type: "fetch_500",
-              status: response.status,
-              page: window.location.pathname,
-              responseBody: responseBodyForContext,
-            },
-          })
+          if (!serverAlreadyReported) {
+            reportError(new Error(serverMessage), {
+              route: url,
+              method: args[1]?.method ?? "GET",
+              extra: {
+                type: "fetch_500",
+                status: response.status,
+                page: window.location.pathname,
+                responseBody: responseBodyForContext,
+              },
+            })
+          }
         }
       }
 
