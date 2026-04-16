@@ -4,7 +4,11 @@ import { ApiError, withErrorReporting } from "@/lib/errorReporting"
 
 export const maxDuration = 60
 
-const MODEL = "google/gemini-2.0-flash-lite"
+// google/gemini-2.0-flash-lite was deprecated by Google on 2026-03-31 and
+// OpenRouter now returns 400 "not a valid model ID" for it. 2.5-flash-lite
+// is the documented direct replacement — same tier, same pricing class,
+// same input/output contract, so this is a drop-in swap.
+const MODEL = "google/gemini-2.5-flash-lite"
 
 const SYSTEM_PROMPT = `You are an OCR post-processor. You receive raw, noisy text extracted from an image by an OCR engine.
 

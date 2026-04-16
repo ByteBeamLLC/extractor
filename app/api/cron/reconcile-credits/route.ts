@@ -45,9 +45,26 @@ export async function GET(request: NextRequest) {
 
   try {
     // Pull every subscription with its live credits_used.
+    //
+    // Anonymous tier is EXCLUDED from drift detection intentionally:
+    //   - Anonymous users aren't billed, so ledger drift on that tier
+    //     never represents revenue leakage.
+    //   - Quota enforcement for anonymous users reads `credits_used`
+    //     directly (see lib/extractor/billing/credits.ts — the
+    //     `anonymous_quota_exceeded` path), not the billing_events ledger.
+    //     Ledger drift therefore has no functional impact on enforcement.
+    //   - Guest sessions churn rapidly and occasionally leave trace drift
+    //     from old code paths (pre-Phase-2) that never wrote ledger rows.
+    //     Paging oncall daily for these historical artifacts is pure noise.
+    //
+    // Paying / free tiers remain audited — that's where drift actually
+    // matters. If a guest signs up and their tier transitions to free/paid,
+    // any carried-over drift will surface once under the new tier and be
+    // resolved through the normal drift response runbook.
     const { data: subs, error: subsError } = await supabase
       .from("extractor_subscriptions")
       .select("user_id, tier, credits_used, credits_free, credits_reset_at")
+      .neq("tier", "anonymous")
 
     if (subsError) {
       reportError(subsError, { route: "/api/cron/reconcile-credits" })
