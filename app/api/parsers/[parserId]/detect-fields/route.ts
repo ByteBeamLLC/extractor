@@ -9,7 +9,17 @@ import {
 
 export const runtime = "nodejs"
 
-export const maxDuration = 60
+// Same timeout rationale as /structure (PR #97): large PDFs / images sent
+// as base64 data-URLs to the vision model can take tens of seconds to
+// return suggested fields. Fluid Compute's 300 s default is plan-agnostic
+// and matches Vercel's AI-SDK recommendation to raise maxDuration for LLM
+// routes. (ai-sdk.dev/docs/troubleshooting/timeout-on-vercel)
+export const maxDuration = 300
+
+// Safety buffer subtracted from maxDuration when computing the upstream
+// deadline. 5 s mirrors the chat route's precedent and accounts for
+// Vercel's response-serialization overhead.
+const DEADLINE_BUFFER_MS = 5_000
 
 /**
  * POST /api/parsers/[parserId]/detect-fields
@@ -21,6 +31,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { parserId: string } }
 ) {
+  const startedAt = Date.now()
   const supabase = createSupabaseServerComponentClient()
   const {
     data: { user },
@@ -146,9 +157,13 @@ Example output:
   }
 
   try {
+    // Propagate the route's deadline so the OpenRouter client's retry loop
+    // aborts before Vercel kills the function — same pattern as /structure.
+    const deadlineMs = startedAt + maxDuration * 1000 - DEADLINE_BUFFER_MS
     const result = await generateText({
       messages,
       temperature: 0.2,
+      deadlineMs,
     })
 
     // Parse the AI response as JSON
