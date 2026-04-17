@@ -5,7 +5,7 @@ import { generateObject } from "@/lib/openrouter"
 import { trackServerEvent } from "@/lib/analytics/server"
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server"
 
-export const maxDuration = 60
+export const maxDuration = 120
 
 const PRIMARY_MODEL = "google/gemini-3-flash-preview"
 const FALLBACK_MODEL = "google/gemini-2.5-flash"

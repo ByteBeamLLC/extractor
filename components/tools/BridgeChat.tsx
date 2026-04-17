@@ -1,13 +1,15 @@
 "use client"
 
-import { useCallback, useState } from "react"
+import { useCallback, useMemo, useRef, useState } from "react"
 import { Loader2, Send, Sparkles } from "lucide-react"
+import { useChat } from "@ai-sdk/react"
+import { DefaultChatTransport } from "ai"
 import { Button } from "@/components/ui/button"
 import { useAuthDialog } from "@/components/auth/AuthDialogContext"
 import { useSupabaseClient } from "@/lib/supabase/hooks"
 import { trackEvent } from "@/lib/analytics"
 import { MessageList } from "@/components/extractor/chat/MessageList"
-import type { ChatMessage, ChatResponseBody } from "@/lib/chat/types"
+import type { ChatUIMessage } from "@/lib/chat/types"
 
 interface StarterQuestion {
   label: string
@@ -39,13 +41,6 @@ const HEADER_LABEL = "Chat with your document"
 const HEADER_HINT = "Ask anything about what you just transcribed."
 const SEND_PLACEHOLDER = "Type a follow-up question…"
 
-function newId(): string {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID()
-  }
-  return Math.random().toString(36).slice(2)
-}
-
 export function BridgeChat({
   text,
   language,
@@ -56,122 +51,111 @@ export function BridgeChat({
   const { openAuthDialog } = useAuthDialog()
   const supabase = useSupabaseClient()
 
-  const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [provisioned, setProvisioned] = useState<ProvisionedDoc | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [followup, setFollowup] = useState("")
+  const [sessionError, setSessionError] = useState<string | null>(null)
+  // Lazy-provisioned parser+document. The transport resolves it the first time
+  // we send a message so we don't burn an anonymous row on every page view.
+  const provisionedRef = useRef<ProvisionedDoc | null>(null)
+  const provisionPromiseRef = useRef<Promise<ProvisionedDoc> | null>(null)
+
+  const provision = useCallback(async (): Promise<ProvisionedDoc> => {
+    if (provisionedRef.current) return provisionedRef.current
+    if (provisionPromiseRef.current) return provisionPromiseRef.current
+
+    provisionPromiseRef.current = (async () => {
+      // 1. Anonymous sign-in if we don't already have a session.
+      const { data: sessionData } = await supabase.auth.getSession()
+      if (!sessionData.session) {
+        const { error: signinError } = await supabase.auth.signInAnonymously()
+        if (signinError) {
+          throw new Error(`Failed to start session: ${signinError.message}`)
+        }
+      }
+
+      // 2. Create the parser + document.
+      const res = await fetch("/api/tools/handwriting-to-text/bridge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text,
+          language,
+          doc_type: docType,
+          image: image.base64,
+          mimeType: image.mimeType,
+          fileName: image.fileName,
+          fileSize: image.fileSize,
+        }),
+      })
+
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}))
+        throw new Error(
+          errBody?.error || `Bridge provisioning failed (${res.status})`
+        )
+      }
+
+      const data = (await res.json()) as ProvisionedDoc
+      provisionedRef.current = data
+      return data
+    })()
+
+    try {
+      return await provisionPromiseRef.current
+    } catch (err) {
+      // Reset so the next send retries rather than using a rejected promise
+      provisionPromiseRef.current = null
+      throw err
+    }
+  }, [supabase, text, language, docType, image])
+
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport<ChatUIMessage>({
+        // Placeholder URL — prepareSendMessagesRequest rewrites it after
+        // provisioning resolves the real parserId.
+        api: "/api/chat-placeholder",
+        prepareSendMessagesRequest: async ({ messages, body }) => {
+          const ids = await provision()
+          return {
+            api: `/api/parsers/${ids.parserId}/chat`,
+            body: {
+              ...(body ?? {}),
+              messages,
+              documentId: ids.documentId,
+            },
+          }
+        },
+      }),
+    [provision]
+  )
+
+  const { messages, sendMessage, status, error } = useChat<ChatUIMessage>({
+    transport,
+  })
+
+  const isLoading = status === "submitted" || status === "streaming"
+  const isWaiting = status === "submitted"
 
   // True once the user has clicked a starter chip and gotten an answer.
   // After that, the chips are hidden and the input takes over.
   const hasFirstAnswer = messages.some((m) => m.role === "assistant")
 
   /**
-   * Provision a parser + document the first time the user engages with the
-   * bridge. Idempotent: subsequent calls return the cached IDs.
-   *
-   * Steps:
-   *   1. Ensure there's an anonymous Supabase session (cookie-based)
-   *   2. POST to /api/tools/handwriting-to-text/bridge with the transcription +
-   *      original image, which inserts a parser and a processed_document under
-   *      the anon user.id and returns their IDs.
-   */
-  const provision = useCallback(async (): Promise<ProvisionedDoc> => {
-    if (provisioned) return provisioned
-
-    // 1. Anonymous sign-in if we don't already have a session.
-    const { data: sessionData } = await supabase.auth.getSession()
-    if (!sessionData.session) {
-      const { error: signinError } = await supabase.auth.signInAnonymously()
-      if (signinError) {
-        throw new Error(`Failed to start session: ${signinError.message}`)
-      }
-    }
-
-    // 2. Create the parser + document.
-    const res = await fetch("/api/tools/handwriting-to-text/bridge", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        text,
-        language,
-        doc_type: docType,
-        image: image.base64,
-        mimeType: image.mimeType,
-        fileName: image.fileName,
-        fileSize: image.fileSize,
-      }),
-    })
-
-    if (!res.ok) {
-      const errBody = await res.json().catch(() => ({}))
-      throw new Error(errBody?.error || `Bridge provisioning failed (${res.status})`)
-    }
-
-    const data = (await res.json()) as ProvisionedDoc
-    setProvisioned(data)
-    return data
-  }, [provisioned, supabase, text, language, docType, image])
-
-  /**
-   * Click a starter chip → provision (if needed) → send the chip's prompt to
-   * the real chat API → render the answer inline. Stays anonymous; no auth.
+   * Click a starter chip → send the chip's prompt. The transport takes care
+   * of provisioning + URL resolution on the first call.
    */
   const handleChipClick = useCallback(
     async (chip: StarterQuestion, index: number) => {
       if (isLoading) return
-      setError(null)
-      setIsLoading(true)
-
+      setSessionError(null)
       trackEvent("hwt_bridge_starter_clicked", {
         doc_type: docType,
         language,
         chip_index: index,
       })
-
-      const userMessage: ChatMessage = {
-        id: newId(),
-        role: "user",
-        content: chip.prompt,
-        timestamp: Date.now(),
-      }
-      setMessages([userMessage])
-
-      try {
-        const ids = await provision()
-        const response = await fetch(`/api/parsers/${ids.parserId}/chat`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            documentId: ids.documentId,
-            message: chip.prompt,
-            history: [],
-          }),
-        })
-
-        const data = (await response.json()) as ChatResponseBody & { error?: string }
-        if (!response.ok) {
-          throw new Error(data.error ?? "Chat request failed")
-        }
-
-        const assistantMessage: ChatMessage = {
-          id: newId(),
-          role: "assistant",
-          content: data.answer,
-          toolCallsMade: data.toolCallsMade ?? [],
-          timestamp: Date.now(),
-        }
-        setMessages([userMessage, assistantMessage])
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "Something went wrong"
-        setError(msg)
-        // Roll back the optimistic user message so the chips reappear.
-        setMessages([])
-      } finally {
-        setIsLoading(false)
-      }
+      await sendMessage({ text: chip.prompt })
     },
-    [docType, language, provision, isLoading]
+    [sendMessage, isLoading, docType, language]
   )
 
   /**
@@ -187,16 +171,12 @@ export function BridgeChat({
       const trimmed = followup.trim()
       if (!trimmed) return
 
-      setIsLoading(true)
-      setError(null)
+      setSessionError(null)
 
-      // We need a provisioned parser+document to hand off. Normally provisioning
-      // happened on the first chip click; if not, do it now.
-      let ids = provisioned
       try {
-        if (!ids) {
-          ids = await provision()
-        }
+        // We need a provisioned parser+document to hand off. Normally
+        // provisioning happened on the first chip click; if not, do it now.
+        const ids = await provision()
 
         // Create a server-side bridge session with the chat payload
         const res = await fetch("/api/bridge-sessions", {
@@ -214,7 +194,9 @@ export function BridgeChat({
 
         if (!res.ok) {
           const errBody = await res.json().catch(() => ({}))
-          throw new Error(errBody?.error || "Failed to create bridge session")
+          throw new Error(
+            errBody?.error || "Failed to create bridge session"
+          )
         }
 
         const { token } = (await res.json()) as { token: string }
@@ -228,18 +210,19 @@ export function BridgeChat({
         const next = `/parsers/${ids.parserId}/documents/${ids.documentId}?tab=chat`
         openAuthDialog("sign-up", { next, bridgeToken: token })
       } catch (err) {
-        const msg = err instanceof Error ? err.message : "Failed to save your conversation"
-        setError(msg)
-      } finally {
-        setIsLoading(false)
+        const msg =
+          err instanceof Error ? err.message : "Failed to save your conversation"
+        setSessionError(msg)
       }
     },
-    [followup, provisioned, provision, messages, docType, openAuthDialog]
+    [followup, provision, messages, docType, openAuthDialog]
   )
 
   if (!starterQuestions || starterQuestions.length === 0) {
     return null
   }
+
+  const displayedError = sessionError ?? error?.message ?? null
 
   return (
     <div className="flex flex-col h-full bg-gradient-to-b from-muted/30 to-transparent">
@@ -273,14 +256,14 @@ export function BridgeChat({
         {/* Conversation */}
         {messages.length > 0 && (
           <div className="mt-2">
-            <MessageList messages={messages} isLoading={isLoading} />
+            <MessageList messages={messages} isWaiting={isWaiting} />
           </div>
         )}
 
         {/* Error */}
-        {error && (
+        {displayedError && (
           <div className="mt-3 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
-            {error}
+            {displayedError}
           </div>
         )}
       </div>

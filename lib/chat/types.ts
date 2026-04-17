@@ -4,66 +4,26 @@
  * The chat lets users ask questions about a single document's extracted data.
  * It does NOT have access to the source file — only the structured `results`
  * JSON, parser schema, and document metadata.
+ *
+ * Runtime message state lives in Vercel AI SDK `UIMessage`s — see the
+ * `@ai-sdk/react` `useChat` hook. The types here cover the small surface
+ * outside the SDK (bridge session payload, starter questions).
  */
 
-export type ChatRole = "user" | "assistant"
-
-export interface ChatMessage {
-  /** Stable id for React keys; generated client-side */
-  id: string
-  role: ChatRole
-  content: string
-  /** Tool invocations made by the model while producing this assistant message */
-  toolCallsMade?: ToolCallRecord[]
-  /** Unix ms timestamp */
-  timestamp: number
-}
+import type { UIMessage } from "ai"
 
 /**
- * Record of one tool call made during an assistant turn.
- * Surfaced in the UI as a small "Calculated 541.27 × 0.17 = 92.0159" chip
- * so users can see what the model actually did.
+ * Alias for the AI SDK chat message shape used throughout Parsli's chat UI.
+ * Keep the alias thin — add metadata slots only if/when we persist chats.
  */
-export interface ToolCallRecord {
-  name: string
-  args: Record<string, unknown>
-  result: unknown
-  ok: boolean
-  error?: string
-}
-
-/** Result shape returned by every tool handler. */
-export type ToolHandlerResult =
-  | { ok: true; result: unknown }
-  | { ok: false; error: string }
+export type ChatUIMessage = UIMessage
 
 /**
- * OpenAI/OpenRouter-compatible tool definition.
- * `parameters` is JSON Schema, not Zod — OpenRouter passes it straight to
- * the underlying provider's function-calling API.
+ * Payload stored in a bridge session — used when a user moves from the
+ * anonymous handwriting tool to the authenticated app and we want to
+ * restore the conversation + auto-fire their pending question.
  */
-export interface ChatToolDefinition {
-  name: string
-  description: string
-  parameters: Record<string, unknown>
-}
-
-export interface ChatTool {
-  definition: ChatToolDefinition
-  handler: (args: Record<string, unknown>) => Promise<ToolHandlerResult>
-}
-
-/** POST /api/parsers/[parserId]/chat — request body */
-export interface ChatRequestBody {
-  documentId: string
-  message: string
-  history: ChatMessage[]
-}
-
-/** POST /api/parsers/[parserId]/chat — response body */
-export interface ChatResponseBody {
-  answer: string
-  toolCallsMade: ToolCallRecord[]
-  /** Set when the document isn't ready (processing/error/no results) */
-  blocked?: "processing" | "error" | "no_results"
+export interface BridgeSessionPayload {
+  messages?: ChatUIMessage[]
+  pendingQuestion?: string
 }
