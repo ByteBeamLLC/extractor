@@ -10,15 +10,13 @@
  * namespace) and `createUnit` (historically exploited for code injection).
  *
  * IMPORTANT: do NOT also override `evaluate`, `parse`, `simplify`, or
- * `derivative` here. Although the mathjs security docs list them as
- * defense-in-depth candidates, `math.import({ evaluate: fn }, ...)`
- * REPLACES `math.evaluate` itself, which breaks the top-level entry point
- * we use to run expressions. The two-function override below is the
- * actual safe minimum.
+ * `derivative` here. `math.import({ evaluate: fn }, ...)` REPLACES
+ * `math.evaluate` itself, which breaks the top-level entry point.
  */
 
+import { tool } from "ai"
 import { all, create } from "mathjs"
-import type { ChatTool } from "@/lib/chat/types"
+import { z } from "zod"
 
 const math = create(all)
 
@@ -34,50 +32,34 @@ math.import(
   { override: true }
 )
 
-export const calculateTool: ChatTool = {
-  definition: {
-    name: "calculate",
-    description:
-      "Evaluate a mathematical expression and return the exact result. ALWAYS use this tool for any arithmetic — never compute math yourself, even for trivial operations like 5 + 3. Supports +, -, *, /, %, parentheses, exponents (^), and common functions like sqrt, abs, round, floor, ceil, min, max.",
-    parameters: {
-      type: "object",
-      properties: {
-        expression: {
-          type: "string",
-          description:
-            "Math expression to evaluate. Examples: '541.27 * 0.17', '(1.55 + 2.34 + 9.96) / 3', 'round(123.456, 2)'",
-        },
-      },
-      required: ["expression"],
-      additionalProperties: false,
-    },
-  },
-  handler: async (args) => {
-    const expression =
-      typeof args.expression === "string" ? args.expression.trim() : ""
-    if (!expression) {
-      return { ok: false, error: "Expression is required" }
+export const calculateTool = tool({
+  description:
+    "Evaluate a mathematical expression and return the exact result. ALWAYS use this tool for any arithmetic — never compute math yourself, even for trivial operations like 5 + 3. Supports +, -, *, /, %, parentheses, exponents (^), and common functions like sqrt, abs, round, floor, ceil, min, max.",
+  inputSchema: z.object({
+    expression: z
+      .string()
+      .describe(
+        "Math expression to evaluate. Examples: '541.27 * 0.17', '(1.55 + 2.34 + 9.96) / 3', 'round(123.456, 2)'"
+      ),
+  }),
+  execute: async ({ expression }) => {
+    const trimmed = expression.trim()
+    if (!trimmed) {
+      throw new Error("Expression is required")
     }
-    try {
-      const raw = math.evaluate(expression)
-      // mathjs can return numbers, strings, booleans, BigNumbers, units, matrices.
-      // Coerce anything non-primitive to its string form so it serialises cleanly.
-      const result =
-        typeof raw === "number" ||
-        typeof raw === "string" ||
-        typeof raw === "boolean"
-          ? raw
-          : raw && typeof (raw as { toString?: () => string }).toString === "function"
-          ? (raw as { toString: () => string }).toString()
-          : String(raw)
-      return { ok: true, result }
-    } catch (err) {
-      return {
-        ok: false,
-        error: `Invalid math expression: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      }
+    const raw = math.evaluate(trimmed)
+    // mathjs can return numbers, strings, booleans, BigNumbers, units, matrices.
+    // Coerce anything non-primitive to its string form so it serialises cleanly.
+    if (
+      typeof raw === "number" ||
+      typeof raw === "string" ||
+      typeof raw === "boolean"
+    ) {
+      return raw
     }
+    if (raw && typeof (raw as { toString?: () => string }).toString === "function") {
+      return (raw as { toString: () => string }).toString()
+    }
+    return String(raw)
   },
-}
+})

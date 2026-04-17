@@ -248,6 +248,8 @@ export type AnalyticsEventMap = {
     tool_calls: number
     tool_names: string[]
     latency_ms: number
+    input_tokens?: number
+    output_tokens?: number
   }
   chat_error: {
     user_id: string
