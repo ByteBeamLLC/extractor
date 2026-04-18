@@ -23,6 +23,9 @@ beforeEach(() => {
   process.env.QUICKBOOKS_CLIENT_SECRET = "csec"
   process.env.NEXT_PUBLIC_SITE_URL = "https://app.example.com"
   process.env.QUICKBOOKS_ENV = "sandbox"
+  // Required by tokenCrypto — deliver transitively refreshes tokens which
+  // encrypts the rotated refresh_token before persisting.
+  process.env.QUICKBOOKS_TOKEN_ENCRYPTION_KEY = "a".repeat(64)
   vi.restoreAllMocks()
 })
 

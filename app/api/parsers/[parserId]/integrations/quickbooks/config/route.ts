@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createSupabaseServerComponentClient } from "@/lib/supabase/server"
+import { QBO_NO_CACHE_HEADERS } from "@/lib/extractor/quickbooks/httpHeaders"
 import type { QuickBooksConfig } from "@/lib/extractor/types"
 
 export const runtime = "nodejs"
@@ -31,7 +32,12 @@ export async function PATCH(
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  if (!user) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401, headers: QBO_NO_CACHE_HEADERS }
+    )
+  }
 
   const { data: integration, error } = await supabase
     .from("parser_integrations")
@@ -41,16 +47,27 @@ export async function PATCH(
     .eq("type", "quickbooks")
     .maybeSingle()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500, headers: QBO_NO_CACHE_HEADERS }
+    )
+  }
   if (!integration) {
-    return NextResponse.json({ error: "QuickBooks integration not found" }, { status: 404 })
+    return NextResponse.json(
+      { error: "QuickBooks integration not found" },
+      { status: 404, headers: QBO_NO_CACHE_HEADERS }
+    )
   }
 
   let body: Partial<QuickBooksConfig>
   try {
     body = await request.json()
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
+    return NextResponse.json(
+      { error: "Invalid JSON" },
+      { status: 400, headers: QBO_NO_CACHE_HEADERS }
+    )
   }
 
   const current = (integration as any).config as QuickBooksConfig
@@ -65,13 +82,16 @@ export async function PATCH(
   // Sanity: reject configs that won't deliver. The setup UI enforces these
   // already but we double-check server-side.
   if ((next.target_entity === "bill" || next.target_entity === "purchase") && !next.default_account_id) {
-    return NextResponse.json({ error: "default_account_id is required for Bill / Purchase" }, { status: 400 })
+    return NextResponse.json(
+      { error: "default_account_id is required for Bill / Purchase" },
+      { status: 400, headers: QBO_NO_CACHE_HEADERS }
+    )
   }
   if (next.target_entity === "purchase") {
     if (!next.default_payment_account_id || !next.payment_type) {
       return NextResponse.json(
         { error: "default_payment_account_id and payment_type are required for Purchase" },
-        { status: 400 }
+        { status: 400, headers: QBO_NO_CACHE_HEADERS }
       )
     }
   }
@@ -82,8 +102,11 @@ export async function PATCH(
     .eq("id", (integration as any).id)
 
   if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 })
+    return NextResponse.json(
+      { error: updateError.message },
+      { status: 500, headers: QBO_NO_CACHE_HEADERS }
+    )
   }
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true }, { headers: QBO_NO_CACHE_HEADERS })
 }

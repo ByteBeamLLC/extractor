@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createSupabaseServerComponentClient } from "@/lib/supabase/server"
 import { buildQuickBooksAuthUrl } from "@/lib/extractor/quickbooks/oauth"
+import { QBO_NO_CACHE_HEADERS } from "@/lib/extractor/quickbooks/httpHeaders"
 
 export const runtime = "nodejs"
 export const maxDuration = 30
@@ -15,12 +16,18 @@ export async function GET(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401, headers: QBO_NO_CACHE_HEADERS }
+    )
   }
 
   const parserId = request.nextUrl.searchParams.get("parserId")
   if (!parserId) {
-    return NextResponse.json({ error: "parserId required" }, { status: 400 })
+    return NextResponse.json(
+      { error: "parserId required" },
+      { status: 400, headers: QBO_NO_CACHE_HEADERS }
+    )
   }
 
   const { data: parser } = await supabase
@@ -31,7 +38,10 @@ export async function GET(request: NextRequest) {
     .single()
 
   if (!parser) {
-    return NextResponse.json({ error: "Parser not found" }, { status: 404 })
+    return NextResponse.json(
+      { error: "Parser not found" },
+      { status: 404, headers: QBO_NO_CACHE_HEADERS }
+    )
   }
 
   const state = Buffer.from(
@@ -42,5 +52,7 @@ export async function GET(request: NextRequest) {
     })
   ).toString("base64url")
 
-  return NextResponse.redirect(buildQuickBooksAuthUrl(state))
+  return NextResponse.redirect(buildQuickBooksAuthUrl(state), {
+    headers: QBO_NO_CACHE_HEADERS,
+  })
 }

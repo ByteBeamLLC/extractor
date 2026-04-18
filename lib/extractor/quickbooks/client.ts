@@ -385,6 +385,9 @@ async function paginate<T>(
  * Normalize a name for QBO lookup / creation:
  *   - Strip leading/trailing whitespace
  *   - Collapse internal runs of whitespace to a single space
+ *   - Strip control characters (CR, LF, tab, NULL etc.) — these should never
+ *     appear in a vendor name and might be an injection attempt
+ *   - Cap length at 100 chars (QBO DisplayName max)
  *
  * Handles the common extraction artefacts: "ByteBeam Agency Ltd. " (trailing
  * space), "ByteBeam  Agency" (double space from PDF text reflow), etc. Without
@@ -392,7 +395,36 @@ async function paginate<T>(
  * auto-creating duplicates.
  */
 export function normalizeQbName(name: string): string {
-  return name.trim().replace(/\s+/g, " ")
+  // Strip control chars first so newlines collapse with adjacent whitespace.
+  // `\p{C}` covers all Unicode control/format characters including NULL,
+  // bell, vertical tab, line/paragraph separator, etc.
+  const stripped = name.replace(/[\p{C}]/gu, " ")
+  const collapsed = stripped.trim().replace(/\s+/g, " ")
+  return collapsed.length > 100 ? collapsed.slice(0, 100) : collapsed
+}
+
+/**
+ * Escape a string for use inside a single-quoted QBO SQL literal.
+ *
+ * QBO's query language is SQL-flavored: string literals are single-quoted and
+ * `\'` + `\\` are the escape sequences. The straightforward `replace(/'/g, "\\'")`
+ * we started with was incomplete — if input contains a raw backslash, it's
+ * passed through unchanged, which can:
+ *   1. Turn a subsequent real single quote into an escaped one (breaking the
+ *      literal), or
+ *   2. Be interpreted by a future parser update as an escape marker in ways
+ *      we didn't anticipate.
+ *
+ * The correct order is: escape backslashes first, THEN escape quotes. This
+ * gives us a proper 1-to-1 mapping that round-trips predictably.
+ *
+ * Only used in SELECT ... WHERE DisplayName = 'X' lookups. Inputs are already
+ * passed through `normalizeQbName`, so there should be no control characters
+ * by this point — but we don't rely on that here.
+ */
+export function escapeQbqlString(raw: string): string {
+  // Order matters: backslash → \\, then single-quote → \'
+  return raw.replace(/\\/g, "\\\\").replace(/'/g, "\\'")
 }
 
 /**
@@ -410,8 +442,10 @@ export async function findVendorByName(
 ): Promise<QbVendorRow | null> {
   const normalized = normalizeQbName(name)
   if (!normalized) return null
-  // QBO SQL is case-insensitive for equality; we still escape single quotes.
-  const safe = normalized.replace(/'/g, "\\'")
+  // Proper QBQL escape: backslash then quote (see escapeQbqlString for rationale).
+  // The earlier quote-only escape left backslashes unhandled, which could
+  // break out of the string literal in adversarial inputs.
+  const safe = escapeQbqlString(normalized)
   const res = await client.query<QueryResponse<"Vendor", QbVendorRow>>(
     `SELECT * FROM Vendor WHERE Active = true AND DisplayName = '${safe}' MAXRESULTS 1`
   )
@@ -424,7 +458,7 @@ export async function findCustomerByName(
 ): Promise<QbCustomerRow | null> {
   const normalized = normalizeQbName(name)
   if (!normalized) return null
-  const safe = normalized.replace(/'/g, "\\'")
+  const safe = escapeQbqlString(normalized)
   const res = await client.query<QueryResponse<"Customer", QbCustomerRow>>(
     `SELECT * FROM Customer WHERE Active = true AND DisplayName = '${safe}' MAXRESULTS 1`
   )

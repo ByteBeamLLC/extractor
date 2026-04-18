@@ -4,6 +4,8 @@ import {
   exchangeCodeForTokens,
   getQuickBooksEnvironment,
 } from "@/lib/extractor/quickbooks/oauth"
+import { encryptToken } from "@/lib/extractor/quickbooks/tokenCrypto"
+import { QBO_NO_CACHE_HEADERS } from "@/lib/extractor/quickbooks/httpHeaders"
 import {
   fetchAllAccounts,
   fetchAllCustomers,
@@ -29,14 +31,20 @@ export async function GET(request: NextRequest) {
   const error = searchParams.get("error")
 
   if (!stateRaw) {
-    return NextResponse.json({ error: "Missing state" }, { status: 400 })
+    return NextResponse.json(
+      { error: "Missing state" },
+      { status: 400, headers: QBO_NO_CACHE_HEADERS }
+    )
   }
 
   let state: { parserId: string; userId: string }
   try {
     state = JSON.parse(Buffer.from(stateRaw, "base64url").toString())
   } catch {
-    return NextResponse.json({ error: "Invalid state" }, { status: 400 })
+    return NextResponse.json(
+      { error: "Invalid state" },
+      { status: 400, headers: QBO_NO_CACHE_HEADERS }
+    )
   }
 
   const { parserId, userId } = state
@@ -44,7 +52,8 @@ export async function GET(request: NextRequest) {
 
   if (error || !code || !realmId) {
     return NextResponse.redirect(
-      `${redirectBase}?quickbooksError=${encodeURIComponent(error ?? "missing_code_or_realm")}`
+      `${redirectBase}?quickbooksError=${encodeURIComponent(error ?? "missing_code_or_realm")}`,
+      { headers: QBO_NO_CACHE_HEADERS }
     )
   }
 
@@ -60,7 +69,9 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (!parser) {
-      return NextResponse.redirect(`${redirectBase}?quickbooksError=unauthorized`)
+      return NextResponse.redirect(`${redirectBase}?quickbooksError=unauthorized`, {
+        headers: QBO_NO_CACHE_HEADERS,
+      })
     }
 
     const env = getQuickBooksEnvironment()
@@ -78,8 +89,11 @@ export async function GET(request: NextRequest) {
 
     const baseConfig: QuickBooksConfig = {
       realm_id: realmId,
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token,
+      // AES-256-GCM encryption at rest (Intuit security requirement). The raw
+      // plaintext tokens are only in memory for the duration of this handler
+      // and for each subsequent `ensureFreshAccessToken` call.
+      access_token: encryptToken(tokens.access_token),
+      refresh_token: encryptToken(tokens.refresh_token),
       token_expiry: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
       refresh_token_issued_at: new Date().toISOString(),
       environment: env,
@@ -130,7 +144,9 @@ export async function GET(request: NextRequest) {
         .single()
       if (insertError || !inserted) {
         console.error("[qbo-callback] Insert failed:", insertError)
-        return NextResponse.redirect(`${redirectBase}?quickbooksError=db_insert_failed`)
+        return NextResponse.redirect(`${redirectBase}?quickbooksError=db_insert_failed`, {
+          headers: QBO_NO_CACHE_HEADERS,
+        })
       }
       integrationId = (inserted as any).id
     }
@@ -193,9 +209,13 @@ export async function GET(request: NextRequest) {
       console.warn("[qbo-callback] Snapshot fetch failed:", err)
     }
 
-    return NextResponse.redirect(`${redirectBase}?quickbooksConnected=true`)
+    return NextResponse.redirect(`${redirectBase}?quickbooksConnected=true`, {
+      headers: QBO_NO_CACHE_HEADERS,
+    })
   } catch (err) {
     console.error("[qbo-callback] Error:", err)
-    return NextResponse.redirect(`${redirectBase}?quickbooksError=token_exchange_failed`)
+    return NextResponse.redirect(`${redirectBase}?quickbooksError=token_exchange_failed`, {
+      headers: QBO_NO_CACHE_HEADERS,
+    })
   }
 }

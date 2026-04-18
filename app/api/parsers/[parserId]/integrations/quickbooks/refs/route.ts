@@ -7,6 +7,7 @@ import {
   fetchAllVendors,
   getQuickBooksClient,
 } from "@/lib/extractor/quickbooks/client"
+import { QBO_NO_CACHE_HEADERS } from "@/lib/extractor/quickbooks/httpHeaders"
 import type { QuickBooksConfig } from "@/lib/extractor/types"
 
 export const runtime = "nodejs"
@@ -24,7 +25,12 @@ export async function POST(
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  if (!user) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401, headers: QBO_NO_CACHE_HEADERS }
+    )
+  }
 
   const { data: integration, error } = await supabase
     .from("parser_integrations")
@@ -34,9 +40,17 @@ export async function POST(
     .eq("type", "quickbooks")
     .maybeSingle()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500, headers: QBO_NO_CACHE_HEADERS }
+    )
+  }
   if (!integration) {
-    return NextResponse.json({ error: "QuickBooks integration not found" }, { status: 404 })
+    return NextResponse.json(
+      { error: "QuickBooks integration not found" },
+      { status: 404, headers: QBO_NO_CACHE_HEADERS }
+    )
   }
 
   const config = (integration as any).config as QuickBooksConfig
@@ -72,19 +86,25 @@ export async function POST(
 
     await supabase.from("parser_integrations").update({ config: updated }).eq("id", integrationId)
 
-    return NextResponse.json({
-      accounts: updated.accounts_snapshot,
-      vendors: updated.vendors_snapshot,
-      customers: updated.customers_snapshot,
-      tax_codes: updated.tax_codes_snapshot,
-      refreshed_at: updated.snapshot_refreshed_at,
-    })
+    return NextResponse.json(
+      {
+        accounts: updated.accounts_snapshot,
+        vendors: updated.vendors_snapshot,
+        customers: updated.customers_snapshot,
+        tax_codes: updated.tax_codes_snapshot,
+        refreshed_at: updated.snapshot_refreshed_at,
+      },
+      { headers: QBO_NO_CACHE_HEADERS }
+    )
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to refresh references"
     await supabase
       .from("parser_integrations")
       .update({ last_error: message })
       .eq("id", integrationId)
-    return NextResponse.json({ error: message }, { status: 502 })
+    return NextResponse.json(
+      { error: message },
+      { status: 502, headers: QBO_NO_CACHE_HEADERS }
+    )
   }
 }

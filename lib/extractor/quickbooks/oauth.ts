@@ -13,6 +13,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { QuickBooksConfig } from "@/lib/extractor/types"
+import { decryptTokenOrLegacy, encryptToken } from "./tokenCrypto"
 
 const DISCOVERY_PROD = "https://developer.api.intuit.com/.well-known/openid_configuration"
 const DISCOVERY_SANDBOX =
@@ -171,14 +172,59 @@ export async function ensureFreshAccessToken(
   integrationId: string,
   supabase: SupabaseClient
 ): Promise<{ accessToken: string; updatedConfig: QuickBooksConfig }> {
+  // Tokens on disk are AES-256-GCM-encrypted per Intuit's security requirement
+  // (see tokenCrypto.ts). On read, decrypt; on write, re-encrypt.
+  // `decryptTokenOrLegacy` passes through plaintext unchanged so legacy rows
+  // created before encryption was deployed still function — and get migrated
+  // on this same call (we always re-encrypt on the write path below).
+  const plaintextAccessToken = decryptTokenOrLegacy(config.access_token)
+
   const expiry = new Date(config.token_expiry).getTime()
-  if (Number.isFinite(expiry) && Date.now() < expiry - 5 * 60 * 1000) {
-    return { accessToken: config.access_token, updatedConfig: config }
+  const isFresh = Number.isFinite(expiry) && Date.now() < expiry - 5 * 60 * 1000
+
+  // Legacy rows stored in plaintext must be re-encrypted even if the token is
+  // still fresh, so that Intuit's security review never finds unencrypted
+  // tokens in the DB. Detect this case by checking whether the stored value
+  // was plaintext (i.e., decryptTokenOrLegacy returned it unchanged).
+  const wasLegacyPlaintext = plaintextAccessToken === config.access_token
+
+  if (isFresh && !wasLegacyPlaintext) {
+    // Fast path: token still valid, already encrypted. Return decrypted token
+    // for in-memory use but leave the stored config as-is.
+    return {
+      accessToken: plaintextAccessToken,
+      updatedConfig: config,
+    }
   }
+
+  if (isFresh && wasLegacyPlaintext) {
+    // Token is still valid but stored as plaintext — re-encrypt in place
+    // without hitting Intuit. One-shot migration for rows created before
+    // encryption was deployed.
+    const migratedConfig: QuickBooksConfig = {
+      ...config,
+      access_token: encryptToken(plaintextAccessToken),
+      refresh_token: encryptToken(decryptTokenOrLegacy(config.refresh_token)),
+    }
+    const { error } = await supabase
+      .from("parser_integrations")
+      .update({ config: migratedConfig })
+      .eq("id", integrationId)
+    if (error) {
+      // Migration failure is not customer-blocking — log and continue with
+      // the still-valid plaintext token. Next call will retry the migration.
+      console.warn(`[qbo-oauth] Legacy token migration failed: ${error.message}`)
+      return { accessToken: plaintextAccessToken, updatedConfig: config }
+    }
+    return { accessToken: plaintextAccessToken, updatedConfig: migratedConfig }
+  }
+
+  // Token is stale — refresh against Intuit.
+  const plaintextRefreshToken = decryptTokenOrLegacy(config.refresh_token)
 
   let tokens: QuickBooksTokenSet
   try {
-    tokens = await refreshTokens(config.refresh_token)
+    tokens = await refreshTokens(plaintextRefreshToken)
   } catch (err) {
     // Mark integration as errored so the UI can surface a "Reconnect" CTA.
     await supabase
@@ -193,8 +239,9 @@ export async function ensureFreshAccessToken(
 
   const updatedConfig: QuickBooksConfig = {
     ...config,
-    access_token: tokens.access_token,
-    refresh_token: tokens.refresh_token,
+    // Encrypt both tokens at rest. See tokenCrypto.ts for format + key mgmt.
+    access_token: encryptToken(tokens.access_token),
+    refresh_token: encryptToken(tokens.refresh_token),
     token_expiry: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
     refresh_token_issued_at: new Date().toISOString(),
   }
@@ -212,6 +259,7 @@ export async function ensureFreshAccessToken(
     throw new Error(`Failed to persist rotated QBO tokens: ${error.message}`)
   }
 
+  // Return the plaintext access token for in-memory use by the caller.
   return { accessToken: tokens.access_token, updatedConfig }
 }
 

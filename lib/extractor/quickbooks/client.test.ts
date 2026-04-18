@@ -2,12 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import {
   createVendor,
   entityExistsInQbo,
+  escapeQbqlString,
   fetchAllAccounts,
   fetchAllVendors,
   findCustomerByName,
   findVendorByName,
   getCompanyInfo,
   getQuickBooksClient,
+  normalizeQbName,
   QuickBooksApiError,
   type QuickBooksClient,
 } from "./client"
@@ -20,6 +22,9 @@ beforeEach(() => {
   process.env.QUICKBOOKS_CLIENT_SECRET = "csec"
   process.env.NEXT_PUBLIC_SITE_URL = "https://app.example.com"
   process.env.QUICKBOOKS_ENV = "sandbox"
+  // 32-byte hex AES-256 key for tokenCrypto. Required because the client
+  // transitively calls ensureFreshAccessToken which encrypts/decrypts tokens.
+  process.env.QUICKBOOKS_TOKEN_ENCRYPTION_KEY = "a".repeat(64)
   vi.restoreAllMocks()
 })
 
@@ -576,5 +581,80 @@ describe("paginate (via fetchAllAccounts / fetchAllVendors)", () => {
     const all = await fetchAllVendors(client)
     expect(all).toHaveLength(1002)
     expect(all[1001].DisplayName).toBe("Vendor 1001")
+  })
+})
+
+describe("escapeQbqlString (Intuit security requirement: SQL injection defense)", () => {
+  it("escapes backslash to double-backslash", () => {
+    expect(escapeQbqlString(`Acme \\ Co`)).toBe(`Acme \\\\ Co`)
+  })
+
+  it("escapes single-quote to \\'", () => {
+    expect(escapeQbqlString(`O'Brien`)).toBe(`O\\'Brien`)
+  })
+
+  it("escapes backslash BEFORE quote so round-trip is unambiguous", () => {
+    // Input: backslash + single-quote ("\'")
+    // Wrong order (quote first, then backslash) would produce "\\''" which
+    // reads as "escaped backslash + unescaped quote" — breaks out of the
+    // literal. Correct order produces "\\\\\\\'" which parses back to "\'".
+    const input = `\\'`
+    const escaped = escapeQbqlString(input)
+    // After escape: backslash -> \\, then ' -> \'
+    // So "\\'" becomes "\\\\" + "\\'" = "\\\\\\'"
+    expect(escaped).toBe(`\\\\\\'`)
+  })
+
+  it("is a no-op on benign input", () => {
+    expect(escapeQbqlString("Acme Corp")).toBe("Acme Corp")
+    expect(escapeQbqlString("ByteBeam Agency Ltd.")).toBe("ByteBeam Agency Ltd.")
+  })
+
+  it("handles empty string", () => {
+    expect(escapeQbqlString("")).toBe("")
+  })
+
+  it("does not break out of the SQL string for a crafted injection input", () => {
+    // Classic SQL injection shape.
+    const injection = `'; DROP TABLE Vendor; --`
+    const escaped = escapeQbqlString(injection)
+    // Quote is escaped so it can't close the literal.
+    expect(escaped).toBe(`\\'; DROP TABLE Vendor; --`)
+    // The literal the callers build is: `'${escaped}'`
+    const wrapped = `'${escaped}'`
+    // Walk chars and verify exactly ONE pair of unescaped quotes wraps the value.
+    let unescapedQuotes = 0
+    for (let i = 0; i < wrapped.length; i++) {
+      if (wrapped[i] === "'" && wrapped[i - 1] !== "\\") unescapedQuotes++
+    }
+    expect(unescapedQuotes).toBe(2)
+  })
+})
+
+describe("normalizeQbName (audit fix #3, hardened)", () => {
+  it("trims leading / trailing whitespace", () => {
+    expect(normalizeQbName("  ByteBeam  ")).toBe("ByteBeam")
+  })
+
+  it("collapses internal runs of whitespace to a single space", () => {
+    expect(normalizeQbName("ByteBeam    Agency\tLtd.")).toBe("ByteBeam Agency Ltd.")
+  })
+
+  it("strips control characters", () => {
+    // NULL, bell, vertical tab, CR, LF — none of these belong in a name.
+    expect(normalizeQbName("Acme\x00Corp")).toBe("Acme Corp")
+    expect(normalizeQbName("Acme\nCorp")).toBe("Acme Corp")
+    expect(normalizeQbName("Acme\rCorp")).toBe("Acme Corp")
+    expect(normalizeQbName("Acme\x07Corp")).toBe("Acme Corp")
+  })
+
+  it("caps length at 100 chars (QBO DisplayName max)", () => {
+    const long = "A".repeat(200)
+    expect(normalizeQbName(long).length).toBe(100)
+  })
+
+  it("returns empty string for all-whitespace input", () => {
+    expect(normalizeQbName("   ")).toBe("")
+    expect(normalizeQbName("\n\t\r")).toBe("")
   })
 })

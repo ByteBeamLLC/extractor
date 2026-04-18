@@ -8,16 +8,22 @@ import {
   refreshTokens,
   revokeToken,
 } from "./oauth"
+import { decryptToken, encryptToken } from "./tokenCrypto"
 import type { QuickBooksConfig } from "@/lib/extractor/types"
 
 // Save real env so we can restore it; tests mutate process.env freely.
 const ORIGINAL_ENV = { ...process.env }
+
+// Test key (32-byte hex). Real deploys use a different, cryptographically
+// random key set via Vercel env.
+const TEST_CRYPTO_KEY = "a".repeat(64)
 
 beforeEach(() => {
   process.env.QUICKBOOKS_CLIENT_ID = "test-client-id"
   process.env.QUICKBOOKS_CLIENT_SECRET = "test-client-secret"
   process.env.NEXT_PUBLIC_SITE_URL = "https://app.example.com"
   process.env.QUICKBOOKS_ENV = "sandbox"
+  process.env.QUICKBOOKS_TOKEN_ENCRYPTION_KEY = TEST_CRYPTO_KEY
   vi.restoreAllMocks()
 })
 
@@ -201,10 +207,17 @@ function makeSupabaseSpy() {
   }
 }
 
+/**
+ * Build a config in the SHAPE WE STORE IN PRODUCTION: access_token and
+ * refresh_token are always AES-256-GCM ciphertext in the DB (Intuit security
+ * requirement). Tests that exercise the read path should start here.
+ *
+ * Legacy-plaintext behavior is covered by a separate helper.
+ */
 const baseConfig = (overrides: Partial<QuickBooksConfig> = {}): QuickBooksConfig => ({
   realm_id: "RID",
-  access_token: "OLD_AT",
-  refresh_token: "OLD_RT",
+  access_token: encryptToken("OLD_AT"),
+  refresh_token: encryptToken("OLD_RT"),
   token_expiry: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
   refresh_token_issued_at: new Date().toISOString(),
   environment: "sandbox",
@@ -226,20 +239,36 @@ const baseConfig = (overrides: Partial<QuickBooksConfig> = {}): QuickBooksConfig
   ...overrides,
 })
 
+/**
+ * Config with tokens stored as LEGACY PLAINTEXT — mimics a row created before
+ * encryption was deployed. Used to verify the transparent migration on read.
+ */
+const legacyPlaintextConfig = (
+  overrides: Partial<QuickBooksConfig> = {}
+): QuickBooksConfig => ({
+  ...baseConfig(),
+  access_token: "OLD_AT",
+  refresh_token: "OLD_RT",
+  ...overrides,
+})
+
 describe("ensureFreshAccessToken", () => {
-  it("returns the existing access token when expiry is comfortably in the future (no fetch)", async () => {
+  it("returns the decrypted access token on the fast path when expiry is comfortably in the future (no fetch, no DB write)", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch")
     const { supabase, update } = makeSupabaseSpy()
+    // baseConfig stores tokens in production shape (encrypted).
     const cfg = baseConfig({ token_expiry: new Date(Date.now() + 60 * 60 * 1000).toISOString() })
 
     const result = await ensureFreshAccessToken(cfg, "INTEG_1", supabase)
 
+    // Caller receives PLAINTEXT for in-memory use; stored config stays encrypted.
     expect(result.accessToken).toBe("OLD_AT")
+    expect(result.updatedConfig).toBe(cfg) // same reference — no changes
     expect(fetchSpy).not.toHaveBeenCalled()
     expect(update).not.toHaveBeenCalled()
   })
 
-  it("refreshes when token expires within the 5-minute safety window", async () => {
+  it("refreshes when token expires within the 5-minute safety window and encrypts the new tokens at rest", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
       new Response(
         JSON.stringify({
@@ -256,11 +285,16 @@ describe("ensureFreshAccessToken", () => {
     const cfg = baseConfig({ token_expiry: new Date(Date.now() + 4 * 60 * 1000).toISOString() })
 
     const result = await ensureFreshAccessToken(cfg, "INTEG_1", supabase)
+    // Plaintext returned to caller for in-memory use.
     expect(result.accessToken).toBe("NEW_AT")
-    expect(result.updatedConfig.refresh_token).toBe("ROTATED_RT")
+    // But the updatedConfig shape matches what went to the DB — encrypted.
+    expect(result.updatedConfig.refresh_token).not.toBe("ROTATED_RT")
+    expect(result.updatedConfig.refresh_token.startsWith("qbo_enc:v1:")).toBe(true)
+    expect(decryptToken(result.updatedConfig.refresh_token)).toBe("ROTATED_RT")
+    expect(decryptToken(result.updatedConfig.access_token)).toBe("NEW_AT")
   })
 
-  it("PERSISTS the rotated refresh_token immediately after refresh (critical invariant)", async () => {
+  it("PERSISTS the rotated refresh_token immediately after refresh — ENCRYPTED at rest (critical invariant)", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
       new Response(
         JSON.stringify({
@@ -278,17 +312,47 @@ describe("ensureFreshAccessToken", () => {
     await ensureFreshAccessToken(cfg, "INTEG_42", supabase)
 
     expect(from).toHaveBeenCalledWith("parser_integrations")
-    // The update call must include the NEW rotated refresh token, not the old one.
     const updateChain = (from.mock.results[0].value as any).update
     expect(updateChain).toHaveBeenCalledTimes(1)
     const patch = (updateChain as any).mock.calls[0][0]
-    expect(patch.config.refresh_token).toBe("ROTATED_RT_DIFFERENT")
-    expect(patch.config.access_token).toBe("NEW_AT")
+    // Intuit requirement: refresh_token must be stored encrypted, NOT plaintext.
+    // A reviewer checking the DB column must see ciphertext, not the token value.
+    expect(patch.config.refresh_token).not.toBe("ROTATED_RT_DIFFERENT")
+    expect(patch.config.refresh_token.startsWith("qbo_enc:v1:")).toBe(true)
+    expect(decryptToken(patch.config.refresh_token)).toBe("ROTATED_RT_DIFFERENT")
+    expect(patch.config.access_token).not.toBe("NEW_AT")
+    expect(decryptToken(patch.config.access_token)).toBe("NEW_AT")
     // refresh_token_issued_at must be bumped so the UI can show a reconnect banner before 5y.
     expect(typeof patch.config.refresh_token_issued_at).toBe("string")
     expect(new Date(patch.config.refresh_token_issued_at).getTime()).toBeGreaterThan(
       Date.now() - 5_000
     )
+  })
+
+  it("MIGRATION: re-encrypts legacy plaintext tokens on read even when access token is still fresh", async () => {
+    // Backwards-compat path: integrations created before encryption was
+    // deployed have plaintext tokens in the DB. On first touch after deploy,
+    // we should silently re-encrypt them in place — WITHOUT hitting Intuit.
+    const fetchSpy = vi.spyOn(globalThis, "fetch")
+    const { supabase, from } = makeSupabaseSpy()
+    const cfg = legacyPlaintextConfig({
+      token_expiry: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    })
+
+    const result = await ensureFreshAccessToken(cfg, "INTEG_MIG", supabase)
+
+    // Caller still gets the plaintext token for in-memory use.
+    expect(result.accessToken).toBe("OLD_AT")
+    // No network call — migration is local only.
+    expect(fetchSpy).not.toHaveBeenCalled()
+    // DB was updated with encrypted versions of the same token values.
+    const updateChain = (from.mock.results[0].value as any).update
+    expect(updateChain).toHaveBeenCalledTimes(1)
+    const patch = (updateChain as any).mock.calls[0][0]
+    expect(patch.config.access_token.startsWith("qbo_enc:v1:")).toBe(true)
+    expect(patch.config.refresh_token.startsWith("qbo_enc:v1:")).toBe(true)
+    expect(decryptToken(patch.config.access_token)).toBe("OLD_AT")
+    expect(decryptToken(patch.config.refresh_token)).toBe("OLD_RT")
   })
 
   it("on refresh failure marks the integration is_active=false and surfaces the error", async () => {
