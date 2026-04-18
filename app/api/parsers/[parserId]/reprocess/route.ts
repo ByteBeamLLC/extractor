@@ -3,8 +3,10 @@ import { createSupabaseServerComponentClient, createSupabaseServiceRoleClient } 
 import { runExtraction } from "@/lib/extraction/runExtraction"
 import { countDocumentPages } from "@/lib/extraction/api"
 import type { SchemaField } from "@/lib/schema"
-import { reserveCredits, refundCredits, reserveFailureMessage } from "@/lib/extractor/billing/credits"
+import { reserveCredits, refundCredits, getOrCreateSubscription } from "@/lib/extractor/billing/credits"
+import { buildQuotaErrorBody } from "@/lib/extractor/billing/quota-response"
 import { deliverToIntegrations } from "@/lib/extractor/integrations/orchestrator"
+import type { PlanTier } from "@/lib/stripe/config"
 
 export const runtime = "nodejs"
 // Reprocess re-runs the full extraction pipeline (download file, count
@@ -127,8 +129,17 @@ export async function POST(
     { allowFirstDocFree: false }
   )
   if (!reservation.reserved) {
+    const sub = await getOrCreateSubscription(
+      user.id,
+      supabase,
+      user.is_anonymous === true,
+    )
     return NextResponse.json(
-      { error: reserveFailureMessage(reservation) },
+      buildQuotaErrorBody({
+        reservation,
+        pagesNeeded: pageCount,
+        currentTier: (sub.tier as PlanTier) ?? "free",
+      }),
       { status: 402 }
     )
   }

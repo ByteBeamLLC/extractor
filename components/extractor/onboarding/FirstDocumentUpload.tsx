@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
 import { useAuthDialog } from "@/components/auth/AuthDialogContext"
+import { useUpgradeDialog } from "@/components/billing/UpgradeDialogContext"
+import type { QuotaErrorBody } from "@/lib/extractor/billing/quota-response"
 import { useTour } from "@/components/tour/TourProvider"
 import { DocumentUploader } from "@/components/extractor/test/DocumentUploader"
 import { useSidebar } from "@/components/ui/sidebar"
@@ -27,6 +29,7 @@ export function FirstDocumentUpload({ onParserCreated }: FirstDocumentUploadProp
   const supabase = useSupabaseClient()
   const router = useRouter()
   const { openAuthDialog } = useAuthDialog()
+  const { openUpgradeDialog } = useUpgradeDialog()
   const { skipTour } = useTour()
   const { setOpen: setSidebarOpen } = useSidebar()
 
@@ -223,6 +226,24 @@ export function FirstDocumentUpload({ onParserCreated }: FirstDocumentUploadProp
         if (!extractResponse.ok) {
           if (extractResponse.status === 402 && session?.user?.is_anonymous) {
             openAuthDialog("sign-up")
+            setState("idle")
+            return
+          }
+          // Signed-in user hit the quota wall — onboarding flow's first doc
+          // was either >100 pages (first_doc_free cap) or the user had already
+          // burned their free perk. Open the upgrade dialog instead of
+          // throwing a generic error; their file stays in storage either way.
+          if (
+            extractResponse.status === 402 &&
+            extractData &&
+            extractData.reason &&
+            typeof extractData.pages_needed === "number"
+          ) {
+            openUpgradeDialog({
+              quota: extractData as QuotaErrorBody,
+              fileName: file.name,
+              source: "onboarding_first_document",
+            })
             setState("idle")
             return
           }

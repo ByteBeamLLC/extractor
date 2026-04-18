@@ -7,9 +7,11 @@ import { deliverToIntegrations } from "@/lib/extractor/integrations/orchestrator
 import {
   reserveCredits,
   refundCredits,
-  reserveFailureMessage,
+  getOrCreateSubscription,
   type ReserveResult,
 } from "@/lib/extractor/billing/credits"
+import { buildQuotaErrorBody } from "@/lib/extractor/billing/quota-response"
+import type { PlanTier } from "@/lib/stripe/config"
 import { trackServerEvent } from "@/lib/analytics/server"
 import { reportError } from "@/lib/errorReporting"
 
@@ -158,8 +160,21 @@ export async function POST(
     user.is_anonymous === true
   )
   if (!reservation.reserved) {
+    // Resolve the user's current tier so the upgrade dialog can frame the
+    // recommendation correctly. getOrCreateSubscription was already called
+    // inside reserveCredits (it ensures the row exists), so this second
+    // read is cheap and avoids threading tier through the reserve result.
+    const sub = await getOrCreateSubscription(
+      user.id,
+      supabase,
+      user.is_anonymous === true,
+    )
     return NextResponse.json(
-      { error: reserveFailureMessage(reservation) },
+      buildQuotaErrorBody({
+        reservation,
+        pagesNeeded: pageCount,
+        currentTier: (sub.tier as PlanTier) ?? "free",
+      }),
       { status: 402 }
     )
   }

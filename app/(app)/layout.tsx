@@ -6,6 +6,7 @@ import { createSupabaseServerComponentClient } from "@/lib/supabase/server"
 import { GlobalErrorBoundary } from "@/components/GlobalErrorBoundary"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SubscriptionProvider } from "@/components/billing/SubscriptionContext"
+import { UpgradeDialogProvider } from "@/components/billing/UpgradeDialogContext"
 import { ActiveParserProvider } from "@/components/extractor/parser-context"
 import { TourProvider } from "@/components/tour/TourProvider"
 import { AnalyticsIdentifier } from "@/components/providers/AnalyticsIdentifier"
@@ -71,6 +72,7 @@ export default async function AppLayout({
         <TimezoneCapture />
         <AuthDialogProvider>
           <SubscriptionProvider>
+          <UpgradeDialogProvider>
           <ActiveParserProvider>
             <TourProvider>
               <SidebarProvider defaultOpen={defaultOpen}>
@@ -85,6 +87,7 @@ export default async function AppLayout({
               </SidebarProvider>
             </TourProvider>
           </ActiveParserProvider>
+          </UpgradeDialogProvider>
           </SubscriptionProvider>
         </AuthDialogProvider>
       </SupabaseProvider>

@@ -30,6 +30,8 @@ import {
 } from "@/components/ui/select"
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
 import { useAuthDialog } from "@/components/auth/AuthDialogContext"
+import { useUpgradeDialog } from "@/components/billing/UpgradeDialogContext"
+import type { QuotaErrorBody } from "@/lib/extractor/billing/quota-response"
 import {
   ACCEPTED_EXTENSIONS,
   validateUploadFile,
@@ -97,6 +99,7 @@ export function DocumentDropZone({ parsers, onParserCreated }: DocumentDropZoneP
   const supabase = useSupabaseClient()
   const router = useRouter()
   const { openAuthDialog } = useAuthDialog()
+  const { openUpgradeDialog } = useUpgradeDialog()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // File state
@@ -121,6 +124,10 @@ export function DocumentDropZone({ parsers, onParserCreated }: DocumentDropZoneP
   // Extraction state
   const [isExtracting, setIsExtracting] = useState(false)
   const [extractStatus, setExtractStatus] = useState("")
+  // Separate persistent error state — extractStatus is tied to the isExtracting
+  // spinner and hides as soon as the request completes. For a failed upload
+  // we still need to tell the user *something*.
+  const [extractError, setExtractError] = useState<string | null>(null)
 
   // ── New parser creation mode (stored when user picks from create menu)
   const [pendingMode, setPendingMode] = useState<"full" | "ai" | "manual" | null>(null)
@@ -255,6 +262,7 @@ export function DocumentDropZone({ parsers, onParserCreated }: DocumentDropZoneP
     if (!session?.user?.id) { openAuthDialog("sign-in"); return }
 
     setIsExtracting(true)
+    setExtractError(null)
 
     try {
       let parserId: string
@@ -270,8 +278,16 @@ export function DocumentDropZone({ parsers, onParserCreated }: DocumentDropZoneP
           body: JSON.stringify(extractBody),
         })
         if (!res.ok) {
+          const body = (await res.json().catch(() => ({}))) as Partial<QuotaErrorBody> & { error?: string }
           if (res.status === 402 && session.user.is_anonymous) { openAuthDialog("sign-up"); return }
-          const body = await res.json().catch(() => ({}))
+          if (res.status === 402 && body.reason && body.pages_needed !== undefined) {
+            openUpgradeDialog({
+              quota: body as QuotaErrorBody,
+              fileName: file.name,
+              source: "dropzone_existing_parser",
+            })
+            return
+          }
           throw new Error(body.error ?? "Extraction failed")
         }
         router.push(`/parsers/${parserId}/documents`)
@@ -337,7 +353,16 @@ export function DocumentDropZone({ parsers, onParserCreated }: DocumentDropZoneP
           body: JSON.stringify(extractBody),
         })
         if (!extractRes.ok) {
-          const body = await extractRes.json().catch(() => ({}))
+          const body = (await extractRes.json().catch(() => ({}))) as Partial<QuotaErrorBody> & { error?: string }
+          if (extractRes.status === 402 && session.user.is_anonymous) { openAuthDialog("sign-up"); return }
+          if (extractRes.status === 402 && body.reason && body.pages_needed !== undefined) {
+            openUpgradeDialog({
+              quota: body as QuotaErrorBody,
+              fileName: file.name,
+              source: "dropzone_new_parser",
+            })
+            return
+          }
           throw new Error(body.error ?? "Extraction failed")
         }
         const extractData = await extractRes.json()
@@ -345,7 +370,10 @@ export function DocumentDropZone({ parsers, onParserCreated }: DocumentDropZoneP
         router.push(`/parsers/${parserId}/documents/${extractData.document_id}`)
       }
     } catch (err) {
-      console.error("Extraction error:", err)
+      // Surface the failure message to the user. Pre-dialog-wiring version
+      // silently console.error'd these — which is what drove the Ilia incident
+      // where a user retried the same upload 5× with no feedback.
+      setExtractError(err instanceof Error ? err.message : "Upload failed")
       setExtractStatus("")
     } finally {
       setIsExtracting(false)
@@ -433,6 +461,13 @@ export function DocumentDropZone({ parsers, onParserCreated }: DocumentDropZoneP
               <div className="flex items-center gap-2 text-xs text-muted-foreground mr-2">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 {extractStatus}
+              </div>
+            )}
+
+            {/* Persistent error from the last attempt. Cleared on next send. */}
+            {!isExtracting && extractError && (
+              <div className="flex items-center gap-2 text-xs text-destructive mr-2">
+                {extractError}
               </div>
             )}
 
