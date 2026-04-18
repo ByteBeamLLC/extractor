@@ -42,6 +42,7 @@ import {
 import { DocumentChat } from "@/components/extractor/chat/DocumentChat"
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
 import { copyToClipboard } from "@/lib/clipboard"
+import { FirstDocFreeBanner } from "@/components/billing/FirstDocFreeBanner"
 import {
   downloadSingleDocCsv,
   downloadSingleDocExcel,
@@ -414,6 +415,18 @@ export function DocumentDetailView({ parser, documentId, onUpdate }: DocumentDet
           <StatusIcon className={`h-3 w-3 mr-1 ${doc.status === "processing" ? "animate-spin" : ""}`} />
           {statusConf.label}
         </Badge>
+      </div>
+
+      {/* Moment A: first-doc-free banner — surfaces the free-tier perk the
+          user just used, the first time they see their completed extraction
+          on the detail page. Component self-gates on tier + signal. */}
+      <div className="px-4 sm:px-6 pt-3 shrink-0">
+        <FirstDocFreeBanner
+          pageCount={doc.page_count}
+          creditsUsed={doc.credits_used}
+          status={doc.status}
+          compact
+        />
       </div>
 
       {/* Side-by-side content */}

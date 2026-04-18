@@ -32,7 +32,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
+import { useUpgradeDialog } from "@/components/billing/UpgradeDialogContext"
+import { FirstDocFreeBanner } from "@/components/billing/FirstDocFreeBanner"
 import type { Parser, ProcessedDocument } from "@/lib/extractor/types"
+import type { QuotaErrorBody } from "@/lib/extractor/billing/quota-response"
 import { DocumentUploader } from "@/components/extractor/test/DocumentUploader"
 import { ExtractionResultsView } from "@/components/extractor/test/ExtractionResultsView"
 import { TourStep } from "@/components/tour/TourStep"
@@ -63,6 +66,7 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
   const session = useSession()
   const supabase = useSupabaseClient()
   const router = useRouter()
+  const { openUpgradeDialog } = useUpgradeDialog()
   const [documents, setDocuments] = useState<ProcessedDocument[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -281,6 +285,20 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
         if (!response.ok) {
           // Clean up orphaned storage file since the API rejected the request
           supabase.storage.from("parser-documents").remove([storagePath]).catch(() => {})
+
+          // 402 with a structured body → open the upgrade dialog instead of a
+          // raw error banner. The dialog handles both the "quota exceeded" and
+          // "file larger than Business plan" branches.
+          if (response.status === 402 && data.reason && typeof data.pages_needed === "number") {
+            openUpgradeDialog({
+              quota: data as QuotaErrorBody,
+              fileName: file.name,
+              source: "documents_page",
+            })
+            setUploadState("idle")
+            return
+          }
+
           throw new Error(data.error ?? "Extraction failed")
         }
 
@@ -423,6 +441,15 @@ export function DocumentsPage({ parser }: DocumentsPageProps) {
               </Button>
             </div>
           </div>
+
+          {/* Moment A: first-doc-free "we've got you" banner. Only renders
+              when the doc was processed without burning credits (free-tier
+              perk). Component self-gates on tier + signal. */}
+          <FirstDocFreeBanner
+            pageCount={completedDoc.page_count}
+            creditsUsed={completedDoc.credits_used}
+            status={completedDoc.status}
+          />
 
           <ExtractionResultsView
             results={completedDoc.results}
