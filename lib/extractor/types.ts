@@ -43,6 +43,7 @@ export type IntegrationType =
   | "power_automate"
   | "email_notification"
   | "gmail_inbox"
+  | "quickbooks"
 
 export interface WebhookConfig {
   url: string
@@ -77,6 +78,111 @@ export interface GmailInboxConfig {
   from_filter: string
   last_history_id: string | null
   last_polled_at: string | null
+}
+
+/**
+ * Snapshot of a QuickBooks reference list cached at setup time so the mapping UI
+ * can render dropdowns without round-tripping to QBO on every render. Refreshed
+ * on demand via the QuickBooks reference endpoint.
+ */
+export interface QuickBooksRef {
+  Id: string
+  Name: string
+}
+
+export interface QuickBooksAccountRef extends QuickBooksRef {
+  AccountType?: string
+  AccountSubType?: string
+  Classification?: string
+}
+
+export interface QuickBooksVendorRef extends QuickBooksRef {
+  CurrencyRef?: string
+}
+
+export interface QuickBooksTaxCodeRef extends QuickBooksRef {
+  TaxGroup?: boolean
+}
+
+/**
+ * QuickBooks Online integration config.
+ *
+ * Token storage notes:
+ *   - access_token expires in 1 hour
+ *   - refresh_token rotates roughly every 24h on use; the Nov 2025 policy
+ *     change introduced a hard 5-year cap. The orchestrator MUST persist any
+ *     new refresh_token returned by Intuit immediately or the next call will
+ *     fail with `invalid_grant` and lock the customer out.
+ *   - realm_id scopes everything to a single QBO company. A user with multiple
+ *     QBO companies must connect each parser separately.
+ *
+ * Field mapping notes:
+ *   - We default to AccountBasedExpenseLineDetail because invoice-extraction
+ *     flows almost never have item catalog mappings. Users opt in to
+ *     ItemBasedExpenseLineDetail by mapping a parsli field to "line_item".
+ *   - Vendor matching: we look up by DisplayName (case-insensitive) at delivery
+ *     time. If `auto_create_vendor` is true, we create on miss; otherwise the
+ *     delivery is marked failed and surfaces in the UI.
+ */
+export type QuickBooksTargetEntity = "bill" | "purchase" | "invoice"
+
+export type QuickBooksFieldKey =
+  | "vendor_name"
+  | "customer_name"
+  | "txn_date"
+  | "due_date"
+  | "doc_number"
+  | "memo"
+  | "currency"
+  | "exchange_rate"
+  | "total_amount"
+  | "tax_amount"
+  | "line_items" // expects an array of { description, amount, quantity?, account?, tax_code? }
+
+export interface QuickBooksFieldMapping {
+  // Maps a logical QBO field to the parsli field id (or constant value) that fills it.
+  // null means "leave unset / use default_*".
+  [qboField: string]: string | null
+}
+
+export interface QuickBooksConfig {
+  realm_id: string
+  access_token: string
+  refresh_token: string
+  /** ISO timestamp; refreshed in-place on every refresh call. */
+  token_expiry: string
+  /** ISO timestamp captured the last time we successfully rotated the refresh token. */
+  refresh_token_issued_at: string
+  environment: "sandbox" | "production"
+  company_name: string
+
+  target_entity: QuickBooksTargetEntity
+
+  /** Mapping from QBO field name → parsli field id. */
+  field_mapping: QuickBooksFieldMapping
+
+  /** Required for Bill/Purchase if vendor_name is unmapped or unmatched and auto_create is false. */
+  default_vendor_id: string | null
+  /** Required if no per-line account is mapped. */
+  default_account_id: string | null
+  /** Optional. For US AST set to "TAX" or "NON"; for non-US locales must be a real TaxCode Id. */
+  default_tax_code_id: string | null
+  /** Purchase only — the paying account (cash/credit-card/checking). */
+  default_payment_account_id: string | null
+  /** Purchase only. */
+  payment_type: "Cash" | "Check" | "CreditCard" | null
+
+  /** When true, create missing vendors on the fly using the extracted vendor_name. */
+  auto_create_vendor: boolean
+  /** When true, attach the source document to the created entity via Attachable. */
+  attach_source_document: boolean
+
+  /** Cached lookup lists, populated at setup and refreshable from the UI. */
+  accounts_snapshot: QuickBooksAccountRef[]
+  vendors_snapshot: QuickBooksVendorRef[]
+  customers_snapshot: QuickBooksRef[]
+  tax_codes_snapshot: QuickBooksTaxCodeRef[]
+  snapshot_refreshed_at: string | null
 }
 
 export interface ParserApiKey {
