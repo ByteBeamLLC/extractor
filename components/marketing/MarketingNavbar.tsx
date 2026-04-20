@@ -26,9 +26,15 @@ export function MarketingNavbar() {
   }, [])
 
   return (
+    // sticky (not fixed) so the AnnouncementBar above us in the DOM keeps its
+    // natural space at the top of the viewport. With `fixed top-0` the navbar
+    // was overlaying the announcement bar's first 64px, which made both
+    // illegible side-by-side. Sticky + top-0 means: sit below the bar at
+    // scroll=0, stick to the top of the viewport only once the bar scrolls
+    // off. Same scroll-to-backdrop behavior as before.
     <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-200",
+        "sticky top-0 left-0 right-0 z-50 transition-all duration-200",
         scrolled
           ? "bg-background/95 backdrop-blur-md border-b shadow-sm"
           : "bg-transparent"
