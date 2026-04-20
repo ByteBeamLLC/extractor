@@ -86,13 +86,20 @@ export async function GET() {
   }
 
   // ── Integration pages ──
+  // Per-integration publishedAt/updatedAt lets newly-launched integrations surface
+  // as fresh content in RSS readers and Google Discover. Falls back to the original
+  // hardcoded date for legacy entries that predate the launch-date field.
+  const INTEGRATIONS_DEFAULT_DATE = new Date("2026-04-03")
   for (const int of integrations) {
+    const updated = int.updatedAt ? new Date(int.updatedAt) : INTEGRATIONS_DEFAULT_DATE
+    const published = int.publishedAt ? new Date(int.publishedAt) : INTEGRATIONS_DEFAULT_DATE
     feed.addItem({
       title: `${int.name} Integration`,
       id: `${BASE_URL}/integrations/${int.slug}`,
       link: `${BASE_URL}/integrations/${int.slug}`,
       description: int.metaDescription,
-      date: new Date("2026-04-03"),
+      date: updated,
+      published,
       category: [{ name: "Integrations" }],
     })
   }

@@ -8,6 +8,19 @@ export interface IntegrationData {
   steps: { title: string; description: string }[]
   benefits: string[]
   faqs: { question: string; answer: string }[]
+  /**
+   * Optional publish / update dates used by the RSS feed (app/feed.xml/route.ts)
+   * and the sitemap. When absent, the feed falls back to its historical
+   * default (2026-04-03). Set these when launching a new integration so it
+   * surfaces as fresh content to feed readers and search engines.
+   */
+  publishedAt?: string
+  updatedAt?: string
+  /**
+   * Optional flag to render a "New" badge on the /integrations index page.
+   * Recommended for the first ~30 days after launch.
+   */
+  isNew?: boolean
 }
 
 export const integrations: IntegrationData[] = [
@@ -181,32 +194,41 @@ export const integrations: IntegrationData[] = [
   },
   {
     slug: "quickbooks",
-    name: "QuickBooks",
-    metaTitle: "QuickBooks Integration — Auto-Import Invoice & Receipt Data | Parsli",
+    name: "QuickBooks Online",
+    metaTitle: "QuickBooks Online Integration — Push Bills Directly | Parsli",
     metaDescription:
-      "Extract data from invoices, receipts, and bank statements and send it to QuickBooks automatically. AI-powered parsing replaces manual data entry. Free plan included.",
-    h1: "QuickBooks Integration",
+      "Push extracted invoices, bills, and receipts straight into QuickBooks Online. Native OAuth, auto-create vendors, original PDF attached. No Zapier middleman. Start free.",
+    h1: "QuickBooks Online Integration",
     heroDescription:
-      "Stop manually entering invoice and receipt data into QuickBooks. Parsli extracts structured data from your documents and pushes it to QuickBooks via Zapier or Make — automatically.",
+      "Parsli's native QuickBooks integration turns any invoice, bill, or receipt into a QuickBooks Bill, Expense, or Invoice automatically — with the original PDF attached. No Zapier, no Make, no templates. Connect in under 60 seconds and watch your AP inbox empty itself.",
     steps: [
-      { title: "Create a Parser", description: "Define the fields you need: vendor name, invoice number, amount, date, line items, tax." },
-      { title: "Upload or Forward Documents", description: "Upload invoices/receipts via dashboard, forward emails, or send via API." },
-      { title: "Connect to QuickBooks", description: "Use Zapier or Make to connect Parsli's webhook output to QuickBooks Online. Map extracted fields to QB fields." },
-      { title: "Data Flows Automatically", description: "Every extracted invoice or receipt creates a bill, expense, or transaction in QuickBooks without manual entry." },
+      { title: "Connect QuickBooks", description: "Click Connect QuickBooks on your parser's Export tab. A one-click OAuth flow hands you off to Intuit, you pick your QuickBooks company, and you're back in Parsli in 30 seconds." },
+      { title: "Map Your Fields Once", description: "Pick the target entity (Bill, Expense, or Invoice), choose a default expense account, and map your parser fields: vendor name, amount, date, line items. The dropdowns are pre-populated from your QuickBooks chart of accounts and vendor list." },
+      { title: "Drop in Your Documents", description: "Upload invoices and receipts, forward them by email, or send them via API. Parsli reads them with AI, pulls out every mapped field, and matches the vendor against your QuickBooks vendor list automatically." },
+      { title: "Bills Appear in QuickBooks", description: "Within seconds, the Bill lands in your QuickBooks company with the original PDF attached. Open the Bill in QuickBooks, review, and post. No copy-paste, no manual entry, no lost receipts." },
     ],
     benefits: [
-      "Eliminate manual invoice entry into QuickBooks",
-      "AI reads scanned invoices and receipts (no template setup)",
-      "Works with QuickBooks Online and Desktop (via Zapier/Make)",
-      "Handles any vendor format — no per-vendor configuration",
-      "Process [invoices to QuickBooks](/guides/extract-invoice-data-to-quickbooks) in seconds, not minutes",
+      "**Direct to QuickBooks** — no Zapier, no Make, no middleware subscription fees",
+      "**Auto-create missing vendors** — never stop an upload because a vendor isn't in your list yet (optional; off by default to prevent duplicates)",
+      "**Source PDF attached** — the original invoice lands in QuickBooks as an Attachable on the Bill, so your books keep their audit trail",
+      "**Duplicate-proof** — deterministic idempotency keys plus entity dedup mean the same invoice never creates two Bills",
+      "**Works with Essentials, Plus, and Advanced** — all QuickBooks Online plans that support Bills",
+      "**Sandbox-first, production-safe** — Intuit App Assessment approved, AES-256-GCM encrypted tokens at rest, zero-retention LLM processing",
+      "**Flexible entity mapping** — push vendor invoices as Bills, cash/card receipts as Expenses, or customer invoices as Invoices — all from the same parser",
     ],
     faqs: [
-      { question: "How does Parsli connect to QuickBooks?", answer: "Parsli sends extracted data via webhook to Zapier or Make, which then creates bills, expenses, or journal entries in QuickBooks. This approach is more flexible than direct API connections because you can transform and route data in the automation tool. According to Intuit, QuickBooks has over 7 million small business users — making it the #1 accounting platform for SMBs." },
-      { question: "Can it handle scanned invoices?", answer: "Yes. Parsli's AI includes built-in OCR powered by Google Gemini 2.5 Pro that reads scanned PDFs, photos, and image-based documents. Research from IEEE TPAMI shows that multimodal AI achieves 15-30% higher accuracy on scanned documents compared to traditional template-based OCR." },
-      { question: "Does it work with QuickBooks Desktop?", answer: "Yes, via Zapier's QuickBooks Desktop connector or Make's QB Desktop module. Parsli sends the data; the automation tool handles the QB connection." },
-      { question: "How much time does this save?", answer: "AIIM research shows organizations spend $20 in labor to file a single document manually. For teams entering 50+ invoices per month into QuickBooks, automating extraction saves 10-15 hours/month while reducing data entry errors from 4% to under 1%." },
+      { question: "Is this a direct integration or does it go through Zapier?", answer: "It's direct. Parsli is a QuickBooks app listed on Intuit's developer platform, connected via OAuth 2.0 to Intuit's Accounting API. Your data flows Parsli → QuickBooks with no third-party automation tool in the middle — no Zapier/Make subscription required, no per-operation fees, and no attachment-handling quirks that plague webhook-based integrations." },
+      { question: "Which QuickBooks plans does this work with?", answer: "QuickBooks Online Essentials, Plus, and Advanced — any plan that supports Bills. Simple Start doesn't have the Bills entity, but we can push Invoices and Expenses. QuickBooks Self-Employed and QuickBooks Desktop are not currently supported." },
+      { question: "Does the original PDF get attached to the Bill?", answer: "Yes — files up to 25MB are uploaded as an Attachable on the created Bill, so the source document stays with the transaction for audit purposes. You see the attachment right in the QuickBooks Bill view. Larger files are skipped but the Bill still posts." },
+      { question: "What happens if the vendor doesn't exist in my QuickBooks?", answer: "Your call — toggle auto-create on, and Parsli creates the vendor automatically using the extracted name. Toggle it off (default) and the delivery fails loudly with a clear error, so you can decide whether to pre-create the vendor or update the extracted name. This prevents silent duplicates that plague template-based AP tools." },
+      { question: "Will I get duplicate Bills if a document gets reprocessed?", answer: "No. Every delivery carries a deterministic idempotency key that QuickBooks honors within its cache window. Beyond that window, Parsli checks whether the prior Bill still exists in your QuickBooks and skips if it does. You'd only get a second Bill if you explicitly deleted the first one in QuickBooks — and then we treat the reprocess as a legitimate recreate." },
+      { question: "How secure is the OAuth token storage?", answer: "Refresh tokens are encrypted at rest with AES-256-GCM before they ever touch the database, per Intuit's security requirements. Tokens never appear in logs, never ship to the client, and are revoked at Intuit the moment you disconnect. We follow Intuit's Nov 2025 refresh-token rotation policy: the rotated token is persisted immediately on every refresh so your connection can't be invalidated by a race condition." },
+      { question: "Can I use QuickBooks alongside other Parsli integrations?", answer: "Yes. Hook QuickBooks up for AP automation while also sending the same extraction data to [Google Sheets](/integrations/google-sheets) for reporting, Zapier for notifications, or your [REST API](/integrations/api) for custom pipelines. Every integration runs independently per parser." },
+      { question: "How do I disconnect?", answer: "Two ways. Inside Parsli, click the trash icon on the QuickBooks card — this revokes the OAuth grant at Intuit and deletes the local credentials. Or disconnect from QuickBooks directly (Apps → My Apps → Disconnect). Either path invalidates the token and stops further writes to your books." },
     ],
+    publishedAt: "2026-04-20",
+    updatedAt: "2026-04-20",
+    isNew: true,
   },
   {
     slug: "outlook",
