@@ -3,7 +3,7 @@ import { getAllSolutionSlugs } from "@/lib/seo/solutions"
 import { getAllBlogPosts } from "@/lib/seo/blog-posts"
 import { getAllUseCaseSlugs } from "@/lib/seo/use-cases"
 import { getAllAlternativeSlugs } from "@/lib/seo/alternatives"
-import { getAllIntegrationSlugs } from "@/lib/seo/integrations"
+import { getAllIntegrationSlugs, integrations } from "@/lib/seo/integrations"
 import { getAllIndustrySlugs } from "@/lib/seo/industries"
 import { getAllDocumentTypeSlugs } from "@/lib/seo/document-types"
 import { getAllGuides } from "@/lib/seo/guides"
@@ -14,11 +14,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // Use a fixed date for static/rarely-changing pages so Google trusts lastModified signals.
   // Update this date when you make meaningful content changes to static pages.
   const staticDate = new Date("2026-04-10")
+  // Bumped when launching the QuickBooks integration — announcement bar,
+  // homepage messaging, and the /integrations hub all changed today.
+  const launchDate = new Date("2026-04-20")
 
   const staticPages: MetadataRoute.Sitemap = [
     {
       url: BASE_URL,
-      lastModified: staticDate,
+      lastModified: launchDate,
       changeFrequency: "weekly",
       priority: 1.0,
     },
@@ -307,7 +310,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: `${BASE_URL}/integrations`,
-      lastModified: staticDate,
+      lastModified: launchDate,
       changeFrequency: "monthly",
       priority: 0.7,
     },
@@ -382,14 +385,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })
   )
 
-  const integrationPages: MetadataRoute.Sitemap = getAllIntegrationSlugs().map(
-    (slug) => ({
-      url: `${BASE_URL}/integrations/${slug}`,
-      lastModified: staticDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.6,
-    })
-  )
+  // Integration pages: use each integration's own updatedAt when available so
+  // newly-launched integrations signal freshness to search engines. Boost
+  // priority for flagship entries (QuickBooks is high-intent commercial).
+  const FLAGSHIP_INTEGRATION_SLUGS = new Set(["quickbooks", "google-sheets", "zapier"])
+  const integrationPages: MetadataRoute.Sitemap = integrations.map((int) => ({
+    url: `${BASE_URL}/integrations/${int.slug}`,
+    lastModified: int.updatedAt ? new Date(int.updatedAt) : staticDate,
+    changeFrequency: "monthly" as const,
+    priority: FLAGSHIP_INTEGRATION_SLUGS.has(int.slug) ? 0.8 : 0.6,
+  }))
+  // Keep the getAllIntegrationSlugs() import for backwards-compat with any
+  // other callers; it's still the public accessor for slug-only consumers.
+  void getAllIntegrationSlugs
 
   const comparePages: MetadataRoute.Sitemap = getAllAlternativeSlugs().map(
     (slug) => ({

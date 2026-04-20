@@ -24,16 +24,40 @@ export async function generateMetadata({
   const integration = getIntegrationBySlug(params.slug)
   if (!integration) return {}
 
+  const pageUrl = `https://parsli.co/integrations/${integration.slug}`
   return {
     title: integration.metaTitle,
     description: integration.metaDescription,
     alternates: {
-      canonical: `https://parsli.co/integrations/${integration.slug}`,
+      canonical: pageUrl,
     },
     openGraph: {
       title: integration.metaTitle,
       description: integration.metaDescription,
-      url: `https://parsli.co/integrations/${integration.slug}`,
+      url: pageUrl,
+      type: "article",
+      // Attach OG image so link previews on LinkedIn / X / Slack show a card.
+      // Falls back to the root OG if an integration-specific one doesn't exist yet.
+      images: [
+        {
+          url: "https://parsli.co/parsli-og.png",
+          width: 1200,
+          height: 630,
+          alt: `${integration.name} + Parsli`,
+        },
+      ],
+      ...(integration.publishedAt
+        ? { publishedTime: integration.publishedAt }
+        : {}),
+      ...(integration.updatedAt
+        ? { modifiedTime: integration.updatedAt }
+        : {}),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: integration.metaTitle,
+      description: integration.metaDescription,
+      images: ["https://parsli.co/parsli-og.png"],
     },
   }
 }
@@ -51,7 +75,7 @@ export default function IntegrationPage({
       <JsonLd
         data={breadcrumbJsonLd([
           { name: "Home", url: "https://parsli.co" },
-          { name: "Integrations", url: "https://parsli.co/#integrations" },
+          { name: "Integrations", url: "https://parsli.co/integrations" },
           {
             name: integration.name,
             url: `https://parsli.co/integrations/${integration.slug}`,
@@ -65,6 +89,40 @@ export default function IntegrationPage({
             answer: f.answer,
           }))
         )}
+      />
+      {/* Article schema with dateline so Google Discover + rich results can
+          surface this as a launch announcement rather than evergreen content. */}
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Article",
+          headline: integration.h1,
+          description: integration.heroDescription,
+          url: `https://parsli.co/integrations/${integration.slug}`,
+          ...(integration.publishedAt
+            ? { datePublished: integration.publishedAt }
+            : {}),
+          ...(integration.updatedAt
+            ? { dateModified: integration.updatedAt }
+            : {}),
+          author: {
+            "@type": "Organization",
+            name: "Parsli",
+            url: "https://parsli.co",
+          },
+          publisher: {
+            "@type": "Organization",
+            name: "Parsli",
+            logo: {
+              "@type": "ImageObject",
+              url: "https://parsli.co/parsli-icon.png",
+            },
+          },
+          mainEntityOfPage: {
+            "@type": "WebPage",
+            "@id": `https://parsli.co/integrations/${integration.slug}`,
+          },
+        }}
       />
 
       {/* Hero */}

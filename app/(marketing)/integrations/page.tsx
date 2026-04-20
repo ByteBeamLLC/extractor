@@ -6,16 +6,16 @@ import { AuthButton } from "@/components/marketing/shared/AuthButton"
 import { integrations } from "@/lib/seo/integrations"
 
 export const metadata: Metadata = {
-  title: "Integrations — Google Sheets, Zapier & More",
+  title: "Integrations — QuickBooks, Google Sheets, Zapier & More",
   description:
-    "Connect Parsli to your existing tools. Send extracted document data to Google Sheets, Zapier, Make, Gmail, webhooks, and more. No code required.",
+    "Connect Parsli to your existing tools. Push extracted document data to QuickBooks Online, Google Sheets, Zapier, Make, Gmail, webhooks, and more. No code required.",
   alternates: {
     canonical: "https://parsli.co/integrations",
   },
   openGraph: {
-    title: "Integrations — Google Sheets, Zapier & More",
+    title: "Integrations — QuickBooks, Google Sheets, Zapier & More",
     description:
-      "Connect Parsli to Google Sheets, Zapier, Make, Gmail, and more.",
+      "Native QuickBooks Online integration, plus Google Sheets, Zapier, Make, Gmail, and webhooks. No middleware.",
     url: "https://parsli.co/integrations",
     images: [
       {
@@ -28,9 +28,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Integrations — Google Sheets, Zapier & More",
+    title: "Integrations — QuickBooks, Google Sheets, Zapier & More",
     description:
-      "Connect Parsli to Google Sheets, Zapier, Make, Gmail, and more.",
+      "Native QuickBooks Online integration, plus Google Sheets, Zapier, Make, Gmail, and webhooks.",
     images: ["https://parsli.co/parsli-og.png"],
   },
 }
@@ -54,28 +54,41 @@ export default function IntegrationsPage() {
         </div>
       </section>
 
-      {/* Integrations grid */}
+      {/* Integrations grid — `isNew` integrations float to the top so launches
+          get the first-click attention they deserve. Stable secondary sort by
+          slug keeps the order deterministic for SEO crawlers. */}
       <section className="pb-16">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {integrations.map((int) => (
-              <Link
-                key={int.slug}
-                href={`/integrations/${int.slug}`}
-                className="group rounded-xl border bg-card p-6 hover:border-primary/30 transition-colors"
-              >
-                <h2 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors">
-                  {int.name}
-                </h2>
-                <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
-                  {int.heroDescription}
-                </p>
-                <span className="inline-flex items-center gap-1 text-sm text-primary mt-3">
-                  Set up integration
-                  <ArrowRight className="h-3 w-3" />
-                </span>
-              </Link>
-            ))}
+            {[...integrations]
+              .sort((a, b) => {
+                if (a.isNew && !b.isNew) return -1
+                if (!a.isNew && b.isNew) return 1
+                return a.slug.localeCompare(b.slug)
+              })
+              .map((int) => (
+                <Link
+                  key={int.slug}
+                  href={`/integrations/${int.slug}`}
+                  className="group relative rounded-xl border bg-card p-6 hover:border-primary/30 transition-colors"
+                >
+                  {int.isNew && (
+                    <span className="absolute top-3 right-3 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-primary">
+                      New
+                    </span>
+                  )}
+                  <h2 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors">
+                    {int.name}
+                  </h2>
+                  <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
+                    {int.heroDescription}
+                  </p>
+                  <span className="inline-flex items-center gap-1 text-sm text-primary mt-3">
+                    Set up integration
+                    <ArrowRight className="h-3 w-3" />
+                  </span>
+                </Link>
+              ))}
           </div>
         </div>
       </section>
