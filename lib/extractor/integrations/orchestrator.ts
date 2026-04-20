@@ -3,9 +3,16 @@ import type {
   IntegrationDeliveryStatus,
   DocumentProcessedEvent,
 } from "./types"
-import type { ParserIntegration, WebhookConfig, ZapierMakeConfig, GoogleDocsConfig } from "@/lib/extractor/types"
+import type {
+  ParserIntegration,
+  WebhookConfig,
+  ZapierMakeConfig,
+  GoogleDocsConfig,
+  QuickBooksConfig,
+} from "@/lib/extractor/types"
 import { deliverWebhook } from "./webhookDelivery"
 import { createGoogleDoc } from "@/lib/extractor/google-docs/create-doc"
+import { deliverToQuickBooks } from "@/lib/extractor/quickbooks/deliver"
 
 /**
  * Delivers extraction results to all active integrations for a parser.
@@ -30,6 +37,10 @@ export async function deliverToIntegrations(
     .select("*")
     .eq("parser_id", parserId)
     .eq("is_active", true)
+
+  console.log(
+    `[orchestrator] parser=${parserId} doc=${documentId} found=${integrations?.length ?? 0} integrations err=${error?.message ?? "none"}`
+  )
 
   if (error || !integrations?.length) {
     return {}
@@ -120,6 +131,41 @@ export async function deliverToIntegrations(
           // Input integration — no outbound delivery needed
           deliveryStatus[integration.id] = { status: "skipped" }
           break
+
+        case "quickbooks": {
+          console.log(`[orchestrator] qbo delivery starting for integration=${integration.id} doc=${documentId}`)
+          const qbConfig = integration.config as QuickBooksConfig
+          const result = await deliverToQuickBooks({
+            config: qbConfig,
+            integrationId: integration.id,
+            parserId,
+            documentId,
+            results: cleanResults,
+            metadata: {
+              file_name: metadata.file_name,
+              mime_type: metadata.mime_type,
+            },
+            supabase,
+          })
+          console.log(
+            `[orchestrator] qbo result: ${result.status}${result.error ? ` error="${result.error}"` : ""}${result.qbo_entity_id ? ` entity=${result.qbo_entity_id}` : ""}`
+          )
+          deliveryStatus[integration.id] = {
+            status: result.status,
+            delivered_at: result.delivered_at,
+            error: result.error ?? null,
+            // Re-use doc_url slot for the QBO entity URL so existing UI surfaces it.
+            doc_url: result.qbo_entity_url,
+            // Persist the QBO identifiers so future reprocesses can dedup.
+            // Without these, the dedup check in deliverToQuickBooks has nothing
+            // to match against and we'd silently double-post on reprocess.
+            qbo_entity_id: result.qbo_entity_id,
+            qbo_entity_type: result.qbo_entity_type,
+            qbo_entity_url: result.qbo_entity_url,
+            qbo_attachable_id: result.attachable_id,
+          }
+          break
+        }
 
         default:
           deliveryStatus[integration.id] = { status: "skipped", error: "Unknown type" }

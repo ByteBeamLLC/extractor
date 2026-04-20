@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import { useSearchParams, useRouter, usePathname } from "next/navigation"
 import {
   Plus,
   Loader2,
@@ -11,6 +12,7 @@ import {
   Blocks,
   Workflow,
   Mail,
+  Calculator,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -28,6 +30,7 @@ import { GoogleSheetsSetup } from "./GoogleSheetsSetup"
 import { ZapierMakeForm } from "./ZapierMakeForm"
 import { GmailInboxSetup } from "./GmailInboxSetup"
 import { GoogleDocsSetup } from "./GoogleDocsSetup"
+import { QuickBooksSetup } from "./QuickBooksSetup"
 
 const INTEGRATION_OPTIONS: {
   type: IntegrationType
@@ -42,6 +45,7 @@ const INTEGRATION_OPTIONS: {
   { type: "make", label: "Make", description: "Send results to Make (formerly Integromat) scenarios", icon: Blocks },
   { type: "power_automate", label: "Power Automate", description: "Connect to Microsoft Power Automate flows", icon: Workflow },
   { type: "gmail_inbox", label: "Gmail Inbox", description: "Auto-extract attachments from emails matching a sender", icon: Mail },
+  { type: "quickbooks", label: "QuickBooks Online", description: "Push extracted invoices, bills, and receipts directly into QuickBooks", icon: Calculator },
 ]
 
 interface IntegrationListProps {
@@ -51,6 +55,9 @@ interface IntegrationListProps {
 export function IntegrationList({ parserId }: IntegrationListProps) {
   const session = useSession()
   const supabase = useSupabaseClient()
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
   const [integrations, setIntegrations] = useState<ParserIntegration[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddDialog, setShowAddDialog] = useState(false)
@@ -72,10 +79,36 @@ export function IntegrationList({ parserId }: IntegrationListProps) {
     loadIntegrations()
   }, [loadIntegrations])
 
+  // Auto-open the QuickBooks setup dialog after the OAuth redirect lands back
+  // here. Without this, the user just sees the integration card and has no
+  // obvious path to field mapping — the OAuth round-trip destroyed the in-
+  // progress dialog state, so we re-open it programmatically.
+  useEffect(() => {
+    const justConnected = searchParams.get("quickbooksConnected") === "true"
+    const oauthError = searchParams.get("quickbooksError")
+    if ((justConnected || oauthError) && !showAddDialog) {
+      setSelectedType("quickbooks")
+      setShowAddDialog(true)
+    }
+    // We intentionally don't depend on showAddDialog so the effect doesn't
+    // re-fire when the user closes the dialog manually.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
+
+  // Let an existing card open the configure dialog (edit mode).
+  const handleEditIntegration = useCallback((type: IntegrationType) => {
+    setSelectedType(type)
+    setShowAddDialog(true)
+  }, [])
+
   const handleCreated = () => {
     setSelectedType(null)
     setShowAddDialog(false)
     loadIntegrations()
+    // Clear the one-shot URL params so refreshing doesn't re-trigger the auto-open.
+    if (searchParams.get("quickbooksConnected") || searchParams.get("quickbooksError")) {
+      router.replace(pathname)
+    }
   }
 
   if (loading) {
@@ -121,6 +154,7 @@ export function IntegrationList({ parserId }: IntegrationListProps) {
               integration={integration}
               parserId={parserId}
               onUpdated={loadIntegrations}
+              onEdit={handleEditIntegration}
             />
           ))}
         </div>
@@ -199,6 +233,14 @@ export function IntegrationList({ parserId }: IntegrationListProps) {
 
           {selectedType === "gmail_inbox" && (
             <GmailInboxSetup
+              parserId={parserId}
+              onCreated={handleCreated}
+              onCancel={() => setSelectedType(null)}
+            />
+          )}
+
+          {selectedType === "quickbooks" && (
+            <QuickBooksSetup
               parserId={parserId}
               onCreated={handleCreated}
               onCancel={() => setSelectedType(null)}

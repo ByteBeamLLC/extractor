@@ -17,12 +17,14 @@ import {
   XCircle,
   AlertCircle,
   RefreshCw,
+  Calculator,
+  Settings,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { useSupabaseClient } from "@/lib/supabase/hooks"
-import type { ParserIntegration } from "@/lib/extractor/types"
+import type { ParserIntegration, IntegrationType } from "@/lib/extractor/types"
 
 const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   webhook: Webhook,
@@ -32,15 +34,18 @@ const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
   make: Blocks,
   power_automate: Workflow,
   gmail_inbox: Mail,
+  quickbooks: Calculator,
 }
 
 interface IntegrationCardProps {
   integration: ParserIntegration
   parserId: string
   onUpdated: () => void
+  /** Called when the user clicks "Configure" on a type that supports a settings dialog. */
+  onEdit?: (type: IntegrationType) => void
 }
 
-export function IntegrationCard({ integration, parserId, onUpdated }: IntegrationCardProps) {
+export function IntegrationCard({ integration, parserId, onUpdated, onEdit }: IntegrationCardProps) {
   const supabase = useSupabaseClient()
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<{ success: boolean; error?: string } | null>(null)
@@ -56,6 +61,17 @@ export function IntegrationCard({ integration, parserId, onUpdated }: Integratio
   }
 
   const handleDelete = async () => {
+    if (integration.type === "quickbooks") {
+      // Server-side disconnect: revokes the refresh token at Intuit before
+      // deleting the row. We never want orphaned grants on the customer's QBO.
+      await fetch("/api/auth/quickbooks/disconnect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ integrationId: integration.id }),
+      }).catch(() => {})
+      onUpdated()
+      return
+    }
     await supabase
       .from("parser_integrations")
       .delete()
@@ -106,6 +122,13 @@ export function IntegrationCard({ integration, parserId, onUpdated }: Integratio
               {integration.config.folder_id && ` — folder: ${integration.config.folder_id}`}
             </p>
           )}
+          {integration.type === "quickbooks" && integration.config?.company_name && (
+            <p className="text-xs text-muted-foreground">
+              {integration.config.company_name}
+              {integration.config.target_entity && ` — creates ${integration.config.target_entity}s`}
+              {integration.config.environment === "sandbox" && " · sandbox"}
+            </p>
+          )}
           {integration.last_triggered_at && (
             <p className="text-xs text-muted-foreground">
               Last triggered {formatDistanceToNow(new Date(integration.last_triggered_at), { addSuffix: true })}
@@ -144,7 +167,31 @@ export function IntegrationCard({ integration, parserId, onUpdated }: Integratio
               <span className="ml-1 text-xs">Re-auth</span>
             </Button>
           )}
-          {integration.type !== "google_sheets" && integration.type !== "google_docs" && integration.type !== "gmail_inbox" && (
+          {integration.type === "quickbooks" && (
+            <>
+              {onEdit && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onEdit("quickbooks")}
+                >
+                  <Settings className="h-3.5 w-3.5" />
+                  <span className="ml-1 text-xs">Configure</span>
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  window.location.href = `/api/auth/quickbooks/connect?parserId=${parserId}`
+                }}
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                <span className="ml-1 text-xs">Re-auth</span>
+              </Button>
+            </>
+          )}
+          {integration.type !== "google_sheets" && integration.type !== "google_docs" && integration.type !== "gmail_inbox" && integration.type !== "quickbooks" && (
             <Button variant="ghost" size="sm" onClick={handleTest} disabled={testing}>
               {testing ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
