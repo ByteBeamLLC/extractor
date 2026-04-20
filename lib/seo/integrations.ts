@@ -21,6 +21,27 @@ export interface IntegrationData {
    * Recommended for the first ~30 days after launch.
    */
   isNew?: boolean
+  /**
+   * Optional path (public-root-relative) to the partner's brand logo. When
+   * present, the integration's hero renders a big Parsli × <Partner> logo pair
+   * banner — the standard integration-page pattern that converts better than
+   * text-only heros because visitors recognize both brands at a glance.
+   * Put the asset in /public/logos/<slug>.png (or .svg) and reference it
+   * here as "/logos/<slug>.png".
+   */
+  logoSrc?: string
+  /**
+   * Optional accessible label for the partner logo. Defaults to `${name} logo`
+   * when omitted.
+   */
+  logoAlt?: string
+  /**
+   * Optional aspect hint for the partner logo. `"square"` (default) renders
+   * the logo in a square tile matching Parsli's icon. `"wide"` renders it
+   * without a tile at a larger width — right choice for horizontal wordmarks
+   * like "Intuit QuickBooks" that would be cropped in a square.
+   */
+  logoShape?: "square" | "wide"
 }
 
 export const integrations: IntegrationData[] = [
@@ -229,6 +250,9 @@ export const integrations: IntegrationData[] = [
     publishedAt: "2026-04-20",
     updatedAt: "2026-04-20",
     isNew: true,
+    logoSrc: "/logos/quickbooks.png",
+    logoAlt: "QuickBooks Online logo",
+    logoShape: "wide",
   },
   {
     slug: "outlook",

@@ -1,7 +1,8 @@
 import type { Metadata } from "next"
+import Image from "next/image"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { Check, ChevronDown } from "lucide-react"
+import { Check, ChevronDown, ArrowLeftRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { AuthButton } from "@/components/marketing/shared/AuthButton"
@@ -131,6 +132,56 @@ export default function IntegrationPage({
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-primary/5 rounded-full blur-3xl" />
         </div>
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
+          {/* Partner-logo banner. High-converting integration-page pattern:
+              visitors recognize both brands at a glance before they even read
+              the headline. Only renders when the integration has a logo asset
+              declared in the data file.
+
+              Layout adapts to the partner's logo shape:
+                - "square" (icon-style): both sides rendered as equal-sized
+                  white tiles for visual symmetry
+                - "wide" (wordmark-style): partner logo sits un-tiled at its
+                  natural aspect ratio, height-matched to Parsli's tile
+          */}
+          {integration.logoSrc && (
+            <div className="mb-8 inline-flex items-center justify-center gap-5 sm:gap-7">
+              <div className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-border p-2.5">
+                <Image
+                  src="/parsli-icon.png"
+                  alt="Parsli logo"
+                  width={64}
+                  height={64}
+                  className="h-full w-full object-contain"
+                  priority
+                />
+              </div>
+              <ArrowLeftRight
+                className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground/60"
+                aria-hidden="true"
+              />
+              {integration.logoShape === "wide" ? (
+                <Image
+                  src={integration.logoSrc}
+                  alt={integration.logoAlt ?? `${integration.name} logo`}
+                  width={220}
+                  height={80}
+                  className="h-12 sm:h-14 w-auto object-contain"
+                  priority
+                />
+              ) : (
+                <div className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-border p-2.5">
+                  <Image
+                    src={integration.logoSrc}
+                    alt={integration.logoAlt ?? `${integration.name} logo`}
+                    width={64}
+                    height={64}
+                    className="h-full w-full object-contain"
+                    priority
+                  />
+                </div>
+              )}
+            </div>
+          )}
           <Badge variant="secondary" className="mb-6">
             Integration
           </Badge>
