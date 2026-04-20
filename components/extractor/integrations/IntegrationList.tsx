@@ -2,18 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { useSearchParams, useRouter, usePathname } from "next/navigation"
-import {
-  Plus,
-  Loader2,
-  Webhook,
-  FileSpreadsheet,
-  FileText,
-  Zap,
-  Blocks,
-  Workflow,
-  Mail,
-  Calculator,
-} from "lucide-react"
+import { Plus, Loader2, Webhook } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -32,20 +21,24 @@ import { GmailInboxSetup } from "./GmailInboxSetup"
 import { GoogleDocsSetup } from "./GoogleDocsSetup"
 import { QuickBooksSetup } from "./QuickBooksSetup"
 
-const INTEGRATION_OPTIONS: {
+type IntegrationOption = {
   type: IntegrationType
   label: string
   description: string
-  icon: React.ComponentType<{ className?: string }>
-}[] = [
+} & (
+  | { iconSrc: string; icon?: never }
+  | { icon: React.ComponentType<{ className?: string }>; iconSrc?: never }
+)
+
+const INTEGRATION_OPTIONS: IntegrationOption[] = [
   { type: "webhook", label: "Webhook", description: "Send results via HTTP POST to any URL", icon: Webhook },
-  { type: "google_sheets", label: "Google Sheets", description: "Pull results into Google Sheets with IMPORTDATA", icon: FileSpreadsheet },
-  { type: "google_docs", label: "Google Docs", description: "Save extraction results as Google Docs in your Drive", icon: FileText },
-  { type: "zapier", label: "Zapier", description: "Connect to 5000+ apps via Zapier webhook", icon: Zap },
-  { type: "make", label: "Make", description: "Send results to Make (formerly Integromat) scenarios", icon: Blocks },
-  { type: "power_automate", label: "Power Automate", description: "Connect to Microsoft Power Automate flows", icon: Workflow },
-  { type: "gmail_inbox", label: "Gmail Inbox", description: "Auto-extract attachments from emails matching a sender", icon: Mail },
-  { type: "quickbooks", label: "QuickBooks Online", description: "Push extracted invoices, bills, and receipts directly into QuickBooks", icon: Calculator },
+  { type: "google_sheets", label: "Google Sheets", description: "Pull results into Google Sheets with IMPORTDATA", iconSrc: "/icons/integrations/google-sheets.svg" },
+  { type: "google_docs", label: "Google Docs", description: "Save extraction results as Google Docs in your Drive", iconSrc: "/icons/integrations/google-docs.svg" },
+  { type: "zapier", label: "Zapier", description: "Connect to 5000+ apps via Zapier webhook", iconSrc: "/icons/integrations/zapier.svg" },
+  { type: "make", label: "Make", description: "Send results to Make (formerly Integromat) scenarios", iconSrc: "/icons/integrations/make.svg" },
+  { type: "power_automate", label: "Power Automate", description: "Connect to Microsoft Power Automate flows", iconSrc: "/icons/integrations/power-automate.svg" },
+  { type: "gmail_inbox", label: "Gmail Inbox", description: "Auto-extract attachments from emails matching a sender", iconSrc: "/icons/integrations/gmail.svg" },
+  { type: "quickbooks", label: "QuickBooks Online", description: "Push extracted invoices, bills, and receipts directly into QuickBooks", iconSrc: "/icons/integrations/quickbooks.svg" },
 ]
 
 interface IntegrationListProps {
@@ -176,24 +169,30 @@ export function IntegrationList({ parserId }: IntegrationListProps) {
 
           {!selectedType && (
             <div className="space-y-2 py-2">
-              {INTEGRATION_OPTIONS.map((option) => {
-                const Icon = option.icon
-                return (
-                  <button
-                    key={option.type}
-                    onClick={() => setSelectedType(option.type)}
-                    className="w-full text-left p-3 rounded-lg border hover:border-primary/50 hover:bg-accent/30 transition-colors flex items-center gap-3"
-                  >
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <Icon className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">{option.label}</p>
-                      <p className="text-xs text-muted-foreground">{option.description}</p>
-                    </div>
-                  </button>
-                )
-              })}
+              {INTEGRATION_OPTIONS.map((option) => (
+                <button
+                  key={option.type}
+                  onClick={() => setSelectedType(option.type)}
+                  className="w-full text-left p-3 rounded-lg border hover:border-primary/50 hover:bg-accent/30 transition-colors flex items-center gap-3"
+                >
+                  <div className="h-10 w-10 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center shrink-0">
+                    {option.iconSrc ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={option.iconSrc}
+                        alt=""
+                        className="h-5 w-5 object-contain"
+                      />
+                    ) : (
+                      <option.icon className="h-5 w-5 text-slate-600" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">{option.label}</p>
+                    <p className="text-xs text-muted-foreground">{option.description}</p>
+                  </div>
+                </button>
+              ))}
             </div>
           )}
 
