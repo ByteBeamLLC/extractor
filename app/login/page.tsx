@@ -13,6 +13,7 @@ import { PasswordStrength, getStrength } from "@/components/ui/password-strength
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
 import { cn } from "@/lib/utils"
 import { trackEvent } from "@/lib/analytics"
+import { completeSignup } from "@/lib/analytics/signup"
 import { getAttribution } from "@/lib/analytics/attribution"
 import { getIdentity } from "@/lib/analytics/identity"
 
@@ -131,14 +132,16 @@ function LoginForm() {
     setMessage(null)
     setPasswordError(null)
     try {
-      let data: { user: any }
-
       if (isAnonymous) {
         // Convert anonymous account — keeps same user_id and all data
         const result = await supabase.auth.updateUser({ email, password })
         if (result.error) throw result.error
-        data = { user: result.data.user }
-        trackEvent("anonymous_converted", { user_id: data.user?.id ?? "", email, source: "login_page" })
+        const userId = result.data.user?.id ?? ""
+        trackEvent("anonymous_converted", { user_id: userId, email, source: "login_page" })
+        // Anonymous conversion has no redirect and no email confirmation —
+        // fire sign_up_completed directly. The cookie-based handoff used by
+        // fresh signups would never fire here.
+        completeSignup("anonymous_conversion", userId, email)
       } else {
         const result = await supabase.auth.signUp({
           email,
@@ -150,14 +153,11 @@ function LoginForm() {
           },
         })
         if (result.error) throw result.error
-        data = { user: result.data.user }
+        // Fresh email signups are NOT tracked here — the user hasn't
+        // verified their email yet. `/auth/callback` sets the signup
+        // cookie on confirmation; SignupConversionTracker fires the
+        // event from the browser's own distinct_id.
       }
-
-      trackEvent("sign_up_completed", {
-        user_id: data.user?.id ?? "",
-        email,
-        source: isAnonymous ? "anonymous_conversion" : "login_page",
-      })
 
       setMode("check-email")
     } catch (error) {

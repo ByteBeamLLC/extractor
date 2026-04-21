@@ -21,18 +21,18 @@ export async function GET(request: Request) {
         data.user.created_at &&
         Date.now() - new Date(data.user.created_at).getTime() < 60_000
 
-      if (isOAuth && isNewUser) {
-        // Track OAuth signup (Google, etc.)
-        trackServerEvent("sign_up_completed", {
-          distinct_id: data.user.id,
-          user_id: data.user.id,
-          email: data.user.email ?? "",
-          source: "google_oauth",
-        })
-        // Flag for client-side GA4/Google Ads conversion on next page load
-        await setNewSignupCookie()
-      } else if (!isOAuth) {
-        // Track email confirmation (critical funnel event — server-side for reliability)
+      // For any new account (OAuth or email), flag the client to fire
+      // sign_up_completed from the browser's own distinct_id. We do NOT
+      // fire server-side — the auth-UUID-as-distinct-id would orphan the
+      // event from the pre-signup funnel on a separate browser identity.
+      if (isNewUser) {
+        await setNewSignupCookie(isOAuth ? "google_oauth" : "email")
+      }
+
+      // email_confirmed is a distinct, provider-scoped event — kept
+      // server-side so it's reliable regardless of whether the user
+      // returns to the app after clicking the confirmation link.
+      if (!isOAuth) {
         trackServerEvent("email_confirmed", {
           distinct_id: data.user.id,
           user_id: data.user.id,

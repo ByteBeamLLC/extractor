@@ -61,14 +61,12 @@ export async function GET(request: NextRequest) {
     })
 
     if (newUser?.user) {
-      trackServerEvent("sign_up_completed", {
-        distinct_id: newUser.user.id,
-        user_id: newUser.user.id,
-        email,
-        source: "google_oauth",
-      })
-      // Flag for client-side GA4/Google Ads conversion on next page load
-      await setNewSignupCookie()
+      // Flag the client to fire sign_up_completed on the next render.
+      // We intentionally do NOT trackServerEvent here — the server knows
+      // only the Supabase auth UUID, not the browser's Mixpanel distinct_id,
+      // so a server-side fire would orphan the event from the pre-signup
+      // funnel (page_viewed, cta_clicked).
+      await setNewSignupCookie("google_oauth")
     } else if (createError && !createError.message.includes("already been registered")) {
       throw createError
     }

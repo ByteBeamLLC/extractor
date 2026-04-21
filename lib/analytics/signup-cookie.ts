@@ -2,18 +2,31 @@ import { cookies } from "next/headers"
 
 const COOKIE_NAME = "_parsli_new_signup"
 
+export type SignupCookieSource = "email" | "google_oauth" | (string & {})
+
 /**
- * Sets a short-lived cookie indicating a new sign-up just occurred.
- * Called from server-side auth callbacks (Google OAuth, email confirmation)
- * so the client can fire GA4/Google Ads conversion events on the next page load.
+ * Sets a short-lived cookie that survives a server → client redirect and
+ * tells `SignupConversionTracker` to fire `sign_up_completed` from the
+ * browser with the correct, cross-subdomain distinct_id.
+ *
+ * The cookie value IS the signup source — every provider callback (email
+ * confirmation in `/auth/callback`, Google OAuth in `/api/auth/google/
+ * callback`, future providers) sets this with its own value. Setting the
+ * cookie is the provider's only tracking responsibility.
+ *
+ * `domain: ".parsli.co"` in production so the cookie is readable on both
+ * `parsli.co` (if the redirect ever lands there) and `app.parsli.co`
+ * (where `SignupConversionTracker` mounts).
  */
-export async function setNewSignupCookie() {
+export async function setNewSignupCookie(source: SignupCookieSource) {
   const cookieStore = await cookies()
-  cookieStore.set(COOKIE_NAME, "1", {
+  const isProd = process.env.NODE_ENV === "production"
+  cookieStore.set(COOKIE_NAME, source, {
     path: "/",
-    maxAge: 5 * 60, // 5 minutes — just needs to survive the redirect
-    httpOnly: false, // Client-side JS needs to read this
+    maxAge: 5 * 60,
+    httpOnly: false,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: isProd,
+    ...(isProd ? { domain: ".parsli.co" } : {}),
   })
 }

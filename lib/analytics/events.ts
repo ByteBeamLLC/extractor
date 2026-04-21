@@ -3,7 +3,11 @@ export type AnalyticsEventMap = {
   sign_up_completed: {
     user_id: string
     email: string
-    source: "login_page" | "auth_dialog" | "anonymous_conversion" | "google_oauth"
+    // Provider-agnostic — "email" covers any password/magic-link confirmation,
+    // future providers get their own value (e.g. "apple_oauth", "sso_okta").
+    // "anonymous_conversion" is the only non-confirmation path since it fires
+    // synchronously from the client with a stable session.
+    source: "email" | "google_oauth" | "anonymous_conversion" | (string & {})
   }
   anonymous_converted: {
     user_id: string

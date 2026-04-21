@@ -12,6 +12,7 @@ import { PasswordStrength, getStrength } from "@/components/ui/password-strength
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
 import { cn } from "@/lib/utils"
 import { trackEvent } from "@/lib/analytics"
+import { completeSignup } from "@/lib/analytics/signup"
 import { buildAppUrl } from "@/lib/app-url"
 
 type AuthMode = "sign-in" | "sign-up" | "forgot-password" | "check-email"
@@ -172,13 +173,15 @@ export function AuthDialogProvider({ children }: { children: React.ReactNode }) 
     setPasswordError(null)
 
     try {
-      let data: { user: any }
-
       if (isAnonymous) {
         const result = await supabase.auth.updateUser({ email, password })
         if (result.error) throw result.error
-        data = { user: result.data.user }
-        trackEvent("anonymous_converted", { user_id: data.user?.id ?? "", email, source: "auth_dialog" })
+        const userId = result.data.user?.id ?? ""
+        trackEvent("anonymous_converted", { user_id: userId, email, source: "auth_dialog" })
+        // Anonymous conversion has no redirect — fire sign_up_completed
+        // directly here. Cookie-based handoff only covers paths that
+        // redirect through an auth callback.
+        completeSignup("anonymous_conversion", userId, email)
       } else {
         const callbackUrl = buildAppUrl(
           `/auth/callback${nextPath ? `?next=${encodeURIComponent(nextPath)}` : ""}`
@@ -191,14 +194,9 @@ export function AuthDialogProvider({ children }: { children: React.ReactNode }) 
           },
         })
         if (result.error) throw result.error
-        data = { user: result.data.user }
+        // Fresh email signups fire sign_up_completed after email confirmation
+        // via the signup cookie set in /auth/callback. Nothing to do here.
       }
-
-      trackEvent("sign_up_completed", {
-        user_id: data.user?.id ?? "",
-        email,
-        source: isAnonymous ? "anonymous_conversion" : "auth_dialog",
-      })
 
       // Anonymous-upgrade keeps the same session — no email confirmation needed,
       // so we can navigate immediately. Fresh signups still need email verification,
