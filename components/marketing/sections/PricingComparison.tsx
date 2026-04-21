@@ -266,6 +266,9 @@ export function PricingComparison() {
                             ? `${APP_URL}/login?mode=signup&next=/dashboard`
                             : `${APP_URL}/subscribe?tier=${tier.key}&billing=annual`
                       }
+                      data-cta-location={`pricing_comparison_${tier.key}`}
+                      data-cta-name={tier.cta}
+                      data-cta-destination={tier.key === "enterprise" ? "action" : "signup"}
                     >
                       {tier.cta}
                     </a>

@@ -196,7 +196,12 @@ function InlineCTA({ href, text }: { href: string; text: string }) {
   return (
     <div className="text-center py-10">
       <Button size="lg" className="text-base px-8 h-13" asChild>
-        <a href={`${APP_URL}${href}`}>
+        <a
+          href={`${APP_URL}${href}`}
+          data-cta-location="lp_inline"
+          data-cta-name={text}
+          data-cta-destination="signup"
+        >
           {text}
           <ArrowRight className="ml-2 h-4 w-4" />
         </a>
@@ -293,7 +298,12 @@ export function AdsLandingPage({
               {/* Primary CTA — always visible. Secondary hidden on mobile to reduce decision fatigue */}
               <div className="flex flex-wrap items-center gap-3">
                 <Button size="lg" className="w-full sm:w-auto text-base px-8 h-[52px] sm:h-13" asChild>
-                  <a href={`${APP_URL}${hero.ctaHref}`}>
+                  <a
+                    href={`${APP_URL}${hero.ctaHref}`}
+                    data-cta-location="lp_hero_primary"
+                    data-cta-name={hero.ctaText}
+                    data-cta-destination="signup"
+                  >
                     {hero.ctaText}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </a>
@@ -631,7 +641,12 @@ export function AdsLandingPage({
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Button size="lg" className="w-full sm:w-auto text-base px-10 h-[52px] sm:h-13" asChild>
-              <a href={`${APP_URL}${cta.ctaHref}`}>
+              <a
+                href={`${APP_URL}${cta.ctaHref}`}
+                data-cta-location="lp_final"
+                data-cta-name={cta.ctaText}
+                data-cta-destination="signup"
+              >
                 {cta.ctaText}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </a>
@@ -699,7 +714,12 @@ export function AdsLandingPage({
         )}
       >
         <Button size="lg" className="w-full text-base h-[52px]" asChild>
-          <a href={`${APP_URL}${hero.ctaHref}`}>
+          <a
+            href={`${APP_URL}${hero.ctaHref}`}
+            data-cta-location="lp_sticky_mobile"
+            data-cta-name={hero.ctaText}
+            data-cta-destination="signup"
+          >
             {hero.ctaText}
             <ArrowRight className="ml-2 h-4 w-4" />
           </a>

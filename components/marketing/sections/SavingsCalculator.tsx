@@ -192,7 +192,12 @@ export function SavingsCalculator() {
                 className="w-full mt-6 text-base font-semibold bg-amber-500 hover:bg-amber-600 text-white shadow-md"
                 asChild
               >
-                <a href={`${APP_URL}/login?mode=signup`}>
+                <a
+                  href={`${APP_URL}/login?mode=signup`}
+                  data-cta-location="savings_calculator"
+                  data-cta-name={`Sign up and save $${calc.yearlySavings.toLocaleString()}`}
+                  data-cta-destination="signup"
+                >
                   Sign up and save $
                   {calc.yearlySavings.toLocaleString()}
                   <ArrowRight className="ml-2 h-4 w-4" />

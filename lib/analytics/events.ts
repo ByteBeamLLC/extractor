@@ -129,13 +129,17 @@ export type AnalyticsEventMap = {
     lifetime_tool_uses: number
   }
 
-  // CTA clicks anywhere on the tool page
+  // Universal CTA click event — fires for every `data-cta-location` click
+  // across marketing, tool, LP, and app surfaces. Replaces the old per-
+  // surface variants (`lp_cta_clicked`, `bridge_banner_cta_clicked`)
+  // which are now aliases routed through the same pipeline.
   cta_clicked: {
-    cta_text: string
-    cta_location: string
+    cta_location: string  // stable identifier, e.g. "nav_desktop_primary", "hero_primary"
+    cta_name: string      // visible label, e.g. "Get Started Free"
+    cta_href: string      // destination URL or empty for modal/action CTAs
+    cta_destination: "signup" | "pricing" | "demo" | "tool" | "external" | "internal" | "action" | "unknown"
     page_path: string
-    lifetime_tool_uses: number
-    session_number: number
+    page_type: "marketing" | "tool" | "lp" | "app" | "auth" | "unknown"
   }
 
   // Conversion from free tool → app (captures pre-signup context)

@@ -384,6 +384,9 @@ export function PricingSection({ asPage }: PricingSectionProps) {
                               ? `${APP_URL}/login?mode=signup&next=/dashboard`
                               : `${APP_URL}/subscribe?tier=${plan.tier}&billing=${annual ? "annual" : "monthly"}`
                         }
+                        data-cta-location={`pricing_slider_${plan.tier}`}
+                        data-cta-name={plan.level >= 5 ? "Contact sales" : "Get started"}
+                        data-cta-destination={plan.level >= 5 ? "action" : "signup"}
                       >
                         {plan.level >= 5 ? "Contact sales" : "Get started"}
                       </a>
@@ -553,6 +556,9 @@ export function PricingSection({ asPage }: PricingSectionProps) {
                             ? `${APP_URL}/login?mode=signup&next=/dashboard`
                             : `${APP_URL}/subscribe?tier=${tier.tier}&billing=${annual ? "annual" : "monthly"}`
                         }
+                        data-cta-location={`pricing_card_${tier.tier}`}
+                        data-cta-name={tier.tier === "free" ? "Get Started Free" : "Get Started"}
+                        data-cta-destination="signup"
                       >
                         {tier.tier === "free" ? "Get Started Free" : "Get Started"}
                       </a>
@@ -600,7 +606,12 @@ export function PricingSection({ asPage }: PricingSectionProps) {
                 className="shrink-0 whitespace-nowrap"
                 asChild
               >
-                <a href="/pricing">
+                <a
+                  href="/pricing"
+                  data-cta-location="pricing_enterprise_banner"
+                  data-cta-name="See All Plans"
+                  data-cta-destination="pricing"
+                >
                   See All Plans
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </a>

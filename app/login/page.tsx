@@ -277,6 +277,9 @@ function LoginForm() {
                   className="w-full h-10"
                   onClick={handleGoogleAuth}
                   disabled={isGoogleLoading}
+                  data-cta-location="login_google"
+                  data-cta-name="Continue with Google"
+                  data-cta-destination="signup"
                 >
                   {isGoogleLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -388,7 +391,14 @@ function LoginForm() {
                   </div>
                 )}
 
-                <Button type="submit" className="w-full h-10" disabled={isSubmitting || !isFormValid}>
+                <Button
+                  type="submit"
+                  className="w-full h-10"
+                  disabled={isSubmitting || !isFormValid}
+                  data-cta-location={`login_submit_${mode}`}
+                  data-cta-name={submitLabel}
+                  data-cta-destination={mode === "sign-up" ? "signup" : "action"}
+                >
                   {isSubmitting ? <><Loader2 className="h-4 w-4 animate-spin" />Please wait...</> : submitLabel}
                 </Button>
 

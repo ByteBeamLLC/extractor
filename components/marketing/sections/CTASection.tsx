@@ -31,7 +31,12 @@ export function CTASection() {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button size="lg" className="text-base px-8 h-12" asChild>
-              <a href={`${APP_URL}/login?mode=signup`}>
+              <a
+                href={`${APP_URL}/login?mode=signup`}
+                data-cta-location="cta_section_primary"
+                data-cta-name="Start Free — No Credit Card"
+                data-cta-destination="signup"
+              >
                 Start Free — No Credit Card
                 <ArrowRight className="ml-2 h-4 w-4" />
               </a>
@@ -42,7 +47,14 @@ export function CTASection() {
               className="text-base px-8 h-12"
               asChild
             >
-              <Link href="/pricing">See Pricing</Link>
+              <Link
+                href="/pricing"
+                data-cta-location="cta_section_secondary"
+                data-cta-name="See Pricing"
+                data-cta-destination="pricing"
+              >
+                See Pricing
+              </Link>
             </Button>
           </div>
         </div>

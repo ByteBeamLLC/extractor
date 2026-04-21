@@ -70,10 +70,24 @@ export function MarketingNavbar() {
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-3">
             <Button variant="ghost" size="sm" asChild>
-              <a href={`${APP_URL}/dashboard`}>Sign In</a>
+              <a
+                href={`${APP_URL}/dashboard`}
+                data-cta-location="nav_desktop_signin"
+                data-cta-name="Sign In"
+                data-cta-destination="signup"
+              >
+                Sign In
+              </a>
             </Button>
             <Button size="sm" asChild>
-              <a href={`${APP_URL}/dashboard`}>Get Started Free</a>
+              <a
+                href={`${APP_URL}/dashboard`}
+                data-cta-location="nav_desktop_primary"
+                data-cta-name="Get Started Free"
+                data-cta-destination="signup"
+              >
+                Get Started Free
+              </a>
             </Button>
           </div>
 
@@ -102,10 +116,24 @@ export function MarketingNavbar() {
             ))}
             <div className="pt-3 flex flex-col gap-2 px-3">
               <Button variant="outline" size="sm" asChild>
-                <a href={`${APP_URL}/dashboard`}>Sign In</a>
+                <a
+                  href={`${APP_URL}/dashboard`}
+                  data-cta-location="nav_mobile_signin"
+                  data-cta-name="Sign In"
+                  data-cta-destination="signup"
+                >
+                  Sign In
+                </a>
               </Button>
               <Button size="sm" asChild>
-                <a href={`${APP_URL}/dashboard`}>Get Started Free</a>
+                <a
+                  href={`${APP_URL}/dashboard`}
+                  data-cta-location="nav_mobile_primary"
+                  data-cta-name="Get Started Free"
+                  data-cta-destination="signup"
+                >
+                  Get Started Free
+                </a>
               </Button>
             </div>
           </div>

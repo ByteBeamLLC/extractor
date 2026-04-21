@@ -244,7 +244,12 @@ export function PdfToTextTool() {
                 Try Another File
               </Button>
               <Button asChild className="h-10">
-                <a href="https://app.parsli.co">
+                <a
+                  href="https://app.parsli.co"
+                  data-cta-location="pdf_tool_after_extract"
+                  data-cta-name="Try Parsli Free"
+                  data-cta-destination="signup"
+                >
                   <FileText className="h-4 w-4 mr-2" />
                   Try Parsli Free
                 </a>

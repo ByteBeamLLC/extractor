@@ -47,6 +47,9 @@ export function FileSizeBridgeBanner({ toolName }: FileSizeBridgeBannerProps) {
               })
             }
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-white text-blue-700 hover:bg-blue-50 border-0 shadow-md hover:shadow-lg transition-all px-5 py-2.5 text-sm font-medium"
+            data-cta-location={`bridge_banner_file_size_${toolName}`}
+            data-cta-name="Get Started Free"
+            data-cta-destination="signup"
           >
             Get Started Free
             <ArrowRight className="h-4 w-4" />

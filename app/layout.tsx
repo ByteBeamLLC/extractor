@@ -3,6 +3,7 @@ import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
 import Script from "next/script"
 import { AnalyticsProvider } from "@/components/providers/AnalyticsProvider"
+import { CTATracker } from "@/components/providers/CTATracker"
 import { ErrorReportingInit } from "@/components/ErrorReportingInit"
 import "./globals.css"
 
@@ -117,6 +118,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           </noscript>
         )}
         <AnalyticsProvider />
+        <CTATracker />
         <ErrorReportingInit />
         {children}
         <Analytics />

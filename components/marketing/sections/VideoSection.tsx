@@ -25,7 +25,12 @@ export function VideoSection() {
         </div>
         <div className="mt-8">
           <Button size="lg" className="text-base px-8 h-11" asChild>
-            <a href={`${APP_URL}/login?mode=signup`}>
+            <a
+              href={`${APP_URL}/login?mode=signup`}
+              data-cta-location="video_section"
+              data-cta-name="Try It Yourself — Free"
+              data-cta-destination="signup"
+            >
               Try It Yourself — Free
               <ArrowRight className="ml-2 h-4 w-4" />
             </a>

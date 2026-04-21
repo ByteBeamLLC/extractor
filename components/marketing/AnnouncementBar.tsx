@@ -54,6 +54,9 @@ export function AnnouncementBar() {
       <Link
         href="/integrations/quickbooks"
         className="flex items-center justify-center gap-3 py-2.5 px-10 text-sm font-medium text-foreground hover:text-primary transition-colors"
+        data-cta-location="announcement_bar"
+        data-cta-name={`Announcement: ${ANNOUNCEMENT_ID}`}
+        data-cta-destination="internal"
       >
         <span className="inline-flex items-center rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary-foreground">
           New

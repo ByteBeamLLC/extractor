@@ -512,7 +512,12 @@ export function HandwritingToTextTool() {
                 Try Another File
               </Button>
               <Button asChild className="h-10">
-                <a href="https://app.parsli.co">
+                <a
+                  href="https://app.parsli.co"
+                  data-cta-location="hwt_after_extract"
+                  data-cta-name="Try Parsli Free"
+                  data-cta-destination="signup"
+                >
                   <PenLine className="h-4 w-4 mr-2" />
                   Try Parsli Free
                 </a>
@@ -672,7 +677,14 @@ function SuccessView({
                   Extract structured data, chat with AI, export to Sheets.
                 </p>
                 <Button asChild size="sm">
-                  <a href="https://app.parsli.co">Try Parsli Free</a>
+                  <a
+                    href="https://app.parsli.co"
+                    data-cta-location="hwt_sidebar_cta"
+                    data-cta-name="Try Parsli Free"
+                    data-cta-destination="signup"
+                  >
+                    Try Parsli Free
+                  </a>
                 </Button>
               </div>
             </div>

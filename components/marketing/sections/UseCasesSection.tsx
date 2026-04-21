@@ -84,7 +84,12 @@ export function UseCasesSection() {
 
       <div className="text-center mt-10">
         <Button size="lg" className="text-base px-8 h-11" asChild>
-          <a href={`${APP_URL}/login?mode=signup`}>
+          <a
+            href={`${APP_URL}/login?mode=signup`}
+            data-cta-location="usecases_bottom"
+            data-cta-name="Start Free — No Credit Card"
+            data-cta-destination="signup"
+          >
             Start Free — No Credit Card
             <ArrowRight className="ml-2 h-4 w-4" />
           </a>
