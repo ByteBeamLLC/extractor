@@ -47,6 +47,15 @@ function getInitPromise(): Promise<MixpanelModule | null> {
     return initPromise
   }
 
+  // Pin the Mixpanel identity cookie to the registrable domain so
+  // distinct_id is shared across parsli.co ↔ app.parsli.co. Without this,
+  // Mixpanel's default cross-subdomain logic picks `.co` (a TLD, which
+  // browsers reject), falls back to host-only, and the funnel splits at
+  // the subdomain boundary. In dev (localhost / preview URLs) we leave it
+  // unset — Mixpanel's default host-scoped cookie is correct there.
+  const hostname = window.location.hostname
+  const cookieDomain = hostname.endsWith("parsli.co") ? ".parsli.co" : undefined
+
   initPromise = import("mixpanel-browser")
     .then((mp) => {
       try {
@@ -54,6 +63,8 @@ function getInitPromise(): Promise<MixpanelModule | null> {
           track_pageview: true,
           persistence: "cookie",
           api_host: "/mp",
+          cross_subdomain_cookie: true,
+          ...(cookieDomain ? { cookie_domain: cookieDomain } : {}),
           // Session replay — records all sessions (marketing, tools, ads, and app).
           record_sessions_percent: 100,
           // Show text so replays are readable. Sensitive data (extraction

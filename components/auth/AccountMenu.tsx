@@ -15,6 +15,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useAuthDialog } from "@/components/auth/AuthDialogContext"
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
+import { resetAnalytics } from "@/lib/analytics"
 
 export function AccountMenu() {
   const session = useSession()
@@ -46,6 +47,7 @@ export function AccountMenu() {
     setIsSigningOut(true)
     try {
       await supabase.auth.signOut()
+      resetAnalytics()
     } finally {
       setIsSigningOut(false)
     }

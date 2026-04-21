@@ -52,6 +52,7 @@ import { useAuthDialog } from "@/components/auth/AuthDialogContext"
 import { useSession, useSupabaseClient } from "@/lib/supabase/hooks"
 import { useSubscription } from "@/components/billing/SubscriptionContext"
 import { useActiveParser } from "@/components/extractor/parser-context"
+import { resetAnalytics } from "@/lib/analytics"
 import { cn } from "@/lib/utils"
 
 const mainNav = [
@@ -252,6 +253,7 @@ export function AppSidebar() {
     setIsSigningOut(true)
     try {
       await supabase.auth.signOut()
+      resetAnalytics()
     } finally {
       setIsSigningOut(false)
     }
