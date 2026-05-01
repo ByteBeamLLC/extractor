@@ -4597,6 +4597,662 @@ RESOLVED STORAGE CONDITIONS:
       },
     ],
   },
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INSURANCE CLAIM COVERAGE DECISION
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: "insurance-claim-coverage-decision",
+    name: "Insurance Claim Coverage Decision",
+    description:
+      "Multi-document coverage analysis for commercial property claims. Reads the Declarations Page, Coverage Form (CP 00 10), First Notice of Loss, Adjuster's Field Report, and Contractor's Repair Estimate, then reasons across the policy and the claim file to produce a fully cited coverage opinion memo (component-by-component coverage, deductible application, final disposition).",
+    agentType: "standard",
+    fields: [
+      // ═══════════════════════════════════════════════════════════════════════
+      // INPUT DOCUMENTS — GROUP 1: THE POLICY
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "declarations_page",
+        name: "declarations_page",
+        type: "input",
+        inputType: "document",
+        description:
+          "Declarations Page — the schedule that lists what THIS insured bought: named insured, policy period, scheduled locations, coverage limits, deductible tiers, endorsements purchased, endorsements declined.",
+        required: true,
+        fileConstraints: { allowedTypes: ["pdf", "docx", "doc"], maxSize: 20971520 },
+      },
+      {
+        id: "coverage_form",
+        name: "coverage_form",
+        type: "input",
+        inputType: "document",
+        description:
+          "Coverage Form CP 00 10 (Building and Personal Property Coverage Form) — the standardized policy contract: covered causes of loss, covered property, exclusions, conditions, definitions. Use together with the Declarations Page; neither is sufficient alone.",
+        required: true,
+        fileConstraints: { allowedTypes: ["pdf", "docx", "doc"], maxSize: 20971520 },
+      },
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // INPUT DOCUMENTS — GROUP 2: THE CLAIM
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "fnol_document",
+        name: "fnol_document",
+        type: "input",
+        inputType: "document",
+        description:
+          "First Notice of Loss (FNOL) — the trigger document filed by the insured. Establishes claim number, date/time of loss, loss location, reported cause of loss, and reporter contact details.",
+        required: true,
+        fileConstraints: { allowedTypes: ["pdf", "docx", "doc"], maxSize: 20971520 },
+      },
+      {
+        id: "adjuster_report",
+        name: "adjuster_report",
+        type: "input",
+        inputType: "document",
+        description:
+          "Adjuster's Field Report — narrative findings from the on-site inspection. Identifies each distinct damage component and provides the cause-of-loss analysis (e.g., wind-driven rain vs. flood vs. mechanical failure) used to apply policy coverages and exclusions.",
+        required: true,
+        fileConstraints: { allowedTypes: ["pdf", "docx", "doc"], maxSize: 20971520 },
+      },
+      {
+        id: "contractor_estimate",
+        name: "contractor_estimate",
+        type: "input",
+        inputType: "document",
+        description:
+          "Contractor's Repair Estimate — itemized scope and pricing for each damaged component. Provides the dollar amounts used in component-level coverage decisions and final disposition.",
+        required: true,
+        fileConstraints: { allowedTypes: ["pdf", "docx", "doc"], maxSize: 20971520 },
+      },
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // STEP 1: POLICY EXTRACTION — DECLARATIONS PAGE
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "policy_declarations",
+        name: "policy_declarations",
+        type: "object",
+        description: "What this insured actually bought, extracted from the Declarations Page.",
+        extractionInstructions:
+          'Extract from @"declarations_page": named insured (exact legal name), policy number, policy period (effective and expiration dates), insurer/carrier name, producer/agent, and policy form edition. Normalize all dates to YYYY-MM-DD.',
+        required: true,
+        children: [
+          { id: "pol_named_insured", name: "named_insured", type: "string", description: "Named insured exactly as written.", required: true },
+          { id: "pol_policy_number", name: "policy_number", type: "string", description: "Policy number.", required: true },
+          { id: "pol_period_start", name: "policy_period_start", type: "date", description: "Inception date (YYYY-MM-DD).", required: true },
+          { id: "pol_period_end", name: "policy_period_end", type: "date", description: "Expiration date (YYYY-MM-DD).", required: true },
+          { id: "pol_carrier", name: "carrier", type: "string", description: "Insurance carrier / underwriting company." },
+          { id: "pol_producer", name: "producer", type: "string", description: "Producer / agent of record." },
+          { id: "pol_form_edition", name: "form_edition", type: "string", description: "Coverage form and edition (e.g., CP 00 10 10 12)." },
+        ],
+      },
+      {
+        id: "scheduled_locations",
+        name: "scheduled_locations",
+        type: "table",
+        description: "Locations covered under this policy.",
+        extractionInstructions:
+          'From @"declarations_page", extract every scheduled location. One row per premises/building. Capture the location number, full address, building number, occupancy/description, and the coverage limits and deductibles tied to that location.',
+        required: true,
+        columns: [
+          { id: "loc_number", name: "location_number", type: "string", description: "Location/premises number on the Dec Page." },
+          { id: "loc_building_number", name: "building_number", type: "string", description: "Building number within the location." },
+          { id: "loc_address", name: "address", type: "string", description: "Full street address.", required: true },
+          { id: "loc_occupancy", name: "occupancy", type: "string", description: "Occupancy/use description (e.g., warehouse, office, retail)." },
+          { id: "loc_building_limit", name: "building_limit", type: "decimal", description: "Building coverage limit at this location." },
+          { id: "loc_bpp_limit", name: "business_personal_property_limit", type: "decimal", description: "Business Personal Property limit at this location." },
+          { id: "loc_bi_limit", name: "business_income_limit", type: "decimal", description: "Business Income / Extra Expense limit at this location, if any." },
+        ],
+      },
+      {
+        id: "coverage_limits",
+        name: "coverage_limits",
+        type: "table",
+        description: "All coverage limits scheduled on the Dec Page (policy-wide and per-location).",
+        extractionInstructions:
+          'From @"declarations_page", list every coverage type and its limit (Building, Business Personal Property, Business Income, Extra Expense, Ordinance or Law, debris removal, etc.). Include the cause-of-loss form (Basic / Broad / Special) and valuation basis (RC / ACV).',
+        columns: [
+          { id: "lim_coverage", name: "coverage", type: "string", description: "Coverage name (e.g., Building, BPP, Business Income).", required: true },
+          { id: "lim_amount", name: "limit_amount", type: "decimal", description: "Limit of insurance in dollars." },
+          { id: "lim_cause_of_loss_form", name: "cause_of_loss_form", type: "string", description: "Basic / Broad / Special form." },
+          { id: "lim_valuation", name: "valuation", type: "string", description: "Valuation basis (Replacement Cost / Actual Cash Value)." },
+          { id: "lim_coinsurance", name: "coinsurance", type: "string", description: "Coinsurance percentage if shown." },
+        ],
+      },
+      {
+        id: "deductibles",
+        name: "deductibles",
+        type: "table",
+        description: "All deductible tiers — each may apply to a specific peril or coverage.",
+        extractionInstructions:
+          'From @"declarations_page", capture every deductible tier listed (base AOP deductible, plus any peril-specific deductibles such as Wind/Hail, Named Storm, Earth Movement, Water, Theft). For each, record the peril it applies to, the amount or percentage, and the basis (flat dollar or % of limit).',
+        required: true,
+        columns: [
+          { id: "ded_peril", name: "peril_or_scope", type: "string", description: "Peril or scope this deductible applies to (e.g., All Other Perils, Wind/Hail, Named Storm, Theft).", required: true },
+          { id: "ded_amount", name: "amount", type: "string", description: "Deductible amount as written (e.g., '$10,000', '2% per location').", required: true },
+          { id: "ded_basis", name: "basis", type: "string", description: "Flat dollar amount or percentage basis (e.g., per occurrence, per location, % of building limit)." },
+          { id: "ded_notes", name: "notes", type: "string", description: "Any qualifiers, minimums, maximums, or trigger conditions." },
+        ],
+      },
+      {
+        id: "endorsements",
+        name: "endorsements",
+        type: "object",
+        description: "Endorsements purchased and declined per the Declarations Page.",
+        extractionInstructions:
+          'From @"declarations_page", separate endorsements into purchased vs. declined. For each, capture the form number/edition and a short description. Declined endorsements are critical for coverage decisions — flood, earth movement, equipment breakdown are common declines.',
+        required: true,
+        children: [
+          {
+            id: "endorsements_purchased",
+            name: "purchased",
+            type: "list",
+            description: "Endorsements that ARE attached to this policy.",
+            item: {
+              id: "endorsement_purchased_item",
+              name: "endorsement",
+              type: "object",
+              children: [
+                { id: "endp_form", name: "form_number", type: "string", description: "Form number and edition." },
+                { id: "endp_title", name: "title", type: "string", description: "Endorsement title / short description." },
+              ],
+            },
+          },
+          {
+            id: "endorsements_declined",
+            name: "declined",
+            type: "list",
+            description: "Endorsements that were OFFERED and DECLINED (very important for coverage analysis).",
+            item: {
+              id: "endorsement_declined_item",
+              name: "endorsement",
+              type: "object",
+              children: [
+                { id: "endd_form", name: "form_number", type: "string", description: "Form number and edition." },
+                { id: "endd_title", name: "title", type: "string", description: "Endorsement title / short description." },
+              ],
+            },
+          },
+        ],
+      },
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // STEP 2: POLICY EXTRACTION — COVERAGE FORM (CP 00 10)
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "covered_causes_of_loss",
+        name: "covered_causes_of_loss",
+        type: "list",
+        description: "Covered causes of loss / covered perils as defined in the policy form.",
+        extractionInstructions:
+          'From @"coverage_form", extract the covered causes of loss applicable to this policy (governed by the cause-of-loss form selected on the Dec Page — Basic, Broad, or Special). Capture each cause and the exact section/clause citation.',
+        item: {
+          id: "covered_cause_item",
+          name: "covered_cause",
+          type: "object",
+          children: [
+            { id: "cc_cause", name: "cause_of_loss", type: "string", description: "Named peril or 'all risk of direct physical loss' for Special form.", required: true },
+            { id: "cc_citation", name: "citation", type: "string", description: "Section, paragraph, and exact clause reference (e.g., 'CP 00 10, Section A.3.b')." },
+            { id: "cc_text", name: "exact_text", type: "string", description: "Verbatim quote of the controlling clause." },
+          ],
+        },
+      },
+      {
+        id: "exclusions",
+        name: "exclusions",
+        type: "table",
+        description: "Exclusions in the Coverage Form. Each row = one distinct exclusion with citation and exact wording.",
+        extractionInstructions:
+          'From @"coverage_form", extract every exclusion (Section B and any related exclusions). For each, capture the exclusion name (e.g., Flood, Earth Movement, Wear and Tear, Ordinance or Law, Faulty Workmanship), the section/paragraph citation, the verbatim controlling text, and any exceptions/write-backs.',
+        required: true,
+        columns: [
+          { id: "excl_name", name: "exclusion_name", type: "string", description: "Short name of the exclusion.", required: true },
+          { id: "excl_citation", name: "citation", type: "string", description: "Section, paragraph, and clause reference." },
+          { id: "excl_text", name: "exact_text", type: "string", description: "Verbatim text of the exclusion clause." },
+          { id: "excl_exceptions", name: "exceptions_or_writebacks", type: "string", description: "Any exceptions, ensuing-loss provisions, or write-backs that restore coverage." },
+        ],
+      },
+      {
+        id: "policy_conditions_definitions",
+        name: "policy_conditions_definitions",
+        type: "object",
+        description: "Conditions and definitions relevant to coverage analysis.",
+        extractionInstructions:
+          'From @"coverage_form", extract (a) key conditions (duties after loss, valuation, vacancy, protective safeguards, coinsurance) and (b) defined terms used in the analysis (e.g., "Specified Causes of Loss", "Flood", "Sinkhole Collapse", "Pollutants"). Provide citations.',
+        children: [
+          {
+            id: "key_conditions",
+            name: "key_conditions",
+            type: "list",
+            description: "Conditions that may affect this claim.",
+            item: {
+              id: "key_condition_item",
+              name: "condition",
+              type: "object",
+              children: [
+                { id: "cond_name", name: "name", type: "string", description: "Condition name (e.g., Vacancy, Protective Safeguards, Duties After Loss)." },
+                { id: "cond_citation", name: "citation", type: "string", description: "Section/paragraph citation." },
+                { id: "cond_text", name: "exact_text", type: "string", description: "Verbatim controlling text." },
+              ],
+            },
+          },
+          {
+            id: "key_definitions",
+            name: "key_definitions",
+            type: "list",
+            description: "Defined terms relevant to the analysis.",
+            item: {
+              id: "key_definition_item",
+              name: "definition",
+              type: "object",
+              children: [
+                { id: "def_term", name: "term", type: "string", description: "Defined term." },
+                { id: "def_citation", name: "citation", type: "string", description: "Section/paragraph citation." },
+                { id: "def_text", name: "exact_text", type: "string", description: "Verbatim definition text." },
+              ],
+            },
+          },
+        ],
+      },
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // STEP 3: CLAIM EXTRACTION — FNOL
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "claim_facts",
+        name: "claim_facts",
+        type: "object",
+        description: "Core facts of the loss as reported on the First Notice of Loss.",
+        extractionInstructions:
+          'Extract from @"fnol_document": claim number, insured name as reported, date and time of loss, address/location of loss, reported cause of loss, brief description of damage, reporter name and contact, and date/time the claim was reported. Normalize dates to YYYY-MM-DD.',
+        required: true,
+        children: [
+          { id: "cf_claim_number", name: "claim_number", type: "string", description: "Claim number (e.g., CL-2024-104772).", required: true },
+          { id: "cf_insured_name", name: "insured_name_as_reported", type: "string", description: "Insured name as written on the FNOL.", required: true },
+          { id: "cf_date_of_loss", name: "date_of_loss", type: "date", description: "Date of loss (YYYY-MM-DD).", required: true },
+          { id: "cf_time_of_loss", name: "time_of_loss", type: "string", description: "Time of loss as reported, if any." },
+          { id: "cf_loss_location", name: "loss_location_address", type: "string", description: "Full address where the loss occurred.", required: true },
+          { id: "cf_reported_cause", name: "reported_cause_of_loss", type: "string", description: "Cause of loss as described by the insured (may be lay terms)." },
+          { id: "cf_damage_description", name: "damage_description", type: "string", description: "Insured's narrative description of the damage." },
+          { id: "cf_reporter_name", name: "reporter_name", type: "string", description: "Name of the person who reported the loss." },
+          { id: "cf_reporter_contact", name: "reporter_contact", type: "string", description: "Reporter phone/email." },
+          { id: "cf_date_reported", name: "date_reported", type: "date", description: "Date the loss was reported (YYYY-MM-DD)." },
+          { id: "cf_estimated_amount", name: "estimated_amount_reported", type: "decimal", description: "Insured's preliminary estimated amount, if provided." },
+        ],
+      },
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // STEP 4: CLAIM EXTRACTION — ADJUSTER FIELD REPORT
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "adjuster_findings",
+        name: "adjuster_findings",
+        type: "object",
+        description: "On-site adjuster's narrative findings, including cause-of-loss analysis per damage component.",
+        extractionInstructions:
+          'Extract from @"adjuster_report": inspection date, adjuster name/firm, the overall narrative of the loss, and a list of distinct damage components. For EACH damage component, capture (a) what was damaged, (b) the adjuster\'s observed/concluded cause of loss in plain language (e.g., "wind-driven rain through compromised roof", "rising surface water / flood", "mechanical failure of HVAC unit"), and (c) any supporting observations (water lines, debris patterns, equipment condition, witness statements).',
+        required: true,
+        children: [
+          { id: "af_inspection_date", name: "inspection_date", type: "date", description: "Date of on-site inspection (YYYY-MM-DD)." },
+          { id: "af_adjuster_name", name: "adjuster_name", type: "string", description: "Adjuster name and firm." },
+          { id: "af_overall_narrative", name: "overall_narrative", type: "string", description: "Adjuster's overall narrative summary of the loss event." },
+          {
+            id: "af_damage_components",
+            name: "damage_components",
+            type: "list",
+            description: "Distinct damage components identified during inspection.",
+            item: {
+              id: "af_dc_item",
+              name: "damage_component",
+              type: "object",
+              children: [
+                { id: "afdc_name", name: "component_name", type: "string", description: "Short component label (e.g., 'Roof', 'HVAC unit', 'First-floor inventory', 'Storefront glass').", required: true },
+                { id: "afdc_what_damaged", name: "what_was_damaged", type: "string", description: "Specific item(s)/area(s) damaged." },
+                { id: "afdc_cause", name: "adjuster_cause_of_loss", type: "string", description: "Adjuster's stated cause of loss for this component." },
+                { id: "afdc_observations", name: "observations", type: "string", description: "Supporting observations (water lines, impact patterns, equipment age, etc.)." },
+              ],
+            },
+          },
+        ],
+      },
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // STEP 5: CLAIM EXTRACTION — CONTRACTOR ESTIMATE
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "damage_estimate",
+        name: "damage_estimate",
+        type: "object",
+        description: "Itemized repair/replacement cost from the contractor.",
+        extractionInstructions:
+          'Extract from @"contractor_estimate": contractor name, estimate date, estimate number, line items grouped by damage component, and totals (subtotal, tax, overhead & profit, grand total). Each line item should map to a damage component when possible so it can be tied to the adjuster\'s cause-of-loss analysis.',
+        required: true,
+        children: [
+          { id: "de_contractor_name", name: "contractor_name", type: "string", description: "Contractor / firm preparing the estimate." },
+          { id: "de_estimate_number", name: "estimate_number", type: "string", description: "Estimate document number." },
+          { id: "de_estimate_date", name: "estimate_date", type: "date", description: "Estimate date (YYYY-MM-DD)." },
+          {
+            id: "de_components",
+            name: "components",
+            type: "table",
+            description: "Damage components and their estimated cost.",
+            columns: [
+              { id: "dec_component", name: "component_name", type: "string", description: "Component label — should match the adjuster's component naming.", required: true },
+              { id: "dec_scope", name: "scope_of_work", type: "string", description: "Scope description (e.g., 'replace roof membrane', 'replace condensing unit', 'replace damaged inventory')." },
+              { id: "dec_amount", name: "amount", type: "decimal", description: "Total cost for this component.", required: true },
+            ],
+          },
+          { id: "de_subtotal", name: "subtotal", type: "decimal", description: "Subtotal before O&P and tax." },
+          { id: "de_overhead_profit", name: "overhead_profit", type: "decimal", description: "Overhead & profit." },
+          { id: "de_tax", name: "tax", type: "decimal", description: "Sales tax." },
+          { id: "de_grand_total", name: "grand_total", type: "decimal", description: "Total amount claimed.", required: true },
+        ],
+      },
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // STEP 6: REASONING — POLICY VERIFICATION
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "policy_verification",
+        name: "policy_verification",
+        type: "richtext",
+        description:
+          "Verifies the basic eligibility gates: the insured matches, the date of loss falls within the policy period, and the loss location is a scheduled location. If any gate fails, the entire claim is denied at this stage.",
+        isTransformation: true,
+        transformationType: "gemini_api",
+        transformationSource: "column",
+        transformationConfig: {
+          prompt: `You are a senior coverage analyst. Perform the THRESHOLD ELIGIBILITY VERIFICATION before any component-level coverage analysis. Three gates must each pass:
+
+GATE 1 — INSURED MATCH
+  Compare the FNOL insured name to the Declarations Page named insured. Allow for routine variations (DBA, "Inc." vs "Incorporated", trailing punctuation). Flag any material mismatch.
+
+GATE 2 — POLICY PERIOD
+  Confirm the date of loss falls strictly within [policy_period_start, policy_period_end] inclusive. If the loss is even one day outside the period, this gate FAILS.
+
+GATE 3 — SCHEDULED LOCATION
+  Confirm the loss location address is scheduled on the Dec Page (compare against scheduled_locations). Allow for trivial address formatting differences.
+
+INPUTS:
+  Declarations: {policy_declarations}
+  Scheduled locations: {scheduled_locations}
+  Claim facts (FNOL): {claim_facts}
+
+OUTPUT — produce a markdown section titled "Policy Verification" with this exact structure:
+
+**Gate 1 — Insured Match:** PASS or FAIL — one-line reasoning, citing the Dec Page named insured and the FNOL insured name.
+**Gate 2 — Policy Period:** PASS or FAIL — show the date of loss vs. the policy period dates.
+**Gate 3 — Scheduled Location:** PASS or FAIL — show the loss location vs. the matched scheduled location number/address (or "no match").
+**Overall Verification:** PASS (proceed to coverage analysis) or FAIL (deny claim — coverage analysis not performed).
+
+If any gate FAILs, state plainly that no further coverage analysis is performed.`,
+          sourceFields: ["policy_declarations", "scheduled_locations", "claim_facts"],
+          selectedTools: [],
+        },
+      },
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // STEP 7: REASONING — COMPONENT-BY-COMPONENT COVERAGE ANALYSIS
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "component_coverage_analysis",
+        name: "component_coverage_analysis",
+        type: "richtext",
+        description:
+          "For each distinct damage component: classify the cause of loss, apply the relevant covered cause OR exclusion (with citation), and decide Covered / Excluded / Referred with reasoning.",
+        isTransformation: true,
+        transformationType: "gemini_api",
+        transformationSource: "column",
+        transformationConfig: {
+          prompt: `You are a senior coverage analyst. Perform a COMPONENT-BY-COMPONENT coverage analysis.
+
+INPUTS:
+  Adjuster's damage components (with cause-of-loss observations): {adjuster_findings}
+  Contractor estimate (component costs): {damage_estimate}
+  Covered causes of loss: {covered_causes_of_loss}
+  Exclusions: {exclusions}
+  Endorsements purchased / declined: {endorsements}
+  Conditions and definitions: {policy_conditions_definitions}
+
+PROCEDURE:
+  For EACH damage component identified by the adjuster:
+    1. State the component name and the dollar amount from the contractor estimate.
+    2. State the adjuster's cause of loss in one sentence.
+    3. Map that cause to the policy:
+        a. Identify the controlling COVERED CAUSE OF LOSS (cite section/clause), OR
+        b. Identify the controlling EXCLUSION (cite section/clause and quote the operative phrase).
+        c. If an exclusion applies, check whether a purchased ENDORSEMENT writes coverage back. If a relevant endorsement was DECLINED on the Dec Page, call this out explicitly.
+        d. Check applicable conditions (e.g., vacancy, protective safeguards) that could affect coverage.
+    4. Decide: COVERED, EXCLUDED, or REFERRED (referred = needs SIU/engineering/legal input or facts are ambiguous).
+    5. Give a 2–3 sentence reasoning that explains WHY, citing the exact policy clause.
+
+OUTPUT FORMAT — markdown, one block per component:
+
+### Component N: <component name> — $<amount>
+- **Adjuster cause of loss:** <one sentence>
+- **Applicable policy provision:** <"Covered Cause" or "Exclusion" or "Endorsement"> — <Section/Clause citation> — "<quoted operative phrase>"
+- **Endorsement check:** <which endorsement was purchased/declined and whether it changes the result>
+- **Condition check:** <relevant conditions, or "none applicable">
+- **Decision:** COVERED | EXCLUDED | REFERRED
+- **Reasoning:** <2–3 sentences>
+
+Be rigorous. Every conclusion must cite the exact source clause. If facts are insufficient, mark REFERRED rather than guessing.`,
+          sourceFields: [
+            "adjuster_findings",
+            "damage_estimate",
+            "covered_causes_of_loss",
+            "exclusions",
+            "endorsements",
+            "policy_conditions_definitions",
+          ],
+          selectedTools: [],
+        },
+      },
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // STEP 8: REASONING — DEDUCTIBLE APPLICATION
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "deductible_application",
+        name: "deductible_application",
+        type: "richtext",
+        description:
+          "Determines which deductible tier applies to each COVERED component (e.g., Wind/Hail vs. AOP vs. Named Storm) and computes the math.",
+        isTransformation: true,
+        transformationType: "gemini_api",
+        transformationSource: "column",
+        transformationConfig: {
+          prompt: `You are a coverage analyst applying deductibles. Use the deductible schedule from the Dec Page and the component-level decisions from the prior analysis.
+
+INPUTS:
+  Deductible schedule: {deductibles}
+  Coverage limits (for percentage-based deductibles): {coverage_limits}
+  Scheduled locations (for per-location % deductibles): {scheduled_locations}
+  Component coverage analysis: {component_coverage_analysis}
+  Damage estimate (component amounts): {damage_estimate}
+
+RULES:
+  - Apply deductibles ONLY to components decided COVERED.
+  - Match each covered component's cause of loss to the most specific deductible tier (peril-specific deductibles like Wind/Hail or Named Storm take precedence over the AOP deductible).
+  - For percentage deductibles, compute the dollar amount using the controlling limit (e.g., 2% of the building limit at the affected location).
+  - If multiple covered components share the same deductible tier, the deductible applies once per occurrence unless the schedule states per-location or per-building.
+  - Show the math.
+
+OUTPUT FORMAT — markdown:
+
+### Deductible Application
+| Component | Cause | Component Amount | Applicable Deductible Tier | Deductible $ | Notes |
+|---|---|---|---|---|---|
+| ... | ... | $... | <tier> | $... | <basis / per-occurrence vs per-location> |
+
+**Total deductible(s) applied:** $<sum>
+**Reasoning:** <short paragraph: which tiers were chosen and why, citing the Dec Page lines>`,
+          sourceFields: [
+            "deductibles",
+            "coverage_limits",
+            "scheduled_locations",
+            "component_coverage_analysis",
+            "damage_estimate",
+          ],
+          selectedTools: [],
+        },
+      },
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // STEP 9: REASONING — FINAL DISPOSITION
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "final_disposition",
+        name: "final_disposition",
+        type: "richtext",
+        description: "Rolls up totals: total approved, total denied, total referred, and the net payable amount after deductibles.",
+        isTransformation: true,
+        transformationType: "gemini_api",
+        transformationSource: "column",
+        transformationConfig: {
+          prompt: `You are producing the FINAL DISPOSITION for this coverage decision. Compute totals from the prior steps.
+
+INPUTS:
+  Component coverage analysis: {component_coverage_analysis}
+  Deductible application: {deductible_application}
+  Damage estimate (totals): {damage_estimate}
+  Coverage limits (to check if any limit is exceeded): {coverage_limits}
+
+PROCEDURE:
+  1. Sum component amounts for each disposition: COVERED, EXCLUDED, REFERRED.
+  2. Subtract the total applied deductible(s) from the COVERED total.
+  3. Cap at the applicable coverage limit if the covered total exceeds the limit (note this explicitly).
+  4. Produce the payable amount.
+
+OUTPUT FORMAT — markdown:
+
+### Final Disposition
+| Disposition | Total |
+|---|---|
+| Total Claimed | $<contractor grand total> |
+| Total Approved (gross, before deductible) | $<sum of covered components> |
+| Total Excluded | $<sum of excluded components> |
+| Total Referred | $<sum of referred components> |
+| Less: Deductible(s) | -$<sum> |
+| Limit cap adjustment | -$<amount or $0> |
+| **Net Payable** | **$<final>** |
+
+**Notes:** <any caveats: limit caps, referrals pending, items requiring further investigation>`,
+          sourceFields: [
+            "component_coverage_analysis",
+            "deductible_application",
+            "damage_estimate",
+            "coverage_limits",
+          ],
+          selectedTools: [],
+        },
+      },
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // STEP 10: FINAL OUTPUT — COVERAGE OPINION MEMO
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        id: "coverage_opinion_memo",
+        name: "coverage_opinion_memo",
+        type: "richtext",
+        description:
+          "Final coverage opinion memo combining all sections with citations linking every conclusion back to the source document and clause. Output as a downloadable file.",
+        outputAsFile: true,
+        isTransformation: true,
+        transformationType: "gemini_api",
+        transformationSource: "column",
+        transformationConfig: {
+          prompt: `You are a senior coverage analyst producing the final COVERAGE OPINION MEMO that goes into the claim file. The memo must be self-contained, clearly structured, and every conclusion must be linked to a citation in the source document and clause.
+
+ASSEMBLE the memo using the prior sections verbatim where appropriate, then add a Citations section. Do NOT contradict any prior section.
+
+INPUTS:
+  Policy declarations: {policy_declarations}
+  Scheduled locations: {scheduled_locations}
+  Coverage limits: {coverage_limits}
+  Deductibles: {deductibles}
+  Endorsements: {endorsements}
+  Covered causes of loss: {covered_causes_of_loss}
+  Exclusions: {exclusions}
+  Conditions/definitions: {policy_conditions_definitions}
+  Claim facts (FNOL): {claim_facts}
+  Adjuster findings: {adjuster_findings}
+  Damage estimate: {damage_estimate}
+  Policy verification: {policy_verification}
+  Component coverage analysis: {component_coverage_analysis}
+  Deductible application: {deductible_application}
+  Final disposition: {final_disposition}
+
+REQUIRED MEMO STRUCTURE (markdown):
+
+# Coverage Opinion Memo
+
+**To:** Claim File
+**Re:** Claim # <claim_number> — <insured name>
+**Date of Loss:** <YYYY-MM-DD>
+**Policy #:** <policy_number>
+**Policy Period:** <start> to <end>
+**Prepared:** <today's date placeholder if not provided>
+
+## 1. Claim Summary
+- Insured: <named insured>
+- Policy: <policy number, form/edition>
+- Date of loss: <YYYY-MM-DD>
+- Location of loss: <address> (Scheduled Location <#>)
+- Reported cause of loss: <FNOL cause>
+- Total amount claimed: $<contractor grand total>
+- Damage components claimed (one bullet per component with $ amount)
+
+## 2. Policy Verification
+<insert the Policy Verification section verbatim>
+
+## 3. Component-by-Component Coverage Analysis
+<insert the Component Coverage Analysis section verbatim>
+
+## 4. Deductible Application
+<insert the Deductible Application section verbatim>
+
+## 5. Final Disposition
+<insert the Final Disposition section verbatim>
+
+## 6. Citations
+List every conclusion in the memo and the exact source it relies on. One row per citation:
+
+| # | Conclusion | Source Document | Clause / Section / Quote |
+|---|---|---|---|
+| 1 | ... | Declarations Page / Coverage Form CP 00 10 / FNOL / Adjuster Report / Contractor Estimate | <Section X.Y, paragraph Z — "verbatim quote"> |
+
+Every coverage decision (covered/excluded/referred) and every dollar figure must appear in the citation table.
+
+WRITING STYLE:
+- Crisp, professional, neutral tone.
+- No hedging unless explicitly REFERRED.
+- Every dollar figure rounded to whole dollars unless cents matter.
+- Use markdown tables and bold for emphasis.
+
+Produce the COMPLETE memo now.`,
+          sourceFields: [
+            "policy_declarations",
+            "scheduled_locations",
+            "coverage_limits",
+            "deductibles",
+            "endorsements",
+            "covered_causes_of_loss",
+            "exclusions",
+            "policy_conditions_definitions",
+            "claim_facts",
+            "adjuster_findings",
+            "damage_estimate",
+            "policy_verification",
+            "component_coverage_analysis",
+            "deductible_application",
+            "final_disposition",
+          ],
+          selectedTools: [],
+        },
+      },
+    ],
+  },
 ]
 
 /**
