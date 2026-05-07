@@ -1026,7 +1026,7 @@ export function DataExtractionPlatform({
   }, [activeSchema.name, isTemplateDialogOpen])
   const completedJobsCount = jobs.filter((j) => j.status === 'completed').length
   const sortedJobs = useMemo(
-    () => [...jobs].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()),
+    () => [...jobs].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
     [jobs],
   )
 

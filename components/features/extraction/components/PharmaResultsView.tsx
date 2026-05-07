@@ -113,11 +113,11 @@ export function PharmaResultsView({
   onSetEditingSection,
   onSetEditedValues,
 }: PharmaResultsViewProps) {
-  // Sort jobs by creation date
+  // Sort jobs by creation date (newest first)
   const sortedJobs = [...jobs].sort((a, b) => {
     const aTime = a.createdAt?.getTime() ?? 0
     const bTime = b.createdAt?.getTime() ?? 0
-    return aTime - bTime
+    return bTime - aTime
   })
 
   return (
