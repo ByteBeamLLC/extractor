@@ -354,6 +354,211 @@ export const STATIC_SCHEMA_TEMPLATES: SchemaTemplateDefinition[] = [
     ],
   },
   {
+    id: "drug-trade-name-proposer-sfda",
+    name: "Drug Trade Name Proposer (SFDA)",
+    description:
+      "Given a new drug's profile (and optional originator info), propose distinct trade-name options that don't collide with anything already registered in the Saudi market. Reads the Saudi Drug Register from the Knowledge Hub — upload data/saudi-drugs-register.md as a knowledge item named 'Saudi Drug Register' before running.",
+    agentType: "standard",
+    fields: [
+      {
+        id: "dnp_scientific_name",
+        name: "scientific_name",
+        type: "input",
+        inputType: "text",
+        required: true,
+        description:
+          "INN / active ingredient(s) of the new product, English (e.g. ATORVASTATIN, AMOXICILLIN+CLAVULANIC ACID, PHENOXYMETHYLPENICILLIN).",
+      },
+      {
+        id: "dnp_strength",
+        name: "strength",
+        type: "input",
+        inputType: "text",
+        description: "Strength value, e.g. 500 or 10/40. Optional.",
+      },
+      {
+        id: "dnp_strength_unit",
+        name: "strength_unit",
+        type: "input",
+        inputType: "text",
+        description: "Strength unit, e.g. mg, mg/ml, IU.",
+      },
+      {
+        id: "dnp_pharmaceutical_form",
+        name: "pharmaceutical_form",
+        type: "input",
+        inputType: "text",
+        description:
+          "Pharmaceutical form, e.g. Tablet, Capsule, Syrup, Solution for injection, Cream.",
+      },
+      {
+        id: "dnp_administration_route",
+        name: "administration_route",
+        type: "input",
+        inputType: "text",
+        description: "Route, e.g. Oral use, Parenteral use, Topical, Ophthalmic.",
+      },
+      {
+        id: "dnp_atc_code",
+        name: "atc_code",
+        type: "input",
+        inputType: "text",
+        description:
+          "ATC classification code if known (e.g. C10AA05 for atorvastatin). Used to identify therapeutic-class neighbours so suggestions don't collide with same-class brands.",
+      },
+      {
+        id: "dnp_therapeutic_indication",
+        name: "therapeutic_indication",
+        type: "input",
+        inputType: "text",
+        description:
+          "Brief therapeutic indication and target population (e.g. 'lipid-lowering agent for adults with hypercholesterolemia'). Informs the brand voice of the proposed names.",
+      },
+      {
+        id: "dnp_manufacturer",
+        name: "manufacturer",
+        type: "input",
+        inputType: "text",
+        description: "Manufacturer / MAH name for the new product (optional).",
+      },
+      {
+        id: "dnp_originator_brand_name",
+        name: "originator_brand_name",
+        type: "input",
+        inputType: "text",
+        description:
+          "Originator / reference brand name if generic (e.g. 'Lipitor' for atorvastatin, 'Augmentin' for co-amoxiclav). Optional but useful — suggestions will deliberately diverge from the originator brand family.",
+      },
+      {
+        id: "dnp_originator_manufacturer",
+        name: "originator_manufacturer",
+        type: "input",
+        inputType: "text",
+        description:
+          "Originator company (e.g. 'Pfizer' for Lipitor). Optional.",
+      },
+      {
+        id: "dnp_brand_intent",
+        name: "brand_intent",
+        type: "input",
+        inputType: "text",
+        description:
+          "Free-text positioning notes: premium / generic-led / scientific / consumer-friendly, any preferred sound or letter, naming constraints from marketing. Optional.",
+      },
+      {
+        id: "dnp_market_landscape",
+        name: "market_landscape",
+        type: "object",
+        description:
+          "Structured read of the Saudi market for this INN and its therapeutic class, drawn from the uploaded Saudi Drug Register knowledge item.",
+        isTransformation: true,
+        transformationType: "gemini_api",
+        transformationSource: "column",
+        transformationConfig: {
+          prompt:
+            "You are reading the Saudi Drug Register knowledge item below to map the existing brand landscape for a new drug. Use ONLY data from that register — do not invent stems or registrations.\n\n{kb:Saudi Drug Register}\n\nNew product profile:\n- INN / scientific name: {dnp_scientific_name}\n- ATC code (if provided): {dnp_atc_code}\n- form: {dnp_pharmaceutical_form}\n- route: {dnp_administration_route}\n- originator brand: {dnp_originator_brand_name}\n\nProduce a JSON object with these fields:\n- inn_match_found (boolean): true if the INN appears in the register (exact or close-match).\n- inn_canonical (string): the INN spelling as it appears in the register, or echo the input if no match.\n- existing_inn_stems (array of strings): every trade-stem already registered against this INN in the register, uppercase as stored. Empty array if INN absent.\n- atc_class (string): the dominant ATC code recorded for this INN (or null).\n- same_class_stems (array of strings): up to 50 trade-stems registered against OTHER INNs that share the same first 3 ATC characters (e.g. 'C10A' if ATC starts C10A...). These are the same-therapeutic-class neighbours sound-alike conflicts hurt most.\n- forbidden_stems_global (array of strings): up to 200 stems from the register that share a 3-letter prefix or phonetic head with the originator brand (or, if no originator, a tight semantic neighbourhood of the INN). These are the off-INN trademark-family hazards a proposed name must avoid.\n- naming_pattern_observations (string): 2–4 sentences describing how brands in this class are conventionally constructed (e.g. '-statin truncations like Atorva, Lipa, Statin; many '-or' endings derived from atorvastatin; few short two-syllable coined words').\n- crowding_assessment (string): one sentence on how saturated the same-INN brand space already is in KSA.",
+          sourceFields: [
+            "dnp_scientific_name",
+            "dnp_atc_code",
+            "dnp_pharmaceutical_form",
+            "dnp_administration_route",
+            "dnp_originator_brand_name",
+          ],
+          selectedTools: [],
+        },
+        children: [
+          { id: "dnp_landscape_inn_match", name: "inn_match_found", type: "boolean", description: "True if the INN exists in the Saudi register." },
+          { id: "dnp_landscape_inn_canonical", name: "inn_canonical", type: "string", description: "INN as spelt in the register." },
+          {
+            id: "dnp_landscape_existing_stems",
+            name: "existing_inn_stems",
+            type: "list",
+            description: "Trade-stems already registered against this INN.",
+            item: { id: "dnp_landscape_existing_stem_item", name: "stem", type: "string" },
+          },
+          { id: "dnp_landscape_atc_class", name: "atc_class", type: "string", description: "Dominant ATC code for this INN in the register." },
+          {
+            id: "dnp_landscape_same_class_stems",
+            name: "same_class_stems",
+            type: "list",
+            description: "Stems registered against other INNs in the same ATC therapeutic class.",
+            item: { id: "dnp_landscape_same_class_stem_item", name: "stem", type: "string" },
+          },
+          {
+            id: "dnp_landscape_forbidden_stems",
+            name: "forbidden_stems_global",
+            type: "list",
+            description: "Stems globally forbidden because they share a head with the originator or INN neighbourhood.",
+            item: { id: "dnp_landscape_forbidden_stem_item", name: "stem", type: "string" },
+          },
+          { id: "dnp_landscape_naming_patterns", name: "naming_pattern_observations", type: "richtext" },
+          { id: "dnp_landscape_crowding", name: "crowding_assessment", type: "string" },
+        ],
+      },
+      {
+        id: "dnp_proposed_name_options",
+        name: "proposed_name_options",
+        type: "list",
+        description:
+          "Eight to twelve trade-name candidates for the new product, ranked best-first. Each is guaranteed not to collide with any stem visible in market_landscape.",
+        isTransformation: true,
+        transformationType: "gemini_api",
+        transformationSource: "column",
+        transformationConfig: {
+          prompt:
+            "You are an SFDA-aware brand-naming specialist. Generate 8–12 candidate trade names for the new product, ranked best-first.\n\nNew product profile:\n- INN: {dnp_scientific_name}\n- strength: {dnp_strength} {dnp_strength_unit}\n- form: {dnp_pharmaceutical_form}\n- route: {dnp_administration_route}\n- ATC: {dnp_atc_code}\n- therapeutic indication: {dnp_therapeutic_indication}\n- manufacturer: {dnp_manufacturer}\n- originator brand (if generic): {dnp_originator_brand_name}\n- originator company: {dnp_originator_manufacturer}\n- brand intent / positioning: {dnp_brand_intent}\n\nMarket landscape from the Saudi Drug Register:\n{dnp_market_landscape}\n\nHard rules every candidate must satisfy:\n- MUST NOT match (orthographically OR phonetically) any stem in market_landscape.existing_inn_stems, market_landscape.same_class_stems, or market_landscape.forbidden_stems_global. Treat shared 4+ letter heads, shared rhyming tails, and 1-edit Levenshtein neighbours as a match.\n- MUST NOT mimic the originator brand head (e.g. don't suggest 'Lipiton' if originator is 'Lipitor').\n- MUST be 4–12 characters, no spaces, no punctuation, easy to pronounce in both English and Arabic transliteration; no awkward consonant clusters.\n- MUST NOT use efficacy claims ('Cure', 'Best', 'Maxi', 'Ultra') — SFDA labelling guidance treats those as misleading.\n- MUST NOT use a class-implying suffix that does not match the actual class (e.g. don't suggest '-cillin' for a non-penicillin, '-statin' for a non-statin).\n\nSoft preferences:\n- Names that hint at the indication or mechanism without being literal.\n- Coined words that are easy to trademark internationally.\n- Avoid heads already heavily reused for this INN — vary the lead consonant/vowel from market_landscape.existing_inn_stems.\n\nOutput a JSON array of 8–12 items, ranked best-first. Each item:\n- name (string): the suggested trade name, capitalised as it would appear on packaging.\n- rationale (string): 1–2 sentences on what makes it fit the product and stay clear of the register.\n- nearest_existing_stem (string): the closest stem from market_landscape and how this name diverges from it (or 'none in register' if there is genuinely no near neighbour).\n- pronounceability_notes (string): English + Arabic pronounceability for the KSA market, including the Arabic-transliteration spelling you'd recommend.\n- arabic_transliteration (string): suggested Arabic-script rendering (e.g. أتورفاكس).\n- residual_risks (string): risks the user should still verify outside SFDA (international trademark, GCC, EMA Article 57, USPTO) — empty string if none.",
+          sourceFields: [
+            "dnp_scientific_name",
+            "dnp_strength",
+            "dnp_strength_unit",
+            "dnp_pharmaceutical_form",
+            "dnp_administration_route",
+            "dnp_atc_code",
+            "dnp_therapeutic_indication",
+            "dnp_manufacturer",
+            "dnp_originator_brand_name",
+            "dnp_originator_manufacturer",
+            "dnp_brand_intent",
+            "dnp_market_landscape",
+          ],
+          selectedTools: [],
+        },
+        item: {
+          id: "dnp_option_item",
+          name: "option",
+          type: "object",
+          children: [
+            { id: "dnp_option_name", name: "name", type: "string", description: "Suggested trade name as on packaging." },
+            { id: "dnp_option_rationale", name: "rationale", type: "string", description: "Why this fits the product and clears the register." },
+            { id: "dnp_option_nearest", name: "nearest_existing_stem", type: "string", description: "Closest stem in the register and how this name diverges." },
+            { id: "dnp_option_pronounceability", name: "pronounceability_notes", type: "string", description: "English + Arabic pronounceability." },
+            { id: "dnp_option_arabic", name: "arabic_transliteration", type: "string", description: "Suggested Arabic-script rendering." },
+            { id: "dnp_option_residual_risks", name: "residual_risks", type: "string", description: "Remaining risks to verify externally." },
+          ],
+        },
+      },
+      {
+        id: "dnp_recommendation",
+        name: "recommendation",
+        type: "richtext",
+        description:
+          "Top pick from proposed_name_options with a one-paragraph rationale and the external checks the team should still complete.",
+        isTransformation: true,
+        transformationType: "gemini_api",
+        transformationSource: "column",
+        transformationConfig: {
+          prompt:
+            "Write a 4–6 sentence recommendation for the regulatory affairs lead in regulator-friendly tone:\n- Name the single strongest candidate from {dnp_proposed_name_options} and explain in 1–2 sentences why it is the most defensible choice given the Saudi market landscape.\n- Mention one runner-up to keep in reserve.\n- End with a short bulleted list of external checks still required before locking the name (international trademark search, GCC harmonisation, EMA Article 57, USPTO).\n\nDo not invent registrations or candidate names not present in the upstream fields.",
+          sourceFields: [
+            "dnp_proposed_name_options",
+            "dnp_market_landscape",
+          ],
+          selectedTools: [],
+        },
+      },
+    ],
+  },
+  {
     id: "leaflet-review",
     name: "Leaflet Review",
     description: "Compare original drug leaflet against a reference drug.",
