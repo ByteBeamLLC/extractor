@@ -263,9 +263,17 @@ export function DocumentMissionControl({ job, schema, onUpdateResults }: Documen
         switch (panel.type) {
             case 'input-document':
                 const doc = panel.inputDocument || panel.value
+                // Text inputs come in wrapped as a virtual ${field}.txt File with a blob URL
+                // (DataExtractionPlatform line ~2410). If we hand that URL to MCSourcePanel
+                // it tries to <img src> the .txt and falls back to the alt text. Detect text
+                // inputs and route through MCSourcePanel's text branch by suppressing imageUrl.
+                const isTextInput =
+                    panel.inputField?.inputType === 'text' ||
+                    doc?.inputType === 'text' ||
+                    (typeof doc?.textValue === 'string' && doc.textValue.trim().length > 0 && !doc?.previewUrl)
                 return (
                     <MCSourcePanel
-                        imageUrl={doc?.previewUrl || doc?.fileUrl}
+                        imageUrl={isTextInput ? null : (doc?.previewUrl || doc?.fileUrl)}
                         fileName={doc?.fileName || panel.label}
                         textContent={doc?.textValue}
                     />
