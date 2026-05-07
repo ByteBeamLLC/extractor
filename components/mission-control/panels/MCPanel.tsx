@@ -75,6 +75,8 @@ export function MCPanel({
     // Default min sizes based on type
     const minHeight = type === 'table' ? 200 : (type === 'source' || type === 'input-document') ? 200 : 100
 
+    const isInputPanel = type === 'input-document'
+
     return (
         <div
             ref={setNodeRef}
@@ -84,9 +86,14 @@ export function MCPanel({
             }}
             {...attributes}
             className={cn(
-                "group bg-white border border-slate-200 rounded-lg overflow-hidden",
+                "group rounded-lg overflow-hidden",
                 "hover:shadow-md transition-shadow",
                 "resize overflow-auto", // CSS resize capability
+                // Input-document panels get an amber tint so the user can tell at a glance
+                // which cards are inputs they provided vs. generated/transformation outputs.
+                isInputPanel
+                    ? "bg-amber-50/40 border border-amber-200"
+                    : "bg-white border border-slate-200",
                 isDragging && "opacity-50 shadow-lg ring-2 ring-primary/50 z-50",
                 // Size classes for grid spanning
                 size === 'large' && "col-span-1 md:col-span-2",
@@ -97,7 +104,12 @@ export function MCPanel({
             {/* Panel Header - Draggable */}
             <div
                 {...listeners}
-                className="flex items-center gap-2 px-3 py-2 border-b border-slate-100 bg-slate-50/50 cursor-grab active:cursor-grabbing"
+                className={cn(
+                    "flex items-center gap-2 px-3 py-2 border-b cursor-grab active:cursor-grabbing",
+                    isInputPanel
+                        ? "bg-amber-100/60 border-amber-200"
+                        : "bg-slate-50/50 border-slate-100",
+                )}
             >
                 {titleIcon || <Icon className={cn("h-4 w-4 shrink-0", config.color)} />}
                 <span className="text-sm font-medium text-slate-700 truncate flex-1">
