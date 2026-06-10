@@ -29,20 +29,31 @@ export async function GET(request: NextRequest) {
       .from('recipe_builder_users')
       .select('email, role, is_active')
       .eq('email', user.email)
-      .eq('is_active', true)
       .single()
 
     if (error || !rbUser) {
       return NextResponse.json({
         hasAccess: false,
+        blocked: false,
         role: null,
         email: user.email,
         debug: { dbError: error?.message, code: error?.code, step: 'db_query' }
       })
     }
 
+    if (!rbUser.is_active) {
+      return NextResponse.json({
+        hasAccess: false,
+        blocked: true,
+        role: null,
+        email: user.email,
+        redirectUrl: 'https://app.recipebuilder.co',
+      })
+    }
+
     return NextResponse.json({
       hasAccess: true,
+      blocked: false,
       role: rbUser.role,
       email: user.email,
     })

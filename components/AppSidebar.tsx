@@ -69,11 +69,13 @@ function hasChildren(item: NavigationItem): item is NavItemWithChildren {
 interface AppSidebarProps {
     onNavigate: (view: string) => void
     activeView: string
+    onAccessResolved?: (blocked: boolean) => void
 }
 
-export function AppSidebar({ onNavigate, activeView }: AppSidebarProps) {
+export function AppSidebar({ onNavigate, activeView, onAccessResolved }: AppSidebarProps) {
     const [openMenus, setOpenMenus] = useState<string[]>(['recipe-builder'])
     const [hasRecipeBuilderAccess, setHasRecipeBuilderAccess] = useState(false)
+    const [isBlocked, setIsBlocked] = useState(false)
     const [accessLoading, setAccessLoading] = useState(true)
 
     // Function to check recipe builder access
@@ -82,14 +84,18 @@ export function AppSidebar({ onNavigate, activeView }: AppSidebarProps) {
             setAccessLoading(true)
             const response = await fetch('/api/recipe-builder/access')
             const data = await response.json()
+            const blocked = data.blocked === true
             setHasRecipeBuilderAccess(data.hasAccess === true)
+            setIsBlocked(blocked)
+            onAccessResolved?.(blocked)
         } catch (error) {
             console.error('Failed to check recipe builder access:', error)
             setHasRecipeBuilderAccess(false)
+            setIsBlocked(false)
         } finally {
             setAccessLoading(false)
         }
-    }, [])
+    }, [onAccessResolved])
 
     // Check access on mount and when auth state changes
     useEffect(() => {
@@ -162,6 +168,14 @@ export function AppSidebar({ onNavigate, activeView }: AppSidebarProps) {
         },
     ]
 
+    const handleNavigate = (value: string) => {
+        if (isBlocked && value.startsWith('recipe-builder')) {
+            onNavigate('recipe-builder-blocked')
+        } else {
+            onNavigate(value)
+        }
+    }
+
     const toggleMenu = (menuValue: string) => {
         setOpenMenus((prev) =>
             prev.includes(menuValue)
@@ -186,8 +200,8 @@ export function AppSidebar({ onNavigate, activeView }: AppSidebarProps) {
             return null
         }
 
-        // Check access requirements
-        if (item.requiresAccess === 'recipe-builder' && !hasRecipeBuilderAccess) {
+        // Check access requirements — show menu for blocked users so they can reach the block screen
+        if (item.requiresAccess === 'recipe-builder' && !hasRecipeBuilderAccess && !isBlocked) {
             return null
         }
 
@@ -224,7 +238,7 @@ export function AppSidebar({ onNavigate, activeView }: AppSidebarProps) {
                                             <>
                                                 <SidebarMenuSubItem>
                                                     <SidebarMenuSubButton
-                                                        onClick={() => onNavigate(child.value)}
+                                                        onClick={() => handleNavigate(child.value)}
                                                         isActive={activeView === child.value}
                                                         className="font-medium"
                                                     >
@@ -235,7 +249,7 @@ export function AppSidebar({ onNavigate, activeView }: AppSidebarProps) {
                                                 {child.children.filter(sc => !sc.hidden).map((subChild) => (
                                                     <SidebarMenuSubItem key={subChild.value}>
                                                         <SidebarMenuSubButton
-                                                            onClick={() => onNavigate(subChild.value)}
+                                                            onClick={() => handleNavigate(subChild.value)}
                                                             isActive={activeView === subChild.value}
                                                             className="pl-6"
                                                         >
@@ -247,7 +261,7 @@ export function AppSidebar({ onNavigate, activeView }: AppSidebarProps) {
                                         ) : (
                                             <SidebarMenuSubItem>
                                                 <SidebarMenuSubButton
-                                                    onClick={() => onNavigate(child.value)}
+                                                    onClick={() => handleNavigate(child.value)}
                                                     isActive={activeView === child.value}
                                                 >
                                                     {child.icon && <child.icon className="size-4" />}
@@ -267,7 +281,7 @@ export function AppSidebar({ onNavigate, activeView }: AppSidebarProps) {
         return (
             <SidebarMenuItem key={item.value}>
                 <SidebarMenuButton
-                    onClick={() => onNavigate(item.value)}
+                    onClick={() => handleNavigate(item.value)}
                     isActive={activeView === item.value}
                     tooltip={item.title}
                 >

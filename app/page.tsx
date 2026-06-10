@@ -19,8 +19,9 @@ import {
   RecipesView as RecipeBuilderRecipes,
   IngredientsView as RecipeBuilderIngredients,
 } from '@/components/recipe-builder'
+import { RecipeBuilderBlockedScreen } from '@/components/RecipeBuilderBlockedScreen'
 
-// Helper to check if a view is a Recipe Builder view
+// Helper to check if a view is a Recipe Builder view (includes blocked sentinel)
 function isRecipeBuilderView(view: string): boolean {
   return view.startsWith('recipe-builder')
 }
@@ -41,11 +42,15 @@ function getRecipeBuilderView(view: string) {
 
 export default function Home() {
   const [activeView, setActiveView] = React.useState("home")
+  const [isBlocked, setIsBlocked] = React.useState(false)
 
   // Render the active view content
   const renderContent = () => {
     // Recipe Builder views
     if (isRecipeBuilderView(activeView)) {
+      if (isBlocked) {
+        return <RecipeBuilderBlockedScreen />
+      }
       return (
         <RecipeBuilderProvider>
           {getRecipeBuilderView(activeView)}
@@ -73,7 +78,7 @@ export default function Home() {
   return (
     <WorkspaceProvider>
       <SidebarProvider>
-        <AppSidebar onNavigate={setActiveView} activeView={activeView} />
+        <AppSidebar onNavigate={setActiveView} activeView={activeView} onAccessResolved={setIsBlocked} />
         <SidebarInset>
           <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 border-b px-4 bg-background">
             <div className="flex items-center gap-2 px-4">
